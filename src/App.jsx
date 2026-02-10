@@ -717,6 +717,12 @@ const App = () => {
     }
   }, [tokens, getTimeLimit]);
 
+  // --- Init Shop on Start ---
+  useEffect(() => {
+    generateShop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // --- Game Logic ---
   const handleTurnEnd = (turnCombo) => {
     let bonus = 0;
@@ -1013,67 +1019,35 @@ const App = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen w-full px-4 py-8 overflow-hidden">
-      <div className="text-sm font-black text-amber-500 tracking-[0.4em] mb-2 drop-shadow-md">
-        PUZZLE QUEST
-      </div>
+    <div className="game-container">
+      {/* 1. HUD / Status Bar (Layer 100) */}
+      <div className="status-bar layer-hud">
+        <div className="w-full max-w-[400px] flex justify-between items-center px-4">
+          <div className="flex flex-col">
+            <div className="text-[10px] font-black text-indigo-300 uppercase tracking-widest drop-shadow-sm">
+              Target Combo
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black text-amber-400 tabular-nums">
+                {cycleTotalCombo}
+              </span>
+              <span className="text-slate-500 font-bold text-xs">/ {target}</span>
+            </div>
+          </div>
 
-      {/* HUD */}
-      <div className="w-full max-w-[360px] flex justify-between items-end mb-4">
-        <div className="flex flex-col gap-1">
-          <div className="text-[10px] font-black text-indigo-300 uppercase tracking-widest drop-shadow-sm">
-            Target Combo
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-black text-amber-400 tabular-nums">
-              {cycleTotalCombo}
-            </span>
-            <span className="text-slate-500 font-bold">/ {target}</span>
-          </div>
-          <div className="flex gap-1 mt-1">
-            {Array.from({ length: maxTurns }).map((_, i) => (
-              <div
-                key={i}
-                className={`w-3 h-3 rounded-full border border-white/30 ${turn > i ? "bg-white" : "bg-white/10"
-                  }`}
-              />
-            ))}
-            <span className="text-[9px] text-slate-400 font-bold ml-1">
-              TURN {turn} / {maxTurns}
-            </span>
-          </div>
-          {/* Energy Bar */}
-          <div className="flex flex-col gap-1 mt-3">
-            <div className="flex justify-between items-center px-1">
-              <span className="text-[9px] text-indigo-400 font-bold tracking-widest uppercase">
-                Energy
-              </span>
-              <span className="text-[10px] text-indigo-300 font-black">
-                {energy} / {maxEnergy}
-              </span>
-            </div>
-            <div className="h-2 w-48 bg-slate-900 rounded-full overflow-hidden border border-indigo-500/20">
-              <div
-                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500"
-                style={{ width: `${(energy / maxEnergy) * 100}%` }}
-              />
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <button
               onClick={openShop}
-              className="group p-2.5 glass border-amber-500/50 hover:border-amber-400 hover:bg-amber-500/10 transition-all rounded-xl shadow-lg shadow-amber-900/10 active:scale-95"
+              className="group p-2 glass border-amber-500/50 hover:border-amber-400 hover:bg-amber-500/10 transition-all rounded-xl shadow-lg active:scale-95"
             >
               <ShoppingCart className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
             </button>
-            <div className="flex flex-col items-end gap-0.5">
-              <div className="text-[10px] font-black text-indigo-300 uppercase tracking-widest drop-shadow-sm">
+            <div className="flex flex-col items-end">
+              <div className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">
                 Stars
               </div>
-              <div className="flex items-center gap-1.5 text-3xl font-black text-yellow-400">
-                <Star className="w-6 h-6 fill-current animate-pulse" />
+              <div className="flex items-center gap-1 text-2xl font-black text-yellow-400">
+                <Star className="w-5 h-5 fill-current animate-pulse" />
                 <span className="tabular-nums">{stars}</span>
               </div>
             </div>
@@ -1081,212 +1055,207 @@ const App = () => {
         </div>
       </div>
 
-      {/* Combo Display & Skip Button */}
-      <div className="combo-info h-16 flex flex-col justify-center items-center gap-2">
-        {cycleTotalCombo >= target && turn < maxTurns && (
-          <button
-            onClick={skipTurns}
-            className="group relative px-6 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-xl font-black text-slate-900 text-xs tracking-tighter shadow-xl shadow-amber-500/20 active:scale-95 transition-all overflow-hidden animate-in zoom-in duration-300"
-          >
-            <span className="relative z-10 flex items-center gap-2">
-              NEXT GOAL (+{(maxTurns - turn) * 2} <Star className="w-3 h-3 fill-current" />)
-            </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 -translate-x-full group-hover:animate-shimmer" />
-          </button>
-        )}
-        <div id="combo-count" ref={comboRef}></div>
-      </div>
+      {/* 2. Puzzle & Play Area (Layer 10) */}
+      <div className="puzzle-area layer-puzzle custom-scrollbar">
+        <div className="flex flex-col items-center w-full max-w-md scale-95 sm:scale-100 origin-top">
+          <div className="text-[10px] font-black text-amber-500 tracking-[0.4em] mb-4 drop-shadow-md">
+            PUZZLE QUEST
+          </div>
 
-      {/* Timer Bar */}
-      <div className="timer-container">
-        <div id="timer-bar" ref={timerRef}></div>
-      </div>
-
-      {/* Board */}
-      <div className="board-wrapper">
-        <div id="board" className="board" ref={boardRef}></div>
-      </div>
-
-      {/* Controls - Removed Restart Board Button */}
-
-      <div className="hint mt-6 text-center text-[10px] text-slate-600 uppercase tracking-widest">
-        Drag to move • Match 3+ • Combos stack
-      </div>
-
-      {/* Token Slots */}
-      <div className="w-full max-w-[360px] mt-8">
-        <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 px-1">
-          Active Tokens
-        </div>
-        <div className="grid grid-cols-6 gap-2">
-          {tokens.map((t, i) => (
-            <div
-              key={i}
-              className={`aspect-square rounded-xl flex flex-col items-center justify-center relative border-2 transition-all p-1
-                            ${t ? "bg-slate-800/80 border-indigo-500/50 shadow-lg shadow-indigo-500/10" : "bg-slate-900/30 border-slate-800 border-dashed"}
-                        `}
-            >
-              {t ? (
-                <>
-                  <div className="text-[8px] font-black text-indigo-300 truncate w-full text-center">
-                    {t.name}
-                  </div>
-                  <div className="text-xs font-black text-white">
-                    L{t.level || 1}
-                  </div>
-                  {t.type === "skill" && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        useSkill(t, i);
-                      }}
-                      disabled={
-                        energy < (t.cost || 0) || engineRef.current?.processing
-                      }
-                      className={`mt-1 text-[9px] font-black px-2 py-1 rounded shadow-sm
-                                  ${energy >= (t.cost || 0) &&
-                          !engineRef.current?.processing
-                          ? "rpg-btn text-white border-b-2 border-indigo-900"
-                          : "bg-slate-700 text-slate-500 cursor-not-allowed"
-                        }
-                                `}
-                    >
-                      SKILL {t.cost}E
-                    </button>
-                  )}
-                  {t.enchantment && (
-                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                      <div className="text-[7px] font-black bg-purple-600 text-white px-1 rounded-full whitespace-nowrap shadow-sm">
-                        {t.enchantName}
-                      </div>
-                      <Sparkles className="w-3 h-3 text-purple-400 drop-shadow-sm" />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="w-1 h-3 bg-slate-800 rounded-full" />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Shop Overlay */}
-      {showShop && (
-        <div className="fixed inset-0 z-[1000] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="w-full max-w-lg">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-4xl font-black text-indigo-300 drop-shadow-lg tracking-widest">
-                SHOP
-              </h2>
-              <div className="flex items-center gap-2 text-2xl font-black text-amber-400 drop-shadow-sm">
-                <Star className="w-6 h-6 fill-current" /> {stars}
+          {/* Turn & Energy */}
+          <div className="w-full flex justify-between items-center mb-6 px-4">
+            <div className="flex flex-col gap-1">
+              <div className="flex gap-1">
+                {Array.from({ length: maxTurns }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-3 h-3 rounded-full border border-white/20 ${turn > i ? "bg-white" : "bg-white/5"}`}
+                  />
+                ))}
+                <span className="text-[9px] text-slate-500 font-bold ml-1 uppercase">
+                  Turn {turn}/{maxTurns}
+                </span>
               </div>
+              <div className="h-1.5 w-32 bg-slate-900 rounded-full overflow-hidden border border-indigo-500/10 mt-1">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500"
+                  style={{ width: `${(energy / maxEnergy) * 100}%` }}
+                />
+              </div>
+              <div className="text-[8px] text-indigo-400 font-black uppercase tracking-tighter">Energy {energy}/{maxEnergy}</div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 mb-8">
-              {shopItems.map((item, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => buyItem(item)}
-                  className="w-full shop-item p-6 rounded-3xl flex justify-between items-center group transition-all text-left"
+            {cycleTotalCombo >= target && turn < maxTurns && (
+              <button
+                onClick={skipTurns}
+                className="group relative px-4 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-xl font-black text-slate-900 text-[10px] shadow-xl shadow-amber-500/20 active:scale-95 transition-all overflow-hidden"
+              >
+                NEXT GOAL (+{(maxTurns - turn) * 2}★)
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 -translate-x-full group-hover:animate-shimmer" />
+              </button>
+            )}
+          </div>
+
+          {/* Combo Display */}
+          <div className="h-8 mb-2">
+            <div id="combo-count" ref={comboRef} className="text-2xl font-black"></div>
+          </div>
+
+          {/* Timer */}
+          <div className="timer-container mb-4">
+            <div id="timer-bar" ref={timerRef}></div>
+          </div>
+
+          {/* Board */}
+          <div className="board-wrapper">
+            <div id="board" className="board" ref={boardRef}></div>
+          </div>
+
+          {/* Token Slots */}
+          <div className="w-full mt-8 px-4">
+            <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-3 px-1">
+              Equipped Tokens
+            </div>
+            <div className="grid grid-cols-6 gap-2">
+              {tokens.map((t, i) => (
+                <div
+                  key={i}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center relative border transition-all p-1
+                    ${t ? "bg-slate-900/60 border-indigo-500/30 shadow-lg shadow-indigo-950/20" : "bg-slate-950/20 border-slate-800 border-dashed"}
+                  `}
                 >
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl font-black text-white tracking-tight">
-                        {item.name}
-                      </span>
-                      {item.isSale && (
-                        <span className="text-[10px] font-black bg-red-600 text-white px-2 py-0.5 rounded-md shadow-lg shadow-red-900/20 border border-red-400/30 animate-pulse">
-                          SALE 50% OFF
-                        </span>
+                  {t ? (
+                    <>
+                      <div className="text-[7px] font-black text-indigo-200 truncate w-full text-center mb-0.5">
+                        {t.name}
+                      </div>
+                      <div className="text-[10px] font-black text-white">
+                        L{t.level || 1}
+                      </div>
+                      {t.type === "skill" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            useSkill(t, i);
+                          }}
+                          disabled={energy < (t.cost || 0) || engineRef.current?.processing}
+                          className={`mt-1 text-[7px] font-black px-1 py-0.5 rounded
+                            ${energy >= (t.cost || 0) && !engineRef.current?.processing
+                              ? "bg-indigo-600 text-white"
+                              : "bg-slate-800 text-slate-600 pointer-events-none"
+                            }
+                          `}
+                        >
+                          {t.cost}E
+                        </button>
                       )}
-                      {item.enchantment && (
-                        <span className="text-[10px] font-black bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-2.5 py-1 rounded-full shadow-lg shadow-purple-900/20 border border-purple-400/30">
-                          ✦ {item.enchantName}
-                        </span>
+                      {t.enchantment && (
+                        <div className="absolute -top-1.5 left-1/2 -translate-x-1/2">
+                          <Sparkles className="w-3 h-3 text-purple-400 drop-shadow-sm" />
+                        </div>
                       )}
-                    </div>
-                    <div className="text-xs text-slate-400 font-bold leading-relaxed max-w-[240px]">
-                      {item.desc}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    {item.isSale && (
-                      <span className="text-[10px] text-slate-500 font-bold line-through">
-                        ★{item.originalPrice}
-                      </span>
-                    )}
-                    <div className="flex items-center gap-2 bg-gradient-to-b from-amber-400 to-amber-600 text-slate-950 px-5 py-3 rounded-2xl font-black border-b-4 border-amber-800 active:border-b-0 active:translate-y-1 transition-all shadow-xl shadow-amber-900/20">
-                      <span className="text-lg">{item.price}</span>
-                      <Star className="w-5 h-5 fill-current" />
-                    </div>
-                  </div>
-                </button>
+                    </>
+                  ) : (
+                    <div className="w-0.5 h-2 bg-slate-800 rounded-full" />
+                  )}
+                </div>
               ))}
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => {
-                  if (stars >= 1) {
-                    setStars((prev) => prev - 1);
-                    generateShop();
-                  }
-                }}
-                className="bg-slate-900 py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 border border-slate-800"
-              >
-                <RotateCcw className="w-4 h-4" /> REROLL (1★)
-              </button>
+          <div className="hint mt-6 text-center text-[9px] text-slate-700 uppercase tracking-widest italic">
+            Drag to move • Match 3+ • Combos stack
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Overlays (Layer 200+) */}
+      <div className="layer-overlay pointer-events-none">
+        {showShop && (
+          <div className="pointer-events-auto fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-start pt-20 pb-32 px-6 overflow-y-auto animate-in fade-in duration-300">
+            <div className="w-full max-w-lg">
+              <div className="flex justify-between items-center mb-8 px-2">
+                <h2 className="text-4xl font-black text-indigo-300 drop-shadow-lg tracking-widest">よろず屋</h2>
+                <div className="flex items-center gap-2 text-2xl font-black text-amber-400">
+                  所持金: <Star className="w-6 h-6 fill-current" /> {stars}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-10 max-h-[60vh] overflow-y-auto px-2 custom-scrollbar">
+                {shopItems.map((item, idx) => {
+                  const isSkill = item.type === "skill";
+                  const isPassive = item.type === "passive";
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => buyItem(item)}
+                      className={`w-full shop-item-card p-6 rounded-[2rem] flex flex-col items-center justify-between group transition-all text-center relative overflow-hidden border-2 h-full min-h-[250px] ${isSkill ? "border-blue-500/30 bg-blue-900/10" : isPassive ? "border-amber-500/30 bg-amber-900/10" : "border-purple-500/30 bg-purple-900/10"
+                        }`}
+                    >
+                      <div className="flex flex-col items-center gap-2 relative z-10 w-full">
+                        <span className="text-lg font-black text-white">{item.name}</span>
+                        <div className="flex gap-1">
+                          {item.isSale && <span className="text-[8px] bg-red-600 text-white px-2 py-0.5 rounded-full uppercase">Sale</span>}
+                          {item.enchantment && <span className="text-[8px] bg-purple-600 text-white px-2 py-0.5 rounded-full uppercase">✦ {item.enchantName}</span>}
+                        </div>
+                        <div className="text-[11px] text-slate-400 h-[3em] overflow-hidden line-clamp-2 px-2 italic">{item.desc}</div>
+                      </div>
+                      <div className="flex items-center gap-2 bg-slate-950/90 px-4 py-2 rounded-2xl border border-white/10 group-hover:border-yellow-400 group-transition-all">
+                        <span className="text-lg text-yellow-400">{item.price}</span>
+                        <Star className="w-4 h-4 fill-yellow-400" />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
               <button
                 onClick={() => setShowShop(false)}
-                className="bg-indigo-600 py-4 rounded-2xl font-black text-xs shadow-lg shadow-indigo-600/30"
+                className="w-full py-5 rounded-[2rem] glass border-red-500/40 text-red-400 font-black tracking-widest hover:bg-red-500/10 transition-all uppercase"
               >
-                CONTINUE
+                マップに戻る
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Choice Modal */}
-      {pendingShopItem && (
-        <div className="fixed inset-0 z-[2000] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-slate-100">
-          <div className="w-full max-w-xs glass p-6 rounded-3xl text-center">
-            <h3 className="text-xl font-black mb-2">重複トークン</h3>
-            <p className="text-sm text-slate-400 mb-6 font-bold">
-              すでに「{pendingShopItem.name}」を所持しています。どうしますか？
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={() => handleChoice("upgrade")}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-2xl font-black text-white shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
-              >
-                強化する (Lv UP)
-              </button>
-              <button
-                onClick={() => handleChoice("new")}
-                className="w-full bg-slate-800 hover:bg-slate-700 py-3 rounded-2xl font-black text-slate-200 border border-slate-700 transition-all active:scale-95"
-              >
-                2つ目として装備する
-              </button>
-              <button
-                onClick={() => setPendingShopItem(null)}
-                className="w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-400"
-              >
-                キャンセル
-              </button>
+        {pendingShopItem && (
+          <div className="pointer-events-auto fixed inset-0 z-[300] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-slate-100">
+            <div className="w-full max-w-xs glass p-8 rounded-3xl text-center border-amber-500/30 shadow-2xl">
+              <h3 className="text-2xl font-black mb-4 text-amber-500">重複トークン</h3>
+              <p className="text-sm text-slate-300 mb-8 font-bold leading-relaxed">
+                すでに「{pendingShopItem.name}」を所持しています。どうしますか？
+              </p>
+              <div className="space-y-4">
+                <button
+                  onClick={() => handleChoice("upgrade")}
+                  className="w-full bg-indigo-600 py-4 rounded-2xl font-black shadow-lg shadow-indigo-600/30 active:scale-95 transition-all outline-none"
+                >
+                  強化する (Lv UP)
+                </button>
+                <button
+                  onClick={() => handleChoice("new")}
+                  className="w-full bg-slate-800 py-4 rounded-2xl font-black text-slate-400 border border-slate-700 active:scale-95 transition-all outline-none"
+                >
+                  2つ目として装備
+                </button>
+                <button
+                  onClick={() => setPendingShopItem(null)}
+                  className="w-full py-2 text-xs font-bold text-slate-600 hover:text-slate-500 transition-colors"
+                >
+                  キャンセル
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Notification */}
-      {message && (
-        <div className="fixed top-12 glass px-6 py-3 rounded-2xl font-black text-amber-500 shadow-2xl animate-pop z-[2000]">
-          {message}
-        </div>
-      )}
+        {message && (
+          <div className="pointer-events-none fixed top-24 left-1/2 -translate-x-1/2 glass px-6 py-3 rounded-2xl font-black text-amber-500 shadow-2xl animate-pop layer-pop">
+            {message}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
