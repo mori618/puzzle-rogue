@@ -1,20 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  font-family: "Mochiy Pop One", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #020617;
+  color: #e2e8f0;
+  background-color: #0f172a;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --rpg-gold: #fbbf24;
+  --rpg-dark: #0f172a;
+  --rpg-panel-bg: #1e293b;
+  --rpg-border: #475569;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 body {
@@ -24,34 +45,87 @@ body {
   min-width: 320px;
   min-height: 100vh;
   overflow: hidden;
-  background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+  /* Fantasy Background: Dark Blue with slight texture hint via radial gradient */
+  background:
+    radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.2), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.1), transparent 25%),
+    linear-gradient(to bottom, #0f172a, #1e1b4b);
   touch-action: none;
   user-select: none;
+  font-family: "Mochiy Pop One", sans-serif;
 }
 
 #root {
   width: 100%;
 }
 
+/* Glass-like panel -> RPG Parchment/Plate */
 .glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid #475569;
+  border-radius: 12px;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .board-wrapper {
   position: relative;
-  background-color: #1e293b;
-  padding: 8px;
-  border-radius: 12px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+  background-color: #1a1a2e;
+  padding: 12px;
+  border-radius: 16px;
+  /* Double Border Frame */
+  box-shadow:
+    0 0 0 4px #334155,
+    0 0 0 8px #1e293b,
+    0 20px 50px rgba(0, 0, 0, 0.7);
   overflow: hidden;
-  width: 376px;
-  height: 316px;
-  margin: 0 auto; /* Center it */
+  width: 384px;
+  /* Adjusted for padding/border */
+  height: 324px;
+  margin: 0 auto;
+  border: 4px solid #94a3b8;
+  /* Inner Gold/Silver Rim */
 }
 
+/* RPG Button Style */
+.rpg-btn {
+  background: linear-gradient(to bottom, #4f46e5, #4338ca);
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-bottom: 4px solid #312e81;
+  border-radius: 8px;
+  transition: all 0.1s;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.rpg-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.rpg-btn:active {
+  border-bottom-width: 0px;
+  transform: translateY(4px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.rpg-btn-green {
+  background: linear-gradient(to bottom, #10b981, #059669);
+  border-bottom-color: #064e3b;
+}
+
+.rpg-btn-red {
+  background: linear-gradient(to bottom, #ef4444, #dc2626);
+  border-bottom-color: #7f1d1d;
+}
+
+/* KEEP EXISTING ORB STYLES AS IS */
 .board {
   position: relative;
   width: 360px;
@@ -75,7 +149,6 @@ body {
   box-shadow:
     inset -4px -4px 8px rgba(0, 0, 0, 0.4),
     inset 4px 4px 8px rgba(255, 255, 255, 0.2);
-  /* border-radius is handled by specific shape classes */
 }
 
 .orb-grabbing {
@@ -89,18 +162,23 @@ body {
 .orb-fire {
   background: radial-gradient(circle at 35% 35%, #ff4d4d, #990000);
 }
+
 .orb-water {
   background: radial-gradient(circle at 35% 35%, #4da6ff, #0044cc);
 }
+
 .orb-wood {
   background: radial-gradient(circle at 35% 35%, #5cd65c, #006600);
 }
+
 .orb-light {
   background: radial-gradient(circle at 35% 35%, #ffe066, #cc9900);
 }
+
 .orb-dark {
   background: radial-gradient(circle at 35% 35%, #b366ff, #440088);
 }
+
 .orb-heart {
   background: radial-gradient(circle at 35% 35%, #ff85a2, #990033);
 }
@@ -109,18 +187,23 @@ body {
 .orb-shape-fire {
   border-radius: 50% 50% 30% 30%;
 }
+
 .orb-shape-water {
   border-radius: 40% 60% 60% 40% / 50% 50% 50% 50%;
 }
+
 .orb-shape-wood {
   border-radius: 50% 15% 50% 15%;
 }
+
 .orb-shape-light {
   border-radius: 25%;
 }
+
 .orb-shape-dark {
   border-radius: 15% 50% 15% 50%;
 }
+
 .orb-shape-heart {
   border-radius: 50%;
 }
@@ -134,6 +217,7 @@ body {
     transform: scale(1);
     filter: brightness(1.8);
   }
+
   100% {
     transform: scale(0);
     opacity: 0;
@@ -142,11 +226,13 @@ body {
 
 .timer-container {
   width: 360px;
-  height: 10px;
-  background: #334155;
-  border-radius: 5px;
+  height: 12px;
+  background: #0f172a;
+  border: 2px solid #475569;
+  border-radius: 8px;
   margin: 1rem auto;
   overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 #timer-bar {
@@ -154,6 +240,7 @@ body {
   height: 100%;
   background: linear-gradient(90deg, #10b981, #34d399);
   transition: width 0.1s linear;
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3);
 }
 
 .combo-info {
@@ -164,11 +251,12 @@ body {
 }
 
 #combo-count {
+  font-family: "Mochiy Pop One", sans-serif;
   font-size: 2.5rem;
   font-weight: 900;
   color: #fbbf24;
   text-shadow:
-    2px 2px 0px #000,
+    2px 2px 0px #78350f,
     0 0 15px rgba(251, 191, 36, 0.6);
   font-style: italic;
 }
@@ -181,9 +269,11 @@ body {
   0% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.2);
   }
+
   100% {
     transform: scale(1);
   }
