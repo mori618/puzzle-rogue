@@ -3,7 +3,6 @@ import {
   ShoppingCart,
   Star,
   RotateCcw,
-  TrendingUp,
   Sparkles,
 } from "lucide-react";
 
@@ -95,6 +94,15 @@ const ALL_TOKEN_BASES = [
     values: [3, 4, 10],
     price: 5,
     desc: "常時落ちコン停止。Lvに応じコンボ加算3/4/10倍。",
+  },
+  {
+    id: "bargain",
+    name: "商談の極意",
+    type: "passive",
+    effect: "sale_boost",
+    values: [2, 3, 4],
+    price: 4,
+    desc: "ショップに並ぶセール品（半額）の数をLvに応じ2/3/4個に増加させる。",
   },
 ];
 
@@ -608,8 +616,10 @@ class PuzzleEngine {
 const App = () => {
   // Game State
   const [tokens, setTokens] = useState(Array(6).fill(null));
-  const [stars, setStars] = useState(0);
+  const [stars, setStars] = useState(5);
   const [target, setTarget] = useState(8);
+  const [turn, setTurn] = useState(1);
+  const [cycleTotalCombo, setCycleTotalCombo] = useState(0);
 
   const [energy, setEnergy] = useState(0);
   const [maxEnergy, setMaxEnergy] = useState(10);
@@ -637,7 +647,7 @@ const App = () => {
   const rows = hasGiantDomain ? 6 : 5;
   const cols = hasGiantDomain ? 7 : 6;
 
-  const maxTurns = tokens.some((t) => t?.enchantment === "add_turn") ? 4 : 3;
+  const maxTurns = 3 + tokens.filter((t) => t?.enchantment === "add_turn").length;
 
   // --- Skyfall Weight Management ---
   useEffect(() => {
@@ -733,11 +743,15 @@ const App = () => {
 
     const effectiveCombo = Math.floor((turnCombo + bonus) * multiplier);
 
-    // Star generation logic
-    const collector = tokens.find((t) => t?.id === "collector");
-    const starThreshold = collector
-      ? collector.values[(collector.level || 1) - 1]
-      : 5;
+    // Cumulative Star generation logic
+    let totalReduction = 0;
+    tokens.forEach((t) => {
+      if (t?.id === "collector") {
+        const threshold = t.values[(t.level || 1) - 1];
+        totalReduction += (5 - threshold);
+      }
+    });
+    const starThreshold = Math.max(1, 5 - totalReduction);
     const totalStarsEarned = Math.floor(effectiveCombo / starThreshold);
 
     if (totalStarsEarned > 0) {
@@ -756,14 +770,28 @@ const App = () => {
         .filter((b) => b.duration > 0),
     );
 
+    const isTargetMet = cycleTotalCombo + effectiveCombo >= target;
+
     // Check for cycle end or game over
-    if (cycleTotalCombo + effectiveCombo >= target) { // Check with the *new* total combo
-      handleCycleClear();
-    } else if (turn >= maxTurns) {
-      handleGameOver();
+    if (turn >= maxTurns) {
+      if (isTargetMet) {
+        handleCycleClear();
+      } else {
+        handleGameOver();
+      }
     } else {
       setTurn((prev) => prev + 1);
     }
+  };
+
+  const skipTurns = () => {
+    const remainingTurns = maxTurns - turn;
+    if (remainingTurns > 0) {
+      const bonus = remainingTurns * 2;
+      setStars((s) => s + bonus);
+      notify(`SKIP BONUS: +${bonus} STARS!`);
+    }
+    handleCycleClear();
   };
 
   const handleCycleClear = () => {
@@ -801,11 +829,24 @@ const App = () => {
 
   const generateShop = () => {
     const isLuxury = totalPurchases >= 6;
+
+    // Calculate total sale count based on all bargain tokens
+    let saleBonus = 0;
+    tokens.forEach((t) => {
+      if (t?.id === "bargain") {
+        const value = t.values[(t.level || 1) - 1];
+        saleBonus += (value - 1); // Bonus amount over the base 1
+      }
+    });
+    const saleCount = 1 + saleBonus;
+
     const items = [];
+    const pool = [...ALL_TOKEN_BASES];
     for (let i = 0; i < 4; i++) {
-      const base =
-        ALL_TOKEN_BASES[Math.floor(Math.random() * ALL_TOKEN_BASES.length)];
+      const idx = Math.floor(Math.random() * pool.length);
+      const base = pool[idx];
       const item = { ...base, level: 1 };
+
       if (isLuxury && Math.random() < 0.3) {
         const enc =
           ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
@@ -815,6 +856,17 @@ const App = () => {
       }
       items.push(item);
     }
+
+    // Assign Sales
+    const indices = [0, 1, 2, 3];
+    for (let i = 0; i < saleCount && indices.length > 0; i++) {
+      const randIdx = Math.floor(Math.random() * indices.length);
+      const targetIdx = indices.splice(randIdx, 1)[0];
+      items[targetIdx].isSale = true;
+      items[targetIdx].originalPrice = items[targetIdx].price;
+      items[targetIdx].price = Math.floor(items[targetIdx].price / 2);
+    }
+
     if (isLuxury) {
       const enc = ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
       items.push({ ...enc, type: "enchant_grant", price: enc.price - 2 });
@@ -956,8 +1008,8 @@ const App = () => {
     notify(`${token.name} 発動!`);
   };
 
-  const resetBoard = () => {
-    if (engineRef.current) engineRef.current.init();
+  const openShop = () => {
+    setShowShop(true);
   };
 
   return (
@@ -1009,18 +1061,39 @@ const App = () => {
           </div>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <div className="text-[10px] font-black text-indigo-300 uppercase tracking-widest drop-shadow-sm">
-            Stars
-          </div>
-          <div className="flex items-center gap-1.5 text-3xl font-black text-yellow-400">
-            <Star className="w-6 h-6 fill-current animate-pulse" />
-            <span className="tabular-nums">{stars}</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={openShop}
+              className="group p-2.5 glass border-amber-500/50 hover:border-amber-400 hover:bg-amber-500/10 transition-all rounded-xl shadow-lg shadow-amber-900/10 active:scale-95"
+            >
+              <ShoppingCart className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
+            </button>
+            <div className="flex flex-col items-end gap-0.5">
+              <div className="text-[10px] font-black text-indigo-300 uppercase tracking-widest drop-shadow-sm">
+                Stars
+              </div>
+              <div className="flex items-center gap-1.5 text-3xl font-black text-yellow-400">
+                <Star className="w-6 h-6 fill-current animate-pulse" />
+                <span className="tabular-nums">{stars}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Combo Display */}
-      <div className="combo-info h-16 flex justify-center items-center">
+      {/* Combo Display & Skip Button */}
+      <div className="combo-info h-16 flex flex-col justify-center items-center gap-2">
+        {cycleTotalCombo >= target && turn < maxTurns && (
+          <button
+            onClick={skipTurns}
+            className="group relative px-6 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-xl font-black text-slate-900 text-xs tracking-tighter shadow-xl shadow-amber-500/20 active:scale-95 transition-all overflow-hidden animate-in zoom-in duration-300"
+          >
+            <span className="relative z-10 flex items-center gap-2">
+              NEXT GOAL (+{(maxTurns - turn) * 2} <Star className="w-3 h-3 fill-current" />)
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 -translate-x-full group-hover:animate-shimmer" />
+          </button>
+        )}
         <div id="combo-count" ref={comboRef}></div>
       </div>
 
@@ -1034,15 +1107,7 @@ const App = () => {
         <div id="board" className="board" ref={boardRef}></div>
       </div>
 
-      {/* Controls */}
-      <div className="ui-panel mt-6 flex gap-4">
-        <button
-          onClick={resetBoard}
-          className="rpg-btn px-6 py-2 text-sm tracking-widest"
-        >
-          RESTART BOARD
-        </button>
-      </div>
+      {/* Controls - Removed Restart Board Button */}
 
       <div className="hint mt-6 text-center text-[10px] text-slate-600 uppercase tracking-widest">
         Drag to move • Match 3+ • Combos stack
@@ -1109,7 +1174,7 @@ const App = () => {
       {/* Shop Overlay */}
       {showShop && (
         <div className="fixed inset-0 z-[1000] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="w-full max-w-sm">
+          <div className="w-full max-w-lg">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-4xl font-black text-indigo-300 drop-shadow-lg tracking-widest">
                 SHOP
@@ -1119,31 +1184,43 @@ const App = () => {
               </div>
             </div>
 
-            <div className="space-y-3 mb-8">
+            <div className="grid grid-cols-1 gap-4 mb-8">
               {shopItems.map((item, idx) => (
                 <button
                   key={idx}
                   onClick={() => buyItem(item)}
-                  className="w-full glass p-4 rounded-2xl flex justify-between items-center group hover:border-indigo-500/50 transition-all text-left"
+                  className="w-full shop-item p-6 rounded-3xl flex justify-between items-center group transition-all text-left"
                 >
-                  <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-black text-slate-100">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl font-black text-white tracking-tight">
                         {item.name}
                       </span>
+                      {item.isSale && (
+                        <span className="text-[10px] font-black bg-red-600 text-white px-2 py-0.5 rounded-md shadow-lg shadow-red-900/20 border border-red-400/30 animate-pulse">
+                          SALE 50% OFF
+                        </span>
+                      )}
                       {item.enchantment && (
-                        <span className="text-[9px] font-bold bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded-full border border-purple-500/30">
+                        <span className="text-[10px] font-black bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-2.5 py-1 rounded-full shadow-lg shadow-purple-900/20 border border-purple-400/30">
                           ✦ {item.enchantName}
                         </span>
                       )}
                     </div>
-                    <div className="text-[10px] text-slate-500 font-bold leading-tight max-w-[200px]">
+                    <div className="text-xs text-slate-400 font-bold leading-relaxed max-w-[240px]">
                       {item.desc}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 bg-amber-500 text-slate-900 px-3 py-1.5 rounded-lg font-black shrink-0 border-b-4 border-amber-700 active:border-b-0 active:translate-y-1 transition-all shadow-md">
-                    <span className="text-sm">{item.price}</span>
-                    <Star className="w-3.5 h-3.5 fill-current" />
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    {item.isSale && (
+                      <span className="text-[10px] text-slate-500 font-bold line-through">
+                        ★{item.originalPrice}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-2 bg-gradient-to-b from-amber-400 to-amber-600 text-slate-950 px-5 py-3 rounded-2xl font-black border-b-4 border-amber-800 active:border-b-0 active:translate-y-1 transition-all shadow-xl shadow-amber-900/20">
+                      <span className="text-lg">{item.price}</span>
+                      <Star className="w-5 h-5 fill-current" />
+                    </div>
                   </div>
                 </button>
               ))}
