@@ -1009,6 +1009,9 @@ const App = () => {
   };
 
   const openShop = () => {
+    if (shopItems.length === 0) {
+      generateShop();
+    }
     setShowShop(true);
   };
 
