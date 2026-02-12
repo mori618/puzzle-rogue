@@ -1,17 +1,39 @@
-@import url('https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Import Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Round');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+@source "../index.html";
+@source "../src/**/*.{js,ts,jsx,tsx}";
+
+@theme {
+  --color-primary: #5b13ec;
+  --color-primary-hover: #4a0ec4;
+  --color-background-light: #f6f6f8;
+  --color-background-dark: #161022;
+  --color-surface-dark: #1e162e;
+  --color-gold: #fbbf24;
+  --color-puzzle-red: #ef4444;
+  --color-puzzle-blue: #3b82f6;
+  --color-puzzle-green: #22c55e;
+  --color-puzzle-yellow: #eab308;
+  --color-puzzle-purple: #a855f7;
+  --color-puzzle-pink: #ec4899;
+
+  --font-display: "Spline Sans", sans-serif;
+  --shadow-glow: 0 0 15px -3px rgba(91, 19, 236, 0.5);
+}
+
+@variant dark (&:where(.dark, .dark *));
 
 :root {
-  font-family: "Spline Sans", "Mochiy Pop One", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  font-family: var(--font-display);
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: dark;
-  /* color: #e2e8f0; */
-  /* background-color: #0f172a; */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -19,6 +41,24 @@
   -moz-osx-font-smoothing: grayscale;
 
   --safe-area-top: env(safe-area-inset-top, 0px);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--color-background-dark);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Custom scrollbar hiding */
@@ -35,7 +75,7 @@
 .glass-panel {
   background: rgba(22, 16, 34, 0.7);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(91, 19, 236, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .orb-shadow {
@@ -46,50 +86,6 @@
   text-shadow: 0 0 10px rgba(91, 19, 236, 0.5);
 }
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  /* min-width: 320px; */
-  min-height: max(884px, 100dvh);
-  /* From design */
-  /* Prevent whole-page bounce/scroll on mobile */
-  overflow: hidden;
-  /* position: fixed; */
-  /* existing had this, design layout might not need it if we use h-screen on container */
-  width: 100%;
-  height: 100%;
-
-  /* background:
-    radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.2), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.1), transparent 25%),
-    linear-gradient(to bottom, #0f172a, #1e1b4b); */
-
-  background-color: #f6f6f8;
-  /* background-light */
-
-  touch-action: none;
-  user-select: none;
-  font-family: "Spline Sans", sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #161022;
-    /* background-dark */
-  }
-}
-
-.dark body {
-  background-color: #161022;
-}
-
-#root {
-  width: 100%;
-  height: 100%;
-}
-
-/* Updated Orb Styles */
 .orb {
   width: 60px;
   height: 60px;
@@ -97,20 +93,38 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  /* font-size: 32px; */
-  /* Removed, using material icons size */
   z-index: 10;
   transition:
     top 0.4s cubic-bezier(0.25, 1, 0.5, 1),
     left 0.1s ease-out,
     opacity 0.3s ease,
     transform 0.2s ease;
+  border-radius: 50%;
+}
 
-  /* New Shape */
-  border-radius: 0.5rem;
-  /* rounded-lg */
-  box-shadow: inset 0 -4px 4px rgba(0, 0, 0, 0.2), 0 4px 6px rgba(0, 0, 0, 0.3);
-  /* orb-shadow */
+/* Orb Type Colors */
+.orb-fire {
+  background-color: var(--color-puzzle-red);
+}
+
+.orb-water {
+  background-color: var(--color-puzzle-blue);
+}
+
+.orb-wood {
+  background-color: var(--color-puzzle-green);
+}
+
+.orb-light {
+  background-color: var(--color-puzzle-yellow);
+}
+
+.orb-dark {
+  background-color: var(--color-puzzle-purple);
+}
+
+.orb-heart {
+  background-color: var(--color-puzzle-pink);
 }
 
 .orb-grabbing {
@@ -136,59 +150,6 @@ body {
   }
 }
 
-/* Specific Orb Backgrounds */
-.orb-fire {
-  background-color: #ef4444;
-}
-
-/* puzzle-red */
-.orb-water {
-  background-color: #3b82f6;
-}
-
-/* puzzle-blue */
-.orb-wood {
-  background-color: #22c55e;
-}
-
-/* puzzle-green */
-.orb-light {
-  background-color: #eab308;
-}
-
-/* puzzle-yellow */
-.orb-dark {
-  background-color: #a855f7;
-}
-
-/* puzzle-purple */
-.orb-heart {
-  background-color: #ec4899;
-}
-
-/* puzzle-pink */
-
-/* Legacy shapes reset if needed, or just let border-radius override */
-/* We can remove .orb-shape-* if we fully commit to rounded squares, but keeping empty classes might avoid JS errors if JS adds them */
-.orb-shape-fire,
-.orb-shape-water,
-.orb-shape-wood,
-.orb-shape-light,
-.orb-shape-dark,
-.orb-shape-heart {
-  /* Reset custom shapes to rounded square */
-  border-radius: 0.5rem;
-}
-
-/* Material Icons usage inside orb */
 .orb span {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 1.25rem;
-  /* text-xl */
-  filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
-}
-
-/* Active State for click effect in HTML design */
-.orb:active {
-  transform: scale(0.9);
+  user-select: none;
 }

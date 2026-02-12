@@ -1,9 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
-  ShoppingCart,
-  Star,
-  RotateCcw,
-  Sparkles,
+  Star as StarIcon,
 } from "lucide-react";
 import ShopScreen from "./ShopScreen";
 
@@ -215,8 +211,8 @@ class PuzzleEngine {
     this.onCombo = options.onCombo || (() => { });
 
     // Will be calculated in init()
-    this.orbSize = 60;
-    this.gap = 8; // 8px gap (tailwinds gap-2)
+    this.orbSize = 0;
+    this.gap = 0; // Will be set relative to orb size or container
 
     this.types = ["fire", "water", "wood", "light", "dark", "heart"];
     this.icons = {
@@ -237,39 +233,82 @@ class PuzzleEngine {
     this.noSkyfall = false;
     this.spawnWeights = {};
     this.types.forEach((t) => (this.spawnWeights[t] = 1));
+    this.timerProgress = 1; // Added for external display
 
     // Bindings
     this.onStart = this.onStart.bind(this);
     this.onMove = this.onMove.bind(this);
     this.onEnd = this.onEnd.bind(this);
     this.updateTimer = this.updateTimer.bind(this);
+
+    this._isDestroyed = false;
   }
 
   init() {
     if (this.processing) return;
+    this._isDestroyed = false;
 
+    this.gap = 8;
     // Calculate responsive orb size
     const rect = this.container.getBoundingClientRect();
     if (rect.width > 0) {
-      this.orbSize = rect.width / this.cols;
+      this.orbSize = (rect.width - (this.cols - 1) * this.gap) / this.cols;
+    } else {
+      // Fallback
+      this.orbSize = 60;
     }
-    // Ensure height matches grid
-    this.container.style.height = `${this.rows * this.orbSize}px`;
 
-    this.state = Array.from({ length: this.rows }, () =>
-      Array(this.cols).fill(null),
-    );
+    // Ensure height matches grid
+    // Important: container height should not force layout shift if possible, but for absolute positioning we need it?
+    // Actually, App.jsx sets aspect-ratio, so height is already determined by CSS.
+    // We just need to make sure we don't overflow.
+
+    this.state = [];
+    for (let r = 0; r < this.rows; r++) {
+      const row = [];
+      for (let c = 0; c < this.cols; c++) {
+        row.push(null);
+      }
+      this.state.push(row);
+    }
     this.container.innerHTML = "";
     this.currentCombo = 0;
-    if (this.comboEl) this.comboEl.innerText = "";
+    if (this.comboEl) {
+      this.comboEl.innerText = "";
+      this.comboEl.style.display = "none";
+    }
 
+    // Spawn initial orbs without matches
+    this.spawnInitialBoard();
+    this.render();
+
+    // Resize listener with debounce
+    if (!this.resizeListener) {
+      this.resizeListener = this.handleResize.bind(this);
+      window.addEventListener('resize', this.resizeListener);
+    }
+  }
+
+  // 初期盤面を生成する（マッチを避けてオーブを配置）
+  spawnInitialBoard() {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         this.spawnOrb(r, c, false);
       }
     }
+  }
+
+  handleResize() {
+    if (!this.container) return;
+    const rect = this.container.getBoundingClientRect();
+    if (rect.width <= 0) return;
+
+    this.gap = 8;
+    this.orbSize = (rect.width - (this.cols - 1) * this.gap) / this.cols;
     this.render();
   }
+
+
 
   spawnOrb(r, c, isNew, startRowOffset = 0) {
     let type;
@@ -310,20 +349,17 @@ class PuzzleEngine {
     }
 
     const el = document.createElement("div");
-    // New styles to match demo/code.html
-    // Note: absolute positioning is handled by inline styles in render()
-    el.className = `orb absolute flex items-center justify-center rounded-lg orb-shadow active:scale-90 transition-transform orb-${type}`;
+    el.className = `orb absolute flex items-center justify-center rounded-full orb-shadow active:scale-90 transition-transform`;
 
-    // Adjust size for gap
-    const size = Math.max(0, this.orbSize - this.gap);
-    el.style.width = `${size}px`;
-    el.style.height = `${size}px`;
+    const inner = document.createElement("div");
+    inner.className = `orb orb-${type} w-full h-full flex items-center justify-center rounded-full shadow-lg transition-all duration-200`;
 
-    // Create inner span for material icon
     const iconSpan = document.createElement("span");
-    iconSpan.className = "material-icons-round text-white/90 text-2xl drop-shadow-md";
+    iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
     iconSpan.innerText = this.icons[type];
-    el.appendChild(iconSpan);
+
+    inner.appendChild(iconSpan);
+    el.appendChild(inner);
 
     const handler = (e) => {
       if (e.type === "touchstart") e.preventDefault();
@@ -338,8 +374,8 @@ class PuzzleEngine {
 
     if (isNew) {
       // Start position (above board)
-      const top = -((startRowOffset + 1) * this.orbSize) + (this.gap / 2);
-      const left = (c * this.orbSize) + (this.gap / 2);
+      const top = -((startRowOffset + 1) * (this.orbSize + this.gap)) + (this.gap / 2);
+      const left = (c * (this.orbSize + this.gap)) + (this.gap / 2);
       el.style.top = `${top}px`;
       el.style.left = `${left}px`;
     }
@@ -349,8 +385,8 @@ class PuzzleEngine {
     this.state.forEach((row, r) => {
       row.forEach((orb, c) => {
         if (orb && orb !== this.dragging) {
-          const top = (r * this.orbSize) + (this.gap / 2);
-          const left = (c * this.orbSize) + (this.gap / 2);
+          const top = (r * (this.orbSize + this.gap)) + (this.gap / 2);
+          const left = (c * (this.orbSize + this.gap)) + (this.gap / 2);
           orb.el.style.top = `${top}px`;
           orb.el.style.left = `${left}px`;
           orb.r = r;
@@ -369,6 +405,8 @@ class PuzzleEngine {
     this.dragging.el.classList.add("orb-grabbing");
     // Raise z-index
     this.dragging.el.style.zIndex = "100";
+
+    if (this.comboEl) this.comboEl.style.display = "none";
 
     this.moveStart = null;
 
@@ -389,7 +427,7 @@ class PuzzleEngine {
     const y = point.clientY - rect.top;
 
     // Center the dragged orb
-    const size = Math.max(0, this.orbSize - this.gap);
+    const size = this.orbSize; // Use orbSize directly as it includes padding logic
     this.dragging.el.style.left = `${x - size / 2}px`;
     this.dragging.el.style.top = `${y - size / 2}px`;
 
@@ -400,11 +438,11 @@ class PuzzleEngine {
 
     const nc = Math.max(
       0,
-      Math.min(this.cols - 1, Math.floor(x / this.orbSize)),
+      Math.min(this.cols - 1, Math.floor(x / (this.orbSize + this.gap))),
     );
     const nr = Math.max(
       0,
-      Math.min(this.rows - 1, Math.floor(y / this.orbSize)),
+      Math.min(this.rows - 1, Math.floor(y / (this.orbSize + this.gap))),
     );
 
     if (nr !== this.dragging.r || nc !== this.dragging.c) {
@@ -424,9 +462,10 @@ class PuzzleEngine {
   updateTimer() {
     const elapsed = Date.now() - this.moveStart;
     const remain = Math.max(0, this.timeLimit - elapsed);
+    this.timerProgress = remain / this.timeLimit; // Update progress for external display
     // If timerBar exists (it might not in new design), update it
     if (this.timerBar) {
-      this.timerBar.style.width = `${(remain / this.timeLimit) * 100}%`;
+      this.timerBar.style.width = `${this.timerProgress * 100}%`;
     }
     if (remain <= 0) this.onEnd();
   }
@@ -434,6 +473,7 @@ class PuzzleEngine {
   onEnd() {
     if (!this.dragging) return;
     clearInterval(this.timerId);
+    this.timerProgress = 1; // Reset progress
     if (this.timerBar) this.timerBar.style.width = "100%";
 
     this.dragging.el.classList.remove("orb-grabbing");
@@ -461,7 +501,7 @@ class PuzzleEngine {
         if (orb && orb.type === fromType) {
           orb.type = toType;
           // Update class and icon
-          orb.el.className = `orb absolute flex items-center justify-center rounded-lg orb-shadow active:scale-90 transition-transform orb-${toType}`;
+          orb.el.querySelector(".orb").className = `orb orb-${toType} w-full h-full flex items-center justify-center rounded-lg shadow-lg transition-all duration-200`;
           const span = orb.el.querySelector("span");
           if (span) span.innerText = this.icons[toType];
         }
@@ -475,7 +515,7 @@ class PuzzleEngine {
       row.forEach((orb) => {
         if (orb && types.includes(orb.type)) {
           orb.type = toType;
-          orb.el.className = `orb absolute flex items-center justify-center rounded-lg orb-shadow active:scale-90 transition-transform orb-${toType}`;
+          orb.el.querySelector(".orb").className = `orb orb-${toType} w-full h-full flex items-center justify-center rounded-lg shadow-lg transition-all duration-200`;
           const span = orb.el.querySelector("span");
           if (span) span.innerText = this.icons[toType];
         }
@@ -490,7 +530,7 @@ class PuzzleEngine {
         if (orb) {
           const type = types[Math.floor(Math.random() * types.length)];
           orb.type = type;
-          orb.el.className = `orb absolute flex items-center justify-center rounded-lg orb-shadow active:scale-90 transition-transform orb-${type}`;
+          orb.el.querySelector(".orb").className = `orb orb-${type} w-full h-full flex items-center justify-center rounded-lg shadow-lg transition-all duration-200`;
           const span = orb.el.querySelector("span");
           if (span) span.innerText = this.icons[type];
         }
@@ -503,7 +543,7 @@ class PuzzleEngine {
     this.state[rowIdx].forEach((orb) => {
       if (orb) {
         orb.type = type;
-        orb.el.className = `orb absolute flex items-center justify-center rounded-lg orb-shadow active:scale-90 transition-transform orb-${type}`;
+        orb.el.querySelector(".orb").className = `orb orb-${type} w-full h-full flex items-center justify-center rounded-lg shadow-lg transition-all duration-200`;
         const span = orb.el.querySelector("span");
         if (span) span.innerText = this.icons[type];
       }
@@ -522,6 +562,7 @@ class PuzzleEngine {
     });
 
     await this.sleep(300);
+    if (this._isDestroyed) return;
 
     this.state.forEach((row, r) => {
       row.forEach((orb, c) => {
@@ -533,10 +574,13 @@ class PuzzleEngine {
     });
 
     await this.sleep(100);
+    if (this._isDestroyed) return;
 
     // 2. Gravity naturally spawns new orbs
     await this.simultaneousGravity();
+    if (this._isDestroyed) return;
     await this.sleep(450);
+    if (this._isDestroyed) return;
 
     this.processing = false;
     this.process(); // Start natural combo sequence
@@ -545,7 +589,10 @@ class PuzzleEngine {
   async process() {
     this.processing = true;
     this.currentCombo = 0;
-    if (this.comboEl) this.comboEl.innerText = "";
+    if (this.comboEl) {
+      this.comboEl.innerText = "";
+      this.comboEl.style.display = "block";
+    }
     const matchedColorsThisTurn = new Set();
     let hasSkyfallCombo = false;
 
@@ -575,15 +622,19 @@ class PuzzleEngine {
 
         group.forEach((o) => o.el.classList.add("orb-matching"));
         await this.sleep(300);
+        if (this._isDestroyed) return;
         group.forEach((o) => {
           o.el.remove();
           this.state[o.r][o.c] = null;
         });
         await this.sleep(50);
+        if (this._isDestroyed) return;
       }
 
       await this.simultaneousGravity();
+      if (this._isDestroyed) return;
       await this.sleep(450);
+      if (this._isDestroyed) return;
 
       if (this.noSkyfall) break;
     }
@@ -594,8 +645,9 @@ class PuzzleEngine {
     );
     if (isPerfect && this.currentCombo > 0) {
       this.currentCombo *= 2;
-      if (this.comboEl) this.comboEl.innerText = `PERFECT CLEAR! x2 COMBO (${this.currentCombo} total)`;
+      if (this.comboEl) this.comboEl.innerText = `PERFECT CLEAR! x2 COMBO(${this.currentCombo} total)`;
       await this.sleep(1000);
+      if (this._isDestroyed) return;
     }
 
     this.processing = false;
@@ -702,6 +754,7 @@ class PuzzleEngine {
       }
     }
     await this.sleep(20);
+    if (this._isDestroyed) return;
     this.render();
   }
 
@@ -710,6 +763,10 @@ class PuzzleEngine {
   }
 
   destroy() {
+    this._isDestroyed = true;
+    if (this.resizeListener) {
+      window.removeEventListener('resize', this.resizeListener);
+    }
     window.removeEventListener("mousemove", this.onMove);
     window.removeEventListener("mouseup", this.onEnd);
     window.removeEventListener("touchmove", this.onMove);
@@ -747,6 +804,7 @@ const App = () => {
   const timerRef = useRef(null);
   const comboRef = useRef(null);
   const engineRef = useRef(null);
+  const handleTurnEndRef = useRef(null);
 
   // Derived
   const hasGiantDomain = tokens.some((t) => t?.enchantment === "expand_board");
@@ -789,7 +847,7 @@ const App = () => {
 
   // --- Init Engine ---
   useEffect(() => {
-    if (!boardRef.current) return;
+    if (!boardRef.current || !timerRef.current) return;
 
     const engine = new PuzzleEngine(
       boardRef.current,
@@ -803,7 +861,9 @@ const App = () => {
           // No-op for now to avoid re-renders
         },
         onTurnEnd: (total, colors, skyfall) => {
-          handleTurnEnd(total, colors, skyfall);
+          if (handleTurnEndRef.current) {
+            handleTurnEndRef.current(total, colors, skyfall);
+          }
           // Auto-reset temporary forbidden ritual effect
           if (engineRef.current) engineRef.current.noSkyfall = false;
         },
@@ -893,7 +953,7 @@ const App = () => {
 
     if (totalStarsEarned > 0) {
       setStars((s) => s + totalStarsEarned);
-      notify(`+${totalStarsEarned} STARS!`);
+      notify(`+ ${totalStarsEarned} STARS!`);
     }
 
     const newCycleTotalCombo = cycleTotalCombo + effectiveCombo;
@@ -911,10 +971,14 @@ const App = () => {
       setGoalReached(true);
     }
 
-    if (turn < maxTurns) {
-      setTurn((prev) => prev + 1);
-    }
+    setTurn((prev) => prev + 1);
+    setTurn((prev) => prev + 1);
   };
+
+  // Keep handleTurnEndRef current
+  useEffect(() => {
+    handleTurnEndRef.current = handleTurnEnd;
+  });
 
   useEffect(() => {
     if (turn > maxTurns && !goalReached) {
@@ -1122,6 +1186,8 @@ const App = () => {
     const engine = engineRef.current;
     if (!engine) return;
 
+    console.log("Using skill:", token);
+
     switch (token.action) {
       case "refresh":
         engine.init();
@@ -1187,10 +1253,9 @@ const App = () => {
   // I'll add a helper to update the time text if it exists.
 
   return (
-    <div className="w-full h-full flex justify-center bg-background-light dark:bg-background-dark font-display text-slate-800 dark:text-slate-100 overflow-hidden">
+    <div className="bg-background-dark font-display text-slate-100 h-screen overflow-hidden flex justify-center w-full">
       {/* Mobile Container */}
-      <div className="w-full max-w-md h-full flex flex-col relative bg-background-light dark:bg-background-dark shadow-2xl overflow-hidden">
-
+      <div className="w-full max-w-md h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden">
         {/* Abstract Background Pattern */}
         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
           <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-primary/30 to-transparent"></div>
@@ -1202,21 +1267,23 @@ const App = () => {
           <div className="flex flex-col">
             <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
             <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-white">Cycle {Math.ceil(turn / 3) || 1}</span>
+              <span className="text-lg font-bold text-white">Cycle {Math.ceil(turn / maxTurns)}</span>
               <span className="text-primary font-bold">/</span>
-              <span className="text-lg font-bold text-white">Turn {turn}/{maxTurns}</span>
+              <span className="text-lg font-bold text-white">Turn {turn}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full border border-white/10 clickable active:scale-95 transition-transform" onClick={openShop} role="button">
+          <div
+            onClick={openShop}
+            className="flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-transform"
+          >
             <span className="material-icons-round text-yellow-400 text-sm">star</span>
-            <span className="font-bold text-sm tracking-wide text-white">{stars.toLocaleString()}</span>
-            <span className="material-icons-round text-slate-400 text-sm ml-1">shopping_cart</span>
+            <span className="font-bold text-sm tracking-wide">{stars.toLocaleString()}</span>
           </div>
         </header>
 
         {/* Main Stats Area */}
         <section className="relative z-10 px-6 py-4 flex-none">
-          {/* Combo Meter (Target Progress) */}
+          {/* Combo Meter */}
           <div className="flex flex-col items-center justify-center mb-6">
             <div className="w-full flex justify-between items-end mb-2">
               <span className="text-sm font-medium text-primary glow-text uppercase tracking-widest">Target Combo</span>
@@ -1227,7 +1294,7 @@ const App = () => {
             <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-white/5 relative">
               {/* Progress Bar */}
               <div
-                className="h-full bg-gradient-to-r from-primary to-puzzle-purple w-full transition-all duration-500 rounded-full shadow-[0_0_15px_rgba(91,19,236,0.6)] relative"
+                className="h-full bg-gradient-to-r from-primary to-purple-400 rounded-full shadow-[0_0_15px_rgba(91,19,236,0.6)] relative transition-all duration-300"
                 style={{ width: `${Math.min(100, (cycleTotalCombo / target) * 100)}%` }}
               >
                 <div className="absolute right-0 top-0 h-full w-1 bg-white/50 animate-pulse"></div>
@@ -1249,48 +1316,35 @@ const App = () => {
               </div>
             </div>
             <div className="text-right">
-              <span className="text-[10px] uppercase text-slate-400 font-bold block">Next Reward</span>
+              <span className="text-[10px] uppercase text-slate-400 font-bold block">Energy</span>
               <span className="text-sm font-semibold text-white flex items-center justify-end gap-1">
                 <span className="material-icons-round text-xs text-primary">bolt</span>
-                Energy {energy}/{maxEnergy}
+                {energy} / {maxEnergy}
               </span>
             </div>
           </div>
         </section>
 
         {/* Token/Skill Belt */}
-        <section className="relative z-10 pl-6 py-2 flex-none mb-4">
+        <section className="relative z-30 pl-6 py-2 flex-none mb-4">
           <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-2 tracking-wider">Active Tokens</h3>
           <div className="flex gap-3 overflow-x-auto no-scrollbar pr-6 pb-2 min-h-[80px]">
-            {tokens.map((t, i) => (
+            {tokens.map((t, idx) => (
               <div
-                key={i}
-                onClick={(e) => {
-                  if (t && t.type === 'skill') {
-                    e.stopPropagation();
-                    useSkill(t, i);
-                  }
-                }}
-                className={`flex-none w-16 h-16 rounded-xl relative group transition-all
-                     ${t ? "bg-slate-800 border border-primary/50 cursor-pointer active:scale-95 shadow-[0_0_10px_rgba(91,19,236,0.2)]" : "bg-slate-900/50 border border-white/5 border-dashed flex items-center justify-center"}
-                  `}
+                key={idx}
+                onClick={() => useSkill(t, idx)}
+                className={`flex-none w-16 h-16 rounded-xl flex items-center justify-center relative border transition-all ${t ? 'bg-slate-800 border-primary/50 cursor-pointer shadow-[0_0_10px_rgba(91,19,236,0.2)] group hover:scale-105' : 'bg-slate-900/50 border-white/5 border-dashed'}`}
               >
                 {t ? (
                   <>
                     <div className="absolute inset-0 bg-primary/10 rounded-xl"></div>
-                    <div className="w-full h-full flex flex-col items-center justify-center p-1">
-                      <span className="material-icons-round text-3xl text-primary drop-shadow-md">
-                        {t.type === 'skill' ? 'sports_martial_arts' : t.type === 'passive' ? 'auto_awesome' : 'stars'}
-                      </span>
-                    </div>
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-background-dark text-white">
+                    <span className="material-icons-round text-3xl text-primary drop-shadow-md">
+                      {t.type === 'skill' ? 'sports_martial_arts' : 'auto_awesome'}
+                    </span>
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-background-dark">
                       {t.level || 1}
                     </div>
-                    {t.cost > 0 && (
-                      <div className="absolute -top-2 -right-2 bg-slate-900 border border-slate-700 text-[9px] text-indigo-300 px-1 rounded shadow-sm">
-                        {t.cost}E
-                      </div>
-                    )}
+                    {t.cost > 0 && <span className="absolute top-0.5 right-1 text-[8px] text-slate-400 font-mono">{t.cost}E</span>}
                   </>
                 ) : (
                   <span className="material-icons-round text-slate-700">lock_open</span>
@@ -1313,66 +1367,77 @@ const App = () => {
           )}
         </div>
 
-        {/* Combo Popups overlay (using ref currently) */}
-        <div className="absolute top-[35%] left-0 width-full flex justify-center w-full z-40 pointer-events-none">
-          <div id="combo-count" ref={comboRef} className="text-5xl font-black text-white drop-shadow-[0_0_10px_rgba(91,19,236,0.8)] font-display italic tracking-tighter"></div>
-        </div>
-
-        {/* Message Popups */}
-        {message && (
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none w-full px-4 flex justify-center">
-            <div className="bg-slate-900/90 border border-primary/50 text-white font-bold px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-md animate-pop text-center max-w-sm">
-              {message}
-            </div>
-          </div>
-        )}
-
         {/* Puzzle Grid Area */}
-        <section className="relative z-20 flex-1 bg-slate-900/40 border-t border-white/5 overflow-hidden">
-          <div className="relative w-full h-full p-4 flex flex-col justify-center items-center">
-            {/* The Grid Container - PuzzleEngine will populate this */}
-            {/* We give it full width and responsive aspect ratio to match the demo */}
-            <div id="board" ref={boardRef} className="relative w-full aspect-[6/5] max-h-[80%]"></div>
+        <section className="relative z-20 flex-1 bg-slate-900 rounded-t-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
+          {/* Grid Background effects */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-90"></div>
+
+          {/* Message Toast */}
+          {message && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] animate-fade-in w-max">
+              <div className="bg-slate-950 border border-primary text-white font-black px-6 py-2 rounded-full shadow-2xl text-[10px] tracking-widest uppercase">
+                {message}
+              </div>
+            </div>
+          )}
+
+          <div className="relative w-full h-full p-4 flex flex-col justify-center">
+            {/* Combo Display */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50 flex justify-center w-full">
+              <div ref={comboRef} className="text-6xl font-display font-black text-white drop-shadow-[0_0_20px_rgba(91,19,236,1)] italic animate-pop whitespace-nowrap text-center"></div>
+            </div>
+
+            {/* Timer Bar */}
+            <div className="w-full h-2 bg-slate-800 rounded-full mb-2 overflow-hidden border border-white/10 relative shadow-inner">
+              <div ref={timerRef} className="h-full bg-gradient-to-r from-green-400 to-emerald-600 w-full transition-all duration-0 ease-linear shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
+            </div>
+
+            {/* The 6x5 Grid Container */}
+            <div
+              ref={boardRef}
+              className="w-full aspect-[6/5] relative"
+              style={{ touchAction: "none" }}
+            >
+              {/* PuzzleEngine renders orbs here */}
+            </div>
 
             {/* Touch Guide hint */}
-            <div className="mt-4 text-center pointer-events-none opacity-40">
+            <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none opacity-50">
               <span className="text-[10px] text-white uppercase tracking-widest">Drag to connect</span>
             </div>
-
-            {/* Hidden dummy element for legacy timerBar ref if needed, or just let it be null */}
-            <div ref={timerRef} className="hidden"></div>
           </div>
         </section>
 
         {/* Shop Overlay */}
         {showShop && (
-          <div className="pointer-events-auto fixed inset-0 z-[200]">
+          <div className="absolute inset-0 z-50 bg-background-dark">
             <ShopScreen
               items={shopItems}
               stars={stars}
               onBuy={buyItem}
               onClose={() => setShowShop(false)}
               onRefresh={refreshShop}
+              goalReached={goalReached}
             />
           </div>
         )}
 
         {/* Pending Shop Item Modal */}
         {pendingShopItem && (
-          <div className="absolute inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
             <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border border-white/10 shadow-2xl">
-              <h3 className="text-xl font-bold text-white mb-2 text-center">Duplicate Token</h3>
-              <p className="text-sm text-slate-400 text-center mb-6">You already have {pendingShopItem.name}.</p>
+              <h3 className="text-xl font-bold font-display text-white mb-2 text-center italic">{pendingShopItem.name}</h3>
+              <p className="text-sm text-slate-400 text-center mb-6">既に所持しています。</p>
 
               <div className="flex flex-col gap-3">
                 <button onClick={() => handleChoice("upgrade")} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg shadow-primary/25">
-                  Upgrade (Lv UP)
+                  強化 (Lv UP)
                 </button>
                 <button onClick={() => handleChoice("new")} className="bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95">
-                  Equip as 2nd
+                  2つ目を装備
                 </button>
                 <button onClick={() => setPendingShopItem(null)} className="text-slate-400 text-xs font-bold py-2 mt-2">
-                  CANCEL
+                  キャンセル
                 </button>
               </div>
             </div>
@@ -1383,5 +1448,6 @@ const App = () => {
     </div>
   );
 };
+
 
 export default App;
