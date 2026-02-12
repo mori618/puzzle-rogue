@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Puzzle Rogue Shop Screen</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5b13ec",
+                        "primary-hover": "#4a0ec4",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#161022",
+                        "surface-dark": "#1e162e",
+                        "gold": "#fbbf24",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                    boxShadow: {
+                        "glow": "0 0 15px -3px rgba(91, 19, 236, 0.5)",
+                    }
+                },
+            },
+        }
+    </script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        /* Custom Scrollbar for sleek look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .glass-panel {
+            background: rgba(30, 22, 46, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(91, 19, 236, 0.5);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-800 dark:text-white min-h-screen flex justify-center overflow-hidden">
+<!-- Mobile Container -->
+<main class="w-full max-w-md h-[100dvh] flex flex-col relative bg-background-light dark:bg-background-dark shadow-2xl overflow-hidden">
+<!-- Header: Currency & Title -->
+<header class="flex-none px-6 pt-6 pb-4 z-20 glass-panel border-b border-white/5 relative">
+<div class="absolute inset-0 bg-gradient-to-b from-background-dark to-transparent opacity-90 -z-10"></div>
+<div class="flex items-center justify-between mb-2">
+<button class="p-2 -ml-2 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
+<span class="material-icons-round">arrow_back</span>
+</button>
+<h1 class="text-sm font-medium tracking-widest uppercase text-slate-400">Merchant's Wares</h1>
+<button class="p-2 -mr-2 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
+<span class="material-icons-round">help_outline</span>
+</button>
+</div>
+<!-- Currency Display -->
+<div class="flex items-center justify-center space-x-2 py-2">
+<div class="flex items-center bg-surface-dark border border-primary/30 rounded-full px-4 py-1.5 shadow-lg shadow-primary/10">
+<span class="material-icons-round text-gold text-xl mr-2 animate-pulse">star</span>
+<span class="text-xl font-bold text-white tracking-wide">1,250</span>
+</div>
+</div>
+</header>
+<!-- Merchant Banner -->
+<section class="flex-none px-6 py-4 relative">
+<div class="bg-gradient-to-r from-primary/20 to-primary/5 rounded-xl p-4 flex items-center border border-primary/20">
+<div class="w-12 h-12 rounded-full bg-surface-dark border-2 border-primary overflow-hidden flex-shrink-0 relative">
+<img alt="Merchant Avatar" class="w-full h-full object-cover opacity-80" data-alt="Mystical merchant face in hood" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjI3kZGPkyLMwZxxq_uKrTlCdJSyKiuC9wg5B5PLk38XHkFhoPS-zKZBjBeXm2tyu8rvwFIUeESfmy8Qf26X-3BaokiFuNSKld8xCK4j_x58FiW8S1gYd9lAUhBVS-_EufqTJthMc5RObcJKHOMPskx5pSAww9OX7Fib4Qt_j1chelZu-D5-lnZ7CuBUAxCcYfKXtQYQBf-CUS4HiTb1IzEL8HL7jNCFWGLuoeDee8I7Qt-X9PKVES0r9O1RNWYZOkIbozlliedvk"/>
+</div>
+<div class="ml-4">
+<p class="text-xs text-primary font-bold uppercase tracking-wider mb-0.5">The Void Trader</p>
+<p class="text-sm text-slate-300 italic">"Power comes at a price, traveler. What do you seek?"</p>
+</div>
+</div>
+</section>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto no-scrollbar px-6 pb-32 space-y-6">
+<!-- Passive Skills Section -->
+<div>
+<div class="flex items-center space-x-2 mb-3">
+<span class="material-icons-round text-primary text-sm">auto_fix_high</span>
+<h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Passive Artifacts</h2>
+</div>
+<div class="space-y-3">
+<!-- Item Card 1 -->
+<div class="group bg-surface-dark hover:bg-white/5 border border-white/5 hover:border-primary/50 rounded-xl p-3 flex items-center transition-all duration-200">
+<div class="w-14 h-14 rounded-lg bg-gradient-to-br from-yellow-500/20 to-yellow-900/20 border border-yellow-500/30 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+<img class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay" data-alt="Golden glowing coin sack icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLPJtVsSdduhWnOu-gCUFLRxXLZYxYq_Uqaimyw8p1DJ4ywxAwnTC3fE__AV8XkD2ZP8I6LGlCqOOAI6_HH9GceO5bC8VJJVbvvz_Zwh2JfX00oL7c3N_M1cOEwyoJVDl8p-_xi7iVY920JJWpGERtQYAuh9-V9KUhpZ1rlmwC-mKsFhKz4WwIwL9GBayj-wgCUZHRIOD2imL000AKmsgfmAUFBSXz7d3JgLQNP7dxvywM0rntE06BK3k-V1FEsy8prZTiuZvNKtE"/>
+<span class="material-icons-round text-gold text-2xl relative z-10">savings</span>
+</div>
+<div class="ml-3 flex-1">
+<h3 class="font-bold text-white text-base">Golden Collector</h3>
+<p class="text-xs text-slate-400 mt-0.5 leading-tight">Increase gold drop rate by 10% from matched tiles.</p>
+</div>
+<button class="bg-primary hover:bg-primary-hover active:scale-95 transition-transform text-white px-3 py-2 rounded-lg flex flex-col items-center justify-center min-w-[70px]">
+<span class="text-xs font-bold flex items-center">
+                                200 <span class="material-icons-round text-gold text-[10px] ml-1">star</span>
+</span>
+<span class="text-[10px] uppercase font-medium opacity-80">Buy</span>
+</button>
+</div>
+<!-- Item Card 2 -->
+<div class="group bg-surface-dark hover:bg-white/5 border border-white/5 hover:border-primary/50 rounded-xl p-3 flex items-center transition-all duration-200">
+<div class="w-14 h-14 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-900/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+<img class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay" data-alt="Blue hourglass glowing sands icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkbrYK-YfH8wag1xD2zUA_dyaHyF47I_xn_bwg2nD_P-fSO00gRRSuqiGSzbB_0UQyMP-mapZYQflcqEZg_PY6MLe5U_EuuFD3Z1gyuiMGg57lpXUrwVNaTZygGsyM9eS8EyKubJz-WrHuY-Ko8yXvZIgi1ir-XN1En4oIKGVDJJKM4pnc86SVBHD4zYTU68-F-rbR_RLavfWc_b88r9hDg3bNFpQWrk_QV8VFGzlSI_WF4hbgfeytJ8jcHtFFjgSYiMx2d4OP5d0"/>
+<span class="material-icons-round text-blue-400 text-2xl relative z-10">hourglass_top</span>
+</div>
+<div class="ml-3 flex-1">
+<h3 class="font-bold text-white text-base">Sands of Time</h3>
+<p class="text-xs text-slate-400 mt-0.5 leading-tight">+5 seconds added to turn timer.</p>
+</div>
+<button class="bg-surface-dark border border-white/10 text-slate-500 px-3 py-2 rounded-lg flex flex-col items-center justify-center min-w-[70px] opacity-50 cursor-not-allowed">
+<span class="text-xs font-bold flex items-center">
+                                3000 <span class="material-icons-round text-slate-500 text-[10px] ml-1">star</span>
+</span>
+<span class="text-[10px] uppercase font-medium opacity-80">Locked</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Active Skills Section -->
+<div>
+<div class="flex items-center space-x-2 mb-3 pt-2">
+<span class="material-icons-round text-primary text-sm">flash_on</span>
+<h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Active Spells</h2>
+</div>
+<div class="space-y-3">
+<!-- Item Card 3 -->
+<div class="group bg-surface-dark hover:bg-white/5 border border-white/5 hover:border-primary/50 rounded-xl p-3 flex items-center transition-all duration-200">
+<div class="w-14 h-14 rounded-lg bg-gradient-to-br from-red-500/20 to-red-900/20 border border-red-500/30 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+<img class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay" data-alt="Fiery explosion magic effect icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAt9bRxoap7vc9YuqmpXxmx3IO4YDcmst5vsb0YcW_AC4Q-D1UStFVgFWb2wVvJINTWMEhf8CTby-pIF1MQg1F0XUyqRIe2HEo3qXlHXrnT8eZtwkVwJ8CTMensyCcAbkjpDVLZGcp6yI6BS-T0YwjIkKi1I7oeeIvCevsAy1SwQZEIpvCwb1b6DyGgnjNHt2Zvtptf5cz2iJYzpb_QPFIcFI_XFhZR5st68A55Zi3OFStF3OCEtin0CBIX0aS25mktbTPax2Xerts"/>
+<span class="material-icons-round text-red-400 text-2xl relative z-10">local_fire_department</span>
+</div>
+<div class="ml-3 flex-1">
+<h3 class="font-bold text-white text-base">Flame Transform</h3>
+<p class="text-xs text-slate-400 mt-0.5 leading-tight">Change all red drops to Fire Bombs instantly.</p>
+</div>
+<button class="bg-primary hover:bg-primary-hover active:scale-95 transition-transform text-white px-3 py-2 rounded-lg flex flex-col items-center justify-center min-w-[70px]">
+<span class="text-xs font-bold flex items-center">
+                                500 <span class="material-icons-round text-gold text-[10px] ml-1">star</span>
+</span>
+<span class="text-[10px] uppercase font-medium opacity-80">Buy</span>
+</button>
+</div>
+<!-- Item Card 4 -->
+<div class="group bg-surface-dark hover:bg-white/5 border border-white/5 hover:border-primary/50 rounded-xl p-3 flex items-center transition-all duration-200">
+<div class="w-14 h-14 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-900/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+<img class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay" data-alt="Purple crystal glowing magic icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCwgxn7A2WVsP2LEAGeVXNkbJ6k6EPV1FNPy6upCpa44Zqd1KvhPVzN_jDbzTyuoIUDv9QyHKHOze0uWMRqyv2OrFxiYZ6BIa07a0zmqcpH8uuL_m5cUYDG8Lkf4L5iO-OZ50-Mi7R5X3XubNsFK-Tqur9MNI764gr5FJCuNX_TY7YVBuScAC3jElgsk2QTl33H2_Yk-kyfUTjfkwSBSfLv53ljBIcri5_5vVb2VsgVIxcgQKY0-AswyOqqXSXgWldOMq8_OzkWcQ"/>
+<span class="material-icons-round text-purple-300 text-2xl relative z-10">auto_awesome</span>
+</div>
+<div class="ml-3 flex-1">
+<h3 class="font-bold text-white text-base">Crystal Ward</h3>
+<p class="text-xs text-slate-400 mt-0.5 leading-tight">Blocks next incoming damage hit.</p>
+</div>
+<button class="bg-primary hover:bg-primary-hover active:scale-95 transition-transform text-white px-3 py-2 rounded-lg flex flex-col items-center justify-center min-w-[70px]">
+<span class="text-xs font-bold flex items-center">
+                                450 <span class="material-icons-round text-gold text-[10px] ml-1">star</span>
+</span>
+<span class="text-[10px] uppercase font-medium opacity-80">Buy</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Actions -->
+<footer class="absolute bottom-0 left-0 w-full p-6 glass-panel border-t border-white/10 z-30">
+<div class="flex space-x-3 h-14">
+<!-- Refresh Button -->
+<button class="h-full aspect-square flex flex-col items-center justify-center bg-surface-dark hover:bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-colors active:scale-95">
+<span class="material-icons-round text-xl mb-1">refresh</span>
+<span class="text-[10px] font-bold flex items-center">
+                        50 <span class="material-icons-round text-gold text-[8px] ml-0.5">star</span>
+</span>
+</button>
+<!-- Next Cycle Button -->
+<button class="h-full flex-1 bg-primary hover:bg-primary-hover active:scale-[0.98] transition-all rounded-xl shadow-glow flex items-center justify-center space-x-2 text-white relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
+<span class="text-lg font-bold tracking-wide">Enter Next Cycle</span>
+<span class="material-icons-round group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</footer>
+</main>
+</body></html>

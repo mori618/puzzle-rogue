@@ -202,6 +202,7 @@ const ENCHANTMENTS = [
 ];
 
 // --- Puzzle Engine (Imperative Logic) ---
+// --- Puzzle Engine (Imperative Logic) ---
 class PuzzleEngine {
   constructor(container, timerBar, comboEl, options = {}) {
     this.container = container;
@@ -213,7 +214,9 @@ class PuzzleEngine {
     this.onTurnEnd = options.onTurnEnd || (() => { });
     this.onCombo = options.onCombo || (() => { });
 
+    // Will be calculated in init()
     this.orbSize = 60;
+    this.gap = 8; // 8px gap (tailwinds gap-2)
 
     this.types = ["fire", "water", "wood", "light", "dark", "heart"];
     this.icons = {
@@ -244,14 +247,21 @@ class PuzzleEngine {
 
   init() {
     if (this.processing) return;
-    this.container.style.width = `${this.cols * this.orbSize}px`;
+
+    // Calculate responsive orb size
+    const rect = this.container.getBoundingClientRect();
+    if (rect.width > 0) {
+      this.orbSize = rect.width / this.cols;
+    }
+    // Ensure height matches grid
     this.container.style.height = `${this.rows * this.orbSize}px`;
+
     this.state = Array.from({ length: this.rows }, () =>
       Array(this.cols).fill(null),
     );
     this.container.innerHTML = "";
     this.currentCombo = 0;
-    this.comboEl.innerText = "";
+    if (this.comboEl) this.comboEl.innerText = "";
 
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
@@ -300,15 +310,22 @@ class PuzzleEngine {
     }
 
     const el = document.createElement("div");
-    el.className = `orb orb-${type}`;
+    // New styles to match demo/code.html
+    // Note: absolute positioning is handled by inline styles in render()
+    el.className = `orb absolute flex items-center justify-center rounded-lg orb-shadow active:scale-90 transition-transform orb-${type}`;
+
+    // Adjust size for gap
+    const size = Math.max(0, this.orbSize - this.gap);
+    el.style.width = `${size}px`;
+    el.style.height = `${size}px`;
+
     // Create inner span for material icon
     const iconSpan = document.createElement("span");
-    iconSpan.className = "material-icons-round"; // or material-symbols-outlined based on preference, design uses material-icons-round mostly
+    iconSpan.className = "material-icons-round text-white/90 text-2xl drop-shadow-md";
     iconSpan.innerText = this.icons[type];
     el.appendChild(iconSpan);
 
     const handler = (e) => {
-      // Prevent default only for touch to avoid scrolling
       if (e.type === "touchstart") e.preventDefault();
       this.onStart(e.type === "touchstart" ? e.touches[0] : e, r, c);
     };
@@ -320,8 +337,11 @@ class PuzzleEngine {
     this.container.appendChild(el);
 
     if (isNew) {
-      el.style.top = `-${(startRowOffset + 1) * this.orbSize}px`;
-      el.style.left = `${c * this.orbSize}px`;
+      // Start position (above board)
+      const top = -((startRowOffset + 1) * this.orbSize) + (this.gap / 2);
+      const left = (c * this.orbSize) + (this.gap / 2);
+      el.style.top = `${top}px`;
+      el.style.left = `${left}px`;
     }
   }
 
@@ -329,8 +349,10 @@ class PuzzleEngine {
     this.state.forEach((row, r) => {
       row.forEach((orb, c) => {
         if (orb && orb !== this.dragging) {
-          orb.el.style.top = `${r * this.orbSize}px`;
-          orb.el.style.left = `${c * this.orbSize}px`;
+          const top = (r * this.orbSize) + (this.gap / 2);
+          const left = (c * this.orbSize) + (this.gap / 2);
+          orb.el.style.top = `${top}px`;
+          orb.el.style.left = `${left}px`;
           orb.r = r;
           orb.c = c;
         }
@@ -340,12 +362,14 @@ class PuzzleEngine {
 
   onStart(e, r, c) {
     if (this.processing) return;
-    // Find current orb at this position in case state drifted (shouldn't happen but safe)
     const target = this.state[r][c];
     if (!target) return;
 
     this.dragging = target;
     this.dragging.el.classList.add("orb-grabbing");
+    // Raise z-index
+    this.dragging.el.style.zIndex = "100";
+
     this.moveStart = null;
 
     window.addEventListener("mousemove", this.onMove);
@@ -364,8 +388,10 @@ class PuzzleEngine {
     const x = point.clientX - rect.left;
     const y = point.clientY - rect.top;
 
-    this.dragging.el.style.left = `${x - 30}px`; // -30 is half size approx
-    this.dragging.el.style.top = `${y - 30}px`;
+    // Center the dragged orb
+    const size = Math.max(0, this.orbSize - this.gap);
+    this.dragging.el.style.left = `${x - size / 2}px`;
+    this.dragging.el.style.top = `${y - size / 2}px`;
 
     if (!this.moveStart) {
       this.moveStart = Date.now();
@@ -398,6 +424,7 @@ class PuzzleEngine {
   updateTimer() {
     const elapsed = Date.now() - this.moveStart;
     const remain = Math.max(0, this.timeLimit - elapsed);
+    // If timerBar exists (it might not in new design), update it
     if (this.timerBar) {
       this.timerBar.style.width = `${(remain / this.timeLimit) * 100}%`;
     }
@@ -408,7 +435,9 @@ class PuzzleEngine {
     if (!this.dragging) return;
     clearInterval(this.timerId);
     if (this.timerBar) this.timerBar.style.width = "100%";
+
     this.dragging.el.classList.remove("orb-grabbing");
+    this.dragging.el.style.zIndex = "";
     this.dragging = null;
 
     window.removeEventListener("mousemove", this.onMove);
@@ -431,7 +460,8 @@ class PuzzleEngine {
       row.forEach((orb) => {
         if (orb && orb.type === fromType) {
           orb.type = toType;
-          orb.el.className = `orb orb-${toType}`;
+          // Update class and icon
+          orb.el.className = `orb absolute flex items-center justify-center rounded-lg orb-shadow active:scale-90 transition-transform orb-${toType}`;
           const span = orb.el.querySelector("span");
           if (span) span.innerText = this.icons[toType];
         }
@@ -445,7 +475,7 @@ class PuzzleEngine {
       row.forEach((orb) => {
         if (orb && types.includes(orb.type)) {
           orb.type = toType;
-          orb.el.className = `orb orb-${toType}`;
+          orb.el.className = `orb absolute flex items-center justify-center rounded-lg orb-shadow active:scale-90 transition-transform orb-${toType}`;
           const span = orb.el.querySelector("span");
           if (span) span.innerText = this.icons[toType];
         }
@@ -460,7 +490,7 @@ class PuzzleEngine {
         if (orb) {
           const type = types[Math.floor(Math.random() * types.length)];
           orb.type = type;
-          orb.el.className = `orb orb-${type}`;
+          orb.el.className = `orb absolute flex items-center justify-center rounded-lg orb-shadow active:scale-90 transition-transform orb-${type}`;
           const span = orb.el.querySelector("span");
           if (span) span.innerText = this.icons[type];
         }
@@ -473,7 +503,7 @@ class PuzzleEngine {
     this.state[rowIdx].forEach((orb) => {
       if (orb) {
         orb.type = type;
-        orb.el.className = `orb orb-${type}`;
+        orb.el.className = `orb absolute flex items-center justify-center rounded-lg orb-shadow active:scale-90 transition-transform orb-${type}`;
         const span = orb.el.querySelector("span");
         if (span) span.innerText = this.icons[type];
       }
@@ -515,7 +545,7 @@ class PuzzleEngine {
   async process() {
     this.processing = true;
     this.currentCombo = 0;
-    this.comboEl.innerText = "";
+    if (this.comboEl) this.comboEl.innerText = "";
     const matchedColorsThisTurn = new Set();
     let hasSkyfallCombo = false;
 
@@ -539,8 +569,9 @@ class PuzzleEngine {
 
         // Notify React
         this.onCombo(this.currentCombo);
-        // Update UI directly
-        this.comboEl.innerText = `${this.currentCombo} COMBO!`;
+        // Update UI directly if element exists
+        // (Note: In new design, React might handle this via state, but we keep this for safety)
+        if (this.comboEl) this.comboEl.innerText = `${this.currentCombo} COMBO!`;
 
         group.forEach((o) => o.el.classList.add("orb-matching"));
         await this.sleep(300);
@@ -563,7 +594,7 @@ class PuzzleEngine {
     );
     if (isPerfect && this.currentCombo > 0) {
       this.currentCombo *= 2;
-      this.comboEl.innerText = `PERFECT CLEAR! x2 COMBO (${this.currentCombo} total)`;
+      if (this.comboEl) this.comboEl.innerText = `PERFECT CLEAR! x2 COMBO (${this.currentCombo} total)`;
       await this.sleep(1000);
     }
 
@@ -633,6 +664,7 @@ class PuzzleEngine {
                 nc = curr.c + dc;
               if (
                 nr >= 0 &&
+                nr < this.rows &&
                 nr < this.rows &&
                 nc >= 0 &&
                 nc < this.cols &&
@@ -1170,30 +1202,30 @@ const App = () => {
           <div className="flex flex-col">
             <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
             <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-white">Cycle 1</span>
+              <span className="text-lg font-bold text-white">Cycle {Math.ceil(turn / 3) || 1}</span>
               <span className="text-primary font-bold">/</span>
               <span className="text-lg font-bold text-white">Turn {turn}/{maxTurns}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full border border-white/10" onClick={openShop} role="button">
-            {/* Shop Button / Star Count */}
-            <span className="material-icons-round text-yellow-400 text-sm animate-pulse">star</span>
-            <span className="font-bold text-sm tracking-wide">{stars}</span>
+          <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full border border-white/10 clickable active:scale-95 transition-transform" onClick={openShop} role="button">
+            <span className="material-icons-round text-yellow-400 text-sm">star</span>
+            <span className="font-bold text-sm tracking-wide text-white">{stars.toLocaleString()}</span>
             <span className="material-icons-round text-slate-400 text-sm ml-1">shopping_cart</span>
           </div>
         </header>
 
         {/* Main Stats Area */}
         <section className="relative z-10 px-6 py-4 flex-none">
-          {/* Combo Meter */}
+          {/* Combo Meter (Target Progress) */}
           <div className="flex flex-col items-center justify-center mb-6">
             <div className="w-full flex justify-between items-end mb-2">
               <span className="text-sm font-medium text-primary glow-text uppercase tracking-widest">Target Combo</span>
-              <span className="text-2xl font-bold font-mono">
+              <span className="text-2xl font-bold font-mono text-white">
                 {cycleTotalCombo}<span className="text-slate-500 text-lg">/{target}</span>
               </span>
             </div>
             <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-white/5 relative">
+              {/* Progress Bar */}
               <div
                 className="h-full bg-gradient-to-r from-primary to-puzzle-purple w-full transition-all duration-500 rounded-full shadow-[0_0_15px_rgba(91,19,236,0.6)] relative"
                 style={{ width: `${Math.min(100, (cycleTotalCombo / target) * 100)}%` }}
@@ -1206,16 +1238,12 @@ const App = () => {
           {/* Timer & Info */}
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary relative overflow-hidden">
-                {/* Timer Bar embedded or around? Design shows icon. */}
-                <span className="material-icons-round text-xl relative z-10">timer</span>
-                {/* Visual timer fill behind icon? Optional. */}
-                <div ref={timerRef} className="absolute bottom-0 left-0 right-0 bg-primary/30 z-0 h-full origin-bottom transition-transform" style={{ transform: 'scaleY(1)' }}></div>
+              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary">
+                <span className="material-icons-round text-xl">timer</span>
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] uppercase text-slate-400 font-bold">Move Time</span>
                 <span className="text-xl font-mono font-bold text-white">
-                  {/* We assume approx 5s base. Precise tracking is in engine. */}
                   {(getTimeLimit() / 1000).toFixed(1)}<span className="text-xs text-slate-500 ml-0.5">s</span>
                 </span>
               </div>
@@ -1243,25 +1271,23 @@ const App = () => {
                     useSkill(t, i);
                   }
                 }}
-                className={`flex-none w-16 h-16 rounded-xl relative group shadow-[0_0_10px_rgba(91,19,236,0.2)] transition-all
-                     ${t ? "bg-slate-800 border border-primary/50 cursor-pointer active:scale-95" : "bg-slate-900/50 border border-white/5 border-dashed flex items-center justify-center"}
+                className={`flex-none w-16 h-16 rounded-xl relative group transition-all
+                     ${t ? "bg-slate-800 border border-primary/50 cursor-pointer active:scale-95 shadow-[0_0_10px_rgba(91,19,236,0.2)]" : "bg-slate-900/50 border border-white/5 border-dashed flex items-center justify-center"}
                   `}
               >
                 {t ? (
                   <>
                     <div className="absolute inset-0 bg-primary/10 rounded-xl"></div>
                     <div className="w-full h-full flex flex-col items-center justify-center p-1">
-                      {/* Icons for skills? Need mapping or generic */}
-                      <span className="material-icons-round text-2xl text-primary drop-shadow-md">
+                      <span className="material-icons-round text-3xl text-primary drop-shadow-md">
                         {t.type === 'skill' ? 'sports_martial_arts' : t.type === 'passive' ? 'auto_awesome' : 'stars'}
                       </span>
-                      <span className="text-[8px] truncate max-w-full text-zinc-300 font-bold mt-1">{t.name}</span>
                     </div>
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-background-dark text-white">
                       {t.level || 1}
                     </div>
                     {t.cost > 0 && (
-                      <div className="absolute -top-2 -right-2 bg-slate-900 border border-slate-700 text-[9px] text-indigo-300 px-1 rounded">
+                      <div className="absolute -top-2 -right-2 bg-slate-900 border border-slate-700 text-[9px] text-indigo-300 px-1 rounded shadow-sm">
                         {t.cost}E
                       </div>
                     )}
@@ -1287,41 +1313,38 @@ const App = () => {
           )}
         </div>
 
+        {/* Combo Popups overlay (using ref currently) */}
+        <div className="absolute top-[35%] left-0 width-full flex justify-center w-full z-40 pointer-events-none">
+          <div id="combo-count" ref={comboRef} className="text-5xl font-black text-white drop-shadow-[0_0_10px_rgba(91,19,236,0.8)] font-display italic tracking-tighter"></div>
+        </div>
+
         {/* Message Popups */}
         {message && (
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
-            <div className="bg-slate-900/90 border border-primary/50 text-primary font-bold px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-md animate-pop text-center">
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none w-full px-4 flex justify-center">
+            <div className="bg-slate-900/90 border border-primary/50 text-white font-bold px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-md animate-pop text-center max-w-sm">
               {message}
             </div>
           </div>
         )}
 
-        {/* Combo Popups overlay (using ref currently) */}
-        <div className="absolute top-[40%] left-0 width-full flex justify-center w-full z-40 pointer-events-none">
-          <div id="combo-count" ref={comboRef} className="text-4xl font-black text-yellow-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] font-display italic"></div>
-        </div>
-
-
         {/* Puzzle Grid Area */}
-        <section className="relative z-20 flex-1 bg-slate-900 rounded-t-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
-          {/* Grid Background effects */}
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-90"></div>
-
+        <section className="relative z-20 flex-1 bg-slate-900/40 border-t border-white/5 overflow-hidden">
           <div className="relative w-full h-full p-4 flex flex-col justify-center items-center">
-            {/* Board Container */}
-            <div className="board-wrapper bg-transparent border-none shadow-none p-0 overflow-visible relative" style={{ width: cols * 60, height: rows * 60 }}>
-              <div id="board" className="board" ref={boardRef}></div>
-            </div>
+            {/* The Grid Container - PuzzleEngine will populate this */}
+            {/* We give it full width and responsive aspect ratio to match the demo */}
+            <div id="board" ref={boardRef} className="relative w-full aspect-[6/5] max-h-[80%]"></div>
 
             {/* Touch Guide hint */}
-            <div className="mt-8 text-center pointer-events-none opacity-50">
+            <div className="mt-4 text-center pointer-events-none opacity-40">
               <span className="text-[10px] text-white uppercase tracking-widest">Drag to connect</span>
             </div>
+
+            {/* Hidden dummy element for legacy timerBar ref if needed, or just let it be null */}
+            <div ref={timerRef} className="hidden"></div>
           </div>
         </section>
 
         {/* Shop Overlay */}
-        {/* Shop Overlay using ShopScreen Component */}
         {showShop && (
           <div className="pointer-events-auto fixed inset-0 z-[200]">
             <ShopScreen

@@ -1,65 +1,68 @@
 import React from 'react';
 
 const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh }) => {
-    // Separate items into passive and active/other for display categories if needed.
-    // The current items structure is mixed, but we can filter based on type.
-    // The design separates "Passive Artifacts" and "Active Spells".
-    // Assuming 'passive' type for artifacts and 'skill'/'skyfall' etc for active.
-
+    // Separate items into categories
     const passiveItems = items.filter(item => item.type === 'passive' || item.type === 'collector');
     const activeItems = items.filter(item => item.type !== 'passive' && item.type !== 'collector');
 
-    // Helper to determine icon for item based on type or properties
+    // Helper to determine icon for item
     const getItemIcon = (item) => {
         if (item.type === 'skill') {
-            if (item.action === 'refresh') return 'refresh';
-            if (item.action === 'skyfall') return 'cloud_download';
-            if (item.action === 'convert') return 'transform';
-            return 'flash_on'; // default active
+            if (item.action === 'refresh' || item.action === 'force_refresh') return 'refresh';
+            if (item.action === 'skyfall' || item.action === 'skyfall_limit') return 'cloud_download';
+            if (item.action === 'convert' || item.action === 'convert_multi') return 'transform';
+            if (item.action === 'board_change') return 'grid_view';
+            if (item.action === 'row_fix') return 'horizontal_rule';
+            if (item.action === 'forbidden_temp') return 'block';
+            return 'flash_on';
         }
-        if (item.type === 'passive') return 'auto_fix_high';
-        if (item.id === 'bargain') return 'savings';
-        if (item.id === 'collector') return 'savings';
-        if (item.id === 'scanner') return 'visibility';
-
-        // Fallback based on name or generic
+        if (item.type === 'passive') {
+            if (item.id === 'time_ext') return 'hourglass_top';
+            if (item.id === 'power_up') return 'trending_up';
+            if (item.id === 'collector') return 'savings';
+            if (item.id === 'forbidden') return 'security';
+            if (item.id === 'bargain') return 'shopping_bag';
+            if (item.id === 'skip_master') return 'fast_forward';
+            return 'auto_fix_high';
+        }
+        if (item.type === 'enchant_grant') return 'auto_awesome';
         return 'stars';
     };
 
-    // Helper for background gradients/colors based on type
+    // Helper for background gradients
     const getItemStyles = (item) => {
         if (item.type === 'skill') return { bg: 'from-red-500/20 to-red-900/20', border: 'border-red-500/30', text: 'text-red-400' };
-        if (item.type === 'passive') return { bg: 'from-blue-500/20 to-blue-900/20', border: 'border-blue-500/30', text: 'text-blue-400' };
-        if (item.id === 'bargain' || item.id === 'collector') return { bg: 'from-yellow-500/20 to-yellow-900/20', border: 'border-yellow-500/30', text: 'text-amber-400' };
-        return { bg: 'from-purple-500/20 to-purple-900/20', border: 'border-purple-500/30', text: 'text-purple-300' };
+        if (item.type === 'passive') {
+            if (item.id === 'time_ext') return { bg: 'from-blue-500/20 to-blue-900/20', border: 'border-blue-500/30', text: 'text-blue-400' };
+            if (item.id === 'collector') return { bg: 'from-yellow-500/20 to-yellow-900/20', border: 'border-yellow-500/30', text: 'text-amber-400' };
+            return { bg: 'from-indigo-500/20 to-indigo-900/20', border: 'border-indigo-500/30', text: 'text-indigo-400' };
+        }
+        if (item.type === 'enchant_grant') return { bg: 'from-purple-500/20 to-purple-900/20', border: 'border-purple-500/30', text: 'text-purple-300' };
+        return { bg: 'from-slate-500/20 to-slate-900/20', border: 'border-slate-500/30', text: 'text-slate-300' };
     };
 
     return (
-        <div className="w-full max-w-md h-full flex flex-col relative bg-background-light dark:bg-background-dark shadow-2xl overflow-hidden font-display text-slate-800 dark:text-white">
+        <main className="w-full max-w-md h-[100dvh] flex flex-col relative bg-background-light dark:bg-background-dark shadow-2xl overflow-hidden font-display text-slate-800 dark:text-white">
             {/* Header: Currency & Title */}
             <header className="flex-none px-6 pt-6 pb-4 z-20 glass-panel border-b border-white/5 relative">
                 <div className="absolute inset-0 bg-gradient-to-b from-background-dark to-transparent opacity-90 -z-10"></div>
                 <div className="flex items-center justify-between mb-2">
-                    {/* Close/Back button */}
                     <button
                         onClick={onClose}
-                        className="p-2 -ml-2 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
+                        className="p-2 -ml-2 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-colors active:scale-90"
                     >
                         <span className="material-icons-round">arrow_back</span>
                     </button>
-
                     <h1 className="text-sm font-medium tracking-widest uppercase text-slate-400">Merchant's Wares</h1>
-
                     <button className="p-2 -mr-2 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
                         <span className="material-icons-round">help_outline</span>
                     </button>
                 </div>
-
                 {/* Currency Display */}
                 <div className="flex items-center justify-center space-x-2 py-2">
                     <div className="flex items-center bg-surface-dark border border-primary/30 rounded-full px-4 py-1.5 shadow-lg shadow-primary/10">
                         <span className="material-icons-round text-gold text-xl mr-2 animate-pulse">star</span>
-                        <span className="text-xl font-bold text-white tracking-wide">{stars}</span>
+                        <span className="text-xl font-bold text-white tracking-wide">{stars.toLocaleString()}</span>
                     </div>
                 </div>
             </header>
@@ -68,8 +71,7 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh }) => {
             <section className="flex-none px-6 py-4 relative">
                 <div className="bg-gradient-to-r from-primary/20 to-primary/5 rounded-xl p-4 flex items-center border border-primary/20">
                     <div className="w-12 h-12 rounded-full bg-surface-dark border-2 border-primary overflow-hidden flex-shrink-0 relative flex items-center justify-center">
-                        {/* Placeholder for Merchant Avatar if image fails or acts as fallback */}
-                        <span className="material-icons-round text-primary text-3xl">sentiment_satisfied</span>
+                        <span className="material-icons-round text-primary text-3xl">sentiment_satisfied_alt</span>
                     </div>
                     <div className="ml-4">
                         <p className="text-xs text-primary font-bold uppercase tracking-wider mb-0.5">The Void Trader</p>
@@ -81,7 +83,7 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh }) => {
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-32 space-y-6">
 
-                {/* Passive/Artifacts Section */}
+                {/* Passive Artifacts Section */}
                 {passiveItems.length > 0 && (
                     <div>
                         <div className="flex items-center space-x-2 mb-3">
@@ -91,27 +93,29 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh }) => {
                         <div className="space-y-3">
                             {passiveItems.map((item, idx) => {
                                 const styles = getItemStyles(item);
+                                const isAffordable = stars >= item.price;
                                 return (
                                     <div key={idx} className="group bg-surface-dark hover:bg-white/5 border border-white/5 hover:border-primary/50 rounded-xl p-3 flex items-center transition-all duration-200">
                                         <div className={`w-14 h-14 rounded-lg bg-gradient-to-br ${styles.bg} border ${styles.border} flex items-center justify-center flex-shrink-0 relative overflow-hidden`}>
                                             <span className={`material-icons-round text-2xl relative z-10 ${styles.text}`}>{getItemIcon(item)}</span>
                                         </div>
                                         <div className="ml-3 flex-1">
-                                            <h3 className="font-bold text-white text-base">{item.name}</h3>
-                                            <p className="text-xs text-slate-400 mt-0.5 leading-tight line-clamp-2">{item.desc}</p>
+                                            <h3 className="font-bold text-white text-base leading-tight">{item.name}</h3>
+                                            <p className="text-xs text-slate-400 mt-0.5 leading-tight">{item.desc}</p>
                                             <div className="flex gap-1 mt-1">
                                                 {item.isSale && <span className="text-[9px] bg-red-600 text-white px-1.5 py-0.5 rounded uppercase font-bold">SALE</span>}
-                                                {item.enchantment && <span className="text-[9px] bg-purple-600 text-white px-1.5 py-0.5 rounded uppercase font-bold">Enchanted</span>}
+                                                {item.enchantment && <span className="text-[9px] bg-purple-600 text-white px-1.5 py-0.5 rounded uppercase font-bold">{item.enchantName || 'Enchanted'}</span>}
                                             </div>
                                         </div>
                                         <button
                                             onClick={() => onBuy(item)}
-                                            className="bg-primary hover:bg-primary-hover active:scale-95 transition-transform text-white px-3 py-2 rounded-lg flex flex-col items-center justify-center min-w-[70px]"
+                                            disabled={!isAffordable}
+                                            className={`${isAffordable ? 'bg-primary hover:bg-primary-hover active:scale-95' : 'bg-surface-dark border border-white/10 opacity-50 cursor-not-allowed'} transition-all text-white px-3 py-2 rounded-lg flex flex-col items-center justify-center min-w-[70px]`}
                                         >
                                             <span className="text-xs font-bold flex items-center">
-                                                {item.price} <span className="material-icons-round text-gold text-[10px] ml-1">star</span>
+                                                {item.price} <span className={`material-icons-round text-[10px] ml-1 ${isAffordable ? 'text-gold' : 'text-slate-500'}`}>star</span>
                                             </span>
-                                            <span className="text-[10px] uppercase font-medium opacity-80">Buy</span>
+                                            <span className="text-[10px] uppercase font-medium opacity-80">{isAffordable ? 'Buy' : 'Locked'}</span>
                                         </button>
                                     </div>
                                 );
@@ -120,7 +124,7 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh }) => {
                     </div>
                 )}
 
-                {/* Active Spells/Skills Section */}
+                {/* Active Spells Section */}
                 {activeItems.length > 0 && (
                     <div>
                         <div className="flex items-center space-x-2 mb-3 pt-2">
@@ -130,27 +134,29 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh }) => {
                         <div className="space-y-3">
                             {activeItems.map((item, idx) => {
                                 const styles = getItemStyles(item);
+                                const isAffordable = stars >= item.price;
                                 return (
                                     <div key={idx} className="group bg-surface-dark hover:bg-white/5 border border-white/5 hover:border-primary/50 rounded-xl p-3 flex items-center transition-all duration-200">
                                         <div className={`w-14 h-14 rounded-lg bg-gradient-to-br ${styles.bg} border ${styles.border} flex items-center justify-center flex-shrink-0 relative overflow-hidden`}>
                                             <span className={`material-icons-round text-2xl relative z-10 ${styles.text}`}>{getItemIcon(item)}</span>
                                         </div>
                                         <div className="ml-3 flex-1">
-                                            <h3 className="font-bold text-white text-base">{item.name}</h3>
-                                            <p className="text-xs text-slate-400 mt-0.5 leading-tight line-clamp-2">{item.desc}</p>
+                                            <h3 className="font-bold text-white text-base leading-tight">{item.name}</h3>
+                                            <p className="text-xs text-slate-400 mt-0.5 leading-tight">{item.desc}</p>
                                             <div className="flex gap-1 mt-1">
                                                 {item.isSale && <span className="text-[9px] bg-red-600 text-white px-1.5 py-0.5 rounded uppercase font-bold">SALE</span>}
-                                                {item.enchantment && <span className="text-[9px] bg-purple-600 text-white px-1.5 py-0.5 rounded uppercase font-bold">Enchanted</span>}
+                                                {item.enchantment && <span className="text-[9px] bg-purple-600 text-white px-1.5 py-0.5 rounded uppercase font-bold">{item.enchantName || 'Enchanted'}</span>}
                                             </div>
                                         </div>
                                         <button
                                             onClick={() => onBuy(item)}
-                                            className="bg-primary hover:bg-primary-hover active:scale-95 transition-transform text-white px-3 py-2 rounded-lg flex flex-col items-center justify-center min-w-[70px]"
+                                            disabled={!isAffordable}
+                                            className={`${isAffordable ? 'bg-primary hover:bg-primary-hover active:scale-95' : 'bg-surface-dark border border-white/10 opacity-50 cursor-not-allowed'} transition-all text-white px-3 py-2 rounded-lg flex flex-col items-center justify-center min-w-[70px]`}
                                         >
                                             <span className="text-xs font-bold flex items-center">
-                                                {item.price} <span className="material-icons-round text-gold text-[10px] ml-1">star</span>
+                                                {item.price} <span className={`material-icons-round text-[10px] ml-1 ${isAffordable ? 'text-gold' : 'text-slate-500'}`}>star</span>
                                             </span>
-                                            <span className="text-[10px] uppercase font-medium opacity-80">Buy</span>
+                                            <span className="text-[10px] uppercase font-medium opacity-80">{isAffordable ? 'Buy' : 'Locked'}</span>
                                         </button>
                                     </div>
                                 );
@@ -173,21 +179,20 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh }) => {
                             50 <span className="material-icons-round text-gold text-[8px] ml-0.5">star</span>
                         </span>
                     </button>
-
-                    {/* Next Cycle / Close Button */}
-                    {/* Use different label if just closing vs next cycle */}
+                    {/* Next Cycle Button */}
                     <button
                         onClick={onClose}
                         className="h-full flex-1 bg-primary hover:bg-primary-hover active:scale-[0.98] transition-all rounded-xl shadow-glow flex items-center justify-center space-x-2 text-white relative overflow-hidden group"
                     >
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
-                        <span className="text-lg font-bold tracking-wide">Leave Shop</span>
+                        <span className="text-lg font-bold tracking-wide">Enter Next Cycle</span>
                         <span className="material-icons-round group-hover:translate-x-1 transition-transform">arrow_forward</span>
                     </button>
                 </div>
             </footer>
-        </div>
+        </main>
     );
 };
 
 export default ShopScreen;
+
