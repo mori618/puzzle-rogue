@@ -104,6 +104,54 @@ const ALL_TOKEN_BASES = [
     price: 4,
     desc: "ショップに並ぶセール品（半額）の数をLvに応じ2/3/4個に増加させる。",
   },
+  {
+    id: "skip_master",
+    name: "時短の心得",
+    type: "passive",
+    effect: "skip_bonus_multiplier",
+    values: [4, 5, 6],
+    price: 4,
+    desc: "目標達成後のスキップボーナスをLvに応じ4/5/6倍にする。",
+  },
+
+  // --- Passive: Combo Multiplier (Color) ---
+  {
+    id: "bonus_1c_fire", name: "炎の連舞", type: "passive", effect: "color_multiplier",
+    params: { colors: ["fire"] }, values: [2, 3, 5], price: 4,
+    desc: "火を消しているとコンボ数x[2/3/5]倍。",
+  },
+  {
+    id: "bonus_1c_water", name: "水の連舞", type: "passive", effect: "color_multiplier",
+    params: { colors: ["water"] }, values: [2, 3, 5], price: 4,
+    desc: "水を消しているとコンボ数x[2/3/5]倍。",
+  },
+  {
+    id: "bonus_1c_wood", name: "木の連舞", type: "passive", effect: "color_multiplier",
+    params: { colors: ["wood"] }, values: [2, 3, 5], price: 4,
+    desc: "木を消しているとコンボ数x[2/3/5]倍。",
+  },
+  {
+    id: "bonus_3c_fwh", name: "三源の律動", type: "passive", effect: "color_multiplier",
+    params: { colors: ["fire", "water", "heart"] }, values: [3, 5, 9], price: 6,
+    desc: "火/水/回復を同時に消すとコンボ数x[3/5/9]倍。",
+  },
+  {
+    id: "bonus_3c_ldw", name: "三界の律動", type: "passive", effect: "color_multiplier",
+    params: { colors: ["light", "dark", "wood"] }, values: [3, 5, 9], price: 6,
+    desc: "光/闇/木を同時に消すとコンボ数x[3/5/9]倍。",
+  },
+  {
+    id: "bonus_5c", name: "五色の秘儀", type: "passive", effect: "color_multiplier",
+    params: { count: 5 }, values: [5, 10, 15], price: 8,
+    desc: "5色以上を同時に消すとコンボ数x[5/10/15]倍。",
+  },
+
+  // --- Passive: Skyfall Bonus ---
+  {
+    id: "bonus_skyfall", name: "天恵の追撃", type: "passive", effect: "skyfall_bonus",
+    values: [3, 5, 8], price: 5,
+    desc: "落ちコン発生時にコンボ+[3/5/8]。",
+  },
 ];
 
 const ENCHANTMENTS = [
@@ -142,6 +190,13 @@ const ENCHANTMENTS = [
     effect: "add_turn",
     price: 7,
     desc: "目標達成までの手番が +1 される。",
+  },
+  {
+    id: "time_leap",
+    name: "時の跳躍",
+    effect: "skip_turn_combo",
+    price: 7,
+    desc: "前のサイクルでスキップしたターン数分、次のサイクルの全ターンでコンボ加算。",
   },
 ];
 
@@ -188,6 +243,8 @@ class PuzzleEngine {
 
   init() {
     if (this.processing) return;
+    this.container.style.width = `${this.cols * this.orbSize}px`;
+    this.container.style.height = `${this.rows * this.orbSize}px`;
     this.state = Array.from({ length: this.rows }, () =>
       Array(this.cols).fill(null),
     );
@@ -253,7 +310,7 @@ class PuzzleEngine {
     el.onmousedown = handler;
     el.ontouchstart = handler;
 
-    const orb = { type, el, r, c };
+    const orb = { type, el, r, c, isSkyfall: isNew };
     this.state[r][c] = orb;
     this.container.appendChild(el);
 
@@ -450,7 +507,8 @@ class PuzzleEngine {
     this.processing = true;
     this.currentCombo = 0;
     this.comboEl.innerText = "";
-    const visitedCombos = new Set();
+    const matchedColorsThisTurn = new Set();
+    let hasSkyfallCombo = false;
 
     while (true) {
       const groups = this.findCombos();
@@ -462,6 +520,12 @@ class PuzzleEngine {
           this.currentCombo += 10;
         } else {
           this.currentCombo++;
+        }
+        
+        const matchedType = group[0].type;
+        matchedColorsThisTurn.add(matchedType);
+        if (group.some(orb => orb.isSkyfall)) {
+            hasSkyfallCombo = true;
         }
 
         // Notify React
@@ -495,7 +559,7 @@ class PuzzleEngine {
     }
 
     this.processing = false;
-    this.onTurnEnd(this.currentCombo);
+    this.onTurnEnd(this.currentCombo, matchedColorsThisTurn, hasSkyfallCombo);
   }
 
   findCombos() {
@@ -625,6 +689,7 @@ const App = () => {
   const [maxEnergy, setMaxEnergy] = useState(10);
 
   const [activeBuffs, setActiveBuffs] = useState([]);
+  const [skippedTurnsBonus, setSkippedTurnsBonus] = useState(0);
 
   // Shop choice state
   const [pendingShopItem, setPendingShopItem] = useState(null);
@@ -634,6 +699,7 @@ const App = () => {
   const [shopItems, setShopItems] = useState([]);
   const [totalPurchases, setTotalPurchases] = useState(0);
   const [message, setMessage] = useState(null);
+  const [goalReached, setGoalReached] = useState(false);
 
   // Refs
   const boardRef = useRef(null);
@@ -695,8 +761,8 @@ const App = () => {
         onCombo: (count) => {
           // No-op for now to avoid re-renders
         },
-        onTurnEnd: (total) => {
-          handleTurnEnd(total);
+        onTurnEnd: (total, colors, skyfall) => {
+          handleTurnEnd(total, colors, skyfall);
           // Auto-reset temporary forbidden ritual effect
           if (engineRef.current) engineRef.current.noSkyfall = false;
         },
@@ -724,88 +790,122 @@ const App = () => {
   }, []);
 
   // --- Game Logic ---
-  const handleTurnEnd = (turnCombo) => {
+  const handleTurnEnd = (turnCombo, matchedColors, hasSkyfallCombo) => {
     let bonus = 0;
     let multiplier = 1;
+    const matchedColorSet = new Set(matchedColors || []);
+
     tokens.forEach((t) => {
       if (!t) return;
       const lv = t.level || 1;
+      
+      // Base bonuses
       if (t.enchantment === "fixed_add") bonus += 2;
-      if (t.effect === "base_add") bonus += t.values[lv - 1];
+      if (t.effect === "base_add") bonus += t.values?.[lv - 1] || 0;
       if (t.enchantment === "star_add") bonus += stars;
+      if (t.enchantment === "skip_turn_combo") bonus += skippedTurnsBonus;
 
-      // Forbidden Ritual multiplier
+      // Skyfall bonus
+      if (t.effect === "skyfall_bonus" && hasSkyfallCombo) {
+        bonus += t.values?.[lv - 1] || 0;
+      }
+
+      // Multipliers
       if (t.id === "forbidden") {
-        multiplier *= t.values[lv - 1];
+        multiplier *= t.values?.[lv - 1] || 1;
       }
       if (t.action === "forbidden_temp" && engineRef.current?.noSkyfall) {
         multiplier *= 10;
       }
-      // Resonance enchantment: Multiply by token level
       if (t.enchantment === "lvl_mult") {
         multiplier *= lv;
       }
+      
+      // Color multiplier
+      if (t.effect === "color_multiplier") {
+        const colors = t.params?.colors;
+        const count = t.params?.count;
+        let match = false;
+        if (colors && colors.every(c => matchedColorSet.has(c))) {
+            match = true;
+        } else if (count && matchedColorSet.size >= count) {
+            match = true;
+        }
+        
+        if (match) {
+            multiplier *= t.values?.[lv - 1] || 1;
+        }
+      }
     });
 
-    const effectiveCombo = Math.floor((turnCombo + bonus) * multiplier);
+    const effectiveCombo = Math.floor((turnCombo + bonus) * multiplier) || 0;
 
-    // Cumulative Star generation logic
     let totalReduction = 0;
     tokens.forEach((t) => {
       if (t?.id === "collector") {
-        const threshold = t.values[(t.level || 1) - 1];
+        const threshold = t.values?.[(t.level || 1) - 1] || 5;
         totalReduction += (5 - threshold);
       }
     });
     const starThreshold = Math.max(1, 5 - totalReduction);
-    const totalStarsEarned = Math.floor(effectiveCombo / starThreshold);
+    const totalStarsEarned = starThreshold > 0 ? Math.floor(effectiveCombo / starThreshold) : 0;
 
     if (totalStarsEarned > 0) {
       setStars((s) => s + totalStarsEarned);
       notify(`+${totalStarsEarned} STARS!`);
     }
 
-    setCycleTotalCombo((prev) => prev + effectiveCombo);
-    // Gain Energy per turn
+    const newCycleTotalCombo = cycleTotalCombo + effectiveCombo;
+    setCycleTotalCombo(newCycleTotalCombo);
+    
     setEnergy((prev) => Math.min(maxEnergy, prev + 2));
 
-    // Update active buffs
     setActiveBuffs((prev) =>
       prev
         .map((b) => ({ ...b, duration: b.duration - 1 }))
         .filter((b) => b.duration > 0),
     );
 
-    const isTargetMet = cycleTotalCombo + effectiveCombo >= target;
+    if (newCycleTotalCombo >= target) {
+      setGoalReached(true);
+    }
 
-    // Check for cycle end or game over
-    if (turn >= maxTurns) {
-      if (isTargetMet) {
-        handleCycleClear();
-      } else {
-        handleGameOver();
-      }
-    } else {
+    if (turn < maxTurns) {
       setTurn((prev) => prev + 1);
     }
   };
 
-  const skipTurns = () => {
-    const remainingTurns = maxTurns - turn;
-    if (remainingTurns > 0) {
-      const bonus = remainingTurns * 2;
-      setStars((s) => s + bonus);
-      notify(`SKIP BONUS: +${bonus} STARS!`);
+  useEffect(() => {
+    if (turn > maxTurns && !goalReached) {
+      handleGameOver();
     }
-    handleCycleClear();
+  }, [turn, goalReached, maxTurns]);
+
+  const skipTurns = () => {
+    const remainingTurns = maxTurns - turn + 1;
+    if (remainingTurns <= 0) return handleCycleClear();
+
+    let bonusMultiplier = 3;
+    const skipToken = tokens.find(t => t?.id === 'skip_master');
+    if (skipToken) {
+        bonusMultiplier = skipToken.values[(skipToken.level || 1) - 1];
+    }
+
+    const bonus = remainingTurns * bonusMultiplier;
+    setStars((s) => s + bonus);
+    notify(`SKIP BONUS: +${bonus} STARS!`);
+    
+    handleCycleClear(remainingTurns);
   };
 
-  const handleCycleClear = () => {
+  const handleCycleClear = (skippedTurns = 0) => {
     notify("CYCLE CLEAR!");
+    setSkippedTurnsBonus(prev => prev + skippedTurns);
     setTimeout(() => {
       setTurn(1);
       setCycleTotalCombo(0);
       setTarget((t) => Math.floor(t * 1.5) + 2);
+      setGoalReached(false);
       generateShop();
       setShowShop(true);
     }, 1000);
@@ -824,7 +924,9 @@ const App = () => {
     setTokens(Array(6).fill(null));
     setEnergy(0);
     setActiveBuffs([]);
+    setSkippedTurnsBonus(0);
     setPendingShopItem(null);
+    setGoalReached(false);
     setShowShop(false);
     setTotalPurchases(0);
     generateShop();
@@ -1097,17 +1199,16 @@ const App = () => {
               <div className="text-[8px] text-indigo-400 font-black uppercase tracking-tighter">Energy {energy}/{maxEnergy}</div>
             </div>
 
-            {cycleTotalCombo >= target && turn < maxTurns && (
+            {goalReached && turn <= maxTurns && (
               <button
                 onClick={skipTurns}
                 className="group relative px-4 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-xl font-black text-slate-900 text-[10px] shadow-xl shadow-amber-500/20 active:scale-95 transition-all overflow-hidden"
               >
-                NEXT GOAL (+{(maxTurns - turn) * 2}★)
+                NEXT GOAL (+{(maxTurns - turn + 1) * 3}★)
                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 -translate-x-full group-hover:animate-shimmer" />
               </button>
             )}
           </div>
-
           {/* Combo Display */}
           <div className="h-8 mb-2">
             <div id="combo-count" ref={comboRef} className="text-2xl font-black"></div>
@@ -1184,7 +1285,7 @@ const App = () => {
       {/* 3. Overlays (Layer 200+) */}
       <div className="layer-overlay pointer-events-none">
         {showShop && (
-          <div className="pointer-events-auto fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-start pt-20 pb-32 px-6 overflow-y-auto animate-in fade-in duration-300">
+          <div className="pointer-events-auto fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-start pt-20 pb-32 px-6 overflow-y-auto">
             <div className="w-full max-w-lg">
               <div className="flex justify-between items-center mb-8 px-2">
                 <h2 className="text-4xl font-black text-indigo-300 drop-shadow-lg tracking-widest">よろず屋</h2>
