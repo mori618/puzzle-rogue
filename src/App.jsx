@@ -812,20 +812,29 @@ const App = () => {
   };
 
   const handleGameOver = () => {
-    notify("GOAL MISSED... RELOADING");
-    setTimeout(() => window.location.reload(), 3000);
+    notify("GOAL MISSED... RESETTING");
+    setTimeout(() => resetGame(), 2000);
   };
 
-  useEffect(() => {
-    // This useEffect is now primarily for triggering game over/cycle clear
-    // based on turn progression, after handleTurnEnd has updated state.
-    // The logic for checking conditions is now primarily in handleTurnEnd.
-    // This can be simplified or removed if handleTurnEnd fully covers it.
-    // For now, keeping it to ensure any edge cases are caught, though it might be redundant.
-    if (turn > maxTurns && cycleTotalCombo < target) {
-      handleGameOver();
+  const resetGame = () => {
+    setStars(5);
+    setTarget(8);
+    setTurn(1);
+    setCycleTotalCombo(0);
+    setTokens(Array(6).fill(null));
+    setEnergy(0);
+    setActiveBuffs([]);
+    setPendingShopItem(null);
+    setShowShop(false);
+    setTotalPurchases(0);
+    generateShop();
+    if(engineRef.current) {
+      engineRef.current.init();
     }
-  }, [turn, cycleTotalCombo, target, maxTurns]);
+    notify("NEW GAME STARTED!");
+  };
+
+
 
 
   const notify = (text) => {
