@@ -802,6 +802,8 @@ const App = () => {
 
   // Refs
   const boardRef = useRef(null);
+  const [isGameOver, setIsGameOver] = useState(false);
+
   const timerRef = useRef(null);
   const comboRef = useRef(null);
   const engineRef = useRef(null);
@@ -973,7 +975,6 @@ const App = () => {
     }
 
     setTurn((prev) => prev + 1);
-    setTurn((prev) => prev + 1);
   };
 
   // Keep handleTurnEndRef current
@@ -1018,8 +1019,7 @@ const App = () => {
   };
 
   const handleGameOver = () => {
-    notify("GOAL MISSED... RESETTING");
-    setTimeout(() => resetGame(), 2000);
+    setIsGameOver(true);
   };
 
   const resetGame = () => {
@@ -1034,6 +1034,7 @@ const App = () => {
     setPendingShopItem(null);
     setGoalReached(false);
     setShowShop(false);
+    setIsGameOver(false);
     setTotalPurchases(0);
     generateShop();
     if (engineRef.current) {
@@ -1044,104 +1045,133 @@ const App = () => {
 
 
 
+  notify("NEW GAME STARTED!");
+};
 
-  const notify = (text) => {
-    setMessage(text);
-    setTimeout(() => setMessage(null), 2500);
-  };
+const handleContinue = () => {
+  // Retry logic: recover few turns or reduce current turn
+  // For simplicity, let's just rewind turn by 2 (giving 2 more chances) and add energy
+  setIsGameOver(false);
+  setTurn((prev) => Math.max(1, prev - 2));
+  setEnergy(maxEnergy);
+  notify("RETRY! +2 TURNS & MAX ENERGY");
+};
 
-  const generateShop = () => {
-    const isLuxury = totalPurchases >= 6;
+const handleGiveUp = () => {
+  setIsGameOver(false);
+  resetGame();
+};
 
-    // Calculate total sale count based on all bargain tokens
-    let saleBonus = 0;
-    tokens.forEach((t) => {
-      if (t?.id === "bargain") {
-        const value = t.values[(t.level || 1) - 1];
-        saleBonus += (value - 1); // Bonus amount over the base 1
-      }
+const notify = (text) => {
+  setMessage(text);
+  setTimeout(() => setMessage(null), 2500);
+};
+
+const generateShop = () => {
+  const isLuxury = totalPurchases >= 6;
+
+  // Calculate total sale count based on all bargain tokens
+  let saleBonus = 0;
+  tokens.forEach((t) => {
+    if (t?.id === "bargain") {
+      const value = t.values[(t.level || 1) - 1];
+      saleBonus += (value - 1); // Bonus amount over the base 1
+    }
+  });
+  const saleCount = 1 + saleBonus;
+
+  const items = [];
+  const pool = [...ALL_TOKEN_BASES];
+  for (let i = 0; i < 4; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    const base = pool[idx];
+    const item = { ...base, level: 1 };
+
+    if (isLuxury && Math.random() < 0.3) {
+      const enc =
+        ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
+      item.enchantment = enc.effect;
+      item.enchantName = enc.name;
+      item.price += 4;
+    }
+    items.push(item);
+  }
+
+  // Assign Sales
+  const indices = [0, 1, 2, 3];
+  for (let i = 0; i < saleCount && indices.length > 0; i++) {
+    const randIdx = Math.floor(Math.random() * indices.length);
+    const targetIdx = indices.splice(randIdx, 1)[0];
+    items[targetIdx].isSale = true;
+    items[targetIdx].originalPrice = items[targetIdx].price;
+    items[targetIdx].price = Math.floor(items[targetIdx].price / 2);
+  }
+
+  if (isLuxury) {
+    const enc = ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
+    items.push({ ...enc, type: "enchant_grant", price: enc.price - 2 });
+  }
+  setShopItems(items);
+};
+
+const buyItem = (item) => {
+  if (stars < item.price) return notify("★が足りません");
+
+  if (item.type === "enchant_grant") {
+    const targetIdx = tokens.findIndex((t) => t && !t.enchantment);
+    if (targetIdx === -1) return notify("付与可能なトークンがありません");
+    setTokens((prev) => {
+      const next = [...prev];
+      next[targetIdx] = {
+        ...next[targetIdx],
+        enchantment: item.effect,
+        enchantName: item.name,
+      };
+      return next;
     });
-    const saleCount = 1 + saleBonus;
-
-    const items = [];
-    const pool = [...ALL_TOKEN_BASES];
-    for (let i = 0; i < 4; i++) {
-      const idx = Math.floor(Math.random() * pool.length);
-      const base = pool[idx];
-      const item = { ...base, level: 1 };
-
-      if (isLuxury && Math.random() < 0.3) {
-        const enc =
-          ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
-        item.enchantment = enc.effect;
-        item.enchantName = enc.name;
-        item.price += 4;
-      }
-      items.push(item);
-    }
-
-    // Assign Sales
-    const indices = [0, 1, 2, 3];
-    for (let i = 0; i < saleCount && indices.length > 0; i++) {
-      const randIdx = Math.floor(Math.random() * indices.length);
-      const targetIdx = indices.splice(randIdx, 1)[0];
-      items[targetIdx].isSale = true;
-      items[targetIdx].originalPrice = items[targetIdx].price;
-      items[targetIdx].price = Math.floor(items[targetIdx].price / 2);
-    }
-
-    if (isLuxury) {
-      const enc = ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
-      items.push({ ...enc, type: "enchant_grant", price: enc.price - 2 });
-    }
-    setShopItems(items);
-  };
-
-  const buyItem = (item) => {
-    if (stars < item.price) return notify("★が足りません");
-
-    if (item.type === "enchant_grant") {
-      const targetIdx = tokens.findIndex((t) => t && !t.enchantment);
-      if (targetIdx === -1) return notify("付与可能なトークンがありません");
+    setStars((s) => s - item.price);
+    setTotalPurchases((p) => p + 1);
+    setShopItems((prev) => prev.filter((i) => i !== item));
+    notify("購入完了!");
+  } else {
+    // Check for duplicate
+    const existingIdx = tokens.findIndex((t) => t?.id === item.id);
+    if (existingIdx !== -1) {
+      setPendingShopItem(item);
+    } else {
+      const emptyIdx = tokens.indexOf(null);
+      if (emptyIdx === -1) return notify("スロットがいっぱいです");
       setTokens((prev) => {
         const next = [...prev];
-        next[targetIdx] = {
-          ...next[targetIdx],
-          enchantment: item.effect,
-          enchantName: item.name,
-        };
+        next[emptyIdx] = item;
         return next;
       });
       setStars((s) => s - item.price);
       setTotalPurchases((p) => p + 1);
       setShopItems((prev) => prev.filter((i) => i !== item));
       notify("購入完了!");
-    } else {
-      // Check for duplicate
-      const existingIdx = tokens.findIndex((t) => t?.id === item.id);
-      if (existingIdx !== -1) {
-        setPendingShopItem(item);
-      } else {
-        const emptyIdx = tokens.indexOf(null);
-        if (emptyIdx === -1) return notify("スロットがいっぱいです");
-        setTokens((prev) => {
-          const next = [...prev];
-          next[emptyIdx] = item;
-          return next;
-        });
-        setStars((s) => s - item.price);
-        setTotalPurchases((p) => p + 1);
-        setShopItems((prev) => prev.filter((i) => i !== item));
-        notify("購入完了!");
-      }
     }
-  };
+  }
+};
 
-  const handleChoice = (choice) => {
-    if (!pendingShopItem) return;
-    const item = pendingShopItem;
+const handleChoice = (choice) => {
+  if (!pendingShopItem) return;
+  const item = pendingShopItem;
 
-    if (choice === "upgrade") {
+  if (choice === "upgrade") {
+    setTokens((prev) => {
+      const next = [...prev];
+      const idx = next.findIndex((t) => t?.id === item.id);
+      if (idx !== -1) {
+        next[idx] = { ...next[idx], level: (next[idx].level || 1) + 1 };
+      }
+      return next;
+    });
+    notify(`${item.name} を強化しました!`);
+  } else {
+    const emptyIdx = tokens.indexOf(null);
+    if (emptyIdx === -1) {
+      notify("スロットがいっぱいです。代わりに強化します。");
       setTokens((prev) => {
         const next = [...prev];
         const idx = next.findIndex((t) => t?.id === item.id);
@@ -1150,305 +1180,312 @@ const App = () => {
         }
         return next;
       });
-      notify(`${item.name} を強化しました!`);
     } else {
-      const emptyIdx = tokens.indexOf(null);
-      if (emptyIdx === -1) {
-        notify("スロットがいっぱいです。代わりに強化します。");
-        setTokens((prev) => {
-          const next = [...prev];
-          const idx = next.findIndex((t) => t?.id === item.id);
-          if (idx !== -1) {
-            next[idx] = { ...next[idx], level: (next[idx].level || 1) + 1 };
-          }
-          return next;
-        });
-      } else {
-        setTokens((prev) => {
-          const next = [...prev];
-          next[emptyIdx] = item;
-          return next;
-        });
-        notify("2つ目のトークンを装備しました。");
-      }
+      setTokens((prev) => {
+        const next = [...prev];
+        next[emptyIdx] = item;
+        return next;
+      });
+      notify("2つ目のトークンを装備しました。");
     }
+  }
 
-    setStars((s) => s - item.price);
-    setTotalPurchases((p) => p + 1);
-    setShopItems((prev) => prev.filter((i) => i !== item));
-    setPendingShopItem(null);
-  };
-
-  const useSkill = (token, index) => {
-    if (!token || token.type !== "skill") return;
-    if (energy < (token.cost || 0)) return notify("エネルギーが足りません");
-    if (engineRef.current?.processing) return notify("処理中です");
-
-    const engine = engineRef.current;
-    if (!engine) return;
-
-    console.log("Using skill:", token);
-
-    switch (token.action) {
-      case "refresh":
-        engine.init();
-        break;
-      case "force_refresh":
-        engine.forceRefresh();
-        break;
-      case "convert":
-        engine.convertColor(token.params.from, token.params.to);
-        break;
-      case "convert_multi":
-        engine.convertMultiColor(token.params.types, token.params.to);
-        break;
-      case "board_change":
-        engine.changeBoardColors(token.params.colors);
-        break;
-      case "skyfall":
-      case "skyfall_limit":
-        setActiveBuffs((prev) => [
-          ...prev.filter((b) => b.action !== token.action), // Remove same type
-          {
-            id: Date.now(),
-            action: token.action,
-            params: token.params,
-            duration: token.params.duration,
-          },
-        ]);
-        notify(`${token.name} 発動！ (${token.params.duration}手番)`);
-        break;
-      case "row_fix":
-        engine.fixRowColor(token.params.row, token.params.type);
-        break;
-      case "forbidden_temp":
-        engine.noSkyfall = true;
-        notify("禁忌の儀式発動！(落ちコン停止)");
-        break;
-      default:
-        break;
-    }
-
-    setEnergy((prev) => prev - (token.cost || 0));
-    notify(`${token.name} 発動!`);
-  };
-
-  const openShop = () => {
-    if (shopItems.length === 0) {
-      generateShop();
-    }
-    setShowShop(true);
-  };
-
-  const refreshShop = () => {
-    if (stars < 50) return notify("★が足りません");
-    setStars(s => s - 50);
-    generateShop();
-    notify("商品を入荷しました");
-  };
-
-  // Calculate timer progress for display (optional, can be refined)
-  // For now we trust the PuzzleEngine bar or use a simple state if needed.
-  // The design has "5.0s". I'll use a ref-updater or state if I want it live.
-  // For performance, let's stick to the bar or update a ref text content manually in PuzzleEngine.
-  // I'll add a helper to update the time text if it exists.
-
-  return (
-    <div className="bg-background-dark font-display text-slate-100 h-screen overflow-hidden flex justify-center w-full">
-      {/* Mobile Container */}
-      <div className="w-full max-w-md h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden">
-        {/* Abstract Background Pattern */}
-        <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-          <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-primary/30 to-transparent"></div>
-          <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
-        </div>
-
-        {/* Top Status Bar */}
-        <header className="relative z-10 px-4 pt-6 pb-2 flex justify-between items-center glass-panel border-b border-white/5">
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-white">Cycle {Math.ceil(turn / maxTurns)}</span>
-              <span className="text-primary font-bold">/</span>
-              <span className="text-lg font-bold text-white">Turn {turn}</span>
-            </div>
-          </div>
-          <div
-            onClick={openShop}
-            className="flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-transform"
-          >
-            <span className="material-icons-round text-yellow-400 text-sm">star</span>
-            <span className="font-bold text-sm tracking-wide">{stars.toLocaleString()}</span>
-          </div>
-        </header>
-
-        {/* Main Stats Area */}
-        <section className="relative z-10 px-6 py-4 flex-none">
-          {/* Combo Meter */}
-          <div className="flex flex-col items-center justify-center mb-6">
-            <div className="w-full flex justify-between items-end mb-2">
-              <span className="text-sm font-medium text-primary glow-text uppercase tracking-widest">Target Combo</span>
-              <span className="text-2xl font-bold font-mono text-white">
-                {cycleTotalCombo}<span className="text-slate-500 text-lg">/{target}</span>
-              </span>
-            </div>
-            <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-white/5 relative">
-              {/* Progress Bar */}
-              <div
-                className="h-full bg-gradient-to-r from-primary to-purple-400 rounded-full shadow-[0_0_15px_rgba(91,19,236,0.6)] relative transition-all duration-300"
-                style={{ width: `${Math.min(100, (cycleTotalCombo / target) * 100)}%` }}
-              >
-                <div className="absolute right-0 top-0 h-full w-1 bg-white/50 animate-pulse"></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Timer & Info */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary">
-                <span className="material-icons-round text-xl">timer</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase text-slate-400 font-bold">Move Time</span>
-                <span className="text-xl font-mono font-bold text-white">
-                  {(getTimeLimit() / 1000).toFixed(1)}<span className="text-xs text-slate-500 ml-0.5">s</span>
-                </span>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] uppercase text-slate-400 font-bold block">Energy</span>
-              <span className="text-sm font-semibold text-white flex items-center justify-end gap-1">
-                <span className="material-icons-round text-xs text-primary">bolt</span>
-                {energy} / {maxEnergy}
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* Token/Skill Belt */}
-        <section className="relative z-30 pl-6 py-2 flex-none mb-4">
-          <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-2 tracking-wider">Active Tokens</h3>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pr-6 pb-2 min-h-[80px]">
-            {tokens.map((t, idx) => (
-              <div
-                key={idx}
-                onClick={() => useSkill(t, idx)}
-                className={`flex-none w-16 h-16 rounded-xl flex items-center justify-center relative border transition-all ${t ? 'bg-slate-800 border-primary/50 cursor-pointer shadow-[0_0_10px_rgba(91,19,236,0.2)] group hover:scale-105' : 'bg-slate-900/50 border-white/5 border-dashed'}`}
-              >
-                {t ? (
-                  <>
-                    <div className="absolute inset-0 bg-primary/10 rounded-xl"></div>
-                    <span className="material-icons-round text-3xl text-primary drop-shadow-md">
-                      {t.type === 'skill' ? 'sports_martial_arts' : 'auto_awesome'}
-                    </span>
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-background-dark">
-                      {t.level || 1}
-                    </div>
-                    {t.cost > 0 && <span className="absolute top-0.5 right-1 text-[8px] text-slate-400 font-mono">{t.cost}E</span>}
-                  </>
-                ) : (
-                  <span className="material-icons-round text-slate-700">lock_open</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Contextual Action Button (Floating) */}
-        <div className="absolute bottom-[42%] left-0 right-0 z-30 px-6 flex justify-center pointer-events-none">
-          {goalReached && turn <= maxTurns && (
-            <button
-              onClick={skipTurns}
-              className="pointer-events-auto bg-primary text-white font-bold py-3 px-8 rounded-full shadow-[0_4px_20px_rgba(91,19,236,0.5)] border border-white/20 flex items-center gap-2 transform transition hover:scale-105 active:scale-95 animate-bounce"
-            >
-              <span>NEXT GOAL REACHED</span>
-              <span className="material-icons-round">arrow_forward</span>
-            </button>
-          )}
-        </div>
-
-        {/* Puzzle Grid Area */}
-        <section className="relative z-20 flex-1 bg-slate-900 rounded-t-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
-          {/* Grid Background effects */}
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-90"></div>
-
-          {/* Message Toast */}
-          {message && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] animate-fade-in w-max">
-              <div className="bg-slate-950 border border-primary text-white font-black px-6 py-2 rounded-full shadow-2xl text-[10px] tracking-widest uppercase">
-                {message}
-              </div>
-            </div>
-          )}
-
-          <div className="relative w-full h-full p-4 flex flex-col justify-center">
-            {/* Combo Display */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50 flex justify-center w-full">
-              <div ref={comboRef} className="text-6xl font-display font-black text-white drop-shadow-[0_0_20px_rgba(91,19,236,1)] italic animate-pop whitespace-nowrap text-center"></div>
-            </div>
-
-            {/* Timer Bar */}
-            <div className="w-full h-2 bg-slate-800 rounded-full mb-2 overflow-hidden border border-white/10 relative shadow-inner">
-              <div ref={timerRef} className="h-full bg-gradient-to-r from-green-400 to-emerald-600 w-full transition-all duration-0 ease-linear shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
-            </div>
-
-            {/* The 6x5 Grid Container */}
-            <div
-              ref={boardRef}
-              className="w-full aspect-[6/5] relative"
-              style={{ touchAction: "none" }}
-            >
-              {/* PuzzleEngine renders orbs here */}
-            </div>
-
-            {/* Touch Guide hint */}
-            <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none opacity-50">
-              <span className="text-[10px] text-white uppercase tracking-widest">Drag to connect</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Shop Overlay */}
-        {showShop && (
-          <div className="absolute inset-0 z-50 bg-background-dark">
-            <ShopScreen
-              items={shopItems}
-              stars={stars}
-              onBuy={buyItem}
-              onClose={() => setShowShop(false)}
-              onRefresh={refreshShop}
-              goalReached={goalReached}
-            />
-          </div>
-        )}
-
-        {/* Pending Shop Item Modal */}
-        {pendingShopItem && (
-          <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
-            <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border border-white/10 shadow-2xl">
-              <h3 className="text-xl font-bold font-display text-white mb-2 text-center italic">{pendingShopItem.name}</h3>
-              <p className="text-sm text-slate-400 text-center mb-6">既に所持しています。</p>
-
-              <div className="flex flex-col gap-3">
-                <button onClick={() => handleChoice("upgrade")} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg shadow-primary/25">
-                  強化 (Lv UP)
-                </button>
-                <button onClick={() => handleChoice("new")} className="bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95">
-                  2つ目を装備
-                </button>
-                <button onClick={() => setPendingShopItem(null)} className="text-slate-400 text-xs font-bold py-2 mt-2">
-                  キャンセル
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-      </div>
-    </div>
-  );
+  setStars((s) => s - item.price);
+  setTotalPurchases((p) => p + 1);
+  setShopItems((prev) => prev.filter((i) => i !== item));
+  setPendingShopItem(null);
 };
+
+const useSkill = (token, index) => {
+  if (!token || token.type !== "skill") return;
+  if (energy < (token.cost || 0)) return notify("エネルギーが足りません");
+  if (engineRef.current?.processing) return notify("処理中です");
+
+  const engine = engineRef.current;
+  if (!engine) return;
+
+  console.log("Using skill:", token);
+
+  switch (token.action) {
+    case "refresh":
+      engine.init();
+      break;
+    case "force_refresh":
+      engine.forceRefresh();
+      break;
+    case "convert":
+      engine.convertColor(token.params.from, token.params.to);
+      break;
+    case "convert_multi":
+      engine.convertMultiColor(token.params.types, token.params.to);
+      break;
+    case "board_change":
+      engine.changeBoardColors(token.params.colors);
+      break;
+    case "skyfall":
+    case "skyfall_limit":
+      setActiveBuffs((prev) => [
+        ...prev.filter((b) => b.action !== token.action), // Remove same type
+        {
+          id: Date.now(),
+          action: token.action,
+          params: token.params,
+          duration: token.params.duration,
+        },
+      ]);
+      notify(`${token.name} 発動！ (${token.params.duration}手番)`);
+      break;
+    case "row_fix":
+      engine.fixRowColor(token.params.row, token.params.type);
+      break;
+    case "forbidden_temp":
+      engine.noSkyfall = true;
+      notify("禁忌の儀式発動！(落ちコン停止)");
+      break;
+    default:
+      break;
+  }
+
+  setEnergy((prev) => prev - (token.cost || 0));
+  notify(`${token.name} 発動!`);
+};
+
+const openShop = () => {
+  if (shopItems.length === 0) {
+    generateShop();
+  }
+  setShowShop(true);
+};
+
+const refreshShop = () => {
+  if (stars < 50) return notify("★が足りません");
+  setStars(s => s - 50);
+  generateShop();
+  notify("商品を入荷しました");
+};
+
+// Calculate timer progress for display (optional, can be refined)
+// For now we trust the PuzzleEngine bar or use a simple state if needed.
+// The design has "5.0s". I'll use a ref-updater or state if I want it live.
+// For performance, let's stick to the bar or update a ref text content manually in PuzzleEngine.
+// I'll add a helper to update the time text if it exists.
+
+return (
+  <div className="bg-background-dark font-display text-slate-100 h-screen overflow-hidden flex justify-center w-full">
+    {/* Mobile Container */}
+    <div className="w-full max-w-md h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden">
+      {/* Abstract Background Pattern */}
+      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-primary/30 to-transparent"></div>
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
+      </div>
+
+      {/* Top Status Bar */}
+      <header className="relative z-10 px-4 pt-6 pb-2 flex justify-between items-center glass-panel border-b border-white/5">
+        <div className="flex flex-col">
+          <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold text-white">Cycle {Math.ceil(turn / maxTurns)}</span>
+            <span className="text-primary font-bold">/</span>
+            <span className="text-lg font-bold text-white">Turn {turn}</span>
+          </div>
+        </div>
+        <div
+          onClick={openShop}
+          className="flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-transform"
+        >
+          <span className="material-icons-round text-yellow-400 text-sm">star</span>
+          <span className="font-bold text-sm tracking-wide">{stars.toLocaleString()}</span>
+        </div>
+      </header>
+
+      {/* Main Stats Area */}
+      <section className="relative z-10 px-6 py-4 flex-none">
+        {/* Combo Meter */}
+        <div className="flex flex-col items-center justify-center mb-6">
+          <div className="w-full flex justify-between items-end mb-2">
+            <span className="text-sm font-medium text-primary glow-text uppercase tracking-widest">Target Combo</span>
+            <span className="text-2xl font-bold font-mono text-white">
+              {cycleTotalCombo}<span className="text-slate-500 text-lg">/{target}</span>
+            </span>
+          </div>
+          <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-white/5 relative">
+            {/* Progress Bar */}
+            <div
+              className="h-full bg-gradient-to-r from-primary to-purple-400 rounded-full shadow-[0_0_15px_rgba(91,19,236,0.6)] relative transition-all duration-300"
+              style={{ width: `${Math.min(100, (cycleTotalCombo / target) * 100)}%` }}
+            >
+              <div className="absolute right-0 top-0 h-full w-1 bg-white/50 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Timer & Info */}
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary">
+              <span className="material-icons-round text-xl">timer</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase text-slate-400 font-bold">Move Time</span>
+              <span className="text-xl font-mono font-bold text-white">
+                {(getTimeLimit() / 1000).toFixed(1)}<span className="text-xs text-slate-500 ml-0.5">s</span>
+              </span>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] uppercase text-slate-400 font-bold block">Energy</span>
+            <span className="text-sm font-semibold text-white flex items-center justify-end gap-1">
+              <span className="material-icons-round text-xs text-primary">bolt</span>
+              {energy} / {maxEnergy}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Token/Skill Belt */}
+      <section className="relative z-30 pl-6 py-2 flex-none mb-4">
+        <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-2 tracking-wider">Active Tokens</h3>
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pr-6 pb-2 min-h-[80px]">
+          {tokens.map((t, idx) => (
+            <div
+              key={idx}
+              onClick={() => useSkill(t, idx)}
+              className={`flex-none w-16 h-16 rounded-xl flex items-center justify-center relative border transition-all ${t ? 'bg-slate-800 border-primary/50 cursor-pointer shadow-[0_0_10px_rgba(91,19,236,0.2)] group hover:scale-105' : 'bg-slate-900/50 border-white/5 border-dashed'}`}
+            >
+              {t ? (
+                <>
+                  <div className="absolute inset-0 bg-primary/10 rounded-xl"></div>
+                  <span className="material-icons-round text-3xl text-primary drop-shadow-md">
+                    {t.type === 'skill' ? 'sports_martial_arts' : 'auto_awesome'}
+                  </span>
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-background-dark">
+                    {t.level || 1}
+                  </div>
+                  {t.cost > 0 && <span className="absolute top-0.5 right-1 text-[8px] text-slate-400 font-mono">{t.cost}E</span>}
+                </>
+              ) : (
+                <span className="material-icons-round text-slate-700">lock_open</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Contextual Action Button (Floating) */}
+      <div className="absolute bottom-[42%] left-0 right-0 z-30 px-6 flex justify-center pointer-events-none">
+        {goalReached && turn <= maxTurns && (
+          <button
+            onClick={skipTurns}
+            className="pointer-events-auto bg-primary text-white font-bold py-3 px-8 rounded-full shadow-[0_4px_20px_rgba(91,19,236,0.5)] border border-white/20 flex items-center gap-2 transform transition hover:scale-105 active:scale-95 animate-bounce"
+          >
+            <span>NEXT GOAL REACHED</span>
+            <span className="material-icons-round">arrow_forward</span>
+          </button>
+        )}
+      </div>
+
+      {/* Puzzle Grid Area */}
+      <section className="relative z-20 flex-1 bg-slate-900 rounded-t-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
+        {/* Grid Background effects */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-90"></div>
+
+        {/* Message Toast */}
+        {message && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] animate-fade-in w-max">
+            <div className="bg-slate-950 border border-primary text-white font-black px-6 py-2 rounded-full shadow-2xl text-[10px] tracking-widest uppercase">
+              {message}
+            </div>
+          </div>
+        )}
+
+        <div className="relative w-full h-full p-4 flex flex-col justify-center">
+          {/* Combo Display */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50 flex justify-center w-full">
+            <div ref={comboRef} className="text-6xl font-display font-black text-white drop-shadow-[0_0_20px_rgba(91,19,236,1)] italic animate-pop whitespace-nowrap text-center"></div>
+          </div>
+
+          {/* Timer Bar */}
+          <div className="w-full h-2 bg-slate-800 rounded-full mb-2 overflow-hidden border border-white/10 relative shadow-inner">
+            <div ref={timerRef} className="h-full bg-gradient-to-r from-green-400 to-emerald-600 w-full transition-all duration-0 ease-linear shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
+          </div>
+
+          {/* The 6x5 Grid Container */}
+          <div
+            ref={boardRef}
+            className="w-full aspect-[6/5] relative"
+            style={{ touchAction: "none" }}
+          >
+            {/* PuzzleEngine renders orbs here */}
+          </div>
+
+          {/* Touch Guide hint */}
+          <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none opacity-50">
+            <span className="text-[10px] text-white uppercase tracking-widest">Drag to connect</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Shop Overlay */}
+      {showShop && (
+        <div className="absolute inset-0 z-50 bg-background-dark">
+          <ShopScreen
+            items={shopItems}
+            stars={stars}
+            onBuy={buyItem}
+            onClose={() => setShowShop(false)}
+            onRefresh={refreshShop}
+            goalReached={goalReached}
+          />
+        </div>
+      )}
+
+      {/* Pending Shop Item Modal */}
+      {pendingShopItem && (
+        <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border border-white/10 shadow-2xl">
+            <h3 className="text-xl font-bold font-display text-white mb-2 text-center italic">{pendingShopItem.name}</h3>
+            <p className="text-sm text-slate-400 text-center mb-6">既に所持しています。</p>
+
+            <div className="flex flex-col gap-3">
+              <button onClick={() => handleChoice("upgrade")} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg shadow-primary/25">
+                強化 (Lv UP)
+              </button>
+              <button onClick={() => handleChoice("new")} className="bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95">
+                2つ目を装備
+              </button>
+              <button onClick={() => setPendingShopItem(null)} className="text-slate-400 text-xs font-bold py-2 mt-2">
+                キャンセル
+              </button>
+            </div>
+          </div>
+          {/* Game Over / Retry Modal */}
+          {isGameOver && (
+            <div className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-md flex items-center justify-center p-6">
+              <div className="bg-slate-900 w-full max-w-sm rounded-3xl p-8 border border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.2)] text-center animate-bounce-in">
+                <span className="material-icons-round text-6xl text-red-500 mb-4 animate-pulse">broken_image</span>
+                <h2 className="text-3xl font-black font-display text-white mb-2 tracking-tighter">GAME OVER</h2>
+                <p className="text-slate-400 mb-8">目標未達成... まだ諦めない？</p>
+
+                <div className="flex flex-col gap-3">
+                  <button onClick={handleContinue} className="bg-gradient-to-r from-red-600 to-orange-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-red-500/25 active:scale-95 transition-all flex items-center justify-center gap-2">
+                    <span className="material-icons-round">smart_display</span>
+                    動画を見てコンティニュー
+                  </button>
+                  <button onClick={handleGiveUp} className="bg-slate-800 text-slate-400 py-4 rounded-xl font-bold active:scale-95 hover:bg-slate-700 transition-colors">
+                    諦める
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+    </div>
+  </div>
+);
+
 
 
 export default App;
