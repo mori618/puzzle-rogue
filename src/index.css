@@ -5,247 +5,91 @@
 @tailwind utilities;
 
 :root {
-  font-family: "Mochiy Pop One", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  font-family: "Spline Sans", "Mochiy Pop One", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: dark;
-  color: #e2e8f0;
-  background-color: #0f172a;
+  /* color: #e2e8f0; */
+  /* background-color: #0f172a; */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --rpg-gold: #fbbf24;
-  --rpg-dark: #0f172a;
-  --rpg-panel-bg: #1e293b;
-  --rpg-border: #475569;
-
-  /* Safe Area for Mobile (Notch) */
   --safe-area-top: env(safe-area-inset-top, 0px);
 }
 
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-
-  100% {
-    transform: translateX(100%);
-  }
+/* Custom scrollbar hiding */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-.animate-shimmer {
-  animation: shimmer 2s infinite;
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(22, 16, 34, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(91, 19, 236, 0.1);
+}
+
+.orb-shadow {
+  box-shadow: inset 0 -4px 4px rgba(0, 0, 0, 0.2), 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.glow-text {
+  text-shadow: 0 0 10px rgba(91, 19, 236, 0.5);
 }
 
 body {
   margin: 0;
   display: flex;
   place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  /* min-width: 320px; */
+  min-height: max(884px, 100dvh);
+  /* From design */
   /* Prevent whole-page bounce/scroll on mobile */
   overflow: hidden;
-  position: fixed;
+  /* position: fixed; */
+  /* existing had this, design layout might not need it if we use h-screen on container */
   width: 100%;
   height: 100%;
 
-  background:
+  /* background:
     radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.2), transparent 25%),
     radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.1), transparent 25%),
-    linear-gradient(to bottom, #0f172a, #1e1b4b);
+    linear-gradient(to bottom, #0f172a, #1e1b4b); */
+
+  background-color: #f6f6f8;
+  /* background-light */
+
   touch-action: none;
   user-select: none;
-  font-family: "Mochiy Pop One", sans-serif;
+  font-family: "Spline Sans", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #161022;
+    /* background-dark */
+  }
+}
+
+.dark body {
+  background-color: #161022;
 }
 
 #root {
   width: 100%;
-}
-
-.glass {
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 24px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
-}
-
-/* Layering System */
-.layer-hud {
-  z-index: 100;
-}
-
-.layer-puzzle {
-  z-index: 10;
-}
-
-.layer-overlay {
-  z-index: 200;
-}
-
-.layer-pop {
-  z-index: 1000;
-}
-
-.game-container {
-  display: flex;
-  flex-direction: column;
-  width: 100vw;
-  height: 100vh;
-  padding-top: var(--safe-area-top);
-  box-sizing: border-box;
-  background: transparent;
-  overflow: hidden;
-}
-
-.status-bar {
-  height: 80px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: rgba(15, 23, 42, 0.9);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  flex-shrink: 0;
-  width: 100%;
-}
-
-.puzzle-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 10px 0;
-  position: relative;
-}
-
-.shop-item-card {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 1));
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.05);
-  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.shop-item-card:hover {
-  transform: translateY(-8px) scale(1.02);
-  border-color: rgba(251, 191, 36, 0.5) !important;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8), 0 0 30px -10px rgba(251, 191, 36, 0.2);
-}
-
-.shop-item-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), transparent);
-  pointer-events: none;
-}
-
-@keyframes slow-glow {
-
-  0%,
-  100% {
-    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.3));
-    opacity: 0.8;
-  }
-
-  50% {
-    filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6));
-    opacity: 1;
-  }
-}
-
-.animate-slow-glow {
-  animation: slow-glow 3s ease-in-out infinite;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
-  border-radius: 10px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.4);
-}
-
-.board-wrapper {
-  position: relative;
-  background-color: #1a1a2e;
-  padding: 12px;
-  border-radius: 16px;
-  /* Double Border Frame */
-  box-shadow:
-    0 0 0 4px #334155,
-    0 0 0 8px #1e293b,
-    0 20px 50px rgba(0, 0, 0, 0.7);
-  overflow: hidden;
-  width: fit-content;
-  height: fit-content;
-  margin: 0 auto;
-  border: 4px solid #94a3b8;
-  /* Inner Gold/Silver Rim */
-}
-
-/* RPG Button Style */
-.rpg-btn {
-  background: linear-gradient(to bottom, #4f46e5, #4338ca);
-  color: white;
-  font-weight: bold;
-  border: none;
-  border-bottom: 4px solid #312e81;
-  border-radius: 8px;
-  transition: all 0.1s;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-}
-
-.rpg-btn:hover {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
-}
-
-.rpg-btn:active {
-  border-bottom-width: 0px;
-  transform: translateY(4px);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.rpg-btn-green {
-  background: linear-gradient(to bottom, #10b981, #059669);
-  border-bottom-color: #064e3b;
-}
-
-.rpg-btn-red {
-  background: linear-gradient(to bottom, #ef4444, #dc2626);
-  border-bottom-color: #7f1d1d;
-}
-
-/* KEEP EXISTING ORB STYLES AS IS */
-.board {
-  position: relative;
-  width: 100%;
   height: 100%;
 }
 
+/* Updated Orb Styles */
 .orb {
   width: 60px;
   height: 60px;
@@ -253,16 +97,20 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 32px;
+  /* font-size: 32px; */
+  /* Removed, using material icons size */
   z-index: 10;
   transition:
     top 0.4s cubic-bezier(0.25, 1, 0.5, 1),
     left 0.1s ease-out,
     opacity 0.3s ease,
     transform 0.2s ease;
-  box-shadow:
-    inset -4px -4px 8px rgba(0, 0, 0, 0.4),
-    inset 4px 4px 8px rgba(255, 255, 255, 0.2);
+
+  /* New Shape */
+  border-radius: 0.5rem;
+  /* rounded-lg */
+  box-shadow: inset 0 -4px 4px rgba(0, 0, 0, 0.2), 0 4px 6px rgba(0, 0, 0, 0.3);
+  /* orb-shadow */
 }
 
 .orb-grabbing {
@@ -270,56 +118,6 @@ body {
   transform: scale(1.2);
   opacity: 0.8;
   transition: none !important;
-}
-
-/* Orb Colors */
-.orb-fire {
-  background: radial-gradient(circle at 35% 35%, #ff4d4d, #990000);
-}
-
-.orb-water {
-  background: radial-gradient(circle at 35% 35%, #4da6ff, #0044cc);
-}
-
-.orb-wood {
-  background: radial-gradient(circle at 35% 35%, #5cd65c, #006600);
-}
-
-.orb-light {
-  background: radial-gradient(circle at 35% 35%, #ffe066, #cc9900);
-}
-
-.orb-dark {
-  background: radial-gradient(circle at 35% 35%, #b366ff, #440088);
-}
-
-.orb-heart {
-  background: radial-gradient(circle at 35% 35%, #ff85a2, #990033);
-}
-
-/* Orb Shapes */
-.orb-shape-fire {
-  border-radius: 50% 50% 30% 30%;
-}
-
-.orb-shape-water {
-  border-radius: 40% 60% 60% 40% / 50% 50% 50% 50%;
-}
-
-.orb-shape-wood {
-  border-radius: 50% 15% 50% 15%;
-}
-
-.orb-shape-light {
-  border-radius: 25%;
-}
-
-.orb-shape-dark {
-  border-radius: 15% 50% 15% 50%;
-}
-
-.orb-shape-heart {
-  border-radius: 50%;
 }
 
 .orb-matching {
@@ -338,57 +136,59 @@ body {
   }
 }
 
-.timer-container {
-  width: 360px;
-  height: 12px;
-  background: #0f172a;
-  border: 2px solid #475569;
-  border-radius: 8px;
-  margin: 1rem auto;
-  overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+/* Specific Orb Backgrounds */
+.orb-fire {
+  background-color: #ef4444;
 }
 
-#timer-bar {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, #10b981, #34d399);
-  transition: width 0.1s linear;
-  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3);
+/* puzzle-red */
+.orb-water {
+  background-color: #3b82f6;
 }
 
-.combo-info {
-  height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* puzzle-blue */
+.orb-wood {
+  background-color: #22c55e;
 }
 
-#combo-count {
-  font-family: "Mochiy Pop One", sans-serif;
-  font-size: 2.5rem;
-  font-weight: 900;
-  color: #fbbf24;
-  text-shadow:
-    2px 2px 0px #78350f,
-    0 0 15px rgba(251, 191, 36, 0.6);
-  font-style: italic;
+/* puzzle-green */
+.orb-light {
+  background-color: #eab308;
 }
 
-.animate-pop {
-  animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+/* puzzle-yellow */
+.orb-dark {
+  background-color: #a855f7;
 }
 
-@keyframes pop {
-  0% {
-    transform: scale(1);
-  }
+/* puzzle-purple */
+.orb-heart {
+  background-color: #ec4899;
+}
 
-  50% {
-    transform: scale(1.2);
-  }
+/* puzzle-pink */
 
-  100% {
-    transform: scale(1);
-  }
+/* Legacy shapes reset if needed, or just let border-radius override */
+/* We can remove .orb-shape-* if we fully commit to rounded squares, but keeping empty classes might avoid JS errors if JS adds them */
+.orb-shape-fire,
+.orb-shape-water,
+.orb-shape-wood,
+.orb-shape-light,
+.orb-shape-dark,
+.orb-shape-heart {
+  /* Reset custom shapes to rounded square */
+  border-radius: 0.5rem;
+}
+
+/* Material Icons usage inside orb */
+.orb span {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.25rem;
+  /* text-xl */
+  filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
+}
+
+/* Active State for click effect in HTML design */
+.orb:active {
+  transform: scale(0.9);
 }

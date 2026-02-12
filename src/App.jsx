@@ -5,6 +5,7 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react";
+import ShopScreen from "./ShopScreen";
 
 // --- Constants (RPG) ---
 const ALL_TOKEN_BASES = [
@@ -216,12 +217,12 @@ class PuzzleEngine {
 
     this.types = ["fire", "water", "wood", "light", "dark", "heart"];
     this.icons = {
-      fire: "🔥",
-      water: "💧",
-      wood: "🌿",
-      light: "✨",
-      dark: "🌙",
-      heart: "❤️",
+      fire: "local_fire_department",
+      water: "water_drop",
+      wood: "grass",
+      light: "light_mode",
+      dark: "dark_mode",
+      heart: "favorite",
     };
 
     this.state = [];
@@ -299,8 +300,12 @@ class PuzzleEngine {
     }
 
     const el = document.createElement("div");
-    el.className = `orb orb-${type} orb-shape-${type}`;
-    el.innerHTML = this.icons[type];
+    el.className = `orb orb-${type}`;
+    // Create inner span for material icon
+    const iconSpan = document.createElement("span");
+    iconSpan.className = "material-icons-round"; // or material-symbols-outlined based on preference, design uses material-icons-round mostly
+    iconSpan.innerText = this.icons[type];
+    el.appendChild(iconSpan);
 
     const handler = (e) => {
       // Prevent default only for touch to avoid scrolling
@@ -426,8 +431,9 @@ class PuzzleEngine {
       row.forEach((orb) => {
         if (orb && orb.type === fromType) {
           orb.type = toType;
-          orb.el.className = `orb orb-${toType} orb-shape-${toType}`;
-          orb.el.innerHTML = this.icons[toType];
+          orb.el.className = `orb orb-${toType}`;
+          const span = orb.el.querySelector("span");
+          if (span) span.innerText = this.icons[toType];
         }
       });
     });
@@ -439,8 +445,9 @@ class PuzzleEngine {
       row.forEach((orb) => {
         if (orb && types.includes(orb.type)) {
           orb.type = toType;
-          orb.el.className = `orb orb-${toType} orb-shape-${toType}`;
-          orb.el.innerHTML = this.icons[toType];
+          orb.el.className = `orb orb-${toType}`;
+          const span = orb.el.querySelector("span");
+          if (span) span.innerText = this.icons[toType];
         }
       });
     });
@@ -453,8 +460,9 @@ class PuzzleEngine {
         if (orb) {
           const type = types[Math.floor(Math.random() * types.length)];
           orb.type = type;
-          orb.el.className = `orb orb-${type} orb-shape-${type}`;
-          orb.el.innerHTML = this.icons[type];
+          orb.el.className = `orb orb-${type}`;
+          const span = orb.el.querySelector("span");
+          if (span) span.innerText = this.icons[type];
         }
       });
     });
@@ -465,8 +473,9 @@ class PuzzleEngine {
     this.state[rowIdx].forEach((orb) => {
       if (orb) {
         orb.type = type;
-        orb.el.className = `orb orb-${type} orb-shape-${type}`;
-        orb.el.innerHTML = this.icons[type];
+        orb.el.className = `orb orb-${type}`;
+        const span = orb.el.querySelector("span");
+        if (span) span.innerText = this.icons[type];
       }
     });
   }
@@ -521,11 +530,11 @@ class PuzzleEngine {
         } else {
           this.currentCombo++;
         }
-        
+
         const matchedType = group[0].type;
         matchedColorsThisTurn.add(matchedType);
         if (group.some(orb => orb.isSkyfall)) {
-            hasSkyfallCombo = true;
+          hasSkyfallCombo = true;
         }
 
         // Notify React
@@ -798,7 +807,7 @@ const App = () => {
     tokens.forEach((t) => {
       if (!t) return;
       const lv = t.level || 1;
-      
+
       // Base bonuses
       if (t.enchantment === "fixed_add") bonus += 2;
       if (t.effect === "base_add") bonus += t.values?.[lv - 1] || 0;
@@ -820,20 +829,20 @@ const App = () => {
       if (t.enchantment === "lvl_mult") {
         multiplier *= lv;
       }
-      
+
       // Color multiplier
       if (t.effect === "color_multiplier") {
         const colors = t.params?.colors;
         const count = t.params?.count;
         let match = false;
         if (colors && colors.every(c => matchedColorSet.has(c))) {
-            match = true;
+          match = true;
         } else if (count && matchedColorSet.size >= count) {
-            match = true;
+          match = true;
         }
-        
+
         if (match) {
-            multiplier *= t.values?.[lv - 1] || 1;
+          multiplier *= t.values?.[lv - 1] || 1;
         }
       }
     });
@@ -857,7 +866,7 @@ const App = () => {
 
     const newCycleTotalCombo = cycleTotalCombo + effectiveCombo;
     setCycleTotalCombo(newCycleTotalCombo);
-    
+
     setEnergy((prev) => Math.min(maxEnergy, prev + 2));
 
     setActiveBuffs((prev) =>
@@ -888,13 +897,13 @@ const App = () => {
     let bonusMultiplier = 3;
     const skipToken = tokens.find(t => t?.id === 'skip_master');
     if (skipToken) {
-        bonusMultiplier = skipToken.values[(skipToken.level || 1) - 1];
+      bonusMultiplier = skipToken.values[(skipToken.level || 1) - 1];
     }
 
     const bonus = remainingTurns * bonusMultiplier;
     setStars((s) => s + bonus);
     notify(`SKIP BONUS: +${bonus} STARS!`);
-    
+
     handleCycleClear(remainingTurns);
   };
 
@@ -930,7 +939,7 @@ const App = () => {
     setShowShop(false);
     setTotalPurchases(0);
     generateShop();
-    if(engineRef.current) {
+    if (engineRef.current) {
       engineRef.current.init();
     }
     notify("NEW GAME STARTED!");
@@ -1132,242 +1141,221 @@ const App = () => {
     setShowShop(true);
   };
 
+  const refreshShop = () => {
+    if (stars < 50) return notify("★が足りません");
+    setStars(s => s - 50);
+    generateShop();
+    notify("商品を入荷しました");
+  };
+
+  // Calculate timer progress for display (optional, can be refined)
+  // For now we trust the PuzzleEngine bar or use a simple state if needed.
+  // The design has "5.0s". I'll use a ref-updater or state if I want it live.
+  // For performance, let's stick to the bar or update a ref text content manually in PuzzleEngine.
+  // I'll add a helper to update the time text if it exists.
+
   return (
-    <div className="game-container">
-      {/* 1. HUD / Status Bar (Layer 100) */}
-      <div className="status-bar layer-hud">
-        <div className="w-full max-w-[400px] flex justify-between items-center px-4">
-          <div className="flex flex-col">
-            <div className="text-[10px] font-black text-indigo-300 uppercase tracking-widest drop-shadow-sm">
-              Target Combo
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black text-amber-400 tabular-nums">
-                {cycleTotalCombo}
-              </span>
-              <span className="text-slate-500 font-bold text-xs">/ {target}</span>
-            </div>
-          </div>
+    <div className="w-full h-full flex justify-center bg-background-light dark:bg-background-dark font-display text-slate-800 dark:text-slate-100 overflow-hidden">
+      {/* Mobile Container */}
+      <div className="w-full max-w-md h-full flex flex-col relative bg-background-light dark:bg-background-dark shadow-2xl overflow-hidden">
 
-          <div className="flex items-center gap-4">
-            <button
-              onClick={openShop}
-              className="group p-2 glass border-amber-500/50 hover:border-amber-400 hover:bg-amber-500/10 transition-all rounded-xl shadow-lg active:scale-95"
-            >
-              <ShoppingCart className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
-            </button>
-            <div className="flex flex-col items-end">
-              <div className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">
-                Stars
-              </div>
-              <div className="flex items-center gap-1 text-2xl font-black text-yellow-400">
-                <Star className="w-5 h-5 fill-current animate-pulse" />
-                <span className="tabular-nums">{stars}</span>
-              </div>
-            </div>
-          </div>
+        {/* Abstract Background Pattern */}
+        <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+          <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-primary/30 to-transparent"></div>
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
         </div>
-      </div>
 
-      {/* 2. Puzzle & Play Area (Layer 10) */}
-      <div className="puzzle-area layer-puzzle custom-scrollbar">
-        <div className="flex flex-col items-center w-full max-w-md scale-95 sm:scale-100 origin-top">
-          <div className="text-[10px] font-black text-amber-500 tracking-[0.4em] mb-4 drop-shadow-md">
-            PUZZLE QUEST
+        {/* Top Status Bar */}
+        <header className="relative z-10 px-4 pt-6 pb-2 flex justify-between items-center glass-panel border-b border-white/5">
+          <div className="flex flex-col">
+            <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold text-white">Cycle 1</span>
+              <span className="text-primary font-bold">/</span>
+              <span className="text-lg font-bold text-white">Turn {turn}/{maxTurns}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full border border-white/10" onClick={openShop} role="button">
+            {/* Shop Button / Star Count */}
+            <span className="material-icons-round text-yellow-400 text-sm animate-pulse">star</span>
+            <span className="font-bold text-sm tracking-wide">{stars}</span>
+            <span className="material-icons-round text-slate-400 text-sm ml-1">shopping_cart</span>
+          </div>
+        </header>
+
+        {/* Main Stats Area */}
+        <section className="relative z-10 px-6 py-4 flex-none">
+          {/* Combo Meter */}
+          <div className="flex flex-col items-center justify-center mb-6">
+            <div className="w-full flex justify-between items-end mb-2">
+              <span className="text-sm font-medium text-primary glow-text uppercase tracking-widest">Target Combo</span>
+              <span className="text-2xl font-bold font-mono">
+                {cycleTotalCombo}<span className="text-slate-500 text-lg">/{target}</span>
+              </span>
+            </div>
+            <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-white/5 relative">
+              <div
+                className="h-full bg-gradient-to-r from-primary to-puzzle-purple w-full transition-all duration-500 rounded-full shadow-[0_0_15px_rgba(91,19,236,0.6)] relative"
+                style={{ width: `${Math.min(100, (cycleTotalCombo / target) * 100)}%` }}
+              >
+                <div className="absolute right-0 top-0 h-full w-1 bg-white/50 animate-pulse"></div>
+              </div>
+            </div>
           </div>
 
-          {/* Turn & Energy */}
-          <div className="w-full flex justify-between items-center mb-6 px-4">
-            <div className="flex flex-col gap-1">
-              <div className="flex gap-1">
-                {Array.from({ length: maxTurns }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-3 h-3 rounded-full border border-white/20 ${turn > i ? "bg-white" : "bg-white/5"}`}
-                  />
-                ))}
-                <span className="text-[9px] text-slate-500 font-bold ml-1 uppercase">
-                  Turn {turn}/{maxTurns}
+          {/* Timer & Info */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary relative overflow-hidden">
+                {/* Timer Bar embedded or around? Design shows icon. */}
+                <span className="material-icons-round text-xl relative z-10">timer</span>
+                {/* Visual timer fill behind icon? Optional. */}
+                <div ref={timerRef} className="absolute bottom-0 left-0 right-0 bg-primary/30 z-0 h-full origin-bottom transition-transform" style={{ transform: 'scaleY(1)' }}></div>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-slate-400 font-bold">Move Time</span>
+                <span className="text-xl font-mono font-bold text-white">
+                  {/* We assume approx 5s base. Precise tracking is in engine. */}
+                  {(getTimeLimit() / 1000).toFixed(1)}<span className="text-xs text-slate-500 ml-0.5">s</span>
                 </span>
               </div>
-              <div className="h-1.5 w-32 bg-slate-900 rounded-full overflow-hidden border border-indigo-500/10 mt-1">
-                <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500"
-                  style={{ width: `${(energy / maxEnergy) * 100}%` }}
-                />
-              </div>
-              <div className="text-[8px] text-indigo-400 font-black uppercase tracking-tighter">Energy {energy}/{maxEnergy}</div>
             </div>
-
-            {goalReached && turn <= maxTurns && (
-              <button
-                onClick={skipTurns}
-                className="group relative px-4 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-xl font-black text-slate-900 text-[10px] shadow-xl shadow-amber-500/20 active:scale-95 transition-all overflow-hidden"
-              >
-                NEXT GOAL (+{(maxTurns - turn + 1) * 3}★)
-                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 -translate-x-full group-hover:animate-shimmer" />
-              </button>
-            )}
-          </div>
-          {/* Combo Display */}
-          <div className="h-8 mb-2">
-            <div id="combo-count" ref={comboRef} className="text-2xl font-black"></div>
-          </div>
-
-          {/* Timer */}
-          <div className="timer-container mb-4">
-            <div id="timer-bar" ref={timerRef}></div>
-          </div>
-
-          {/* Board */}
-          <div className="board-wrapper">
-            <div id="board" className="board" ref={boardRef}></div>
-          </div>
-
-          {/* Token Slots */}
-          <div className="w-full mt-8 px-4">
-            <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-3 px-1">
-              Equipped Tokens
+            <div className="text-right">
+              <span className="text-[10px] uppercase text-slate-400 font-bold block">Next Reward</span>
+              <span className="text-sm font-semibold text-white flex items-center justify-end gap-1">
+                <span className="material-icons-round text-xs text-primary">bolt</span>
+                Energy {energy}/{maxEnergy}
+              </span>
             </div>
-            <div className="grid grid-cols-6 gap-2">
-              {tokens.map((t, i) => (
-                <div
-                  key={i}
-                  className={`aspect-square rounded-xl flex flex-col items-center justify-center relative border transition-all p-1
-                    ${t ? "bg-slate-900/60 border-indigo-500/30 shadow-lg shadow-indigo-950/20" : "bg-slate-950/20 border-slate-800 border-dashed"}
+          </div>
+        </section>
+
+        {/* Token/Skill Belt */}
+        <section className="relative z-10 pl-6 py-2 flex-none mb-4">
+          <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-2 tracking-wider">Active Tokens</h3>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pr-6 pb-2 min-h-[80px]">
+            {tokens.map((t, i) => (
+              <div
+                key={i}
+                onClick={(e) => {
+                  if (t && t.type === 'skill') {
+                    e.stopPropagation();
+                    useSkill(t, i);
+                  }
+                }}
+                className={`flex-none w-16 h-16 rounded-xl relative group shadow-[0_0_10px_rgba(91,19,236,0.2)] transition-all
+                     ${t ? "bg-slate-800 border border-primary/50 cursor-pointer active:scale-95" : "bg-slate-900/50 border border-white/5 border-dashed flex items-center justify-center"}
                   `}
-                >
-                  {t ? (
-                    <>
-                      <div className="text-[7px] font-black text-indigo-200 truncate w-full text-center mb-0.5">
-                        {t.name}
-                      </div>
-                      <div className="text-[10px] font-black text-white">
-                        L{t.level || 1}
-                      </div>
-                      {t.type === "skill" && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            useSkill(t, i);
-                          }}
-                          disabled={energy < (t.cost || 0) || engineRef.current?.processing}
-                          className={`mt-1 text-[7px] font-black px-1 py-0.5 rounded
-                            ${energy >= (t.cost || 0) && !engineRef.current?.processing
-                              ? "bg-indigo-600 text-white"
-                              : "bg-slate-800 text-slate-600 pointer-events-none"
-                            }
-                          `}
-                        >
-                          {t.cost}E
-                        </button>
-                      )}
-                      {t.enchantment && (
-                        <div className="absolute -top-1.5 left-1/2 -translate-x-1/2">
-                          <Sparkles className="w-3 h-3 text-purple-400 drop-shadow-sm" />
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="w-0.5 h-2 bg-slate-800 rounded-full" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="hint mt-6 text-center text-[9px] text-slate-700 uppercase tracking-widest italic">
-            Drag to move • Match 3+ • Combos stack
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Overlays (Layer 200+) */}
-      <div className="layer-overlay pointer-events-none">
-        {showShop && (
-          <div className="pointer-events-auto fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-start pt-20 pb-32 px-6 overflow-y-auto">
-            <div className="w-full max-w-lg">
-              <div className="flex justify-between items-center mb-8 px-2">
-                <h2 className="text-4xl font-black text-indigo-300 drop-shadow-lg tracking-widest">よろず屋</h2>
-                <div className="flex items-center gap-2 text-2xl font-black text-amber-400">
-                  所持金: <Star className="w-6 h-6 fill-current" /> {stars}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-10 max-h-[60vh] overflow-y-auto px-2 custom-scrollbar">
-                {shopItems.map((item, idx) => {
-                  const isSkill = item.type === "skill";
-                  const isPassive = item.type === "passive";
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => buyItem(item)}
-                      className={`w-full shop-item-card p-6 rounded-[2rem] flex flex-col items-center justify-between group transition-all text-center relative overflow-hidden border-2 h-full min-h-[250px] ${isSkill ? "border-blue-500/30 bg-blue-900/10" : isPassive ? "border-amber-500/30 bg-amber-900/10" : "border-purple-500/30 bg-purple-900/10"
-                        }`}
-                    >
-                      <div className="flex flex-col items-center gap-2 relative z-10 w-full">
-                        <span className="text-lg font-black text-white">{item.name}</span>
-                        <div className="flex gap-1">
-                          {item.isSale && <span className="text-[8px] bg-red-600 text-white px-2 py-0.5 rounded-full uppercase">Sale</span>}
-                          {item.enchantment && <span className="text-[8px] bg-purple-600 text-white px-2 py-0.5 rounded-full uppercase">✦ {item.enchantName}</span>}
-                        </div>
-                        <div className="text-[11px] text-slate-400 h-[3em] overflow-hidden line-clamp-2 px-2 italic">{item.desc}</div>
-                      </div>
-                      <div className="flex items-center gap-2 bg-slate-950/90 px-4 py-2 rounded-2xl border border-white/10 group-hover:border-yellow-400 group-transition-all">
-                        <span className="text-lg text-yellow-400">{item.price}</span>
-                        <Star className="w-4 h-4 fill-yellow-400" />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button
-                onClick={() => setShowShop(false)}
-                className="w-full py-5 rounded-[2rem] glass border-red-500/40 text-red-400 font-black tracking-widest hover:bg-red-500/10 transition-all uppercase"
               >
-                マップに戻る
-              </button>
+                {t ? (
+                  <>
+                    <div className="absolute inset-0 bg-primary/10 rounded-xl"></div>
+                    <div className="w-full h-full flex flex-col items-center justify-center p-1">
+                      {/* Icons for skills? Need mapping or generic */}
+                      <span className="material-icons-round text-2xl text-primary drop-shadow-md">
+                        {t.type === 'skill' ? 'sports_martial_arts' : t.type === 'passive' ? 'auto_awesome' : 'stars'}
+                      </span>
+                      <span className="text-[8px] truncate max-w-full text-zinc-300 font-bold mt-1">{t.name}</span>
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-background-dark text-white">
+                      {t.level || 1}
+                    </div>
+                    {t.cost > 0 && (
+                      <div className="absolute -top-2 -right-2 bg-slate-900 border border-slate-700 text-[9px] text-indigo-300 px-1 rounded">
+                        {t.cost}E
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <span className="material-icons-round text-slate-700">lock_open</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Contextual Action Button (Floating) */}
+        <div className="absolute bottom-[42%] left-0 right-0 z-30 px-6 flex justify-center pointer-events-none">
+          {goalReached && turn <= maxTurns && (
+            <button
+              onClick={skipTurns}
+              className="pointer-events-auto bg-primary text-white font-bold py-3 px-8 rounded-full shadow-[0_4px_20px_rgba(91,19,236,0.5)] border border-white/20 flex items-center gap-2 transform transition hover:scale-105 active:scale-95 animate-bounce"
+            >
+              <span>NEXT GOAL REACHED</span>
+              <span className="material-icons-round">arrow_forward</span>
+            </button>
+          )}
+        </div>
+
+        {/* Message Popups */}
+        {message && (
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
+            <div className="bg-slate-900/90 border border-primary/50 text-primary font-bold px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-md animate-pop text-center">
+              {message}
             </div>
           </div>
         )}
 
+        {/* Combo Popups overlay (using ref currently) */}
+        <div className="absolute top-[40%] left-0 width-full flex justify-center w-full z-40 pointer-events-none">
+          <div id="combo-count" ref={comboRef} className="text-4xl font-black text-yellow-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] font-display italic"></div>
+        </div>
+
+
+        {/* Puzzle Grid Area */}
+        <section className="relative z-20 flex-1 bg-slate-900 rounded-t-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
+          {/* Grid Background effects */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-90"></div>
+
+          <div className="relative w-full h-full p-4 flex flex-col justify-center items-center">
+            {/* Board Container */}
+            <div className="board-wrapper bg-transparent border-none shadow-none p-0 overflow-visible relative" style={{ width: cols * 60, height: rows * 60 }}>
+              <div id="board" className="board" ref={boardRef}></div>
+            </div>
+
+            {/* Touch Guide hint */}
+            <div className="mt-8 text-center pointer-events-none opacity-50">
+              <span className="text-[10px] text-white uppercase tracking-widest">Drag to connect</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Shop Overlay */}
+        {/* Shop Overlay using ShopScreen Component */}
+        {showShop && (
+          <div className="pointer-events-auto fixed inset-0 z-[200]">
+            <ShopScreen
+              items={shopItems}
+              stars={stars}
+              onBuy={buyItem}
+              onClose={() => setShowShop(false)}
+              onRefresh={refreshShop}
+            />
+          </div>
+        )}
+
+        {/* Pending Shop Item Modal */}
         {pendingShopItem && (
-          <div className="pointer-events-auto fixed inset-0 z-[300] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-slate-100">
-            <div className="w-full max-w-xs glass p-8 rounded-3xl text-center border-amber-500/30 shadow-2xl">
-              <h3 className="text-2xl font-black mb-4 text-amber-500">重複トークン</h3>
-              <p className="text-sm text-slate-300 mb-8 font-bold leading-relaxed">
-                すでに「{pendingShopItem.name}」を所持しています。どうしますか？
-              </p>
-              <div className="space-y-4">
-                <button
-                  onClick={() => handleChoice("upgrade")}
-                  className="w-full bg-indigo-600 py-4 rounded-2xl font-black shadow-lg shadow-indigo-600/30 active:scale-95 transition-all outline-none"
-                >
-                  強化する (Lv UP)
+          <div className="absolute inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+            <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border border-white/10 shadow-2xl">
+              <h3 className="text-xl font-bold text-white mb-2 text-center">Duplicate Token</h3>
+              <p className="text-sm text-slate-400 text-center mb-6">You already have {pendingShopItem.name}.</p>
+
+              <div className="flex flex-col gap-3">
+                <button onClick={() => handleChoice("upgrade")} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg shadow-primary/25">
+                  Upgrade (Lv UP)
                 </button>
-                <button
-                  onClick={() => handleChoice("new")}
-                  className="w-full bg-slate-800 py-4 rounded-2xl font-black text-slate-400 border border-slate-700 active:scale-95 transition-all outline-none"
-                >
-                  2つ目として装備
+                <button onClick={() => handleChoice("new")} className="bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95">
+                  Equip as 2nd
                 </button>
-                <button
-                  onClick={() => setPendingShopItem(null)}
-                  className="w-full py-2 text-xs font-bold text-slate-600 hover:text-slate-500 transition-colors"
-                >
-                  キャンセル
+                <button onClick={() => setPendingShopItem(null)} className="text-slate-400 text-xs font-bold py-2 mt-2">
+                  CANCEL
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {message && (
-          <div className="pointer-events-none fixed top-24 left-1/2 -translate-x-1/2 glass px-6 py-3 rounded-2xl font-black text-amber-500 shadow-2xl animate-pop layer-pop">
-            {message}
-          </div>
-        )}
       </div>
     </div>
   );
