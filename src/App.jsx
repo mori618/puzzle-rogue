@@ -652,7 +652,7 @@ class PuzzleEngine {
 
   async animateComboAdd(amount) {
     if (amount <= 0) return;
-    const stepDelay = Math.max(20, Math.min(100, 300 / amount)); // 適切な速度調整
+    const stepDelay = Math.max(50, Math.min(250, 600 / amount)); // 段階的に増えるように速度調整
     for (let i = 0; i < amount; i++) {
       this.currentCombo++;
       this.onCombo(this.currentCombo);
@@ -753,34 +753,13 @@ class PuzzleEngine {
 
         // --- 特殊消しリアルタイム加算 ---
         let addition = 1;
+
+        // Base Bonuses
+        if (shape === "len5") addition += 1;
+        if (shape === "cross") addition += 2;
+
         if (shape === "len4" && this.realtimeBonuses?.len4) addition += this.realtimeBonuses.len4;
         if (shape === "row" && this.realtimeBonuses?.row) addition += this.realtimeBonuses.row;
-
-        // --- Special Bonus: Monocolor Full Board ---
-        if (group.length === this.rows * this.cols) {
-          await this.animateComboAdd(10);
-        } else {
-          await this.animateComboAdd(addition);
-        }
-
-        const matchedType = group[0].type;
-        matchedColorsThisTurn.add(matchedType);
-        if (group.some(orb => orb.isSkyfall)) {
-          hasSkyfallCombo = true;
-        }
-
-        // animateComboAdd内で更新済みなのでここは削除
-        // this.onCombo(this.currentCombo);
-        /*
-        // UI要素が存在すればコンボ表示を更新（ポップアニメーション付き）
-        if (this.comboEl) {
-          this.comboEl.innerHTML = `<span class="combo-number">${this.currentCombo}</span><span class="combo-label">COMBO</span>`;
-          // アニメーションリセット＆再適用
-          this.comboEl.classList.remove('animate-combo-pop');
-          void this.comboEl.offsetWidth; // リフロー強制
-          this.comboEl.classList.add('animate-combo-pop');
-        }
-        */
 
         group.forEach((o) => o.el.classList.add("orb-matching"));
         await this.sleep(300);
@@ -791,6 +770,13 @@ class PuzzleEngine {
         });
         await this.sleep(50);
         if (this._isDestroyed) return;
+
+        // --- Special Bonus: Monocolor Full Board ---
+        if (group.length === this.rows * this.cols) {
+          await this.animateComboAdd(10);
+        } else {
+          await this.animateComboAdd(addition);
+        }
       }
 
       // noSkyfall時はオーブを落下させるが新規オーブは生成しない
@@ -1215,15 +1201,15 @@ const App = () => {
           if (shape === "square") {
             // 四方の型: コンボ倍率
             for (let i = 0; i < matchCount; i++) multiplier *= v;
-            logData.multipliers.push(`shape_square:${v}x${matchCount}`);
+            logData.multipliers.push(`shape_square:mult_x${v}_count_${matchCount}`);
           } else if (shape === "len5") {
-            // 五星の印: 次手操作延長
-            timeMultiplier = Math.max(timeMultiplier, v);
-            logData.bonuses.push(`shape_len5:time_x${v}`);
+            // 五星の印: 次手操作延長 (重複適用)
+            for (let i = 0; i < matchCount; i++) timeMultiplier *= v;
+            logData.bonuses.push(`shape_len5:time_x${v}_count_${matchCount}`);
           } else if (shape === "cross") {
-            // 十字の祈り: 次手操作延長
-            timeMultiplier = Math.max(timeMultiplier, v);
-            logData.bonuses.push(`shape_cross:time_x${v}`);
+            // 十字の祈り: 次手操作延長 (重複適用)
+            for (let i = 0; i < matchCount; i++) timeMultiplier *= v;
+            logData.bonuses.push(`shape_cross:time_x${v}_count_${matchCount}`);
           } else {
             // len4 / row: すでに PuzzleEngine 内でリアルタイム加算済みのためここでは何もしない
             // 表示用のログのみ追加
