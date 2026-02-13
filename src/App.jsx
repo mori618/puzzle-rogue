@@ -748,6 +748,15 @@ class PuzzleEngine {
       if (groups.length === 0) break;
 
       for (const group of groups) {
+        // 消した色をSetに記録（color_multiplier系スキルの判定用）
+        if (group.length > 0 && group[0].type) {
+          matchedColorsThisTurn.add(group[0].type);
+        }
+        // 落ちコンで消えたグループかチェック（skyfall_bonus判定用）
+        if (group.some(o => o.isSkyfall)) {
+          hasSkyfallCombo = true;
+        }
+
         const shape = this.classifyShape(group);
         if (shape) shapes.push(shape);
 
