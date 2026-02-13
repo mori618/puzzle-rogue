@@ -25,7 +25,8 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached }) =>
             if (item.id === 'skip_master') return 'fast_forward';
             return 'auto_awesome';
         }
-        if (item.type === 'enchant_grant') return 'auto_fix_high';
+        if (item.type === 'enchant_grant' || item.type === 'enchant_random') return 'auto_fix_high';
+        if (item.type === 'upgrade_random') return 'arrow_upward';
         return 'star';
     };
 
@@ -42,7 +43,8 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached }) =>
             if (item.id === 'time_ext') return { bg: 'from-blue-500/20 to-blue-900/20', border: 'border-blue-500/30', iconColor: 'text-blue-400' };
             return { bg: 'from-slate-500/20 to-slate-900/20', border: 'border-white/10', iconColor: 'text-slate-400' };
         }
-        if (item.type === 'enchant_grant') return { bg: 'from-purple-500/20 to-purple-900/20', border: 'border-purple-500/30', iconColor: 'text-purple-300' };
+        if (item.type === 'enchant_grant' || item.type === 'enchant_random') return { bg: 'from-purple-500/20 to-purple-900/20', border: 'border-purple-500/30', iconColor: 'text-purple-300' };
+        if (item.type === 'upgrade_random') return { bg: 'from-green-500/20 to-green-900/20', border: 'border-green-500/30', iconColor: 'text-green-400' };
 
         return { bg: 'from-primary/20 to-primary/5', border: 'border-primary/20', iconColor: 'text-primary' };
     };
@@ -172,7 +174,7 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached }) =>
                     >
                         <span className="material-icons-round text-xl mb-1">refresh</span>
                         <span className="text-[10px] font-bold flex items-center">
-                            50 <span className="material-icons-round text-gold text-[8px] ml-0.5">star</span>
+                            3 <span className="material-icons-round text-gold text-[8px] ml-0.5">star</span>
                         </span>
                     </button>
                     {/* Next Cycle Button */}

@@ -94,62 +94,351 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 10;
+  /* GPUアクセラレーション: transformベースでアニメーション */
+  will-change: transform, opacity;
   transition:
-    top 0.4s cubic-bezier(0.25, 1, 0.5, 1),
-    left 0.1s ease-out,
-    opacity 0.3s ease,
-    transform 0.2s ease;
+    transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 0.3s ease;
+  /* top/leftは初期配置用。アニメーションはtranslate3dで行う */
+  transform: translate3d(0, 0, 0);
+  overflow: hidden;
+}
+
+/* 形状定義（完全丸み対応版：border-radiusのみ使用） */
+.orb-shape-fire {
+  border-radius: 50% 50% 50% 0%;
+  transform: rotate(45deg);
+}
+
+/* しずく（斜め） */
+.orb-shape-water {
   border-radius: 50%;
 }
 
+/* 正円 */
+.orb-shape-wood {
+  border-radius: 35%;
+}
+
+/* 超角丸四角 */
+.orb-shape-light {
+  border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%;
+}
+
+/* 有機的オーバル */
+.orb-shape-dark {
+  border-radius: 5% 50% 50% 50%;
+  transform: rotate(-45deg);
+}
+
+/* 雫（逆向き斜め） */
+.orb-shape-heart {
+  border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+}
+
+/* 多少縦に膨らんだ円 (疑似ハート) */
+
+/* アイコンが傾かないように回転を打ち消す */
+.orb-shape-fire span {
+  transform: rotate(-45deg);
+}
+
+.orb-shape-dark span {
+  transform: rotate(45deg);
+}
+
+/* 入れ替え時のスナップ感を出すための短いtransition */
+.orb-swapping {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+
+/* 落下時のバウンスエフェクト */
+.orb-falling {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+}
+
 /* Orb Type Colors */
-.orb-fire {
+.orb-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.orb-inner.orb-fire {
   background-color: var(--color-puzzle-red);
 }
 
-.orb-water {
+.orb-inner.orb-water {
   background-color: var(--color-puzzle-blue);
 }
 
-.orb-wood {
+.orb-inner.orb-wood {
   background-color: var(--color-puzzle-green);
 }
 
-.orb-light {
+.orb-inner.orb-light {
   background-color: var(--color-puzzle-yellow);
 }
 
-.orb-dark {
+.orb-inner.orb-dark {
   background-color: var(--color-puzzle-purple);
 }
 
-.orb-heart {
+.orb-inner.orb-heart {
   background-color: var(--color-puzzle-pink);
 }
 
 .orb-grabbing {
   z-index: 100;
   transform: scale(1.2);
-  opacity: 0.8;
+  opacity: 0.85;
   transition: none !important;
+  will-change: auto;
+  filter: brightness(1.15) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
 }
 
-.orb-matching {
+.orb-matching>div {
   animation: orb-dissolve 0.3s ease-out forwards;
+  will-change: transform, opacity;
 }
 
 @keyframes orb-dissolve {
   0% {
     transform: scale(1);
-    filter: brightness(1.8);
+    filter: brightness(2);
+    opacity: 1;
+  }
+
+  40% {
+    transform: scale(1.15);
+    filter: brightness(2.5);
+    opacity: 0.9;
   }
 
   100% {
-    transform: scale(0);
+    transform: scale(0) rotate(15deg);
+    filter: brightness(0.5);
     opacity: 0;
   }
 }
 
 .orb span {
   user-select: none;
+}
+
+/* === コンボ表示アニメーション === */
+
+/* コンボ数表示時のポップアニメーション */
+@keyframes combo-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-combo-pop {
+  animation: combo-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* === コンボ表示システム === */
+
+/* コンボ表示のコンテナ */
+.combo-display {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-align: center;
+  font-family: "Orbitron", "Inter", sans-serif;
+  pointer-events: none;
+}
+
+/* コンボ数字（大きく表示） */
+.combo-number {
+  font-size: 5rem;
+  font-weight: 900;
+  color: white;
+  line-height: 1;
+  letter-spacing: -2px;
+  text-shadow:
+    0 0 20px rgba(91, 19, 236, 0.9),
+    0 0 40px rgba(91, 19, 236, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* 最終値確定時のグロー強化 */
+.combo-number-final {
+  color: #fbbf24;
+  text-shadow:
+    0 0 20px rgba(251, 191, 36, 0.9),
+    0 0 50px rgba(251, 191, 36, 0.5),
+    0 0 80px rgba(251, 191, 36, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* COMBOラベル（小さく表示） */
+.combo-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(91, 19, 236, 0.5);
+}
+
+/* ボーナス加算表示 (+N) */
+.combo-bonus-add {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #fbbf24;
+  line-height: 1;
+  text-shadow:
+    0 0 15px rgba(251, 191, 36, 0.8),
+    0 0 30px rgba(251, 191, 36, 0.4);
+  animation: bonus-slide-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* 倍率表示 (×N) */
+.combo-bonus-mult {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #f472b6;
+  line-height: 1;
+  text-shadow:
+    0 0 15px rgba(244, 114, 182, 0.8),
+    0 0 30px rgba(244, 114, 182, 0.4);
+  animation: bonus-slide-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* パーフェクトクリアラベル */
+.combo-perfect-label {
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  width: 100%;
+  text-align: center;
+  background: linear-gradient(90deg, #fbbf24, #f472b6, #818cf8, #34d399, #fbbf24);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: rainbow-flow 2s linear infinite;
+  margin-bottom: 4px;
+}
+
+/* ボーナス表示のスライドインアニメーション */
+@keyframes bonus-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.5);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* レインボーフローアニメーション */
+@keyframes rainbow-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+/* ボーナス/倍率テキストのフロートアップアニメーション */
+@keyframes combo-float-up {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+
+  70% {
+    transform: translateY(-30px) scale(1.1);
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: translateY(-50px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+.animate-combo-float {
+  animation: combo-float-up 1s ease-out forwards;
+}
+
+/* 最終値反映時のパルスアニメーション */
+@keyframes combo-pulse {
+  0% {
+    transform: scale(1);
+    text-shadow: 0 0 10px rgba(91, 19, 236, 0.5);
+  }
+
+  50% {
+    transform: scale(1.3);
+    text-shadow: 0 0 30px rgba(91, 19, 236, 1), 0 0 60px rgba(251, 191, 36, 0.8);
+  }
+
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 10px rgba(91, 19, 236, 0.5);
+  }
+}
+
+.animate-combo-pulse {
+  animation: combo-pulse 0.6s ease-in-out;
+}
+
+/* Target Combo 更新時のパルスアニメーション */
+@keyframes target-pulse {
+  0% {
+    transform: scale(1);
+    color: white;
+  }
+
+  30% {
+    transform: scale(1.4);
+    color: #fbbf24;
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
+  }
+
+  100% {
+    transform: scale(1);
+    color: white;
+    text-shadow: none;
+  }
+}
+
+.animate-target-pulse {
+  animation: target-pulse 0.7s ease-out;
+}
+
+/* ボーナス行テキストのスタイル */
+.combo-bonus-line {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-weight: 900;
+  font-style: italic;
+  pointer-events: none;
+  z-index: 51;
 }
