@@ -70,6 +70,15 @@ const ALL_TOKEN_BASES = [
   { id: "col_l_l", name: "閃光の縦一閃", type: "skill", cost: 5, costLevels: true, action: "col_fix", params: { col: 0, type: "light" }, price: 3, desc: "左端列をすべて光に。消費E:{cost}" },
   { id: "col_r_d", name: "常闇の縦一閃", type: "skill", cost: 5, costLevels: true, action: "col_fix", params: { col: -1, type: "dark" }, price: 3, desc: "右端列をすべて闇に。消費E:{cost}" },
 
+  // --- Skills: Enhance Orbs ---
+  { id: "enh_f", name: "星の導き・火", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["fire"] }, price: 4, desc: "盤面の火を全て強化。消費E:{cost}" },
+  { id: "enh_w", name: "星の導き・水", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["water"] }, price: 4, desc: "盤面の水を全て強化。消費E:{cost}" },
+  { id: "enh_fw", name: "星の導き・双色", type: "skill", cost: 7, costLevels: true, action: "enhance_color", params: { colors: ["fire", "water"] }, price: 5, desc: "盤面の火と水を全て強化。消費E:{cost}" },
+  { id: "enh_ld", name: "星の導き・双色", type: "skill", cost: 7, costLevels: true, action: "enhance_color", params: { colors: ["light", "dark"] }, price: 5, desc: "盤面の光と闇を全て強化。消費E:{cost}" },
+
+  // --- Skills: Special ---
+  { id: "chrono", name: "クロノス・ストップ", type: "skill", cost: 7, costLevels: true, action: "chronos_stop", params: { duration: 10000 }, price: 7, desc: "10秒間、自由に操作可能になる。消費E:{cost}" },
+
 
   {
     id: "refresh",
@@ -146,6 +155,34 @@ const ALL_TOKEN_BASES = [
     values: [4, 5, 6],
     price: 4,
     desc: "目標達成後のスキップボーナスを4/5/6倍にする。",
+  },
+  {
+    id: "mana_crystal",
+    name: "マナの結晶化",
+    type: "passive",
+    effect: "enhance_chance",
+    values: [0.05, 0.1, 0.2], // 5%, 10%, 20%
+    price: 5,
+    desc: "降ってくるドロップの[5/10/20]%が強化状態で出現する。",
+  },
+  {
+    id: "enhanced_amp",
+    name: "強化増幅",
+    type: "passive",
+    effect: "enhanced_orb_bonus",
+    values: [1, 2, 3],
+    price: 6,
+    desc: "強化ドロップ1個消去時のコンボ加算を+[1/2/3]する。",
+  },
+  {
+    id: "over_link",
+    name: "過剰結合",
+    type: "passive",
+    effect: "enhanced_link_multiplier",
+    params: { count: 5 },
+    values: [1.5, 2, 3],
+    price: 8,
+    desc: "強化ドロップを5個以上つなげて消すと最終コンボx[1.5/2/3]倍。",
   },
 
   // --- Passive: Combo Multiplier (Color) ---
@@ -387,6 +424,13 @@ const ENCHANTMENTS = [
   { id: "combo_light", name: "光の加護", effect: "color_combo", params: { color: "light" }, price: 6, desc: "光の1コンボにつきコンボ+1。" },
   { id: "combo_dark", name: "闇の加護", effect: "color_combo", params: { color: "dark" }, price: 6, desc: "闇の1コンボにつきコンボ+1。" },
   { id: "combo_heart", name: "癒しの加護", effect: "color_combo", params: { color: "heart" }, price: 6, desc: "回復の1コンボにつきコンボ+1。" },
+  // --- New: Enhanced Orb Drop Chance Enchantments ---
+  { id: "enhance_f", name: "火の強化落下", effect: "enhance_chance_color", params: { color: "fire" }, value: 0.1, price: 7, desc: "火ドロップが10%の確率で強化状態で出現する。" },
+  { id: "enhance_w", name: "水の強化落下", effect: "enhance_chance_color", params: { color: "water" }, value: 0.1, price: 7, desc: "水ドロップが10%の確率で強化状態で出現する。" },
+  { id: "enhance_g", name: "木の強化落下", effect: "enhance_chance_color", params: { color: "wood" }, value: 0.1, price: 7, desc: "木ドロップが10%の確率で強化状態で出現する。" },
+  { id: "enhance_l", name: "光の強化落下", effect: "enhance_chance_color", params: { color: "light" }, value: 0.1, price: 7, desc: "光ドロップが10%の確率で強化状態で出現する。" },
+  { id: "enhance_d", name: "闇の強化落下", effect: "enhance_chance_color", params: { color: "dark" }, value: 0.1, price: 7, desc: "闇ドロップが10%の確率で強化状態で出現する。" },
+  { id: "enhance_h", name: "癒しの強化落下", effect: "enhance_chance_color", params: { color: "heart" }, value: 0.1, price: 7, desc: "回復ドロップが10%の確率で強化状態で出現する。" },
 ];
 
 const getEffectiveCost = (token) => {
@@ -474,10 +518,27 @@ class PuzzleEngine {
     this._isDestroyed = false;
     this._rafId = null; // requestAnimationFrame ID
     this.realtimeBonuses = { len4: 0, row: 0 };
+    this.enhanceRates = { global: 0, colors: {} };
+    this.chronosStopActive = false;
+    this.chronosTimerId = null;
   }
+
+  addPlusMark(orbEl) {
+      if (!orbEl.querySelector('.enhanced-mark')) {
+        const enhancedMark = document.createElement("div");
+        enhancedMark.className = "enhanced-mark absolute top-0 right-0 w-4 h-4 bg-yellow-400 text-black text-xs font-bold flex items-center justify-center rounded-full border-2 border-white";
+        enhancedMark.innerText = "+";
+        orbEl.appendChild(enhancedMark);
+      }
+  }
+
 
   setRealtimeBonuses(bonuses) {
     this.realtimeBonuses = { len4: 0, row: 0, l_shape: 0, ...bonuses };
+  }
+
+  setEnhanceRates(rates) {
+    this.enhanceRates = { global: 0, colors: {}, ...rates };
   }
 
   init() {
@@ -597,6 +658,17 @@ class PuzzleEngine {
       if (!type) type = this.types[0];
     }
 
+    let isEnhanced = false;
+    // Global chance
+    if (Math.random() < (this.enhanceRates.global || 0)) {
+      isEnhanced = true;
+    }
+    // Color-specific chance
+    const colorRate = this.enhanceRates.colors?.[type] || 0;
+    if (Math.random() < colorRate) {
+      isEnhanced = true;
+    }
+
     const el = document.createElement("div");
     el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
 
@@ -609,6 +681,10 @@ class PuzzleEngine {
 
     inner.appendChild(iconSpan);
     el.appendChild(inner);
+
+    if (isEnhanced) {
+      this.addPlusMark(el);
+    }
 
     const handler = (e) => {
       if (e.type === "touchstart") e.preventDefault();
@@ -625,7 +701,7 @@ class PuzzleEngine {
     el.style.top = `${baseTop}px`;
     el.style.left = `${baseLeft}px`;
 
-    const orb = { type, el, r, c, isSkyfall: isNew, baseTop, baseLeft };
+    const orb = { type, el, r, c, isSkyfall: isNew, baseTop, baseLeft, isEnhanced };
     this.state[r][c] = orb;
     this.container.appendChild(el);
 
@@ -716,7 +792,7 @@ class PuzzleEngine {
 
         if (nr !== this.dragging.r || nc !== this.dragging.c) {
           // Start timer only when the orb is actually moved to another cell
-          if (!this.moveStart) {
+          if (!this.moveStart && !this.chronosStopActive) {
             this.moveStart = Date.now();
             this.timerId = setInterval(this.updateTimer, 20);
           }
@@ -756,6 +832,22 @@ class PuzzleEngine {
 
   onEnd() {
     if (!this.dragging) return;
+
+    if (this.chronosStopActive) {
+      // クロノス中は、ドラッグ状態だけ解除して再操作を待つ
+      this.dragging.el.classList.remove("orb-grabbing");
+      this.dragging.el.style.zIndex = "";
+      this.dragging = null;
+
+      window.removeEventListener("mousemove", this.onMove);
+      window.removeEventListener("mouseup", this.onEnd);
+      window.removeEventListener("touchmove", this.onMove);
+      window.removeEventListener("touchend", this.onEnd);
+      
+      this.render();
+      return; // process()に進まない
+    }
+
     clearInterval(this.timerId);
     this.timerProgress = 1; // Reset progress
     if (this.timerBar) this.timerBar.style.width = "100%";
@@ -784,7 +876,6 @@ class PuzzleEngine {
     this.spawnWeights = { ...weights };
   }
 
-  // --- Skill Actions ---
   convertColor(fromType, toType) {
     if (this.processing) return;
     this.state.forEach((row) => {
@@ -943,6 +1034,7 @@ class PuzzleEngine {
     this.types.forEach(t => colorComboCounts[t] = 0);
     let hasSkyfallCombo = false;
     const shapes = []; // 特殊消し形状判定結果を蓄積
+    let overLinkMultiplier = 1; // 過剰結合ボーナス用
 
     // --- 全消し判定用のカウンター ---
     const initialOrbCount = this.state.flat().filter(orb => orb !== null).length;
@@ -996,6 +1088,18 @@ class PuzzleEngine {
         if (type === 'heart' && this.realtimeBonuses?.heart_combo) {
           addition += this.realtimeBonuses.heart_combo;
         }
+        
+        // --- 強化ドロップボーナス ---
+        const enhancedCount = group.filter(o => o.isEnhanced).length;
+        if (enhancedCount > 0) {
+          const bonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
+          addition += enhancedCount * bonusPerOrb;
+
+          // 過剰結合チェック
+          if (this.realtimeBonuses?.overLink && enhancedCount >= this.realtimeBonuses.overLink.count) {
+            overLinkMultiplier = Math.max(overLinkMultiplier, this.realtimeBonuses.overLink.value);
+          }
+        }
 
         group.forEach((o) => o.el.classList.add("orb-matching"));
         await this.sleep(300);
@@ -1015,7 +1119,6 @@ class PuzzleEngine {
         }
       }
 
-      // noSkyfall時はオーブを落下させるが新規オーブは生成しない
       // noSkyfall時はオーブを落下させるが新規オーブは生成しない
       if (this.noSkyfall) {
         await this.gravityOnly();
@@ -1071,7 +1174,7 @@ class PuzzleEngine {
     }
 
     this.processing = false;
-    this.onTurnEnd(this.currentCombo, colorComboCounts, hasSkyfallCombo, shapes);
+    this.onTurnEnd(this.currentCombo, colorComboCounts, hasSkyfallCombo, shapes, overLinkMultiplier);
   }
 
   findCombos() {
@@ -1259,6 +1362,7 @@ class PuzzleEngine {
     if (this.resizeListener) {
       window.removeEventListener('resize', this.resizeListener);
     }
+    clearTimeout(this.chronosTimerId);
     window.removeEventListener("mousemove", this.onMove);
     window.removeEventListener("mouseup", this.onEnd);
     window.removeEventListener("touchmove", this.onMove);
@@ -1298,6 +1402,7 @@ const App = () => {
   // Refs
   const boardRef = useRef(null);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [isEndlessMode, setIsEndlessMode] = useState(false);
   const [selectedTokenDetail, setSelectedTokenDetail] = useState(null);
 
   const timerRef = useRef(null);
@@ -1361,9 +1466,9 @@ const App = () => {
         onCombo: () => {
           // No-op for now to avoid re-renders
         },
-        onTurnEnd: (total, colorComboCounts, skyfall, shapes) => {
+        onTurnEnd: (total, colorComboCounts, skyfall, shapes, overLinkMultiplier) => {
           if (handleTurnEndRef.current) {
-            handleTurnEndRef.current(total, colorComboCounts, skyfall, shapes);
+            handleTurnEndRef.current(total, colorComboCounts, skyfall, shapes, overLinkMultiplier);
           }
         },
       },
@@ -1382,7 +1487,7 @@ const App = () => {
       engineRef.current.timeLimit = getTimeLimit();
 
       // Calculate realtime bonuses from tokens
-      const bonuses = { len4: 0, row: 0, l_shape: 0, color_combo: {}, heart_combo: 0 };
+      const bonuses = { len4: 0, row: 0, l_shape: 0, color_combo: {}, heart_combo: 0, enhancedOrbBonus: 0, overLink: null };
       tokens.forEach(t => {
         if (!t) return;
         const lv = t.level || 1;
@@ -1399,6 +1504,16 @@ const App = () => {
             bonuses.heart_combo += val;
         }
 
+        if (t.effect === 'enhanced_orb_bonus') {
+          bonuses.enhancedOrbBonus += t.values[lv - 1] || 0;
+        }
+
+        if (t.effect === 'enhanced_link_multiplier') {
+          if (!bonuses.overLink || t.values[lv - 1] > bonuses.overLink.value) {
+            bonuses.overLink = { count: t.params.count, value: t.values[lv - 1] };
+          }
+        }
+
         // Add color combo enchantments to realtime bonuses
         const enchList = t.enchantments || [];
         enchList.forEach(enc => {
@@ -1409,6 +1524,26 @@ const App = () => {
         });
       });
       engineRef.current.setRealtimeBonuses(bonuses);
+
+      // Calculate enhance rates from tokens
+      const rates = { global: 0, colors: {} };
+      tokens.forEach(t => {
+        if (!t) return;
+        const lv = t.level || 1;
+
+        if (t.effect === 'enhance_chance') {
+          rates.global += t.values[lv - 1] || 0;
+        }
+
+        const enchList = t.enchantments || [];
+        enchList.forEach(enc => {
+          if (enc.effect === 'enhance_chance_color' && enc.params?.color) {
+            const color = enc.params.color;
+            rates.colors[color] = (rates.colors[color] || 0) + (enc.value || 0.1);
+          }
+        });
+      });
+      engineRef.current.setEnhanceRates(rates);
     }
   }, [tokens, getTimeLimit]);
 
@@ -1422,7 +1557,7 @@ const App = () => {
   // Debug State
   // const [debugLog, setDebugLog] = useState(null);
 
-  const handleTurnEnd = (turnCombo, colorComboCounts, hasSkyfallCombo, shapes = []) => {
+  const handleTurnEnd = (turnCombo, colorComboCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1) => {
     let bonus = 0;
     let multiplier = 1;
     let timeMultiplier = 1; // 次手の操作時間倍率
@@ -1542,6 +1677,12 @@ const App = () => {
         logData.multipliers.push(`giant:${v}`);
       }
     });
+
+    // Apply Overlink Multiplier from enhanced orb chains
+    if (overLinkMultiplier > 1) {
+      multiplier *= overLinkMultiplier;
+      logData.multipliers.push(`overlink:${overLinkMultiplier}`);
+    }
 
     // 次手の操作時間倍率を設定（1ならリセット）
     setNextTurnTimeMultiplier(timeMultiplier);
@@ -1664,14 +1805,14 @@ const App = () => {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (turn > maxTurns) {
+    if (!isEndlessMode && turn > maxTurns) {
       if (goalReached) {
         handleCycleClear(0);
       } else {
         handleGameOver();
       }
     }
-  }, [turn, goalReached, maxTurns]);
+  }, [turn, goalReached, maxTurns, isEndlessMode]);
 
   const skipTurns = () => {
     const remainingTurns = maxTurns - turn + 1;
@@ -1722,6 +1863,7 @@ const App = () => {
     setGoalReached(false);
     setShowShop(false);
     setIsGameOver(false);
+    setIsEndlessMode(false);
     setTotalPurchases(0);
     setTotalStarsSpent(0);
     generateShop();
@@ -1736,12 +1878,18 @@ const App = () => {
     setTurn((prev) => Math.max(1, prev - 2));
     setTurn((prev) => Math.max(1, prev - 2));
     /* setEnergy(maxEnergy); // REMOVED */
-    notify("RETRY! +2 TURNS");
+    notify("リトライ! +2手番");
   };
 
   const handleGiveUp = () => {
     setIsGameOver(false);
     resetGame();
+  };
+
+  const handleEndlessMode = () => {
+    setIsEndlessMode(true);
+    setIsGameOver(false);
+    notify("ENDLESS MODE!");
   };
 
   const notify = (text) => {
@@ -1828,7 +1976,7 @@ const App = () => {
     if (item.type === "upgrade_random") {
       const existingTokens = tokens.filter(t => t !== null);
       if (existingTokens.length === 0) return notify("強化可能なトークンがありません");
-
+      
       // Randomly select one
       const targetToken = existingTokens[Math.floor(Math.random() * existingTokens.length)];
       const targetIdx = tokens.indexOf(targetToken);
@@ -1921,6 +2069,7 @@ const App = () => {
           next[idx] = {
             ...next[idx],
             level: nextLevel,
+            desc: getTokenDescription(next[idx], nextLevel)
           };
         }
         return next;
@@ -1994,423 +2143,223 @@ const App = () => {
       case "board_change":
         engine.changeBoardColors(token.params.colors);
         break;
-      case "skyfall":
-      case "skyfall_limit":
-        setActiveBuffs((prev) => [
-          ...prev,
-          {
-            id: Date.now(),
-            action: token.action,
-            params: token.params,
-            duration: token.params.duration,
-          },
-        ]);
-        notify(`${token.name} 発動！ (${token.params.duration}手番)`);
-        break;
       case "row_fix":
         engine.fixRowColor(token.params.row, token.params.type);
         break;
       case "col_fix":
         engine.fixColColor(token.params.col, token.params.type);
         break;
-      case "forbidden_temp":
-        engine.noSkyfall = true;
-        notify("禁忌の儀式発動！(落ちコン停止)");
+      case "skyfall":
+        {
+          const newBuff = { ...token, duration: token.params.duration };
+          setActiveBuffs(prev => [...prev, newBuff]);
+        }
         break;
-      case "charge_boost": {
-        const boostAmount = token.values?.[(token.level || 1) - 1] || 1;
-        // 他のスキルトークンのchargeを加算し、自身のchargeを0にリセット
-        setTokens(prev => prev.map(t => {
-          if (!t) return t;
-          // 自身のchargeを0にリセット
-          if (t === token) return { ...t, charge: 0 };
-          // 他のスキルトークンのchargeを加算
-          if (t.type !== 'skill') return t;
-          const newCharge = Math.min(t.cost || 0, (t.charge || 0) + boostAmount);
-          return { ...t, charge: newCharge };
-        }));
-        notify(`他スキルのエネルギー +${boostAmount}!`);
-        return; // 共通のchargeリセット処理をスキップ
-      }
+      case "skyfall_limit":
+         {
+          const newBuff = { ...token, duration: token.params.duration };
+          setActiveBuffs(prev => [...prev, newBuff]);
+        }
+        break;
+      case "charge_boost":
+        {
+            const amount = token.values[(token.level || 1) - 1];
+            setTokens(prevTokens => {
+                const newTokens = [...prevTokens];
+                // 使用したスキル自身はチャージしないので、一時的にnullにする
+                const selfIndex = newTokens.findIndex(t => t === token);
+                if (selfIndex !== -1) newTokens[selfIndex] = null;
+
+                // 他のスキルをチャージ
+                for(let i=0; i<newTokens.length; i++) {
+                    const t = newTokens[i];
+                    if (t && t.type === 'skill') {
+                        t.charge = Math.min(t.cost, (t.charge || 0) + amount);
+                    }
+                }
+
+                // 使用したスキルを元に戻す
+                if (selfIndex !== -1) newTokens[selfIndex] = token;
+                return newTokens;
+            });
+        }
+        break;
       default:
-        break;
+        notify(`不明なスキル: ${token.action}`);
     }
 
-    // Consume Charge
-    setTokens(prev => prev.map(t => {
-      if (t === token) {
-        return { ...t, charge: 0 };
-      }
-      return t;
-    }));
-    /* setEnergy((prev) => prev - (token.cost || 0)); // REMOVED */
-    notify(`${token.name} 発動!`);
-  };
-
-  const sellToken = (tokenIndex) => {
-    const tokenToSell = tokens[tokenIndex];
-    if (!tokenToSell) return;
-
-    const sellPrice = Math.floor(tokenToSell.price / 2);
-    setStars(s => s + sellPrice);
-    
-    setTokens(prev => {
-      const next = [...prev];
-      next[tokenIndex] = null;
-      return next;
+    // Consume charge
+    setTokens(prevTokens => {
+      return prevTokens.map(t => {
+        if (t === token) {
+          return { ...t, charge: 0 };
+        }
+        return t;
+      });
     });
-
-    setSelectedTokenDetail(null);
-    notify(`${tokenToSell.name} を売却しました (+${sellPrice} ★)`);
   };
 
-  const openShop = () => {
-    if (shopItems.length === 0) {
-      generateShop();
+  const handleTokenClick = (token, index) => {
+    if (token?.type === 'skill') {
+      activateSkill(token);
+    } else {
+       setSelectedTokenDetail(token);
     }
-    setShowShop(true);
-  };
-
-  const refreshShop = () => {
-    if (stars < 3) return notify("★が足りません");
-    setStars(s => s - 3);
-    setTotalStarsSpent((prev) => prev + 3);
-    generateShop();
-    notify("商品を入荷しました");
   };
 
   return (
-    <div className="bg-background-dark font-display text-slate-100 h-screen overflow-hidden flex justify-center w-full">
-      {/* Mobile Container */}
-      <div className="w-full max-w-md h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden">
-        {/* Abstract Background Pattern */}
-        <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-          <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-primary/30 to-transparent"></div>
-          <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
+    <div className="flex flex-col items-center justify-start min-h-screen bg-gray-900 text-white p-4 font-sans touch-none">
+      
+      {message && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-70 text-white px-6 py-3 rounded-lg z-50 text-2xl font-bold animate-fade-in-out">
+          {message}
         </div>
+      )}
 
-        {/* Top Status Bar */}
-        <header className="relative z-10 px-4 pt-6 pb-2 flex justify-between items-center glass-panel border-b border-white/5">
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-white">Cycle {Math.ceil(turn / maxTurns)}</span>
-              <span className="text-primary font-bold">/</span>
-              <span className="text-lg font-bold text-white">Turn {turn}</span>
+      {isGameOver && (
+        <div className="absolute inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center z-40">
+          <h2 className="text-6xl font-bold text-red-500 mb-8">GAME OVER</h2>
+          <div className="flex gap-4">
+            <button
+              onClick={handleContinue}
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg text-xl"
+            >
+              コンティニュー (-5★)
+            </button>
+            <button
+              onClick={handleEndlessMode}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg text-xl"
+            >
+              エンドレスモード
+            </button>
+            <button
+              onClick={handleGiveUp}
+              className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg text-xl"
+            >
+              あきらめる
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {showShop && (
+        <ShopScreen 
+          items={shopItems} 
+          onSelectItem={buyItem} 
+          onClose={() => setShowShop(false)} 
+          stars={stars}
+          pendingItem={pendingShopItem}
+          onChoice={handleChoice}
+          onCancelChoice={() => setPendingShopItem(null)}
+          getTokenDescription={getTokenDescription}
+        />
+      )}
+
+      <div className="w-full max-w-lg mx-auto flex flex-col gap-4">
+        {/* Header */}
+        <header className="flex justify-between items-center bg-gray-800 p-3 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="text-yellow-400 flex items-center gap-1">
+              <StarIcon className="w-6 h-6" />
+              <span className="text-2xl font-bold">{stars}</span>
             </div>
           </div>
-          <div
-            onClick={openShop}
-            className="flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-transform"
-          >
-            <span className="material-icons-round text-yellow-400 text-sm">star</span>
-            <span className="font-bold text-sm tracking-wide">{stars.toLocaleString()}</span>
+          <div className="text-center">
+            <div className="text-lg text-gray-400">TARGET</div>
+            <div ref={targetComboRef} className={`text-4xl font-bold ${targetPulse ? 'animate-pulse-quick' : ''}`}>{target}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-lg text-gray-400">TURN</div>
+            <div className="text-4xl font-bold">{turn} / {maxTurns}</div>
           </div>
         </header>
 
-        {/* Main Stats Area */}
-        <section className="relative z-10 px-6 py-3 flex-none">
-          <div className="flex justify-between items-center">
-            {/* Target Combo テキスト表示 */}
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary">
-                <span className="material-icons-round text-xl">whatshot</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase text-slate-400 font-bold">Target Combo</span>
-                <span
-                  ref={targetComboRef}
-                  className={`text-xl font-mono font-bold text-white inline-block ${targetPulse ? 'animate-target-pulse' : ''}`}
-                >
-                  {cycleTotalCombo}<span className="text-slate-500 text-lg">/{target}</span>
-                </span>
-              </div>
-            </div>
-            {/* 操作時間テキスト */}
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary">
-                <span className="material-icons-round text-xl">timer</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase text-slate-400 font-bold">Move Time</span>
-                <span className="text-xl font-mono font-bold text-white">
-                  {(getTimeLimit() / 1000).toFixed(1)}<span className="text-xs text-slate-500 ml-0.5">s</span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Token/Skill Belt */}
-        <section className="relative z-30 pl-6 py-2 flex-none mb-4">
-          <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-2 tracking-wider">Active Tokens</h3>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pr-6 pb-2 min-h-[80px]">
-            {tokens.map((t, idx) => {
-              // Calculate charge status
-              const isSkill = t?.type === 'skill';
-              const charge = t?.charge || 0;
-              const cost = getEffectiveCost(t);
-              const progress = isSkill ? Math.min(100, (charge / cost) * 100) : 100;
-              const isReady = isSkill && charge >= cost;
-
-              return (
-                <div
-                  key={idx}
-                  onClick={() => t && setSelectedTokenDetail({ token: t, index: idx })}
-                  className={`flex-none w-16 h-16 rounded-xl flex items-center justify-center relative border transition-all 
-                  ${t ? (isReady || !isSkill ? 'bg-slate-800 border-primary/50 cursor-pointer shadow-[0_0_10px_rgba(91,19,236,0.2)] group hover:scale-105' : 'bg-slate-900 border-white/5 opacity-80 cursor-not-allowed') : 'bg-slate-900/50 border-white/5 border-dashed'}
-                `}
-                >
-                  {t ? (
-                    <>
-                      <div className="absolute inset-0 bg-primary/10 rounded-xl overflow-hidden">
-                        {/* Charge Progress Bar Background for Skills */}
-                        {isSkill && (
-                          <div
-                            className="absolute bottom-0 left-0 right-0 bg-primary/20 transition-all duration-500"
-                            style={{ height: `${progress}%` }}
-                          ></div>
-                        )}
-                      </div>
-
-                      <span className={`material-icons-round text-3xl drop-shadow-md relative z-10 ${isReady || !isSkill ? 'text-primary' : 'text-slate-500'}`}>
-                        {isSkill ? 'sports_martial_arts' : 'auto_awesome'}
-                      </span>
-
-                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-background-dark z-20">
-                        {t.level || 1}
-                      </div>
-                      {t.cost > 0 && (
-                        <div className="absolute top-0.5 right-1 z-20 flex flex-col items-end">
-                          <span className="text-[8px] text-slate-400 font-mono">{t.cost}E</span>
-                          {isSkill && (
-                            <span className={`text-[8px] font-bold ${isReady ? 'text-green-400' : 'text-orange-400'}`}>
-                              {charge}/{cost}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <span className="material-icons-round text-slate-700">lock_open</span>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </section>
-
-        {/* 操作時間ゲージ（トークンの下） */}
-        <div className="relative z-30 px-6 mb-2">
-          <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-white/5 relative shadow-inner">
-            <div ref={timerRef} className="h-full bg-gradient-to-r from-green-400 to-emerald-600 w-full transition-all duration-0 ease-linear shadow-[0_0_10px_rgba(34,197,94,0.5)] rounded-full"></div>
-          </div>
+        {/* Combo Display */}
+        <div className="h-20 flex items-center justify-center relative">
+          <div ref={comboRef} className="text-5xl font-bold text-center"></div>
         </div>
-
-        {/* Contextual Action Button (Floating) */}
-        <div className="absolute bottom-[50%] left-0 right-0 z-30 px-6 flex justify-center pointer-events-none">
-          {goalReached && turn <= maxTurns && (
+        
+        {/* Board */}
+        <main className="relative w-full aspect-[6/5]" style={{'--cols': cols, '--rows': rows}}>
+          <div ref={boardRef} className="absolute inset-0 grid grid-cols-[--cols] grid-rows-[--rows] gap-2 bg-gray-800/50 p-1 rounded-lg border-2 border-gray-700">
+             {/* Engine will populate this */}
+          </div>
+          <div className="absolute top-full left-0 w-full mt-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+            <div ref={timerRef} className="h-full bg-green-500 rounded-full transition-all duration-100 ease-linear"></div>
+          </div>
+        </main>
+        
+        {goalReached && (
+          <div className="w-full mt-4">
             <button
               onClick={skipTurns}
-              className="pointer-events-auto bg-primary text-white font-bold py-3 px-8 rounded-full shadow-[0_4px_20px_rgba(91,19,236,0.5)] border border-white/20 flex items-center gap-2 transform transition hover:scale-105 active:scale-95 animate-bounce"
+              className="w-full bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white font-bold py-4 px-4 rounded-lg text-2xl shadow-lg transform hover:scale-105 transition-transform"
             >
-              <span>NEXT GOAL REACHED</span>
-              <span className="material-icons-round">arrow_forward</span>
+              SKIP TURNS
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Puzzle Grid Area */}
-        <section className="relative z-20 flex-1 bg-slate-900 rounded-t-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
-          {/* Grid Background effects */}
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-90"></div>
-
-          {/* Message Toast */}
-          {message && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] animate-fade-in w-max">
-              <div className="bg-slate-950 border border-primary text-white font-black px-6 py-2 rounded-full shadow-2xl text-[10px] tracking-widest uppercase">
-                {message}
-              </div>
-            </div>
-          )}
-
-          <div className="relative w-full h-full p-4 flex flex-col justify-center">
-            {/* コンボ表示 */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50 flex justify-center w-full">
-              <div ref={comboRef} className="combo-display"></div>
-            </div>
-
-            {/* Timer Bar はトークンベルトの下に移動済み */}
-
-            {/* The 6x5 Grid Container */}
+        {/* Tokens */}
+        <footer className="grid grid-cols-6 gap-2 pt-4">
+          {tokens.map((token, index) => (
             <div
-              ref={boardRef}
-              className="w-full relative"
-              style={{ touchAction: "none", aspectRatio: `${cols} / ${rows}` }}
+              key={token?.id || index}
+              onClick={() => handleTokenClick(token, index)}
+              className={`relative aspect-square rounded-lg flex flex-col items-center justify-center p-1 transition-all
+                ${token ? 'bg-gray-800 border-2 border-gray-600 cursor-pointer hover:border-yellow-400 hover:scale-105' : 'bg-gray-800/50 border-2 border-dashed border-gray-700'}
+              `}
             >
-              {/* PuzzleEngine renders orbs here */}
-            </div>
-
-            {/* Touch Guide hint */}
-            <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none opacity-50">
-              <span className="text-[10px] text-white uppercase tracking-widest">Drag to connect</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Shop Overlay */}
-        {showShop && (
-          <div className="absolute inset-0 z-50 bg-background-dark">
-            <ShopScreen
-              items={shopItems}
-              stars={stars}
-              onBuy={buyItem}
-              onClose={() => setShowShop(false)}
-              onRefresh={refreshShop}
-              goalReached={goalReached}
-            />
-          </div>
-        )}
-
-        {/* Pending Shop Item Modal */}
-        {pendingShopItem && (
-          <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
-            <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border border-white/10 shadow-2xl">
-              <h3 className="text-xl font-bold font-display text-white mb-2 text-center italic">{pendingShopItem.name}</h3>
-              <p className="text-sm text-slate-400 text-center mb-6">既に所持しています。</p>
-
-              <div className="flex flex-col gap-3">
-                <button onClick={() => handleChoice("upgrade")} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg shadow-primary/25">
-                  強化 (Lv UP)
-                </button>
-                <button onClick={() => handleChoice("new")} className="bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95">
-                  2つ目を装備
-                </button>
-                <button onClick={() => setPendingShopItem(null)} className="text-slate-400 text-xs font-bold py-2 mt-2">
-                  キャンセル
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Token Detail Modal */}
-        {selectedTokenDetail && (() => {
-          const t = selectedTokenDetail.token;
-          const lv = t.level || 1;
-          const isSkill = t.type === 'skill';
-          const charge = t.charge || 0;
-          const cost = getEffectiveCost(t);
-          const isReady = isSkill && charge >= cost;
-          const enchList = t.enchantments || [];
-          return (
-            <div className="fixed inset-0 z-[350] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setSelectedTokenDetail(null)}>
-              <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border border-primary/30 shadow-[0_0_40px_rgba(91,19,236,0.15)]" onClick={e => e.stopPropagation()}>
-                {/* ヘッダー */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSkill ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-purple-500/20 border border-purple-500/30'}`}>
-                    <span className={`material-icons-round text-2xl ${isSkill ? 'text-blue-400' : 'text-purple-400'}`}>
-                      {isSkill ? 'sports_martial_arts' : 'auto_awesome'}
-                    </span>
+              {token && (
+                <>
+                  <div className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold">
+                    {token.level || 1}
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold font-display text-white italic leading-tight">{t.name}</h3>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isSkill ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
-                        {isSkill ? 'スキル' : 'パッシブ'}
-                      </span>
-                      <span className="text-[10px] font-bold text-amber-400">Lv.{lv}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 効果説明 */}
-                <div className="bg-slate-900/60 rounded-xl p-3 mb-3 border border-white/5">
-                  <p className="text-xs text-slate-300 leading-relaxed">{getTokenDescription(t, lv)}</p>
-                </div>
-
-                {/* スキルチャージ状態 */}
-                {isSkill && (
-                  <div className="bg-slate-900/60 rounded-xl p-3 mb-3 border border-white/5">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase">チャージ</span>
-                      <span className={`text-xs font-bold ${isReady ? 'text-green-400' : 'text-orange-400'}`}>{charge} / {cost}</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${isReady ? 'bg-green-400' : 'bg-orange-400'}`} style={{ width: `${Math.min(100, (charge / cost) * 100)}%` }}></div>
-                    </div>
-                  </div>
-                )}
-
-                {/* エンチャント情報（複数表示対応） */}
-                {enchList.length > 0 ? (
-                  enchList.map((enc, encIdx) => {
-                    const enchDef = ENCHANTMENTS.find(e => e.effect === enc.effect);
-                    return (
-                      <div key={encIdx} className="bg-amber-500/10 rounded-xl p-3 mb-3 border border-amber-500/20">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="material-icons-round text-amber-400 text-sm">auto_fix_high</span>
-                          <span className="text-xs font-bold text-amber-400">{enc.name}</span>
-                        </div>
-                        <p className="text-[11px] text-amber-200/70 leading-relaxed">{enchDef?.desc || ''}</p>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="bg-slate-900/40 rounded-xl p-3 mb-3 border border-dashed border-white/10">
-                    <p className="text-[11px] text-slate-600 text-center">エンチャントなし</p>
-                  </div>
-                )}
-
-                {/* ボタン群 */}
-                <div className="flex flex-col gap-2 mt-4">
-                  {isSkill && (
-                    <button
-                      onClick={() => { setSelectedTokenDetail(null); activateSkill(t, selectedTokenDetail.index); }}
-                      disabled={!isReady}
-                      className={`py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${isReady ? 'bg-primary text-white shadow-lg shadow-primary/25' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
-                    >
-                      {isReady ? 'スキル発動' : 'チャージ不足'}
-                    </button>
+                  
+                  {token.enchantments && token.enchantments.length > 0 && (
+                     <div className="absolute -top-2 -left-2 bg-purple-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold">
+                       +{token.enchantments.length}
+                     </div>
                   )}
-                  <button
-                    onClick={() => sellToken(selectedTokenDetail.index)}
-                    className="w-full text-center bg-red-600/20 hover:bg-red-600/40 text-red-300 py-3 rounded-lg font-bold transition-colors"
-                  >
-                    売却 (+{Math.floor(t.price / 2)} ★)
-                  </button>
-                  <button onClick={() => setSelectedTokenDetail(null)} className="text-slate-400 text-xs font-bold py-2">
-                    閉じる
-                  </button>
-                </div>
+
+                  <div className="text-center text-xs leading-tight">{token.name}</div>
+                  
+                  {token.type === 'skill' && token.cost > 0 && (
+                    <div className="absolute bottom-0 left-0 w-full h-1.5 bg-gray-600 rounded-b-md overflow-hidden">
+                       <div 
+                         className="h-full bg-green-500" 
+                         style={{ width: `${Math.min(100, ((token.charge || 0) / getEffectiveCost(token)) * 100)}%` }}
+                       ></div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+        </footer>
+         
+         {selectedTokenDetail && (
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center"
+              onClick={() => setSelectedTokenDetail(null)}
+            >
+              <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full border border-gray-600" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="text-2xl font-bold mb-2">{selectedTokenDetail.name} <span className="text-base text-yellow-400">(Lv.{selectedTokenDetail.level || 1})</span></h3>
+                  <p className="text-gray-300 mb-4">{getTokenDescription(selectedTokenDetail)}</p>
+                  {selectedTokenDetail.enchantments && selectedTokenDetail.enchantments.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-purple-400">付与効果:</h4>
+                      <ul className="list-disc list-inside">
+                        {selectedTokenDetail.enchantments.map((enc, i) => (
+                           <li key={i}>{enc.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
               </div>
             </div>
-          );
-        })()}
-
-        {/* Game Over / Retry Modal */}
-        {isGameOver && (
-          <div className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-md flex items-center justify-center p-6">
-            <div className="bg-slate-900 w-full max-w-sm rounded-3xl p-8 border border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.2)] text-center animate-bounce-in">
-              <span className="material-icons-round text-6xl text-red-500 mb-4 animate-pulse">broken_image</span>
-              <h2 className="text-3xl font-black font-display text-white mb-2 tracking-tighter">GAME OVER</h2>
-              <p className="text-slate-400 mb-8">目標未達成... まだ諦めない？</p>
-
-              <div className="flex flex-col gap-3">
-                <button onClick={handleContinue} className="bg-gradient-to-r from-red-600 to-orange-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-red-500/25 active:scale-95 transition-all flex items-center justify-center gap-2">
-                  <span className="material-icons-round">smart_display</span>
-                  動画を見てコンティニュー
-                </button>
-                <button onClick={handleGiveUp} className="bg-slate-800 text-slate-400 py-4 rounded-xl font-bold active:scale-95 hover:bg-slate-700 transition-colors">
-                  諦める
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
+         )}
       </div>
-
     </div>
   );
 };
