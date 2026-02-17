@@ -7,68 +7,120 @@ import ShopScreen from "./ShopScreen";
 // --- Constants (RPG) ---
 const ALL_TOKEN_BASES = [
   // --- Skills: Conversion ---
-  { id: "fired", name: "焔の変換", type: "skill", cost: 3, costLevels: true, action: "convert", params: { from: "wood", to: "fire" }, price: 2, desc: "木を火に変換。消費E:{cost}" },
-  { id: "waterd", name: "氷の変換", type: "skill", cost: 3, costLevels: true, action: "convert", params: { from: "fire", to: "water" }, price: 2, desc: "火を水に変換。消費E:{cost}" },
-  { id: "woodd", name: "嵐の変換", type: "skill", cost: 3, costLevels: true, action: "convert", params: { from: "water", to: "wood" }, price: 2, desc: "水を木に変換。消費E:{cost}" },
-  { id: "lightd", name: "雷の変換", type: "skill", cost: 3, costLevels: true, action: "convert", params: { from: "dark", to: "light" }, price: 2, desc: "闇を光に変換。消費E:{cost}" },
-  { id: "darkd", name: "影の変換", type: "skill", cost: 3, costLevels: true, action: "convert", params: { from: "light", to: "dark" }, price: 2, desc: "光を闇に変換。消費E:{cost}" },
-  { id: "heartd", name: "癒の変換", type: "skill", cost: 3, costLevels: true, action: "convert", params: { from: "fire", to: "heart" }, price: 2, desc: "火を回復に変換。消費E:{cost}" },
-  { id: "conv_h_f", name: "癒しの劫火", type: "skill", cost: 3, costLevels: true, action: "convert", params: { from: "heart", to: "fire" }, price: 2, desc: "回復を火に変換。消費E:{cost}" },
-  { id: "conv_h_w", name: "癒しの奔流", type: "skill", cost: 3, costLevels: true, action: "convert", params: { from: "heart", to: "water" }, price: 2, desc: "回復を水に変換。消費E:{cost}" },
-  { id: "conv_h_w", name: "癒しの深緑", type: "skill", cost: 3, costLevels: true, action: "convert", params: { from: "heart", to: "wood" }, price: 2, desc: "回復を木に変換。消費E:{cost}" },
+  { id: "fired", name: "焔の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "wood", to: "fire" }, price: 2, desc: "木を火に変換。消費E:{cost}" },
+  { id: "waterd", name: "氷の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "fire", to: "water" }, price: 2, desc: "火を水に変換。消費E:{cost}" },
+  { id: "woodd", name: "嵐の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "water", to: "wood" }, price: 2, desc: "水を木に変換。消費E:{cost}" },
+  { id: "lightd", name: "雷の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "dark", to: "light" }, price: 2, desc: "闇を光に変換。消費E:{cost}" },
+  { id: "darkd", name: "影の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "light", to: "dark" }, price: 2, desc: "光を闇に変換。消費E:{cost}" },
+  { id: "heartd", name: "癒の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "fire", to: "heart" }, price: 2, desc: "火を回復に変換。消費E:{cost}" },
+  { id: "conv_h_f", name: "癒しの劫火", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "heart", to: "fire" }, price: 2, desc: "回復を火に変換。消費E:{cost}" },
+  { id: "conv_h_w", name: "癒しの奔流", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "heart", to: "water" }, price: 2, desc: "回復を水に変換。消費E:{cost}" },
+  { id: "conv_h_g", name: "癒しの深緑", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "heart", to: "wood" }, price: 2, desc: "回復を木に変換。消費E:{cost}" },
+  { id: "conv_h_l", name: "癒しの聖光", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "heart", to: "light" }, price: 2, desc: "回復を光に変換。消費E:{cost}" },
+  { id: "conv_h_d", name: "癒しの呪法", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "heart", to: "dark" }, price: 2, desc: "回復を闇に変換。消費E:{cost}" },
 
   // --- Skills: Board Change (3-Color) ---
-  { id: "board_tri1", name: "三色の真理・紅蓮", type: "skill", cost: 7, costLevels: true, action: "board_change", params: { colors: ["fire", "water", "wood"] }, price: 3, desc: "盤面を火/水/木に変更。消費E:{cost}" },
-  { id: "board_tri2", name: "三色の真理・天地", type: "skill", cost: 7, costLevels: true, action: "board_change", params: { colors: ["light", "dark", "heart"] }, price: 3, desc: "盤面を光/闇/回復に変更。消費E:{cost}" },
-  { id: "board_tri3", name: "三色の真理・黄昏", type: "skill", cost: 7, costLevels: true, action: "board_change", params: { colors: ["fire", "water", "dark"] }, price: 3, desc: "盤面を火/水/闇に変更。消費E:{cost}" },
-  { id: "board_tri4", name: "三色の真理・神緑", type: "skill", cost: 7, costLevels: true, action: "board_change", params: { colors: ["light", "wood", "heart"] }, price: 3, desc: "盤面を光/木/回復に変更。消費E:{cost}" },
-  { id: "board_tri5", name: "三色の真理・炎光", type: "skill", cost: 7, costLevels: true, action: "board_change", params: { colors: ["fire", "light", "dark"] }, price: 3, desc: "盤面を火/光/闇に変更。消費E:{cost}" },
-  { id: "board_tri6", name: "三色の真理・水光", type: "skill", cost: 7, costLevels: true, action: "board_change", params: { colors: ["water", "light", "dark"] }, price: 3, desc: "盤面を水/光/闇に変更。消費E:{cost}" },
-  { id: "board_tri7", name: "三色の真理・木光", type: "skill", cost: 7, costLevels: true, action: "board_change", params: { colors: ["wood", "light", "dark"] }, price: 3, desc: "盤面を木/光/闇に変更。消費E:{cost}" },
-  { id: "board_tri8", name: "三色の真理・炎木", type: "skill", cost: 7, costLevels: true, action: "board_change", params: { colors: ["fire", "wood", "light"] }, price: 3, desc: "盤面を火/木/光に変更。消費E:{cost}" },
-  { id: "board_tri9", name: "三色の真理・炎闇", type: "skill", cost: 7, costLevels: true, action: "board_change", params: { colors: ["fire", "wood", "dark"] }, price: 3, desc: "盤面を火/木/闇に変更。消費E:{cost}" },
-  { id: "board_tri10", name: "三色の真理・水木", type: "skill", cost: 7, costLevels: true, action: "board_change", params: { colors: ["water", "wood", "light"] }, price: 3, desc: "盤面を水/木/光に変更。消費E:{cost}" },
+  { id: "board_tri1", name: "三色の真理・紅蓮", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["fire", "water", "wood"] }, price: 3, desc: "盤面を火/水/木に変更。消費E:{cost}" },
+  { id: "board_tri2", name: "三色の真理・天地", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["light", "dark", "heart"] }, price: 3, desc: "盤面を光/闇/回復に変更。消費E:{cost}" },
+  { id: "board_tri3", name: "三色の真理・黄昏", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["fire", "water", "dark"] }, price: 3, desc: "盤面を火/水/闇に変更。消費E:{cost}" },
+  { id: "board_tri4", name: "三色の真理・神緑", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["light", "wood", "heart"] }, price: 3, desc: "盤面を光/木/回復に変更。消費E:{cost}" },
+  { id: "board_tri5", name: "三色の真理・炎光", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["fire", "light", "dark"] }, price: 3, desc: "盤面を火/光/闇に変更。消費E:{cost}" },
+  { id: "board_tri6", name: "三色の真理・水光", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["water", "light", "dark"] }, price: 3, desc: "盤面を水/光/闇に変更。消費E:{cost}" },
+  { id: "board_tri7", name: "三色の真理・木光", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["wood", "light", "dark"] }, price: 3, desc: "盤面を木/光/闇に変更。消費E:{cost}" },
+  { id: "board_tri8", name: "三色の真理・炎木", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["fire", "wood", "light"] }, price: 3, desc: "盤面を火/木/光に変更。消費E:{cost}" },
+  { id: "board_tri9", name: "三色の真理・炎闇", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["fire", "wood", "dark"] }, price: 3, desc: "盤面を火/木/闇に変更。消費E:{cost}" },
+  { id: "board_tri10", name: "三色の真理・水木", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["water", "wood", "light"] }, price: 3, desc: "盤面を水/木/光に変更。消費E:{cost}" },
 
   // --- Skills: Board Change (2-Color) ---
-  { id: "board_bi1", name: "双龍の陣", type: "skill", cost: 8, costLevels: true, action: "board_change", params: { colors: ["fire", "water"] }, price: 4, desc: "盤面を火/水の2色に変更。消費E:{cost}" },
-  { id: "board_bi2", name: "明暗の陣", type: "skill", cost: 8, costLevels: true, action: "board_change", params: { colors: ["light", "dark"] }, price: 4, desc: "盤面を光/闇の2色に変更。消費E:{cost}" },
-  { id: "board_bi3", name: "風癒の陣", type: "skill", cost: 8, costLevels: true, action: "board_change", params: { colors: ["wood", "heart"] }, price: 4, desc: "盤面を木/回復の2色に変更。消費E:{cost}" },
-  { id: "board_bi4", name: "炎光の陣", type: "skill", cost: 8, costLevels: true, action: "board_change", params: { colors: ["fire", "light"] }, price: 4, desc: "盤面を火/光の2色に変更。消費E:{cost}" },
-  { id: "board_bi5", name: "炎闇の陣", type: "skill", cost: 8, costLevels: true, action: "board_change", params: { colors: ["fire", "dark"] }, price: 4, desc: "盤面を火/闇の2色に変更。消費E:{cost}" },
-  { id: "board_bi6", name: "水光の陣", type: "skill", cost: 8, costLevels: true, action: "board_change", params: { colors: ["water", "light"] }, price: 4, desc: "盤面を水/光の2色に変更。消費E:{cost}" },
-  { id: "board_bi7", name: "水闇の陣", type: "skill", cost: 8, costLevels: true, action: "board_change", params: { colors: ["water", "dark"] }, price: 4, desc: "盤面を水/闇の2色に変更。消費E:{cost}" },
-  { id: "board_bi8", name: "木光の陣", type: "skill", cost: 8, costLevels: true, action: "board_change", params: { colors: ["wood", "light"] }, price: 4, desc: "盤面を木/光の2色に変更。消費E:{cost}" },
-  { id: "board_bi9", name: "木闇の陣", type: "skill", cost: 8, costLevels: true, action: "board_change", params: { colors: ["wood", "dark"] }, price: 4, desc: "盤面を木/闇の2色に変更。消費E:{cost}" },
+  { id: "board_bi1", name: "双龍の陣", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["fire", "water"] }, price: 4, desc: "盤面を火/水の2色に変更。消費E:{cost}" },
+  { id: "board_bi2", name: "明暗の陣", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["light", "dark"] }, price: 4, desc: "盤面を光/闇の2色に変更。消費E:{cost}" },
+  { id: "board_bi3", name: "風癒の陣", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["wood", "heart"] }, price: 4, desc: "盤面を木/回復の2色に変更。消費E:{cost}" },
+  { id: "board_bi4", name: "炎光の陣", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["fire", "light"] }, price: 4, desc: "盤面を火/光の2色に変更。消費E:{cost}" },
+  { id: "board_bi5", name: "炎闇の陣", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["fire", "dark"] }, price: 4, desc: "盤面を火/闇の2色に変更。消費E:{cost}" },
+  { id: "board_bi6", name: "水光の陣", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["water", "light"] }, price: 4, desc: "盤面を水/光の2色に変更。消費E:{cost}" },
+  { id: "board_bi7", name: "水闇の陣", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["water", "dark"] }, price: 4, desc: "盤面を水/闇の2色に変更。消費E:{cost}" },
+  { id: "board_bi8", name: "木光の陣", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["wood", "light"] }, price: 4, desc: "盤面を木/光の2色に変更。消費E:{cost}" },
+  { id: "board_bi9", name: "木闇の陣", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["wood", "dark"] }, price: 4, desc: "盤面を木/闇の2色に変更。消費E:{cost}" },
+  // --- Skills: Board Change (2-Color Expansion) ---
+  { id: "board_bi_fh", name: "紅蓮の至宝", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["fire", "heart"] }, price: 4, desc: "盤面を火/回復の2色に変更。消費E:{cost}" },
+  { id: "board_bi_wh", name: "蒼海の至宝", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["water", "heart"] }, price: 4, desc: "盤面を水/回復の2色に変更。消費E:{cost}" },
+  { id: "board_bi_lh", name: "極光の至宝", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["light", "heart"] }, price: 4, desc: "盤面を光/回復の2色に変更。消費E:{cost}" },
+  { id: "board_bi_dh", name: "奈落の至宝", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["dark", "heart"] }, price: 4, desc: "盤面を闇/回復の2色に変更。消費E:{cost}" },
+  { id: "board_bi_fg", name: "業火の陣", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["fire", "wood"] }, price: 4, desc: "盤面を火/木の2色に変更。消費E:{cost}" },
+  { id: "board_bi_wg", name: "樹氷の陣", type: "skill", cost: 5, costLevels: true, action: "board_change", params: { colors: ["water", "wood"] }, price: 4, desc: "盤面を水/木の2色に変更。消費E:{cost}" },
 
   // --- Skills: Board Change (1-Color) ---
-  { id: "board_mono1", name: "真・紅蓮の極致", type: "skill", cost: 10, costLevels: true, action: "board_change", params: { colors: ["fire"] }, price: 6, desc: "盤面すべてを火に変更。消費E:{cost}" },
-  { id: "board_mono2", name: "真・閃光の極致", type: "skill", cost: 10, costLevels: true, action: "board_change", params: { colors: ["light"] }, price: 6, desc: "盤面すべてを光に変更。消費E:{cost}" },
+  { id: "board_mono1", name: "真・紅蓮の極致", type: "skill", cost: 6, costLevels: true, action: "board_change", params: { colors: ["fire"] }, price: 6, desc: "盤面すべてを火に変更。消費E:{cost}" },
+  { id: "board_mono2", name: "真・閃光の極致", type: "skill", cost: 6, costLevels: true, action: "board_change", params: { colors: ["light"] }, price: 6, desc: "盤面すべてを光に変更。消費E:{cost}" },
+  { id: "board_mono3", name: "真・蒼海の極致", type: "skill", cost: 6, costLevels: true, action: "board_change", params: { colors: ["water"] }, price: 6, desc: "盤面すべてを水に変更。消費E:{cost}" },
+  { id: "board_mono4", name: "真・深翠の極致", type: "skill", cost: 6, costLevels: true, action: "board_change", params: { colors: ["wood"] }, price: 6, desc: "盤面すべてを木に変更。消費E:{cost}" },
+  { id: "board_mono5", name: "真・常闇の極致", type: "skill", cost: 6, costLevels: true, action: "board_change", params: { colors: ["dark"] }, price: 6, desc: "盤面すべてを闇に変更。消費E:{cost}" },
+  { id: "board_mono6", name: "真・生命の極致", type: "skill", cost: 6, costLevels: true, action: "board_change", params: { colors: ["heart"] }, price: 6, desc: "盤面すべてを回復に変更。消費E:{cost}" },
+
+  // --- Skills: Random Generation ---
+  { id: "gen_rand_fire", name: "火の創造", type: "skill", cost: 2, costLevels: true, action: "spawn_random", params: { color: "fire", count: 5 }, price: 2, desc: "火ドロップをランダムに5個生成。消費E:{cost}" },
+  { id: "gen_rand_water", name: "水の創造", type: "skill", cost: 2, costLevels: true, action: "spawn_random", params: { color: "water", count: 5 }, price: 2, desc: "水ドロップをランダムに5個生成。消費E:{cost}" },
+  { id: "gen_rand_wood", name: "森の創造", type: "skill", cost: 2, costLevels: true, action: "spawn_random", params: { color: "wood", count: 5 }, price: 2, desc: "木ドロップをランダムに5個生成。消費E:{cost}" },
+  { id: "gen_rand_light", name: "光の創造", type: "skill", cost: 2, costLevels: true, action: "spawn_random", params: { color: "light", count: 5 }, price: 2, desc: "光ドロップをランダムに5個生成。消費E:{cost}" },
+  { id: "gen_rand_dark", name: "闇の創造", type: "skill", cost: 2, costLevels: true, action: "spawn_random", params: { color: "dark", count: 5 }, price: 2, desc: "闇ドロップをランダムに5個生成。消費E:{cost}" },
+
+  // --- Skills: Fixed Distribution ---
+  { id: "board_bal_5", name: "五行の理", type: "skill", cost: 5, costLevels: true, action: "board_balance", price: 5, desc: "全ドロップを5属性各6個に変化させる。消費E:{cost}" },
 
   // --- Skills: Skyfall Manipulation ---
-  { id: "sky_f1", name: "紅蓮の目覚め", type: "skill", cost: 4, costLevels: true, action: "skyfall", params: { colors: ["fire"], weight: 5, duration: 3 }, price: 3, desc: "3手番、火がかなり落ちやすくなる。消費E:{cost}" },
-  { id: "sky_w2", name: "双流の波紋", type: "skill", cost: 4, costLevels: true, action: "skyfall", params: { colors: ["water", "wood"], weight: 3, duration: 2 }, price: 3, desc: "2手番、水と木が落ちやすくなる。消費E:{cost}" },
-  { id: "sky_limit", name: "三色の結界", type: "skill", cost: 6, costLevels: true, action: "skyfall_limit", params: { colors: ["fire", "water", "wood"], duration: 3 }, price: 4, desc: "3手番、火/水/木しか落ちてこなくなる。消費E:{cost}" },
+  { id: "sky_f1", name: "紅蓮の目覚め", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire"], weight: 5, duration: 3 }, price: 3, desc: "3手番、火がかなり落ちやすくなる。消費E:{cost}" },
+  { id: "sky_w1", name: "蒼海の目覚め", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["water"], weight: 5, duration: 3 }, price: 3, desc: "3手番、水がかなり落ちやすくなる。消費E:{cost}" },
+  { id: "sky_g1", name: "深翠の目覚め", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["wood"], weight: 5, duration: 3 }, price: 3, desc: "3手番、木がかなり落ちやすくなる。消費E:{cost}" },
+  { id: "sky_l1", name: "閃光の目覚め", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["light"], weight: 5, duration: 3 }, price: 3, desc: "3手番、光がかなり落ちやすくなる。消費E:{cost}" },
+  { id: "sky_d1", name: "常闇の目覚め", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["dark"], weight: 5, duration: 3 }, price: 3, desc: "3手番、闇がかなり落ちやすくなる。消費E:{cost}" },
+  { id: "sky_h1", name: "癒しの目覚め", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["heart"], weight: 5, duration: 3 }, price: 3, desc: "3手番、回復がかなり落ちやすくなる。消費E:{cost}" },
+
+  { id: "sky_w2", name: "双流の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["water", "wood"], weight: 3, duration: 2 }, price: 3, desc: "2手番、水と木が落ちやすくなる。消費E:{cost}" },
+  { id: "sky_fl_2", name: "炎光の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire", "light"], weight: 3, duration: 2 }, price: 3, desc: "2手番、火と光が落ちやすくなる。消費E:{cost}" },
+  { id: "sky_fd_2", name: "炎闇の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire", "dark"], weight: 3, duration: 2 }, price: 3, desc: "2手番、火と闇が落ちやすくなる。消費E:{cost}" },
+  { id: "sky_wd_2", name: "水闇の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["water", "dark"], weight: 3, duration: 2 }, price: 3, desc: "2手番、水と闇が落ちやすくなる。消費E:{cost}" },
+  { id: "sky_gl_2", name: "木光の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["wood", "light"], weight: 3, duration: 2 }, price: 3, desc: "2手番、木と光が落ちやすくなる。消費E:{cost}" },
+  { id: "sky_ld_2", name: "明暗の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["light", "dark"], weight: 3, duration: 2 }, price: 3, desc: "2手番、光と闇が落ちやすくなる。消費E:{cost}" },
+
+  { id: "sky_limit", name: "三色の結界", type: "skill", cost: 4, costLevels: true, action: "skyfall_limit", params: { colors: ["fire", "water", "wood"], duration: 3 }, price: 4, desc: "3手番、火/水/木しか落ちてこなくなる。消費E:{cost}" },
+  { id: "sky_limit_ldh", name: "三界の結界", type: "skill", cost: 4, costLevels: true, action: "skyfall_limit", params: { colors: ["light", "dark", "heart"], duration: 3 }, price: 4, desc: "3手番、光/闇/回復しか落ちてこなくなる。消費E:{cost}" },
 
   // --- Skills: Multi-Conversion ---
-  { id: "conv_m1", name: "大地の恵み", type: "skill", cost: 5, costLevels: true, action: "convert_multi", params: { types: ["fire", "water"], to: "wood" }, price: 3, desc: "火と水を木に変換。消費E:{cost}" },
-  { id: "conv_m2", name: "福音の祈り", type: "skill", cost: 5, costLevels: true, action: "convert_multi", params: { types: ["light", "dark"], to: "heart" }, price: 3, desc: "光と闇を回復に変換。消費E:{cost}" },
-  { id: "conv_m3", name: "冥風の烈火", type: "skill", cost: 5, costLevels: true, action: "convert_multi", params: { types: ["water", "dark"], to: "fire" }, price: 3, desc: "水と闇を火に変換。消費E:{cost}" },
-  { id: "conv_m4", name: "天啓の閃光", type: "skill", cost: 5, costLevels: true, action: "convert_multi", params: { types: ["wood", "heart"], to: "light" }, price: 3, desc: "木と回復を光に変換。消費E:{cost}" },
-  { id: "conv_m5", name: "三原色の福音", type: "skill", cost: 6, costLevels: true, action: "convert_multi", params: { types: ["fire", "water", "wood"], to: "heart" }, price: 4, desc: "火/水/木を回復に変換。消費E:{cost}" },
+  { id: "conv_m1", name: "大地の恵み", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["fire", "water"], to: "wood" }, price: 3, desc: "火と水を木に変換。消費E:{cost}" },
+  { id: "conv_m2", name: "福音の祈り", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["light", "dark"], to: "heart" }, price: 3, desc: "光と闇を回復に変換。消費E:{cost}" },
+  { id: "conv_m3", name: "冥風の烈火", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["water", "dark"], to: "fire" }, price: 3, desc: "水と闇を火に変換。消費E:{cost}" },
+  { id: "conv_m4", name: "天啓の閃光", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["wood", "heart"], to: "light" }, price: 3, desc: "木と回復を光に変換。消費E:{cost}" },
+  { id: "conv_m5", name: "三原色の福音", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["fire", "water", "wood"], to: "heart" }, price: 4, desc: "火/水/木を回復に変換。消費E:{cost}" },
+  { id: "conv_m6", name: "三原色の業火", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["water", "wood", "heart"], to: "fire" }, price: 4, desc: "水/木/回復を火に変換。消費E:{cost}" },
+  { id: "conv_m7", name: "三原色の奔流", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["fire", "wood", "heart"], to: "water" }, price: 4, desc: "火/木/回復を水に変換。消費E:{cost}" },
+  { id: "conv_m8", name: "三原色の深緑", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["fire", "water", "heart"], to: "wood" }, price: 4, desc: "火/水/回復を木に変換。消費E:{cost}" },
+  { id: "conv_m9", name: "三原色の閃光", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["fire", "water", "dark"], to: "light" }, price: 4, desc: "火/水/闇を光に変換。消費E:{cost}" },
+  { id: "conv_m10", name: "三原色の常闇", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["fire", "water", "light"], to: "dark" }, price: 4, desc: "火/水/光を闇に変換。消費E:{cost}" },
+  // --- Skills: Multi-Conversion (Expansion) ---
+  { id: "conv_m_fire1", name: "薪の焚き付け", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["wood", "heart"], to: "fire" }, price: 3, desc: "木と回復を火に変換。消費E:{cost}" },
+  { id: "conv_m_fire2", name: "混沌の浄化・炎", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["light", "dark"], to: "fire" }, price: 3, desc: "光と闇を火に変換。消費E:{cost}" },
+  { id: "conv_m_water1", name: "鎮火の雨", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["fire", "heart"], to: "water" }, price: 3, desc: "火と回復を水に変換。消費E:{cost}" },
+  { id: "conv_m_water2", name: "混沌の浄化・水", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["light", "dark"], to: "water" }, price: 3, desc: "光と闇を水に変換。消費E:{cost}" },
+  { id: "conv_m_wood1", name: "恵みの雨", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["water", "heart"], to: "wood" }, price: 3, desc: "水と回復を木に変換。消費E:{cost}" },
+  { id: "conv_m_wood2", name: "混沌の浄化・木", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["light", "dark"], to: "wood" }, price: 3, desc: "光と闇を木に変換。消費E:{cost}" },
+  { id: "conv_m_light1", name: "浄化の炎", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["fire", "dark"], to: "light" }, price: 3, desc: "火と闇を光に変換。消費E:{cost}" },
+  { id: "conv_m_light2", name: "聖なる泉", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["water", "heart"], to: "light" }, price: 3, desc: "水と回復を光に変換。消費E:{cost}" },
+  { id: "conv_m_dark1", name: "蝕む影", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["fire", "light"], to: "dark" }, price: 3, desc: "火と光を闇に変換。消費E:{cost}" },
+  { id: "conv_m_dark2", name: "腐敗の森", type: "skill", cost: 4, costLevels: true, action: "convert_multi", params: { types: ["wood", "heart"], to: "dark" }, price: 3, desc: "木と回復を闇に変換。消費E:{cost}" },
 
   // --- Skills: Row Fix ---
-  { id: "row_f", name: "烈火の横一文字", type: "skill", cost: 5, costLevels: true, action: "row_fix", params: { row: 0, type: "fire" }, price: 3, desc: "上段をすべて火に。消費E:{cost}" },
-  { id: "row_w", name: "清流の横一文字", type: "skill", cost: 5, costLevels: true, action: "row_fix", params: { row: 0, type: "water" }, price: 3, desc: "上段をすべて水に。消費E:{cost}" },
-  { id: "row_g", name: "深翠の横一文字", type: "skill", cost: 5, costLevels: true, action: "row_fix", params: { row: 0, type: "wood" }, price: 3, desc: "上段をすべて木に。消費E:{cost}" },
-  { id: "row_l", name: "閃光の横一文字", type: "skill", cost: 5, costLevels: true, action: "row_fix", params: { row: 0, type: "light" }, price: 3, desc: "上段をすべて光に。消費E:{cost}" },
-  { id: "row_d", name: "常闇の横一文字", type: "skill", cost: 5, costLevels: true, action: "row_fix", params: { row: 0, type: "dark" }, price: 3, desc: "上段をすべて闇に。消費E:{cost}" },
-  { id: "row_h", name: "生命の横一文字", type: "skill", cost: 5, costLevels: true, action: "row_fix", params: { row: 0, type: "heart" }, price: 3, desc: "上段をすべて回復に。消費E:{cost}" },
-  { id: "row_b_f", name: "烈火の底陣", type: "skill", cost: 5, costLevels: true, action: "row_fix", params: { row: -1, type: "fire" }, price: 3, desc: "下段をすべて火に。消費E:{cost}" },
-  { id: "row_c_h", name: "生命の帯", type: "skill", cost: 5, costLevels: true, action: "row_fix", params: { row: "center", type: "heart" }, price: 3, desc: "中央行をすべて回復に。消費E:{cost}" },
+  { id: "row_f", name: "烈火の横一文字", type: "skill", cost: 4, costLevels: true, action: "row_fix", params: { row: 0, type: "fire" }, price: 3, desc: "上段をすべて火に。消費E:{cost}" },
+  { id: "row_w", name: "清流の横一文字", type: "skill", cost: 4, costLevels: true, action: "row_fix", params: { row: 0, type: "water" }, price: 3, desc: "上段をすべて水に。消費E:{cost}" },
+  { id: "row_g", name: "深翠の横一文字", type: "skill", cost: 4, costLevels: true, action: "row_fix", params: { row: 0, type: "wood" }, price: 3, desc: "上段をすべて木に。消費E:{cost}" },
+  { id: "row_l", name: "閃光の横一文字", type: "skill", cost: 4, costLevels: true, action: "row_fix", params: { row: 0, type: "light" }, price: 3, desc: "上段をすべて光に。消費E:{cost}" },
+  { id: "row_d", name: "常闇の横一文字", type: "skill", cost: 4, costLevels: true, action: "row_fix", params: { row: 0, type: "dark" }, price: 3, desc: "上段をすべて闇に。消費E:{cost}" },
+  { id: "row_h", name: "生命の横一文字", type: "skill", cost: 4, costLevels: true, action: "row_fix", params: { row: 0, type: "heart" }, price: 3, desc: "上段をすべて回復に。消費E:{cost}" },
+  { id: "row_b_f", name: "烈火の底陣", type: "skill", cost: 4, costLevels: true, action: "row_fix", params: { row: -1, type: "fire" }, price: 3, desc: "下段をすべて火に。消費E:{cost}" },
+  { id: "row_c_h", name: "生命の帯", type: "skill", cost: 4, costLevels: true, action: "row_fix", params: { row: "center", type: "heart" }, price: 3, desc: "中央行をすべて回復に。消費E:{cost}" },
 
   // --- Skills: Col Fix ---
-  { id: "col_l_l", name: "閃光の縦一閃", type: "skill", cost: 5, costLevels: true, action: "col_fix", params: { col: 0, type: "light" }, price: 3, desc: "左端列をすべて光に。消費E:{cost}" },
-  { id: "col_r_d", name: "常闇の縦一閃", type: "skill", cost: 5, costLevels: true, action: "col_fix", params: { col: -1, type: "dark" }, price: 3, desc: "右端列をすべて闇に。消費E:{cost}" },
+  { id: "col_l_l", name: "閃光の縦一閃", type: "skill", cost: 4, costLevels: true, action: "col_fix", params: { col: 0, type: "light" }, price: 3, desc: "左端列をすべて光に。消費E:{cost}" },
+  { id: "col_r_d", name: "常闇の縦一閃", type: "skill", cost: 4, costLevels: true, action: "col_fix", params: { col: -1, type: "dark" }, price: 3, desc: "右端列をすべて闇に。消費E:{cost}" },
 
 
   {
@@ -146,6 +198,15 @@ const ALL_TOKEN_BASES = [
     values: [4, 5, 6],
     price: 4,
     desc: "目標達成後のスキップボーナスを4/5/6倍にする。",
+  },
+  {
+    id: "dual_match",
+    name: "双連の極意",
+    type: "passive",
+    effect: "min_match",
+    values: [0.5, 0.8, 1.0],
+    price: 10,
+    desc: "2つ以上でドロップが消える。コンボ倍率x[0.5/0.8/1.0]。",
   },
 
   // --- Passive: Combo Multiplier (Color) ---
@@ -342,25 +403,30 @@ const ALL_TOKEN_BASES = [
   },
 
   // --- Skills: Enhance Color ---
-  { id: "enh_f", name: "星の導き・火", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["fire"] }, price: 4, desc: "盤面の火を全て強化。消費E:{cost}" },
-  { id: "enh_w", name: "星の導き・水", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["water"] }, price: 4, desc: "盤面の水を全て強化。消費E:{cost}" },
-  { id: "enh_g", name: "星の導き・木", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["wood"] }, price: 4, desc: "盤面の木を全て強化。消費E:{cost}" },
-  { id: "enh_l", name: "星の導き・光", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["light"] }, price: 4, desc: "盤面の光を全て強化。消費E:{cost}" },
-  { id: "enh_d", name: "星の導き・闇", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["dark"] }, price: 4, desc: "盤面の闇を全て強化。消費E:{cost}" },
-  { id: "enh_h", name: "星の導き・回復", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["heart"] }, price: 4, desc: "盤面の回復を全て強化。消費E:{cost}" },
-  { id: "enh_fw", name: "星の導き・火水", type: "skill", cost: 7, costLevels: true, action: "enhance_color", params: { colors: ["fire", "water"] }, price: 5, desc: "盤面の火/水を全て強化。消費E:{cost}" },
-  { id: "enh_fg", name: "星の導き・火木", type: "skill", cost: 7, costLevels: true, action: "enhance_color", params: { colors: ["fire", "wood"] }, price: 5, desc: "盤面の火/木を全て強化。消費E:{cost}" },
-  { id: "enh_fl", name: "星の導き・火光", type: "skill", cost: 7, costLevels: true, action: "enhance_color", params: { colors: ["fire", "light"] }, price: 5, desc: "盤面の火/光を全て強化。消費E:{cost}" },
-  { id: "enh_fd", name: "星の導き・火闇", type: "skill", cost: 7, costLevels: true, action: "enhance_color", params: { colors: ["fire", "dark"] }, price: 5, desc: "盤面の火/闇を全て強化。消費E:{cost}" },
-  { id: "enh_wg", name: "星の導き・水木", type: "skill", cost: 7, costLevels: true, action: "enhance_color", params: { colors: ["water", "wood"] }, price: 5, desc: "盤面の水/木を全て強化。消費E:{cost}" },
-  { id: "enh_wl", name: "星の導き・水光", type: "skill", cost: 7, costLevels: true, action: "enhance_color", params: { colors: ["water", "light"] }, price: 5, desc: "盤面の水/光を全て強化。消費E:{cost}" },
-  { id: "enh_wd", name: "星の導き・水闇", type: "skill", cost: 7, costLevels: true, action: "enhance_color", params: { colors: ["water", "dark"] }, price: 5, desc: "盤面の水/闇を全て強化。消費E:{cost}" },
-  { id: "enh_gl", name: "星の導き・木光", type: "skill", cost: 7, costLevels: true, action: "enhance_color", params: { colors: ["wood", "light"] }, price: 5, desc: "盤面の木/光を全て強化。消費E:{cost}" },
-  { id: "enh_gd", name: "星の導き・木闇", type: "skill", cost: 7, costLevels: true, action: "enhance_color", params: { colors: ["wood", "dark"] }, price: 5, desc: "盤面の木/闇を全て強化。消費E:{cost}" },
-  { id: "enh_ld", name: "星の導き・光闇", type: "skill", cost: 7, costLevels: true, action: "enhance_color", params: { colors: ["light", "dark"] }, price: 5, desc: "盤面の光/闇を全て強化。消費E:{cost}" },
+  { id: "enh_f", name: "星の導き・火", type: "skill", cost: 4, costLevels: true, action: "enhance_color", params: { colors: ["fire"] }, price: 4, desc: "盤面の火を全て強化。消費E:{cost}" },
+  { id: "enh_w", name: "星の導き・水", type: "skill", cost: 4, costLevels: true, action: "enhance_color", params: { colors: ["water"] }, price: 4, desc: "盤面の水を全て強化。消費E:{cost}" },
+  { id: "enh_g", name: "星の導き・木", type: "skill", cost: 4, costLevels: true, action: "enhance_color", params: { colors: ["wood"] }, price: 4, desc: "盤面の木を全て強化。消費E:{cost}" },
+  { id: "enh_l", name: "星の導き・光", type: "skill", cost: 4, costLevels: true, action: "enhance_color", params: { colors: ["light"] }, price: 4, desc: "盤面の光を全て強化。消費E:{cost}" },
+  { id: "enh_d", name: "星の導き・闇", type: "skill", cost: 4, costLevels: true, action: "enhance_color", params: { colors: ["dark"] }, price: 4, desc: "盤面の闇を全て強化。消費E:{cost}" },
+  { id: "enh_h", name: "星の導き・回復", type: "skill", cost: 4, costLevels: true, action: "enhance_color", params: { colors: ["heart"] }, price: 4, desc: "盤面の回復を全て強化。消費E:{cost}" },
+  { id: "enh_fw", name: "星の導き・火水", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["fire", "water"] }, price: 5, desc: "盤面の火/水を全て強化。消費E:{cost}" },
+  { id: "enh_fg", name: "星の導き・火木", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["fire", "wood"] }, price: 5, desc: "盤面の火/木を全て強化。消費E:{cost}" },
+  { id: "enh_fl", name: "星の導き・火光", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["fire", "light"] }, price: 5, desc: "盤面の火/光を全て強化。消費E:{cost}" },
+  { id: "enh_fd", name: "星の導き・火闇", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["fire", "dark"] }, price: 5, desc: "盤面の火/闇を全て強化。消費E:{cost}" },
+  { id: "enh_wg", name: "星の導き・水木", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["water", "wood"] }, price: 5, desc: "盤面の水/木を全て強化。消費E:{cost}" },
+  { id: "enh_wl", name: "星の導き・水光", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["water", "light"] }, price: 5, desc: "盤面の水/光を全て強化。消費E:{cost}" },
+  { id: "enh_wd", name: "星の導き・水闇", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["water", "dark"] }, price: 5, desc: "盤面の水/闇を全て強化。消費E:{cost}" },
+  { id: "enh_gl", name: "星の導き・木光", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["wood", "light"] }, price: 5, desc: "盤面の木/光を全て強化。消費E:{cost}" },
+  { id: "enh_gd", name: "星の導き・木闇", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["wood", "dark"] }, price: 5, desc: "盤面の木/闇を全て強化。消費E:{cost}" },
+  { id: "enh_ld", name: "星の導き・光闇", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["light", "dark"] }, price: 5, desc: "盤面の光/闇を全て強化。消費E:{cost}" },
+  { id: "enh_fh", name: "星の導き・火癒", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["fire", "heart"] }, price: 5, desc: "盤面の火/回復を全て強化。消費E:{cost}" },
+  { id: "enh_wh", name: "星の導き・水癒", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["water", "heart"] }, price: 5, desc: "盤面の水/回復を全て強化。消費E:{cost}" },
+  { id: "enh_gh", name: "星の導き・木癒", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["wood", "heart"] }, price: 5, desc: "盤面の木/回復を全て強化。消費E:{cost}" },
+  { id: "enh_lh", name: "星の導き・光癒", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["light", "heart"] }, price: 5, desc: "盤面の光/回復を全て強化。消費E:{cost}" },
+  { id: "enh_dh", name: "星の導き・闇癒", type: "skill", cost: 5, costLevels: true, action: "enhance_color", params: { colors: ["dark", "heart"] }, price: 5, desc: "盤面の闇/回復を全て強化。消費E:{cost}" },
 
   // --- Skills: Special ---
-  { id: "chrono", name: "クロノス・ストップ", type: "skill", cost: 7, costLevels: true, action: "chronos_stop", params: { duration: 10000 }, price: 7, desc: "10秒間、自由に操作可能になる。消費E:{cost}" },
+  { id: "chrono", name: "クロノス・ストップ", type: "skill", cost: 6, costLevels: true, action: "chronos_stop", params: { duration: 10000 }, price: 7, desc: "10秒間、自由に操作可能になる。消費E:{cost}" },
 
   // --- Passive: Enhanced Drop ---
   {
@@ -400,6 +466,15 @@ const ALL_TOKEN_BASES = [
     id: "cursed_power", name: "呪われた力", type: "passive", effect: "cursed_power",
     values: [10, 15, 20], price: 7,
     desc: "常にコンボ+[10/15/20]。操作時間−2秒。",
+  },
+  {
+    id: "critical_passive",
+    name: "会心の一撃",
+    type: "passive",
+    effect: "critical_strike",
+    values: [10, 20, 30],
+    price: 7,
+    desc: "20%の確率で、最終コンボ倍率が[10/20/30]倍になる。",
   },
 ];
 
@@ -455,6 +530,47 @@ const ENCHANTMENTS = [
   { id: "enh_drop_light", name: "光の強化落下", effect: "enhance_chance_color", params: { color: "light" }, value: 0.1, price: 5, desc: "光ドロップが10%強化で落下。" },
   { id: "enh_drop_dark", name: "闇の強化落下", effect: "enhance_chance_color", params: { color: "dark" }, value: 0.1, price: 5, desc: "闇ドロップが10%強化で落下。" },
   { id: "enh_drop_heart", name: "回復の強化落下", effect: "enhance_chance_color", params: { color: "heart" }, value: 0.1, price: 5, desc: "回復ドロップが10%強化で落下。" },
+  // --- Skyfall Boost (Probability Up) ---
+  { id: "sf_up_fire", name: "火の呼び声", effect: "skyfall_boost", params: { color: "fire" }, price: 6, desc: "火ドロップが少し落ちやすくなる。" },
+  { id: "sf_up_water", name: "水の呼び声", effect: "skyfall_boost", params: { color: "water" }, price: 6, desc: "水ドロップが少し落ちやすくなる。" },
+  { id: "sf_up_wood", name: "森の呼び声", effect: "skyfall_boost", params: { color: "wood" }, price: 6, desc: "木ドロップが少し落ちやすくなる。" },
+  { id: "sf_up_light", name: "光の呼び声", effect: "skyfall_boost", params: { color: "light" }, price: 6, desc: "光ドロップが少し落ちやすくなる。" },
+  { id: "sf_up_dark", name: "闇の呼び声", effect: "skyfall_boost", params: { color: "dark" }, price: 6, desc: "闇ドロップが少し落ちやすくなる。" },
+  { id: "sf_up_heart", name: "癒しの呼び声", effect: "skyfall_boost", params: { color: "heart" }, price: 6, desc: "回復ドロップが少し落ちやすくなる。" },
+  // --- Skyfall Nerf (Probability Down) ---
+  { id: "sf_down_fire", name: "火の静寂", effect: "skyfall_nerf", params: { color: "fire" }, price: 6, desc: "火ドロップが少し落ちにくくなる。" },
+  { id: "sf_down_water", name: "水の静寂", effect: "skyfall_nerf", params: { color: "water" }, price: 6, desc: "水ドロップが少し落ちにくくなる。" },
+  { id: "sf_down_wood", name: "森の静寂", effect: "skyfall_nerf", params: { color: "wood" }, price: 6, desc: "木ドロップが少し落ちにくくなる。" },
+  { id: "sf_down_light", name: "光の静寂", effect: "skyfall_nerf", params: { color: "light" }, price: 6, desc: "光ドロップが少し落ちにくくなる。" },
+  { id: "sf_down_dark", name: "闇の静寂", effect: "skyfall_nerf", params: { color: "dark" }, price: 6, desc: "闇ドロップが少し落ちにくくなる。" },
+  { id: "sf_down_heart", name: "癒しの静寂", effect: "skyfall_nerf", params: { color: "heart" }, price: 6, desc: "回復ドロップが少し落ちにくくなる。" },
+  { id: "opener", name: "先制の心得", effect: "turn_1_bonus", value: 10, price: 6, desc: "サイクルの1ターン目のみ、コンボ+10。" },
+  { id: "clutch", name: "土壇場の底力", effect: "last_turn_mult", value: 1.5, price: 7, desc: "サイクルの最終ターンのみ、コンボ倍率x1.5。" },
+  { id: "rainbow", name: "虹色の加護", effect: "multi_color", value: 3, price: 8, desc: "4色以上同時消しで、コンボ+3。" },
+  { id: "sniper", name: "一点突破", effect: "single_color", value: 1.3, price: 6, desc: "消した色が2色以下の場合、コンボ倍率x1.3。" },
+  { id: "haste", name: "疾風の刻印", effect: "time_ext_enc", value: 1, price: 7, desc: "操作時間を+1秒延長する。" },
+  { id: "quick_charge", name: "急速チャージ", effect: "charge_boost_passive", price: 8, desc: "スキルのチャージ速度が2倍になる。" },
+  { id: "critical", name: "会心の一撃", effect: "critical_strike", value: 10, price: 7, desc: "20%の確率で、この補正倍率が10倍になる。" },
+  { id: "gamble", name: "運命の悪戯", effect: "random_bonus", price: 5, desc: "ターンごとに -5〜+15 のランダムなコンボ加算。" },
+
+  // --- 形状別極意エンチャント (Geometry Split) ---
+  { id: "shape_match4", name: "四連の極意", effect: "shape_match4", value: 1.2, price: 6, desc: "4つ消し1つにつき、コンボ倍率x1.2。" },
+  { id: "shape_cross", name: "十字の極意", effect: "shape_cross", value: 1.3, price: 6, desc: "十字消し1つにつき、コンボ倍率x1.3。" },
+  { id: "shape_row", name: "一列の極意", effect: "shape_row", value: 1.4, price: 6, desc: "横一列消し1つにつき、コンボ倍率x1.4。" },
+  { id: "shape_l", name: "L字の極意", effect: "shape_l", value: 1.3, price: 6, desc: "L字消し1つにつき、コンボ倍率x1.3。" },
+  { id: "shape_square", name: "正方形の極意", effect: "shape_square", value: 1.5, price: 6, desc: "正方形消し1つにつき、コンボ倍率x1.5。" },
+
+  { id: "efficiency", name: "魔力節約", effect: "cost_down", price: 8, desc: "このスキルの消費エネルギーを-1する(最小1)。" },
+  { id: "berserk", name: "狂戦士の刻印", effect: "berserk_mode", value: 1.5, price: 7, desc: "操作時間-1秒、コンボ倍率x1.5。" },
+  { id: "aftershock", name: "追撃の心得", effect: "skyfall_mult", value: 1.4, price: 6, desc: "落ちコン発生時、最終コンボ倍率x1.4。" },
+  { id: "investment", name: "資産価値", effect: "high_sell", price: 4, desc: "このトークンの売却価格が購入価格の300%になる。" },
+  // --- 色別連舞エンチャント (1.2倍) ---
+  { id: "enc_bonus_fire", name: "炎の連舞", effect: "color_multiplier_enc", params: { color: "fire" }, value: 1.2, price: 5, desc: "火を消しているとコンボ倍率x1.2。" },
+  { id: "enc_bonus_water", name: "水の連舞", effect: "color_multiplier_enc", params: { color: "water" }, value: 1.2, price: 5, desc: "水を消しているとコンボ倍率x1.2。" },
+  { id: "enc_bonus_wood", name: "木の連舞", effect: "color_multiplier_enc", params: { color: "wood" }, value: 1.2, price: 5, desc: "木を消しているとコンボ倍率x1.2。" },
+  { id: "enc_bonus_light", name: "光の連舞", effect: "color_multiplier_enc", params: { color: "light" }, value: 1.2, price: 5, desc: "光を消しているとコンボ倍率x1.2。" },
+  { id: "enc_bonus_dark", name: "闇の連舞", effect: "color_multiplier_enc", params: { color: "dark" }, value: 1.2, price: 5, desc: "闇を消しているとコンボ倍率x1.2。" },
+  { id: "enc_bonus_heart", name: "癒しの連舞", effect: "color_multiplier_enc", params: { color: "heart" }, value: 1.2, price: 5, desc: "回復を消しているとコンボ倍率x1.2。" },
 ];
 
 const getEffectiveCost = (token) => {
@@ -463,8 +579,15 @@ const getEffectiveCost = (token) => {
   if (baseCost === 0) return 0;
   const level = token.level || 1;
   const reduction = Math.max(0, level - 1);
-  const minCost = Math.max(1, Math.floor(baseCost / 2));
-  return Math.max(minCost, baseCost - reduction);
+
+  // --- 追加: 魔力節約 (efficiency) ---
+  const enchantReduction = token.enchantments?.filter(e => e.effect === "cost_down").length || 0;
+
+  // const minCost = Math.max(1, Math.floor(baseCost / 2)); // 旧ロジック: 半分まで
+  const minCost = 1; // 変更: 最小値1まで下がることを許容
+
+  // 最後に enchantReduction を引く (最小値1は維持)
+  return Math.max(minCost, baseCost - reduction - enchantReduction);
 };
 
 const getTokenDescription = (item, level) => {
@@ -505,6 +628,7 @@ class PuzzleEngine {
     this.rows = options.rows || 5;
     this.cols = options.cols || 6;
     this.timeLimit = options.timeLimit || 5000;
+    this.minMatchLength = options.minMatchLength || 3;
     this.onTurnEnd = options.onTurnEnd || (() => { });
     this.onCombo = options.onCombo || (() => { });
 
@@ -558,7 +682,7 @@ class PuzzleEngine {
   addPlusMark(el) {
     if (el.querySelector('.enhanced-mark')) return;
     const enhancedMark = document.createElement('div');
-    enhancedMark.className = "enhanced-mark absolute top-0 right-0 w-4 h-4 bg-yellow-400 text-black text-xs font-bold flex items-center justify-center rounded-full border-2 border-white";
+    enhancedMark.className = "enhanced-mark absolute top-0 right-0 w-4 h-4 bg-yellow-400 text-white text-xs font-bold flex items-center justify-center rounded-full border-2 border-white";
     enhancedMark.innerText = '+';
     el.appendChild(enhancedMark);
   }
@@ -649,14 +773,26 @@ class PuzzleEngine {
       while (availableTypes.length > 0) {
         const idx = Math.floor(Math.random() * availableTypes.length);
         type = availableTypes[idx];
-        const matchHorizontal =
-          c >= 2 &&
-          this.state[r][c - 1]?.type === type &&
-          this.state[r][c - 2]?.type === type;
-        const matchVertical =
-          r >= 2 &&
-          this.state[r - 1][c]?.type === type &&
-          this.state[r - 2][c]?.type === type;
+        let matchHorizontal = false;
+        if (c >= this.minMatchLength - 1) {
+          matchHorizontal = true;
+          for (let k = 1; k < this.minMatchLength; k++) {
+            if (this.state[r][c - k]?.type !== type) {
+              matchHorizontal = false;
+              break;
+            }
+          }
+        }
+        let matchVertical = false;
+        if (r >= this.minMatchLength - 1) {
+          matchVertical = true;
+          for (let k = 1; k < this.minMatchLength; k++) {
+            if (this.state[r - k][c]?.type !== type) {
+              matchVertical = false;
+              break;
+            }
+          }
+        }
         if (!matchHorizontal && !matchVertical) break;
         else availableTypes.splice(idx, 1);
       }
@@ -1189,21 +1325,25 @@ class PuzzleEngine {
         }
 
         group.forEach((o) => o.el.classList.add("orb-matching"));
+
+        // Start combo animation in parallel with orb disappearance
+        // ドロップ消失アニメーション(300ms)と並行してコンボ加算を開始
+        const comboPromise = (group.length === this.rows * this.cols)
+          ? this.animateComboAdd(10)
+          : this.animateComboAdd(addition);
+
         await this.sleep(300);
         if (this._isDestroyed) return;
         group.forEach((o) => {
           o.el.remove();
           this.state[o.r][o.c] = null;
         });
+
+        // Wait for combo animation to finish if it's still running
+        await comboPromise;
+
         await this.sleep(50);
         if (this._isDestroyed) return;
-
-        // --- Special Bonus: Monocolor Full Board ---
-        if (group.length === this.rows * this.cols) {
-          await this.animateComboAdd(10);
-        } else {
-          await this.animateComboAdd(addition);
-        }
       }
 
       // noSkyfall時はオーブを落下させるが新規オーブは生成しない
@@ -1271,15 +1411,19 @@ class PuzzleEngine {
     );
     // Horizontal
     for (let r = 0; r < this.rows; r++) {
-      for (let c = 0; c < this.cols - 2; c++) {
+      for (let c = 0; c <= this.cols - this.minMatchLength; c++) {
         const t = this.state[r][c]?.type;
-        if (
-          t &&
-          this.state[r][c + 1]?.type === t &&
-          this.state[r][c + 2]?.type === t
-        ) {
-          matched[r][c] = matched[r][c + 1] = matched[r][c + 2] = true;
-          let k = c + 3;
+        if (!t) continue;
+        let isMatch = true;
+        for (let k = 1; k < this.minMatchLength; k++) {
+          if (this.state[r][c + k]?.type !== t) {
+            isMatch = false;
+            break;
+          }
+        }
+        if (isMatch) {
+          for (let k = 0; k < this.minMatchLength; k++) matched[r][c + k] = true;
+          let k = c + this.minMatchLength;
           while (k < this.cols && this.state[r][k]?.type === t)
             matched[r][k++] = true;
         }
@@ -1287,15 +1431,19 @@ class PuzzleEngine {
     }
     // Vertical
     for (let c = 0; c < this.cols; c++) {
-      for (let r = 0; r < this.rows - 2; r++) {
+      for (let r = 0; r <= this.rows - this.minMatchLength; r++) {
         const t = this.state[r][c]?.type;
-        if (
-          t &&
-          this.state[r + 1][c]?.type === t &&
-          this.state[r + 2][c]?.type === t
-        ) {
-          matched[r][c] = matched[r + 1][c] = matched[r + 2][c] = true;
-          let k = r + 3;
+        if (!t) continue;
+        let isMatch = true;
+        for (let k = 1; k < this.minMatchLength; k++) {
+          if (this.state[r + k][c]?.type !== t) {
+            isMatch = false;
+            break;
+          }
+        }
+        if (isMatch) {
+          for (let k = 0; k < this.minMatchLength; k++) matched[r + k][c] = true;
+          let k = r + this.minMatchLength;
           while (k < this.rows && this.state[k][c]?.type === t)
             matched[k++][c] = true;
         }
@@ -1390,6 +1538,90 @@ class PuzzleEngine {
     if (len >= 5) return "len5";
 
     return null;
+  }
+
+  spawnRandom(type, count) {
+    const candidates = [];
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        // Exclude cells that are already of the target type
+        // Also check if state exists (it should)
+        if (this.state[r][c]?.type && this.state[r][c].type !== type) {
+          candidates.push({ r, c });
+        }
+      }
+    }
+    // Shuffle
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+    // Select
+    const targets = candidates.slice(0, count);
+    targets.forEach(({ r, c }) => {
+      const orb = this.state[r][c];
+      orb.type = type;
+      // Update DOM directly for performance and visual effect
+      if (orb.el) {
+        orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
+        const inner = orb.el.querySelector('.orb-inner');
+        if (inner) {
+          inner.className = `orb-inner orb-${type} shadow-lg`;
+          // Preserve marking if present (e.g. enhanced)
+          const star = inner.querySelector('.enhanced-mark');
+          inner.innerHTML = '';
+          const iconSpan = document.createElement("span");
+          iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
+          iconSpan.innerText = this.icons[type];
+          inner.appendChild(iconSpan);
+          if (star) inner.appendChild(star);
+        }
+      }
+    });
+  }
+
+  changeBoardBalanced() {
+    const basicTypes = ["fire", "water", "wood", "light", "dark"];
+    let deck = [];
+    basicTypes.forEach(t => {
+      for (let i = 0; i < 6; i++) deck.push(t);
+    });
+
+    // Fill remainder with random types if board is larger than 30
+    const totalSlots = this.rows * this.cols;
+    while (deck.length < totalSlots) {
+      deck.push(basicTypes[Math.floor(Math.random() * basicTypes.length)]);
+    }
+
+    // Shuffle
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+
+    let idx = 0;
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const type = deck[idx++] || "heart"; // Fallback to heart if deck empty (shouldn't happen)
+        const orb = this.state[r][c];
+        orb.type = type;
+
+        if (orb.el) {
+          orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
+          const inner = orb.el.querySelector('.orb-inner');
+          if (inner) {
+            inner.className = `orb-inner orb-${type} shadow-lg`;
+            const star = inner.querySelector('.enhanced-mark');
+            inner.innerHTML = '';
+            const iconSpan = document.createElement("span");
+            iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
+            iconSpan.innerText = this.icons[type];
+            inner.appendChild(iconSpan);
+            if (star) inner.appendChild(star);
+          }
+        }
+      }
+    }
   }
 
   // 重力処理のみ（新規オーブ生成なし）- noSkyfall時に使用
@@ -1513,6 +1745,8 @@ const App = () => {
     }, 0)
   );
 
+  const minMatchLength = tokens.some(t => t?.effect === "min_match") ? 2 : 3;
+
   // --- Skyfall Weight Management ---
   useEffect(() => {
     if (!engineRef.current) return;
@@ -1524,6 +1758,17 @@ const App = () => {
     tokens.forEach((t) => {
       if (t?.effect === "picky_eater" && t.params?.excludeColors) {
         t.params.excludeColors.forEach((c) => { weights[c] = 0; });
+      }
+
+      // エンチャントによる出現率変動
+      if (t?.enchantments) {
+        t.enchantments.forEach(e => {
+          if (e.effect === "skyfall_boost" && e.params?.color) {
+            weights[e.params.color] += 0.5; // 加算 (Boost)
+          } else if (e.effect === "skyfall_nerf" && e.params?.color) {
+            weights[e.params.color] *= 0.5; // 乗算 (Nerf)
+          }
+        });
       }
     });
 
@@ -1554,6 +1799,12 @@ const App = () => {
       if (t?.effect === "time") base += (t.values[(t.level || 1) - 1] * 1000);
       // 呪われた力: 操作時間-2秒
       if (t?.effect === "cursed_power") base -= 2000;
+
+      // --- 追加: エンチャントによる時間変動 ---
+      t?.enchantments?.forEach(enc => {
+        if (enc.effect === "time_ext_enc") base += (enc.value || 1) * 1000;
+        if (enc.effect === "berserk_mode") base -= 1000; // 狂戦士: -1秒
+      });
     });
     // 特殊消しボーナスによる操作時間延長（五星の印・十字の祈り）
     base *= nextTurnTimeMultiplier;
@@ -1572,6 +1823,7 @@ const App = () => {
         rows,
         cols,
         timeLimit: getTimeLimit(),
+        minMatchLength,
         onCombo: () => {
           // No-op for now to avoid re-renders
         },
@@ -1594,6 +1846,7 @@ const App = () => {
   useEffect(() => {
     if (engineRef.current) {
       engineRef.current.timeLimit = getTimeLimit();
+      engineRef.current.minMatchLength = minMatchLength;
 
       // Calculate realtime bonuses from tokens
       const bonuses = { len4: 0, row: 0, l_shape: 0, color_combo: {}, heart_combo: 0, enhancedOrbBonus: 0, overLink: null };
@@ -1654,7 +1907,7 @@ const App = () => {
       });
       engineRef.current.setEnhanceRates(rates);
     }
-  }, [tokens, getTimeLimit]);
+  }, [tokens, getTimeLimit, minMatchLength]);
 
   // --- Init Shop on Start ---
   useEffect(() => {
@@ -1666,7 +1919,7 @@ const App = () => {
   // Debug State
   // const [debugLog, setDebugLog] = useState(null);
 
-  const handleTurnEnd = (turnCombo, colorComboCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1) => {
+  const handleTurnEnd = async (turnCombo, colorComboCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1) => {
     let bonus = 0;
     let multiplier = 1;
     let timeMultiplier = 1; // 次手の操作時間倍率
@@ -1685,10 +1938,116 @@ const App = () => {
     tokens.forEach((t) => {
       if (!t) return;
       const lv = t.level || 1;
+      const enchList = t.enchantments || [];
+
+      // --- 共通処理関数 (トークン効果とエンチャント効果の両方をチェック) ---
+      const checkEffect = (effect, params, val) => {
+        // 1. 先制の心得 (Opener)
+        if (effect === "turn_1_bonus" && turn === 1) {
+          bonus += val || 10;
+          logData.bonuses.push(`opener:+${val || 10}`);
+        }
+        // 2. 土壇場の底力 (Clutch)
+        if (effect === "last_turn_mult" && turn === maxTurns) {
+          multiplier *= val || 1.5;
+          logData.multipliers.push(`clutch:x${val || 1.5}`);
+        }
+        // 3. 虹色の加護 (Rainbow)
+        if (effect === "multi_color" && matchedColorSet.size >= 4) {
+          bonus += val || 3;
+          logData.bonuses.push(`rainbow:+${val || 3}`);
+        }
+        // 4. 一点突破 (Sniper)
+        if (effect === "single_color" && matchedColorSet.size > 0 && matchedColorSet.size <= 2) {
+          multiplier *= val || 1.3;
+          logData.multipliers.push(`sniper:x${val || 1.3}`);
+        }
+        // 5. 形状の達人 (Geometry) -> 削除済み (代わりに個別形状エンチャント)
+        // shapes: ["len4", "cross", "row", "l_shape", "square", ...]
+        const shapeMap = {
+          "shape_match4": "len4",
+          "shape_cross": "cross",
+          "shape_row": "row",
+          "shape_l": "l_shape",
+          "shape_square": "square"
+        };
+        const targetShape = shapeMap[effect];
+        if (targetShape) {
+          const count = shapes.filter(s => s === targetShape).length;
+          if (count > 0) {
+            // 個数分だけ倍率を乗算 (例: 1.2のcount乗)
+            const totalMult = Math.pow(val || 1.0, count);
+            multiplier *= totalMult;
+            logData.multipliers.push(`${effect}:${val}^${count}=x${totalMult.toFixed(2)}`);
+          }
+        }
+        // 6. 運命の悪戯 (Gamble)
+        if (effect === "random_bonus") {
+          const rand = Math.floor(Math.random() * 21) - 5; // -5 to +15
+          bonus += rand;
+          logData.bonuses.push(`gamble:${rand > 0 ? '+' : ''}${rand}`);
+        }
+        // 7. 狂戦士 (Berserk)
+        if (effect === "berserk_mode") {
+          multiplier *= val || 1.5;
+          logData.multipliers.push(`berserk:x${val || 1.5}`);
+        }
+        // 8. 追撃 (Aftershock)
+        if (effect === "skyfall_mult" && hasSkyfallCombo) {
+          multiplier *= val || 1.4;
+          logData.multipliers.push(`aftershock:x${val || 1.4}`);
+        }
+        // 9. 会心の一撃 (Critical) - トークン/エンチャント共通
+        if (effect === "critical_strike") {
+          if (Math.random() < 0.2) { // 20%
+            multiplier *= val;
+            logData.multipliers.push(`CRITICAL!:x${val}`);
+            notify("会心の一撃！"); // 演出
+          }
+        }
+        // 10. 色別連舞 (Color Multiplier Enchantment)
+        if (effect === "color_multiplier_enc") {
+          const color = params?.color;
+          if (color && matchedColorSet.has(color)) {
+            multiplier *= val || 1.2;
+            logData.multipliers.push(`color_enc_${color}:x${val || 1.2}`);
+          }
+        }
+
+        // 11. 形状別極意 (Shape Split Enchantments)
+        // shapes: ["len4", "cross", "row", "l_shape", "square", ...]
+        let shapeType = null;
+        if (effect === "shape_match4") shapeType = "len4";
+        if (effect === "shape_cross") shapeType = "cross";
+        if (effect === "shape_row") shapeType = "row";
+        if (effect === "shape_l") shapeType = "l_shape";
+        if (effect === "shape_square") shapeType = "square";
+
+        if (shapeType) {
+          const count = shapes.filter(s => s === shapeType).length;
+          if (count > 0) {
+            // 個数分だけ倍率を乗算 (例: 1.2の2乗)
+            const totalMult = Math.pow(val || 1.0, count);
+            multiplier *= totalMult;
+            logData.multipliers.push(`${effect}:${val}^${count}=x${totalMult.toFixed(2)}`);
+          }
+        }
+      };
+
+      // トークン自体の効果をチェック
+      if (t.type === 'passive') {
+        // valuesから現在レベルの値を取得
+        const val = t.values ? t.values[lv - 1] : t.value;
+        checkEffect(t.effect, t.params, val);
+      }
+
+      // エンチャントの効果をチェック
+      enchList.forEach(enc => {
+        checkEffect(enc.effect, enc.params, enc.value);
+      });
 
       // Base bonuses
       // エンチャント効果（複数対応）
-      const enchList = t.enchantments || [];
       enchList.forEach(enc => {
         if (enc.effect === "fixed_add") { bonus += 2; logData.bonuses.push("fixed_add"); }
         if (enc.effect === "star_add") { bonus += stars; logData.bonuses.push("star_add"); }
@@ -1715,6 +2074,13 @@ const App = () => {
         const v = t.values?.[lv - 1] || 1;
         multiplier *= v;
         logData.multipliers.push(`combo_ge_${t.params.combo}:${v}`);
+      }
+
+      // --- 追加: Skill Combo Bonus (Active Skill Lv3 Effect) ---
+      if (t.action === "skill_combo_bonus") {
+        const val = t.params?.value || 0;
+        bonus += val;
+        logData.bonuses.push(`skill_lv3_bonus:+${val}`);
       }
 
       // --- 特殊消しボーナス（Shape Bonus） ---
@@ -1811,6 +2177,16 @@ const App = () => {
       }
     });
 
+    // 12. Min Match Multiplier (Dual Match)
+    tokens.forEach((t) => {
+      if (t?.effect === "min_match") {
+        const lv = t.level || 1;
+        const v = t.values?.[lv - 1] || 1;
+        multiplier *= v;
+        logData.multipliers.push(`min_match:${v}`);
+      }
+    });
+
     // 強化ドロップ overLink 倍率を適用
     if (overLinkMultiplier > 1) {
       multiplier *= overLinkMultiplier;
@@ -1878,7 +2254,7 @@ const App = () => {
       }, 2000); // 2秒後に消去開始
     };
 
-    showComboBreakdown();
+    await showComboBreakdown();
 
     let totalReduction = 0;
     tokens.forEach((t) => {
@@ -1914,8 +2290,14 @@ const App = () => {
         const currentCharge = t.charge || 0;
         const maxCharge = t.cost || 0;
         // Increment charge by 1 per turn, up to max cost
-        const newCharge = Math.min(maxCharge, currentCharge + 1);
-        return { ...t, charge: newCharge };
+        // Increment charge by 1 per turn, up to max cost
+
+        // --- 変更: 急速チャージ (Quick Charge) ---
+        const chargeBoostCount = t.enchantments?.filter(e => e.effect === "charge_boost_passive").length || 0;
+        const chargeAmount = 1 + chargeBoostCount;
+
+        const nextCharge = Math.min(maxCharge, currentCharge + chargeAmount);
+        return { ...t, charge: nextCharge };
       });
     });
 
@@ -2277,6 +2659,12 @@ const App = () => {
       case "board_change":
         engine.changeBoardColors(token.params.colors);
         break;
+      case "spawn_random":
+        engine.spawnRandom(token.params.color, token.params.count);
+        break;
+      case "board_balance":
+        engine.changeBoardBalanced();
+        break;
       case "skyfall":
       case "skyfall_limit":
         setActiveBuffs((prev) => [
@@ -2325,6 +2713,26 @@ const App = () => {
         break;
     }
 
+    // --- 追加: Lv3以上なら基礎コンボ値プラス効果 (Next Turn Bonus) ---
+    // アクティブスキルをレベル3にすると基礎コンボ値プラスの効果がつく
+    // 値は「基礎コンボ値プラスはレベル１時点でのエネルギー数分増やす」
+    if ((token.level || 1) >= 3) {
+      const bonusValue = token.cost || 0; // レベル1時点でのエネルギー数 = 基本コスト
+      if (bonusValue > 0) {
+        setActiveBuffs((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1, // ユニークIDずらす
+            action: "skill_combo_bonus",
+            params: { value: bonusValue },
+            duration: 1, // 1ターン (このターン終了時)
+            name: `Lv3ボーナス(+${bonusValue})`
+          },
+        ]);
+        notify(`Lv3ボーナス: コンボ+${bonusValue} (次ターン)`);
+      }
+    }
+
     // Consume Charge
     setTokens(prev => prev.map(t => {
       if (t === token) {
@@ -2340,7 +2748,12 @@ const App = () => {
     const tokenToSell = tokens[tokenIndex];
     if (!tokenToSell) return;
 
-    const sellPrice = Math.floor(tokenToSell.price / 2);
+    // --- 変更: 資産価値 (Investment) ---
+    let sellRate = 0.5;
+    if (tokenToSell.enchantments?.some(e => e.effect === "high_sell")) {
+      sellRate = 3.0; // 300%
+    }
+    const sellPrice = Math.floor(tokenToSell.price * sellRate);
     setStars(s => s + sellPrice);
 
     setTokens(prev => {

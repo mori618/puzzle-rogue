@@ -101,7 +101,7 @@ body {
     opacity 0.3s ease;
   /* top/leftは初期配置用。アニメーションはtranslate3dで行う */
   transform: translate3d(0, 0, 0);
-  overflow: hidden;
+  /* overflow: hidden; Removed to allow badge to protrude */
 }
 
 /* 形状定義（完全丸み対応版：border-radiusのみ使用） */
@@ -133,6 +133,31 @@ body {
 
 /* 雫（逆向き斜め） */
 .orb-shape-heart {
+  border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+}
+
+/* 親の形状に合わせて inner も整形する（overflow: hidden なしの対策） */
+.orb.orb-shape-fire .orb-inner {
+  border-radius: 10% 50% 50% 50%;
+}
+
+.orb.orb-shape-water .orb-inner {
+  border-radius: 50%;
+}
+
+.orb.orb-shape-wood .orb-inner {
+  border-radius: 35%;
+}
+
+.orb.orb-shape-light .orb-inner {
+  border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%;
+}
+
+.orb.orb-shape-dark .orb-inner {
+  border-radius: 50% 50% 50% 10%;
+}
+
+.orb.orb-shape-heart .orb-inner {
   border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
 }
 
