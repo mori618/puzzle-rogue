@@ -2325,24 +2325,54 @@ const App = () => {
     handleTurnEndRef.current = handleTurnEnd;
   });
 
-
+  // Sanitize tokens on mount/update to remove nulls if any exist from legacy state
   useEffect(() => {
-    // エンドレスモードならターン制限によるゲームオーバー/クリア判定をスキップ
-    if (isEndlessMode) return;
-
-    if (turn > maxTurns) {
-      if (goalReached) {
-        handleCycleClear(0);
-      } else {
-        handleGameOver();
-      }
+    if (tokens.some(t => t === null)) {
+      setTokens(prev => prev.filter(t => t !== null));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [turn, goalReached, maxTurns, isEndlessMode]);
+  }, [tokens]);
+
+  // REMOVED: Automatic turn transition watcher
+  /*******************************************************
+   useEffect(() => {
+     // エンドレスモードならターン制限によるゲームオーバー/クリア判定をスキップ
+     if (isEndlessMode) return;
+
+     if (turn > maxTurns) {
+       if (goalReached) {
+         handleCycleClear(0);
+       } else {
+         handleGameOver();
+       }
+     }
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [turn, goalReached, maxTurns, isEndlessMode]);
+  ********************************************************/
+
+  // Also watch for game over state manually handled in render now
+  useEffect(() => {
+    if (isEndlessMode) return;
+    if (turn > maxTurns && !goalReached && !isGameOver) {
+      setIsGameOver(true);
+    }
+  }, [turn, goalReached, maxTurns, isEndlessMode, isGameOver]);
+
+
+  const startNextCycle = () => {
+    setTurn(1);
+    setCycleTotalCombo(0);
+    setTarget((t) => Math.floor(t * 1.5) + 2);
+    setGoalReached(false);
+    setSkippedTurnsBonus(0);
+    setStarProgress(0); // Reset progress if needed or keep it? Keeping it feels better but usually resets per cycle
+    generateShop();
+    setShowShop(false);
+    notify("NEXT CYCLE STARTED!");
+  };
 
   const skipTurns = () => {
     const remainingTurns = maxTurns - turn + 1;
-    if (remainingTurns <= 0) return handleCycleClear();
+    if (remainingTurns <= 0) return; // Do nothing if already over
 
     let bonusMultiplier = 3;
     const skipTokens = tokens.filter(t => t?.id === 'skip_master');
@@ -2353,21 +2383,16 @@ const App = () => {
     const bonus = remainingTurns * bonusMultiplier;
     setStars((s) => s + bonus);
     notify(`SKIP BONUS: +${bonus} STARS!`);
+    setSkippedTurnsBonus(prev => prev + remainingTurns);
 
-    handleCycleClear(remainingTurns);
+    // Force turn to end state to trigger Clear Overlay
+    setTurn(maxTurns + 1);
   };
 
-  const handleCycleClear = (skippedTurns = 0) => {
-    notify("CYCLE CLEAR!");
-    setSkippedTurnsBonus(prev => prev + skippedTurns);
-    setTimeout(() => {
-      setTurn(1);
-      setCycleTotalCombo(0);
-      setTarget((t) => Math.floor(t * 1.5) + 2);
-      setGoalReached(false);
-      generateShop();
-      setShowShop(true);
-    }, 1000);
+  // Deprecated/Simplified: No longer takes params regarding turns, just opens shop if needed, but we do this in overlay now.
+  const handleCycleClear = () => {
+    // No-op or notification only, state is handled by startNextCycle
+    notify("CYCLE CLEARED!");
   };
 
   const handleGameOver = () => {
@@ -2379,7 +2404,7 @@ const App = () => {
     setTarget(8);
     setTurn(1);
     setCycleTotalCombo(0);
-    setTokens(Array(6).fill(null));
+    setTokens([]);
     /* setEnergy(0); // REMOVED */
     setActiveBuffs([]);
     setSkippedTurnsBonus(0);
@@ -2397,6 +2422,7 @@ const App = () => {
     }
     notify("NEW GAME STARTED!");
   };
+
 
   const handleEndlessMode = () => {
     setIsGameOver(false);
@@ -2491,12 +2517,15 @@ const App = () => {
     if (stars < item.price) return notify("★が足りません");
 
     if (item.type === "upgrade_random") {
-      const existingTokens = tokens.filter(t => t !== null);
-      if (existingTokens.length === 0) return notify("強化可能なトークンがありません");
+      // Filter only tokens that are not max level (Max Lv 3)
+      const upgradeableTokens = tokens.filter(t => (t.level || 1) < 3);
 
-      // Randomly select one
-      const targetToken = existingTokens[Math.floor(Math.random() * existingTokens.length)];
-      const targetIdx = tokens.indexOf(targetToken);
+      if (upgradeableTokens.length === 0) return notify("強化可能なトークンがありません (Max Lv3)");
+
+      // Randomly select one from upgradeable tokens
+      const targetToken = upgradeableTokens[Math.floor(Math.random() * upgradeableTokens.length)];
+      // Find index in original array to update
+      const targetIdx = tokens.findIndex(t => t.instanceId === targetToken.instanceId);
 
       setTokens((prev) => {
         const next = [...prev];
@@ -2504,6 +2533,7 @@ const App = () => {
         next[targetIdx] = {
           ...next[targetIdx],
           level: nextLevel,
+          desc: getTokenDescription(next[targetIdx], nextLevel)
         };
         return next;
       });
@@ -2512,13 +2542,12 @@ const App = () => {
       setTotalPurchases((p) => p + 1);
       setTotalStarsSpent((prev) => prev + item.price);
       setShopItems((prev) => prev.filter((i) => i !== item));
-      notify(`${targetToken.name} が強化されました!`);
+      notify(`${targetToken.name} が強化されました! (Lv${(targetToken.level || 1) + 1})`);
 
     } else if (item.type === "enchant_random") {
-      const existingTokens = tokens.filter(t => t !== null);
-      if (existingTokens.length === 0) return notify("付与可能なトークンがありません");
+      if (tokens.length === 0) return notify("付与可能なトークンがありません");
 
-      const targetToken = existingTokens[Math.floor(Math.random() * existingTokens.length)];
+      const targetToken = tokens[Math.floor(Math.random() * tokens.length)];
       const targetIdx = tokens.indexOf(targetToken);
 
       setTokens((prev) => {
@@ -2537,8 +2566,15 @@ const App = () => {
       notify(`${targetToken.name} に「${item.originalName}」を付与!`);
 
     } else if (item.type === "enchant_grant") {
-      const targetIdx = tokens.findIndex((t) => t != null);
-      if (targetIdx === -1) return notify("付与可能なトークンがありません");
+      if (tokens.length === 0) return notify("付与可能なトークンがありません");
+      // For now grant to the first one or random? Let's say random for simplicity or last bought?
+      // Since UI doesn't allow selection easily here, random is consistent with above.
+      // Or maybe we should grant to all? No.
+      // Let's grant to a random one for now as per previous logic which grabbed index 0 basically if not empty?
+      // Old logic: tokens.findIndex(t => t != null). Guaranteed to find one if tokens.length > 0.
+
+      const targetIdx = Math.floor(Math.random() * tokens.length); // Randomize
+
       setTokens((prev) => {
         const next = [...prev];
         next[targetIdx] = {
@@ -2553,17 +2589,26 @@ const App = () => {
       setShopItems((prev) => prev.filter((i) => i !== item));
       notify("購入完了!");
     } else {
+      // Normal Token Purchase
+      const isActive = item.type === 'skill';
+      const activeCount = tokens.filter(t => t.type === 'skill').length;
+      const passiveCount = tokens.filter(t => t.type !== 'skill').length;
+
+      if (isActive && activeCount >= 5) return notify("アクティブスキルは5個までです");
+      if (!isActive && passiveCount >= 5) return notify("パッシブアイテムは5個までです");
+
       const existingIdx = tokens.findIndex((t) => t?.id === item.id);
       if (existingIdx !== -1) {
+        // Double check if max level
+        if ((tokens[existingIdx].level || 1) >= 3) {
+          return notify("これ以上強化できません (Max Lv3)");
+        }
         setPendingShopItem(item);
       } else {
-        const emptyIdx = tokens.indexOf(null);
-        if (emptyIdx === -1) return notify("スロットがいっぱいです");
-        setTokens((prev) => {
-          const next = [...prev];
-          next[emptyIdx] = item;
-          return next;
-        });
+        setTokens((prev) => [
+          ...prev,
+          { ...item, instanceId: Date.now() + Math.random() } // Add unique instance ID
+        ]);
         setStars((s) => s - item.price);
         setTotalPurchases((p) => p + 1);
         setTotalStarsSpent((prev) => prev + item.price);
@@ -2582,18 +2627,29 @@ const App = () => {
         const next = [...prev];
         const idx = next.findIndex((t) => t?.id === item.id);
         if (idx !== -1) {
-          const nextLevel = (next[idx].level || 1) + 1;
+          const currentLevel = next[idx].level || 1;
+          if (currentLevel >= 3) {
+            // Should verify in UI but safe check here
+            return next;
+          }
+          const nextLevel = currentLevel + 1;
           next[idx] = {
             ...next[idx],
             level: nextLevel,
+            desc: getTokenDescription(next[idx], nextLevel)
           };
         }
         return next;
       });
       notify(`${item.name} を強化しました!`);
     } else {
-      const emptyIdx = tokens.indexOf(null);
-      if (emptyIdx === -1) {
+
+      // "Equip Second" logic - check limits again
+      const isActive = item.type === 'skill';
+      const activeCount = tokens.filter(t => t.type === 'skill').length;
+      const passiveCount = tokens.filter(t => t.type !== 'skill').length;
+
+      if ((isActive && activeCount >= 5) || (!isActive && passiveCount >= 5)) {
         notify("スロットがいっぱいです。代わりに強化します。");
         setTokens((prev) => {
           const next = [...prev];
@@ -2609,11 +2665,10 @@ const App = () => {
           return next;
         });
       } else {
-        setTokens((prev) => {
-          const next = [...prev];
-          next[emptyIdx] = item;
-          return next;
-        });
+        setTokens((prev) => [
+          ...prev,
+          { ...item, instanceId: Date.now() + Math.random() }
+        ]);
         notify("2つ目のトークンを装備しました。");
       }
     }
@@ -2744,26 +2799,21 @@ const App = () => {
     notify(`${token.name} 発動!`);
   };
 
-  const sellToken = (tokenIndex) => {
-    const tokenToSell = tokens[tokenIndex];
-    if (!tokenToSell) return;
+  const sellToken = (token) => {
+    if (!token) return;
 
     // --- 変更: 資産価値 (Investment) ---
     let sellRate = 0.5;
-    if (tokenToSell.enchantments?.some(e => e.effect === "high_sell")) {
+    if (token.enchantments?.some(e => e.effect === "high_sell")) {
       sellRate = 3.0; // 300%
     }
-    const sellPrice = Math.floor(tokenToSell.price * sellRate);
+    const sellPrice = Math.floor(token.price * sellRate);
     setStars(s => s + sellPrice);
 
-    setTokens(prev => {
-      const next = [...prev];
-      next[tokenIndex] = null;
-      return next;
-    });
+    setTokens(prev => prev.filter(t => t.instanceId !== token.instanceId));
 
     setSelectedTokenDetail(null);
-    notify(`${tokenToSell.name} を売却しました (+${sellPrice} ★)`);
+    notify(`${token.name} を売却しました (+${sellPrice} ★)`);
   };
 
   const openShop = () => {
@@ -2843,62 +2893,97 @@ const App = () => {
           </div>
         </section>
 
+
+
+
         {/* Token/Skill Belt */}
-        <section className="relative z-30 pl-6 py-2 flex-none mb-4">
-          <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-2 tracking-wider">Active Tokens</h3>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pr-6 pb-2 min-h-[80px]">
-            {tokens.map((t, idx) => {
-              // Calculate charge status
-              const isSkill = t?.type === 'skill';
-              const charge = t?.charge || 0;
-              const cost = getEffectiveCost(t);
-              const progress = isSkill ? Math.min(100, (charge / cost) * 100) : 100;
-              const isReady = isSkill && charge >= cost;
+        <section className="relative z-30 px-6 py-2 flex-none mb-4 flex flex-col gap-2">
+          {/* Passive Tokens Row */}
+          <div>
+            <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider flex justify-between">
+              <span>Passive Artifacts</span>
+              <span className="text-[9px]">{tokens.filter(t => t && t.type !== 'skill').length}/5</span>
+            </h3>
+            <div className="grid grid-cols-5 gap-2">
+              {Array.from({ length: 5 }).map((_, i) => {
+                const passiveTokens = tokens.filter(t => t && t.type !== 'skill');
+                const t = passiveTokens[i];
+                return (
+                  <div
+                    key={`passive-${i}`}
+                    onClick={() => t && setSelectedTokenDetail({ token: t })}
+                    className={`aspect-square rounded-xl flex items-center justify-center relative border transition-all 
+                      ${t ? 'bg-slate-800 border-white/10 cursor-pointer hover:bg-white/5' : 'bg-slate-900/30 border-white/5 border-dashed'}
+                    `}
+                  >
+                    {t && (
+                      <>
+                        <span className="material-icons-round text-2xl text-slate-400 relative z-10">
+                          auto_awesome
+                        </span>
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
+                          {t.level || 1}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-              return (
-                <div
-                  key={idx}
-                  onClick={() => t && setSelectedTokenDetail({ token: t, index: idx })}
-                  className={`flex-none w-16 h-16 rounded-xl flex items-center justify-center relative border transition-all 
-                  ${t ? (isReady || !isSkill ? 'bg-slate-800 border-primary/50 cursor-pointer shadow-[0_0_10px_rgba(91,19,236,0.2)] group hover:scale-105' : 'bg-slate-900 border-white/5 opacity-80 cursor-not-allowed') : 'bg-slate-900/50 border-white/5 border-dashed'}
-                `}
-                >
-                  {t ? (
-                    <>
-                      <div className="absolute inset-0 bg-primary/10 rounded-xl overflow-hidden">
-                        {/* Charge Progress Bar Background for Skills */}
-                        {isSkill && (
-                          <div
-                            className="absolute bottom-0 left-0 right-0 bg-primary/20 transition-all duration-500"
-                            style={{ height: `${progress}%` }}
-                          ></div>
-                        )}
-                      </div>
+          {/* Active Tokens Row */}
+          <div>
+            <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider flex justify-between">
+              <span>Active Spells</span>
+              <span className="text-[9px]">{tokens.filter(t => t && t.type === 'skill').length}/5</span>
+            </h3>
+            <div className="grid grid-cols-5 gap-2">
+              {Array.from({ length: 5 }).map((_, i) => {
+                const activeTokens = tokens.filter(t => t && t.type === 'skill');
+                const t = activeTokens[i];
+                // Calculate charge status
+                const isSkill = t?.type === 'skill';
+                const charge = t?.charge || 0;
+                const cost = getEffectiveCost(t);
+                const progress = isSkill ? Math.min(100, (charge / cost) * 100) : 100;
+                const isReady = isSkill && charge >= cost;
 
-                      <span className={`material-icons-round text-3xl drop-shadow-md relative z-10 ${isReady || !isSkill ? 'text-primary' : 'text-slate-500'}`}>
-                        {isSkill ? 'sports_martial_arts' : 'auto_awesome'}
-                      </span>
-
-                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-background-dark z-20">
-                        {t.level || 1}
-                      </div>
-                      {t.cost > 0 && (
-                        <div className="absolute top-0.5 right-1 z-20 flex flex-col items-end">
-                          <span className="text-[8px] text-slate-400 font-mono">{t.cost}E</span>
+                return (
+                  <div
+                    key={`active-${i}`}
+                    onClick={() => t && setSelectedTokenDetail({ token: t })}
+                    className={`aspect-square rounded-xl flex items-center justify-center relative border transition-all 
+                      ${t ? (isReady ? 'bg-slate-800 border-primary/50 cursor-pointer shadow-[0_0_10px_rgba(91,19,236,0.2)] group hover:scale-105' : 'bg-slate-900 border-white/5 opacity-80 cursor-pointer') : 'bg-slate-900/30 border-white/5 border-dashed'}
+                    `}
+                  >
+                    {t && (
+                      <>
+                        <div className="absolute inset-0 bg-primary/10 rounded-xl overflow-hidden">
                           {isSkill && (
-                            <span className={`text-[8px] font-bold ${isReady ? 'text-green-400' : 'text-orange-400'}`}>
-                              {charge}/{cost}
-                            </span>
+                            <div
+                              className="absolute bottom-0 left-0 right-0 bg-primary/20 transition-all duration-500"
+                              style={{ height: `${progress}%` }}
+                            ></div>
                           )}
                         </div>
-                      )}
-                    </>
-                  ) : (
-                    <span className="material-icons-round text-slate-700">lock_open</span>
-                  )}
-                </div>
-              )
-            })}
+                        <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${isReady ? 'text-primary' : 'text-slate-500'}`}>
+                          sports_martial_arts
+                        </span>
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
+                          {t.level || 1}
+                        </div>
+                        {t.cost > 0 && (
+                          <div className="absolute top-0.5 right-1 z-20 flex flex-col items-end">
+                            <span className="text-[7px] text-slate-400 font-mono">{t.cost}E</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
 
@@ -2944,13 +3029,66 @@ const App = () => {
 
             {/* Timer Bar はトークンベルトの下に移動済み */}
 
-            {/* The 6x5 Grid Container */}
-            <div
-              ref={boardRef}
-              className="w-full relative"
-              style={{ touchAction: "none", aspectRatio: `${cols} / ${rows}` }}
-            >
-              {/* PuzzleEngine renders orbs here */}
+            {/* The 6x5 Grid Container with Overlays */}
+            <div className="w-full relative" style={{ aspectRatio: `${cols} / ${rows}` }}>
+
+              {/* Layer 1: Puzzle Board (Always rendered behind) */}
+              <div
+                ref={boardRef}
+                className="w-full h-full absolute inset-0 z-0"
+                style={{ touchAction: "none" }}
+              >
+                {/* PuzzleEngine renders orbs here */}
+              </div>
+
+              {/* Layer 2: Cycle Clear Overlay */}
+              {turn > maxTurns && goalReached && !isGameOver && (
+                <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in px-8 text-center">
+                  <h2 className="text-4xl text-yellow-400 font-black mb-2 tracking-widest font-display italic drop-shadow-glow w-full">CLEARED!</h2>
+                  <p className="text-slate-300 text-sm mb-8 font-bold leading-relaxed">
+                    目標達成！<br />装備を整えて次のサイクルへ挑もう
+                  </p>
+
+                  <div className="flex flex-col gap-4 w-full">
+                    <button
+                      onClick={() => setShowShop(true)}
+                      className="group bg-slate-800 text-white py-4 rounded-2xl font-bold border border-white/10 hover:bg-slate-700 transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center group-hover:bg-slate-600 transition-colors">
+                        <span className="material-icons-round text-yellow-400 text-lg">storefront</span>
+                      </div>
+                      <span>ショップで強化</span>
+                    </button>
+                    <button
+                      onClick={startNextCycle}
+                      className="bg-gradient-to-r from-primary to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full animate-pulse-slow"
+                    >
+                      <span>次のエリアへ</span>
+                      <span className="material-icons-round">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Layer 3: Game Over Overlay */}
+              {isGameOver && (
+                <div className="absolute inset-0 z-30 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in px-8 text-center">
+                  <span className="material-icons-round text-7xl text-red-500 mb-4 animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">broken_image</span>
+                  <h2 className="text-4xl font-black font-display text-white mb-2 tracking-tighter">GAME OVER</h2>
+                  <p className="text-slate-400 mb-8 text-sm font-medium">目標未達成...<br />リトライして再挑戦しよう</p>
+
+                  <div className="flex flex-col gap-3 w-full">
+                    <button onClick={handleEndlessMode} className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-2xl font-bold text-sm shadow-lg hover:shadow-purple-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 w-full">
+                      <span className="material-icons-round">all_inclusive</span>
+                      エンドレスモードで継続
+                    </button>
+                    <button onClick={handleGiveUp} className="bg-slate-800 text-slate-300 py-4 rounded-2xl font-bold text-sm active:scale-95 hover:bg-slate-700 transition-colors w-full border border-white/5">
+                      リトライ
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
 
             {/* Touch Guide hint */}
@@ -3089,27 +3227,6 @@ const App = () => {
             </div>
           );
         })()}
-
-        {/* Game Over / Retry Modal */}
-        {isGameOver && (
-          <div className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-md flex items-center justify-center p-6">
-            <div className="bg-slate-900 w-full max-w-sm rounded-3xl p-8 border border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.2)] text-center animate-bounce-in">
-              <span className="material-icons-round text-6xl text-red-500 mb-4 animate-pulse">broken_image</span>
-              <h2 className="text-3xl font-black font-display text-white mb-2 tracking-tighter">GAME OVER</h2>
-              <p className="text-slate-400 mb-8">目標未達成... まだ諦めない？</p>
-
-              <div className="flex flex-col gap-3">
-                <button onClick={handleEndlessMode} className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-purple-500/25 active:scale-95 transition-all flex items-center justify-center gap-2">
-                  <span className="material-icons-round">all_inclusive</span>
-                  エンドレスモード
-                </button>
-                <button onClick={handleGiveUp} className="bg-slate-800 text-slate-400 py-4 rounded-xl font-bold active:scale-95 hover:bg-slate-700 transition-colors">
-                  リトライ
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
       </div>
 

@@ -170,20 +170,24 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached }) =>
                     {/* Refresh Button */}
                     <button
                         onClick={onRefresh}
-                        className="h-full aspect-square flex flex-col items-center justify-center bg-surface-dark hover:bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-colors active:scale-95"
+                        className="h-full aspect-square flex flex-col items-center justify-center bg-surface-dark hover:bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-colors active:scale-95 group relative"
                     >
-                        <span className="material-icons-round text-xl mb-1">refresh</span>
-                        <span className="text-[10px] font-bold flex items-center">
-                            3 <span className="material-icons-round text-gold text-[8px] ml-0.5">star</span>
-                        </span>
+                        <span className="material-icons-round text-xl mb-0.5 group-hover:rotate-180 transition-transform duration-500">sync</span>
+                        <div className="flex flex-col items-center leading-none">
+                            <span className="text-[10px] font-bold mb-0.5">refresh</span>
+                            <span className="flex items-center bg-slate-800/80 px-1.5 rounded-full border border-white/5">
+                                <span className="text-[10px] font-mono">3</span>
+                                <span className="material-icons-round text-gold text-[8px] ml-0.5">star</span>
+                            </span>
+                        </div>
                     </button>
-                    {/* Next Cycle Button */}
+                    {/* Close Button */}
                     <button
                         onClick={onClose}
-                        className="h-full flex-1 bg-primary hover:bg-primary-hover active:scale-[0.98] transition-all rounded-xl shadow-glow flex items-center justify-center space-x-2 text-white relative overflow-hidden group"
+                        className="h-full flex-1 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-500 active:scale-[0.98] transition-all rounded-xl shadow-glow flex items-center justify-center space-x-2 text-white relative overflow-hidden group"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
-                        <span className="text-lg font-bold tracking-wide">{goalReached ? "Enter Next Cycle" : "Return"}</span>
+                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+                        <span className="text-lg font-bold tracking-wide relative z-10">Return</span>
                         <span className="material-icons-round group-hover:translate-x-1 transition-transform">arrow_forward</span>
                     </button>
                 </div>
