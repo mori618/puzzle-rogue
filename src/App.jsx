@@ -1829,6 +1829,7 @@ const App = () => {
   const comboRef = useRef(null);
   const engineRef = useRef(null);
   const handleTurnEndRef = useRef(null);
+  const skipTurnProgressRef = useRef(false);
 
   // Derived
   const hasGiantDomain = tokens.some((t) => t?.id === "giant" || t?.enchantments?.some(e => e.effect === "expand_board"));
@@ -2327,7 +2328,8 @@ const App = () => {
     logData.finalBonus = bonus;
     // setDebugLog(logData);
 
-    const effectiveCombo = Math.floor((turnCombo + bonus) * multiplier) || 0;
+    // turnCombo（盤面でのマッチ数）が0なら強制的に最終0コンボにする
+    const effectiveCombo = (turnCombo > 0) ? Math.floor((turnCombo + bonus) * multiplier) : 0;
 
     // --- effectiveCombo の段階的演出 ---
     // comboRefを使って、ボーナス加算・倍率適用を盤面上に表示
@@ -2336,7 +2338,7 @@ const App = () => {
       if (!el) return;
 
       // ステップ1: 素コンボ → ボーナス加算表示
-      if (bonus > 0) {
+      if (turnCombo > 0 && bonus > 0) {
         await new Promise(r => setTimeout(r, 400));
         el.innerHTML = `<span class="combo-number">${turnCombo}</span><span class="combo-bonus-add">+${bonus}</span>`;
         el.classList.remove('animate-combo-pop');
@@ -2345,7 +2347,7 @@ const App = () => {
       }
 
       // ステップ2: 倍率表示
-      if (multiplier > 1) {
+      if (turnCombo > 0 && multiplier > 1) {
         await new Promise(r => setTimeout(r, 500));
         const baseVal = turnCombo + bonus;
         const roundedMultiplier = Math.round(multiplier * 100) / 100;
@@ -2356,9 +2358,16 @@ const App = () => {
       }
 
       // ステップ3: 最終値をパルス演出で表示
-      if (bonus > 0 || multiplier > 1) {
+      if (turnCombo > 0 && (bonus > 0 || multiplier > 1)) {
         await new Promise(r => setTimeout(r, 600));
         el.innerHTML = `<span class="combo-number combo-number-final">${effectiveCombo}</span><span class="combo-label">COMBO</span>`;
+        el.classList.remove('animate-combo-pop');
+        el.classList.add('animate-combo-pulse');
+        void el.offsetWidth;
+      } else if (turnCombo === 0 && effectiveCombo === 0) {
+        // 0コンボ時の表示
+        await new Promise(r => setTimeout(r, 400));
+        el.innerHTML = `<span class="combo-number combo-number-final">0</span><span class="combo-label">COMBO</span>`;
         el.classList.remove('animate-combo-pop');
         el.classList.add('animate-combo-pulse');
         void el.offsetWidth;
@@ -2439,11 +2448,13 @@ const App = () => {
       });
     });
 
-    setActiveBuffs((prev) =>
-      prev
-        .map((b) => ({ ...b, duration: b.duration - 1 }))
-        .filter((b) => b.duration > 0),
-    );
+    if (!skipTurnProgressRef.current) {
+      setActiveBuffs((prev) =>
+        prev
+          .map((b) => ({ ...b, duration: b.duration - 1 }))
+          .filter((b) => b.duration > 0),
+      );
+    }
 
     if (newCycleTotalCombo >= target) {
       if (!goalReached) {
@@ -2452,13 +2463,17 @@ const App = () => {
       setGoalReached(true);
     }
 
-    setTurn((prev) => prev + 1);
+    if (!skipTurnProgressRef.current) {
+      setTurn((prev) => prev + 1);
+    }
 
     // Reset or persist noSkyfall based on passive tokens
     if (engineRef.current) {
       const hasForbiddenLiteral = tokens.some((t) => t?.id === "forbidden");
       engineRef.current.noSkyfall = hasForbiddenLiteral;
     }
+
+    skipTurnProgressRef.current = false;
   };
 
   // Keep handleTurnEndRef current
@@ -2875,6 +2890,7 @@ const App = () => {
         engine.init();
         break;
       case "force_refresh":
+        skipTurnProgressRef.current = true;
         engine.forceRefresh();
         break;
       case "convert":
