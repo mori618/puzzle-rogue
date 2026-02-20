@@ -75,12 +75,40 @@ const ALL_TOKEN_BASES = [
   { id: "sky_d1", name: "常闇の目覚め", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["dark"], weight: 5, duration: 3 }, price: 3, desc: "3手番、闇がかなり落ちやすくなる。消費E:{cost}" },
   { id: "sky_h1", name: "癒しの目覚め", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["heart"], weight: 5, duration: 3 }, price: 3, desc: "3手番、回復がかなり落ちやすくなる。消費E:{cost}" },
 
-  { id: "sky_w2", name: "双流の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["water", "wood"], weight: 3, duration: 2 }, price: 3, desc: "2手番、水と木が落ちやすくなる。消費E:{cost}" },
+  // --- 2-Color Skyfall Boost (波紋) ---
+  // パターン: 2色陣の組み合わせから7種
+  { id: "sky_fw_2", name: "双龍の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire", "water"], weight: 3, duration: 2 }, price: 3, desc: "2手番、火と水が落ちやすくなる。消費E:{cost}" },
+  { id: "sky_ld_2", name: "明暗の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["light", "dark"], weight: 3, duration: 2 }, price: 3, desc: "2手番、光と闇が落ちやすくなる。消費E:{cost}" },
+  { id: "sky_wh_2", name: "風癒の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["wood", "heart"], weight: 3, duration: 2 }, price: 3, desc: "2手番、木と回復が落ちやすくなる。消費E:{cost}" },
   { id: "sky_fl_2", name: "炎光の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire", "light"], weight: 3, duration: 2 }, price: 3, desc: "2手番、火と光が落ちやすくなる。消費E:{cost}" },
-  { id: "sky_fd_2", name: "炎闇の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire", "dark"], weight: 3, duration: 2 }, price: 3, desc: "2手番、火と闇が落ちやすくなる。消費E:{cost}" },
   { id: "sky_wd_2", name: "水闇の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["water", "dark"], weight: 3, duration: 2 }, price: 3, desc: "2手番、水と闇が落ちやすくなる。消費E:{cost}" },
   { id: "sky_gl_2", name: "木光の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["wood", "light"], weight: 3, duration: 2 }, price: 3, desc: "2手番、木と光が落ちやすくなる。消費E:{cost}" },
-  { id: "sky_ld_2", name: "明暗の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["light", "dark"], weight: 3, duration: 2 }, price: 3, desc: "2手番、光と闇が落ちやすくなる。消費E:{cost}" },
+  { id: "sky_fg_2", name: "業火の波紋", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire", "wood"], weight: 3, duration: 2 }, price: 3, desc: "2手番、火と木が落ちやすくなる。消費E:{cost}" },
+
+  // --- 1-Color Skyfall Stop (静寂) ---
+  { id: "sky_f_stop", name: "紅蓮の静寂", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire"], weight: 0, duration: 3 }, price: 3, desc: "3手番、火が落ちてこなくなる。消費E:{cost}" },
+  { id: "sky_w_stop", name: "蒼海の静寂", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["water"], weight: 0, duration: 3 }, price: 3, desc: "3手番、水が落ちてこなくなる。消費E:{cost}" },
+  { id: "sky_g_stop", name: "深翠の静寂", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["wood"], weight: 0, duration: 3 }, price: 3, desc: "3手番、木が落ちてこなくなる。消費E:{cost}" },
+  { id: "sky_l_stop", name: "閃光の静寂", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["light"], weight: 0, duration: 3 }, price: 3, desc: "3手番、光が落ちてこなくなる。消費E:{cost}" },
+  { id: "sky_d_stop", name: "常闇の静寂", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["dark"], weight: 0, duration: 3 }, price: 3, desc: "3手番、闇が落ちてこなくなる。消費E:{cost}" },
+  { id: "sky_h_stop", name: "癒しの静寂", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["heart"], weight: 0, duration: 3 }, price: 3, desc: "3手番、回復が落ちてこなくなる。消費E:{cost}" },
+
+  // --- 2-Color Skyfall Stop (凪) ---
+  // パターン: 3色陣の余り3色から2色をピックアップした7種
+  // 1: 紅蓮(火/水/木)の余り(光/闇/回) → 光/闇
+  { id: "sky_ld_stop", name: "明暗の凪", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["light", "dark"], weight: 0, duration: 2 }, price: 3, desc: "2手番、光と闇が落ちてこなくなる。消費E:{cost}" },
+  // 2: 天地(光/闇/回)の余り(火/水/木) → 火/水
+  { id: "sky_fw_stop", name: "双流の凪", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire", "water"], weight: 0, duration: 2 }, price: 3, desc: "2手番、火と水が落ちてこなくなる。消費E:{cost}" },
+  // 3: 黄昏(火/水/闇)の余り(木/光/回) → 木/光
+  { id: "sky_gl_stop", name: "木光の凪", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["wood", "light"], weight: 0, duration: 2 }, price: 3, desc: "2手番、木と光が落ちてこなくなる。消費E:{cost}" },
+  // 4: 神緑(光/木/回)の余り(火/水/闇) → 火/闇
+  { id: "sky_fd_stop", name: "炎闇の凪", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire", "dark"], weight: 0, duration: 2 }, price: 3, desc: "2手番、火と闇が落ちてこなくなる。消費E:{cost}" },
+  // 5: 炎光(火/光/闇)の余り(水/木/回) → 水/木
+  { id: "sky_wg_stop", name: "樹氷の凪", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["water", "wood"], weight: 0, duration: 2 }, price: 3, desc: "2手番、水と木が落ちてこなくなる。消費E:{cost}" },
+  // 6: 水光(水/光/闇)の余り(火/木/回) → 火/木
+  { id: "sky_fg_stop", name: "業火の凪", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire", "wood"], weight: 0, duration: 2 }, price: 3, desc: "2手番、火と木が落ちてこなくなる。消費E:{cost}" },
+  // 7: 炎木(火/木/光)の余り(水/闇/回) → 水/闇
+  { id: "sky_wd_stop", name: "水闇の凪", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["water", "dark"], weight: 0, duration: 2 }, price: 3, desc: "2手番、水と闇が落ちてこなくなる。消費E:{cost}" },
 
   { id: "sky_limit", name: "三色の結界", type: "skill", cost: 4, costLevels: true, action: "skyfall_limit", params: { colors: ["fire", "water", "wood"], duration: 3 }, price: 4, desc: "3手番、火/水/木しか落ちてこなくなる。消費E:{cost}" },
   { id: "sky_limit_ldh", name: "三界の結界", type: "skill", cost: 4, costLevels: true, action: "skyfall_limit", params: { colors: ["light", "dark", "heart"], duration: 3 }, price: 4, desc: "3手番、光/闇/回復しか落ちてこなくなる。消費E:{cost}" },
@@ -141,187 +169,220 @@ const ALL_TOKEN_BASES = [
     type: "skill",
     cost: 3,
     action: "charge_boost",
-    values: [1, 2, 3],
-    price: 2,
-    desc: "他のスキルのエネルギーを1/2/3チャージ。消費E:3",
+    values: [2, 3, 5],
+    price: 3,
+    desc: "他のスキルのエネルギーを2/3/5チャージ。消費E:3",
   },
   {
     id: "collector",
     name: "黄金の収集者",
     type: "passive",
     effect: "star_gain",
-    values: [4, 3, 1],
-    price: 3,
-    desc: "★獲得に必要なコンボ数を4/3/1に短縮。",
+    values: [4, 2, 1],
+    price: 5,
+    desc: "★獲得に必要なコンボ数を4/2/1に短縮。",
   },
   {
     id: "time_ext",
     name: "時の砂",
     type: "passive",
     effect: "time",
-    values: [1, 2, 3],
-    price: 2,
-    desc: "操作時間を1/2/3秒延長。",
+    values: [2, 3, 5],
+    price: 4,
+    desc: "操作時間を2/3/5秒延長。",
   },
   {
     id: "power_up",
     name: "力の鼓動",
     type: "passive",
     effect: "base_add",
-    values: [1, 2, 3],
-    price: 2,
-    desc: "コンボ加算に1/2/3の固定値を追加。",
+    values: [2, 3, 5],
+    price: 4,
+    desc: "コンボ加算に2/3/5の固定値を追加。",
   },
   {
     id: "forbidden",
     name: "禁忌の儀式",
     type: "passive",
     effect: "forbidden",
-    values: [1.5, 2, 3],
-    price: 5,
-    desc: "常時落ちコン停止。コンボ加算1.5/2/3倍。",
+    values: [2, 3, 5],
+    price: 7,
+    desc: "常時落ちコン停止。コンボ加算2/3/5倍。",
   },
   {
     id: "bargain",
     name: "商談の極意",
     type: "passive",
     effect: "sale_boost",
-    values: [2, 3, 4],
-    price: 4,
-    desc: "ショップに並ぶセール品（半額）の数を2/3/4個に増加させる。",
+    values: [2, 4, 6],
+    price: 6,
+    desc: "ショップに並ぶセール品（半額）の数を2/4/6個に増加させる。",
+  },
+  {
+    id: "enchant_boost",
+    name: "魔道の極意",
+    type: "passive",
+    effect: "enchant_grant_boost",
+    values: [1, 2, 3],
+    price: 8,
+    desc: "ショップに並ぶエンチャントの数を1/2/3個増加させる。",
+  },
+  {
+    id: "shop_expand",
+    name: "陳列の極意",
+    type: "passive",
+    effect: "shop_expand",
+    values: [1, 2, 3],
+    price: 8,
+    desc: "ショップに並ぶ通常商品の枠を1/2/3枠拡張する。",
   },
   {
     id: "skip_master",
     name: "時短の心得",
     type: "passive",
     effect: "skip_bonus_multiplier",
-    values: [4, 5, 6],
-    price: 4,
-    desc: "目標達成後のスキップボーナスを4/5/6倍にする。",
+    values: [6, 8, 10],
+    price: 6,
+    desc: "目標達成後のスキップボーナスを6/8/10倍にする。",
   },
   {
     id: "dual_match",
     name: "双連の極意",
     type: "passive",
     effect: "min_match",
-    values: [0.5, 0.8, 1.0],
-    price: 10,
-    desc: "2つ以上でドロップが消える。コンボ倍率x[0.5/0.8/1.0]。",
+    values: [0.8, 1.2, 1.5],
+    price: 15,
+    desc: "2つ以上でドロップが消える。コンボ倍率x[0.8/1.2/1.5]。",
   },
 
   // --- Passive: Combo Multiplier (Color) ---
   {
     id: "bonus_1c_fire", name: "炎の連舞", type: "passive", effect: "color_multiplier",
-    params: { colors: ["fire"] }, values: [1.3, 1.5, 2], price: 4,
-    desc: "火を消しているとコンボ数x[1.3/1.5/2]倍。",
+    params: { colors: ["fire"] }, values: [1.5, 2, 3], price: 6,
+    desc: "火を消しているとコンボ数x[1.5/2/3]倍。",
   },
   {
     id: "bonus_1c_water", name: "水の連舞", type: "passive", effect: "color_multiplier",
-    params: { colors: ["water"] }, values: [1.3, 1.5, 2], price: 4,
-    desc: "水を消しているとコンボ数x[1.3/1.5/2]倍。",
+    params: { colors: ["water"] }, values: [1.5, 2, 3], price: 6,
+    desc: "水を消しているとコンボ数x[1.5/2/3]倍。",
   },
   {
     id: "bonus_1c_wood", name: "木の連舞", type: "passive", effect: "color_multiplier",
-    params: { colors: ["wood"] }, values: [1.3, 1.5, 2], price: 4,
-    desc: "木を消しているとコンボ数x[1.3/1.5/2]倍。",
+    params: { colors: ["wood"] }, values: [1.5, 2, 3], price: 6,
+    desc: "木を消しているとコンボ数x[1.5/2/3]倍。",
   },
   {
     id: "bonus_1c_light", name: "光の連舞", type: "passive", effect: "color_multiplier",
-    params: { colors: ["light"] }, values: [1.3, 1.5, 2], price: 4,
-    desc: "光を消しているとコンボ数x[1.3/1.5/2]倍。",
+    params: { colors: ["light"] }, values: [1.5, 2, 3], price: 6,
+    desc: "光を消しているとコンボ数x[1.5/2/3]倍。",
   },
   {
     id: "bonus_1c_dark", name: "闇の連舞", type: "passive", effect: "color_multiplier",
-    params: { colors: ["dark"] }, values: [1.3, 1.5, 2], price: 4,
-    desc: "闇を消しているとコンボ数x[1.3/1.5/2]倍。",
+    params: { colors: ["dark"] }, values: [1.5, 2, 3], price: 6,
+    desc: "闇を消しているとコンボ数x[1.5/2/3]倍。",
   },
   {
     id: "bonus_1c_heart", name: "癒しの連舞", type: "passive", effect: "color_multiplier",
-    params: { colors: ["heart"] }, values: [1.3, 1.5, 2], price: 4,
-    desc: "回復を消しているとコンボ数x[1.3/1.5/2]倍。",
+    params: { colors: ["heart"] }, values: [1.5, 2, 3], price: 6,
+    desc: "回復を消しているとコンボ数x[1.5/2/3]倍。",
   },
   {
     id: "bonus_2c_fw", name: "双龍の律動", type: "passive", effect: "color_multiplier",
-    params: { colors: ["fire", "water"] }, values: [1.4, 1.8, 2.5], price: 5,
-    desc: "火/水を同時に消すとコンボ数x[1.4/1.8/2.5]倍。",
+    params: { colors: ["fire", "water"] }, values: [1.8, 2.5, 4], price: 8,
+    desc: "火/水を同時に消すとコンボ数x[1.8/2.5/4]倍。",
   },
   {
     id: "bonus_2c_ld", name: "明暗の律動", type: "passive", effect: "color_multiplier",
-    params: { colors: ["light", "dark"] }, values: [1.4, 1.8, 2.5], price: 5,
-    desc: "光/闇を同時に消すとコンボ数x[1.4/1.8/2.5]倍。",
+    params: { colors: ["light", "dark"] }, values: [1.8, 2.5, 4], price: 8,
+    desc: "光/闇を同時に消すとコンボ数x[1.8/2.5/4]倍。",
   },
   {
     id: "bonus_2c_wh", name: "風癒の律動", type: "passive", effect: "color_multiplier",
-    params: { colors: ["wood", "heart"] }, values: [1.4, 1.8, 2.5], price: 5,
-    desc: "木/回復を同時に消すとコンボ数x[1.4/1.8/2.5]倍。",
+    params: { colors: ["wood", "heart"] }, values: [1.8, 2.5, 4], price: 8,
+    desc: "木/回復を同時に消すとコンボ数x[1.8/2.5/4]倍。",
   },
   {
     id: "bonus_2c_fl", name: "炎光の律動", type: "passive", effect: "color_multiplier",
-    params: { colors: ["fire", "light"] }, values: [1.4, 1.8, 2.5], price: 5,
-    desc: "火/光を同時に消すとコンボ数x[1.4/1.8/2.5]倍。",
+    params: { colors: ["fire", "light"] }, values: [1.8, 2.5, 4], price: 8,
+    desc: "火/光を同時に消すとコンボ数x[1.8/2.5/4]倍。",
   },
   {
     id: "bonus_2c_fd", name: "炎闇の律動", type: "passive", effect: "color_multiplier",
-    params: { colors: ["fire", "dark"] }, values: [1.4, 1.8, 2.5], price: 5,
-    desc: "火/闇を同時に消すとコンボ数x[1.4/1.8/2.5]倍。",
+    params: { colors: ["fire", "dark"] }, values: [1.8, 2.5, 4], price: 8,
+    desc: "火/闇を同時に消すとコンボ数x[1.8/2.5/4]倍。",
   },
   {
     id: "bonus_2c_wl", name: "水光の律動", type: "passive", effect: "color_multiplier",
-    params: { colors: ["water", "light"] }, values: [1.4, 1.8, 2.5], price: 5,
-    desc: "水/光を同時に消すとコンボ数x[1.4/1.8/2.5]倍。",
+    params: { colors: ["water", "light"] }, values: [1.8, 2.5, 4], price: 8,
+    desc: "水/光を同時に消すとコンボ数x[1.8/2.5/4]倍。",
   },
   {
     id: "bonus_2c_wd", name: "水闇の律動", type: "passive", effect: "color_multiplier",
-    params: { colors: ["water", "dark"] }, values: [1.4, 1.8, 2.5], price: 5,
-    desc: "水/闇を同時に消すとコンボ数x[1.4/1.8/2.5]倍。",
+    params: { colors: ["water", "dark"] }, values: [1.8, 2.5, 4], price: 8,
+    desc: "水/闇を同時に消すとコンボ数x[1.8/2.5/4]倍。",
   },
   {
     id: "bonus_2c_gl", name: "木光の律動", type: "passive", effect: "color_multiplier",
-    params: { colors: ["wood", "light"] }, values: [1.4, 1.8, 2.5], price: 5,
-    desc: "木/光を同時に消すとコンボ数x[1.4/1.8/2.5]倍。",
+    params: { colors: ["wood", "light"] }, values: [1.8, 2.5, 4], price: 8,
+    desc: "木/光を同時に消すとコンボ数x[1.8/2.5/4]倍。",
   },
   {
     id: "bonus_2c_gd", name: "木闇の律動", type: "passive", effect: "color_multiplier",
-    params: { colors: ["wood", "dark"] }, values: [1.4, 1.8, 2.5], price: 5,
-    desc: "木/闇を同時に消すとコンボ数x[1.4/1.8/2.5]倍。",
+    params: { colors: ["wood", "dark"] }, values: [1.8, 2.5, 4], price: 8,
+    desc: "木/闇を同時に消すとコンボ数x[1.8/2.5/4]倍。",
   },
   {
     id: "bonus_3c_fwh", name: "三源の律動", type: "passive", effect: "color_multiplier",
-    params: { colors: ["fire", "water", "heart"] }, values: [1.5, 2, 3], price: 6,
-    desc: "火/水/回復を同時に消すとコンボ数x[1.5/2/3]倍。",
+    params: { colors: ["fire", "water", "heart"] }, values: [2, 3, 5], price: 9,
+    desc: "火/水/回復を同時に消すとコンボ数x[2/3/5]倍。",
   },
   {
     id: "bonus_3c_ldw", name: "三界の律動", type: "passive", effect: "color_multiplier",
-    params: { colors: ["light", "dark", "wood"] }, values: [1.5, 2, 3], price: 6,
-    desc: "光/闇/木を同時に消すとコンボ数x[1.5/2/3]倍。",
+    params: { colors: ["light", "dark", "wood"] }, values: [2, 3, 5], price: 9,
+    desc: "光/闇/木を同時に消すとコンボ数x[2/3/5]倍。",
   },
   {
     id: "bonus_3c_fwl", name: "新緑の律動", type: "passive", effect: "color_multiplier",
-    params: { colors: ["fire", "wood", "light"] }, values: [1.5, 2, 3], price: 6,
-    desc: "火/木/光を同時に消すとコンボ数x[1.5/2/3]倍。",
+    params: { colors: ["fire", "wood", "light"] }, values: [2, 3, 5], price: 9,
+    desc: "火/木/光を同時に消すとコンボ数x[2/3/5]倍。",
   },
   {
     id: "bonus_4c_fwlh", name: "四天の秘儀", type: "passive", effect: "color_multiplier",
-    params: { colors: ["fire", "water", "light", "heart"] }, values: [1.8, 2.5, 4], price: 7,
-    desc: "火/水/光/回復を同時に消すとコンボ数x[1.8/2.5/4]倍。",
+    params: { colors: ["fire", "water", "light", "heart"] }, values: [2.5, 4, 6], price: 10,
+    desc: "火/水/光/回復を同時に消すとコンボ数x[2.5/4/6]倍。",
   },
   {
     id: "bonus_5c", name: "五色の秘儀", type: "passive", effect: "color_multiplier",
-    params: { count: 5 }, values: [2, 3, 5], price: 8,
-    desc: "5色以上を同時に消すとコンボ数x[2/3/5]倍。",
+    params: { count: 5 }, values: [3, 5, 8], price: 12,
+    desc: "5色以上を同時に消すとコンボ数x[3/5/8]倍。",
   },
   {
     id: "bonus_6c", name: "六色の秘儀", type: "passive", effect: "color_multiplier",
-    params: { count: 6 }, values: [3, 5, 8], price: 10,
-    desc: "6色すべてを同時に消すとコンボ数x[3/5/8]倍。",
+    params: { count: 6 }, values: [4, 7, 12], price: 15,
+    desc: "6色すべてを同時に消すとコンボ数x[4/7/12]倍。",
   },
 
   // --- Passive: Skyfall Bonus ---
   {
     id: "bonus_skyfall", name: "天恵の追撃", type: "passive", effect: "skyfall_bonus",
-    values: [3, 5, 8], price: 5,
-    desc: "落ちコン発生時にコンボ+[3/5/8]。",
+    values: [5, 8, 12], price: 8,
+    desc: "落ちコン発生時にコンボ+[5/8/12]。",
   },
+
+  // --- Passive: Drops Erased Requirement Bonus ---
+  { id: "req_6_fire", name: "炎の真髄", type: "passive", effect: "color_count_bonus", params: { color: "fire", count: 6 }, values: [2, 2.5, 3], price: 9, desc: "火を合計で6個以上消しているとコンボ数x[2/2.5/3]倍。" },
+  { id: "req_6_water", name: "水の真髄", type: "passive", effect: "color_count_bonus", params: { color: "water", count: 6 }, values: [2, 2.5, 3], price: 9, desc: "水を合計で6個以上消しているとコンボ数x[2/2.5/3]倍。" },
+  { id: "req_6_wood", name: "木の真髄", type: "passive", effect: "color_count_bonus", params: { color: "wood", count: 6 }, values: [2, 2.5, 3], price: 9, desc: "木を合計で6個以上消しているとコンボ数x[2/2.5/3]倍。" },
+  { id: "req_6_light", name: "光の真髄", type: "passive", effect: "color_count_bonus", params: { color: "light", count: 6 }, values: [2, 2.5, 3], price: 9, desc: "光を合計で6個以上消しているとコンボ数x[2/2.5/3]倍。" },
+  { id: "req_6_dark", name: "闇の真髄", type: "passive", effect: "color_count_bonus", params: { color: "dark", count: 6 }, values: [2, 2.5, 3], price: 9, desc: "闇を合計で6個以上消しているとコンボ数x[2/2.5/3]倍。" },
+  { id: "req_6_heart", name: "癒しの真髄", type: "passive", effect: "color_count_bonus", params: { color: "heart", count: 6 }, values: [2, 2.5, 3], price: 9, desc: "回復を合計で6個以上消しているとコンボ数x[2/2.5/3]倍。" },
+
+  { id: "req_12_fire", name: "炎の極致", type: "passive", effect: "color_count_bonus", params: { color: "fire", count: 12 }, values: [3, 4, 5], price: 12, desc: "火を合計で12個以上消しているとコンボ数x[3/4/5]倍。" },
+  { id: "req_12_water", name: "水の極致", type: "passive", effect: "color_count_bonus", params: { color: "water", count: 12 }, values: [3, 4, 5], price: 12, desc: "水を合計で12個以上消しているとコンボ数x[3/4/5]倍。" },
+  { id: "req_12_wood", name: "木の極致", type: "passive", effect: "color_count_bonus", params: { color: "wood", count: 12 }, values: [3, 4, 5], price: 12, desc: "木を合計で12個以上消しているとコンボ数x[3/4/5]倍。" },
+  { id: "req_12_light", name: "光の極致", type: "passive", effect: "color_count_bonus", params: { color: "light", count: 12 }, values: [3, 4, 5], price: 12, desc: "光を合計で12個以上消しているとコンボ数x[3/4/5]倍。" },
+  { id: "req_12_dark", name: "闇の極致", type: "passive", effect: "color_count_bonus", params: { color: "dark", count: 12 }, values: [3, 4, 5], price: 12, desc: "闇を合計で12個以上消しているとコンボ数x[3/4/5]倍。" },
+  { id: "req_12_heart", name: "癒しの極致", type: "passive", effect: "color_count_bonus", params: { color: "heart", count: 12 }, values: [3, 4, 5], price: 12, desc: "回復を合計で12個以上消しているとコンボ数x[3/4/5]倍。" },
 
   // --- Passive: Exact Combo Bonus ---
   {
@@ -330,9 +391,9 @@ const ALL_TOKEN_BASES = [
     type: "passive",
     effect: "combo_if_exact",
     params: { combo: 3 },
-    values: [5, 10, 15],
-    price: 4,
-    desc: "3コンボちょうどでコンボ+[5/10/15]。",
+    values: [10, 15, 25],
+    price: 6,
+    desc: "3コンボちょうどでコンボ+[10/15/25]。",
   },
   {
     id: "combo_exact_10",
@@ -340,9 +401,9 @@ const ALL_TOKEN_BASES = [
     type: "passive",
     effect: "combo_if_exact",
     params: { combo: 10 },
-    values: [10, 15, 20],
-    price: 6,
-    desc: "10コンボちょうどでコンボ+[10/15/20]。",
+    values: [15, 25, 40],
+    price: 9,
+    desc: "10コンボちょうどでコンボ+[15/25/40]。",
   },
   // --- Passive: Combo Threshold Multiplier ---
   {
@@ -351,55 +412,55 @@ const ALL_TOKEN_BASES = [
     type: "passive",
     effect: "combo_if_ge",
     params: { combo: 7 },
-    values: [1.5, 2, 3],
-    price: 7,
-    desc: "7コンボ以上で最終コンボ[1.5/2/3]倍。",
+    values: [2, 3, 5],
+    price: 10,
+    desc: "7コンボ以上で最終コンボ[2/3/5]倍。",
   },
 
   // --- Passive: Shape Bonus（特殊消しボーナス） ---
   {
     id: "len4", name: "四連の術", type: "passive", effect: "shape_bonus",
-    params: { shape: "len4" }, values: [1, 2, 3], price: 3,
-    desc: "4個ちょうど連結でコンボ+[1/2/3]。",
+    params: { shape: "len4" }, values: [2, 4, 6], price: 5,
+    desc: "4個ちょうど連結でコンボ+[2/4/6]。",
   },
   {
     id: "row_clear", name: "横一閃", type: "passive", effect: "shape_bonus",
-    params: { shape: "row" }, values: [3, 6, 9], price: 5,
-    desc: "横1列消しでコンボ+[3/6/9]。",
+    params: { shape: "row" }, values: [5, 10, 15], price: 8,
+    desc: "横1列消しでコンボ+[5/10/15]。",
   },
   {
     id: "square", name: "四方の型", type: "passive", effect: "shape_bonus",
-    params: { shape: "square" }, values: [1.5, 2, 3], price: 6,
-    desc: "3x3正方形消しでコンボ×[1.5/2/3]倍。",
+    params: { shape: "square" }, values: [2, 3, 5], price: 9,
+    desc: "3x3正方形消しでコンボ×[2/3/5]倍。",
   },
   {
     id: "len5", name: "五星の印", type: "passive", effect: "shape_bonus",
-    params: { shape: "len5" }, values: [1.2, 1.5, 2], price: 5,
-    desc: "5個以上連結で次手の操作時間[1.2/1.5/2]倍。",
+    params: { shape: "len5" }, values: [1.5, 2, 3], price: 7,
+    desc: "5個以上連結で次手の操作時間[1.5/2/3]倍。",
   },
   {
     id: "cross", name: "十字の祈り", type: "passive", effect: "shape_bonus",
-    params: { shape: "cross" }, values: [1.5, 2, 3], price: 6,
-    desc: "十字型消しで次手の操作時間[1.5/2/3]倍。",
+    params: { shape: "cross" }, values: [2, 3, 5], price: 9,
+    desc: "十字型消しで次手の操作時間[2/3/5]倍。",
   },
   {
     id: "l_shape", name: "鉤十字の型", type: "passive", effect: "shape_bonus",
-    params: { shape: "l_shape" }, values: [2, 4, 6], price: 6,
-    desc: "L字消しでコンボ+[2/4/6]。",
+    params: { shape: "l_shape" }, values: [3, 6, 9], price: 9,
+    desc: "L字消しでコンボ+[3/6/9]。",
   },
   {
     id: "bonus_heart", name: "癒しの波動", type: "passive", effect: "heart_combo_bonus",
-    values: [2, 3, 4], price: 4,
-    desc: "回復ドロップを消したコンボ数分、追加でコンボ+[2/3/4]。",
+    values: [3, 5, 7], price: 6,
+    desc: "回復ドロップを消したコンボ数分、追加でコンボ+[3/5/7]。",
   },
   {
     id: "giant",
     name: "巨人の領域",
     type: "passive",
     effect: "expand_board",
-    values: [1, 1.2, 1.5],
-    price: 6,
-    desc: "装備中、盤面が7x6に拡張。コンボ倍率[1/1.2/1.5]倍。",
+    values: [1.2, 1.5, 2],
+    price: 9,
+    desc: "装備中、盤面が7x6に拡張。コンボ倍率[1.2/1.5/2]倍。",
   },
 
   // --- Skills: Enhance Color ---
@@ -436,46 +497,77 @@ const ALL_TOKEN_BASES = [
   },
   {
     id: "enhance_amp", name: "強化増幅", type: "passive", effect: "enhanced_orb_bonus",
-    values: [1, 2, 3], price: 5,
-    desc: "強化1個あたりのコンボ加算を+[1/2/3]する。",
+    values: [2, 4, 6], price: 8,
+    desc: "強化1個あたりのコンボ加算を+[2/4/6]する。",
   },
   {
     id: "over_link", name: "過剰結合", type: "passive", effect: "enhanced_link_multiplier",
-    params: { count: 5 }, values: [1.5, 2, 3], price: 6,
-    desc: "強化5個以上を消したら倍率x[1.5/2/3]。",
+    params: { count: 5 }, values: [2, 3, 5], price: 9,
+    desc: "強化5個以上を消したら倍率x[2/3/5]。",
   },
 
   // --- Passive: High Risk / High Return ---
   {
     id: "desperate_stance", name: "背水の陣", type: "passive", effect: "desperate_stance",
-    values: [3, 4, 5], price: 8,
-    desc: "操作時間が常に4秒固定。最終コンボ倍率x[3/4/5]倍。",
+    values: [4, 6, 8], price: 12,
+    desc: "操作時間が常に4秒固定。最終コンボ倍率x[4/6/8]倍。",
   },
   {
     id: "greed_power", name: "金満の暴力", type: "passive", effect: "greed_power",
-    values: [10, 7, 5], price: 7,
-    desc: "★[10/7/5]個につきコンボ倍率+1加算。",
+    values: [7, 5, 3], price: 10,
+    desc: "★[7/5/3]個につきコンボ倍率+1加算。",
   },
   {
     id: "picky_eater", name: "偏食家", type: "passive", effect: "picky_eater",
     params: { excludeColors: ["heart", "light", "dark"] },
-    values: [-2, -1, 0], price: 6,
+    values: [-2, -1, 0], price: 9,
     desc: "回復/光/闇が出現しなくなる。手番[−2/−1/±0]。",
   },
   {
     id: "cursed_power", name: "呪われた力", type: "passive", effect: "cursed_power",
-    values: [10, 15, 20], price: 7,
-    desc: "常にコンボ+[10/15/20]。操作時間−2秒。",
+    values: [15, 25, 40], price: 10,
+    desc: "常にコンボ+[15/25/40]。操作時間−2秒。",
   },
   {
     id: "critical_passive",
     name: "会心の一撃",
     type: "passive",
     effect: "critical_strike",
-    values: [10, 20, 30],
-    price: 7,
-    desc: "20%の確率で、最終コンボ倍率が[10/20/30]倍になる。",
+    values: [15, 30, 50],
+    price: 10,
+    desc: "20%の確率で、最終コンボ倍率が[15/30/50]倍になる。",
   },
+  {
+    id: "shape_master",
+    name: "百般の型の極意",
+    type: "passive",
+    effect: "shape_variety_mult",
+    values: [3, 4, 5],
+    price: 12,
+    desc: "1ターンの間に異なる特殊消しを2種類以上発動させると、コンボ数x[3/4/5]倍。",
+  },
+  {
+    id: "zero_charge",
+    name: "静寂の瞑想",
+    type: "passive",
+    effect: "zero_combo_charge",
+    values: [3, 5, 7],
+    price: 9,
+    desc: "0コンボの時、スキルのエネルギーを[3/5/7]チャージする。",
+  },
+  {
+    id: "random_add",
+    name: "気まぐれなダイス",
+    type: "passive",
+    effect: "random_add",
+    values: [
+      [0, 1, 2, 3, 4, 5, 10],
+      [0, 2, 4, 6, 8, 10, 30],
+      [0, 3, 6, 9, 12, 15, 100]
+    ],
+    price: 6,
+    desc: "コンボ加算にランダムな値を追加する",
+  }
 ];
 
 const ENCHANTMENTS = [
@@ -484,93 +576,93 @@ const ENCHANTMENTS = [
     id: "resonance",
     name: "レベル共鳴",
     effect: "lvl_mult",
-    price: 8,
+    price: 10,
     desc: "トークンのLv分、コンボ加算値を乗算する。",
   },
   {
     id: "greed",
     name: "強欲の輝き",
     effect: "star_add",
-    price: 9,
+    price: 11,
     desc: "現在の所持★数をコンボ加算値に加える。",
   },
   {
     id: "chain",
     name: "連鎖の刻印",
     effect: "fixed_add",
-    value: 2,
-    price: 5,
-    desc: "コンボ加算値を一律+2する。",
+    value: 3,
+    price: 7,
+    desc: "コンボ加算値を一律+3する。",
   },
   {
     id: "extra_turn",
     name: "時の刻印",
     effect: "add_turn",
-    price: 7,
+    price: 9,
     desc: "目標達成までの手番が +1 される。",
   },
   {
     id: "time_leap",
     name: "時の跳躍",
     effect: "skip_turn_combo",
-    price: 7,
+    price: 9,
     desc: "前のサイクルでスキップしたターン数分、次のサイクルの全ターンでコンボ加算。",
   },
   // --- New: Color Combo Bonus Enchantments ---
-  { id: "combo_fire", name: "炎の加護", effect: "color_combo", params: { color: "fire" }, price: 6, desc: "火の1コンボにつきコンボ+1。" },
-  { id: "combo_water", name: "水の加護", effect: "color_combo", params: { color: "water" }, price: 6, desc: "水の1コンボにつきコンボ+1。" },
-  { id: "combo_wood", name: "森の加護", effect: "color_combo", params: { color: "wood" }, price: 6, desc: "木の1コンボにつきコンボ+1。" },
-  { id: "combo_light", name: "光の加護", effect: "color_combo", params: { color: "light" }, price: 6, desc: "光の1コンボにつきコンボ+1。" },
-  { id: "combo_dark", name: "闇の加護", effect: "color_combo", params: { color: "dark" }, price: 6, desc: "闇の1コンボにつきコンボ+1。" },
-  { id: "combo_heart", name: "癒しの加護", effect: "color_combo", params: { color: "heart" }, price: 6, desc: "回復の1コンボにつきコンボ+1。" },
+  { id: "combo_fire", name: "炎の加護", effect: "color_combo", params: { color: "fire" }, price: 8, desc: "火の1コンボにつきコンボ+1。" },
+  { id: "combo_water", name: "水の加護", effect: "color_combo", params: { color: "water" }, price: 8, desc: "水の1コンボにつきコンボ+1。" },
+  { id: "combo_wood", name: "森の加護", effect: "color_combo", params: { color: "wood" }, price: 8, desc: "木の1コンボにつきコンボ+1。" },
+  { id: "combo_light", name: "光の加護", effect: "color_combo", params: { color: "light" }, price: 8, desc: "光の1コンボにつきコンボ+1。" },
+  { id: "combo_dark", name: "闇の加護", effect: "color_combo", params: { color: "dark" }, price: 8, desc: "闇の1コンボにつきコンボ+1。" },
+  { id: "combo_heart", name: "癒しの加護", effect: "color_combo", params: { color: "heart" }, price: 8, desc: "回復の1コンボにつきコンボ+1。" },
   // --- Enhanced Drop Enchantments ---
-  { id: "enh_drop_fire", name: "火の強化落下", effect: "enhance_chance_color", params: { color: "fire" }, value: 0.1, price: 5, desc: "火ドロップが10%強化で落下。" },
-  { id: "enh_drop_water", name: "水の強化落下", effect: "enhance_chance_color", params: { color: "water" }, value: 0.1, price: 5, desc: "水ドロップが10%強化で落下。" },
-  { id: "enh_drop_wood", name: "木の強化落下", effect: "enhance_chance_color", params: { color: "wood" }, value: 0.1, price: 5, desc: "木ドロップが10%強化で落下。" },
-  { id: "enh_drop_light", name: "光の強化落下", effect: "enhance_chance_color", params: { color: "light" }, value: 0.1, price: 5, desc: "光ドロップが10%強化で落下。" },
-  { id: "enh_drop_dark", name: "闇の強化落下", effect: "enhance_chance_color", params: { color: "dark" }, value: 0.1, price: 5, desc: "闇ドロップが10%強化で落下。" },
-  { id: "enh_drop_heart", name: "回復の強化落下", effect: "enhance_chance_color", params: { color: "heart" }, value: 0.1, price: 5, desc: "回復ドロップが10%強化で落下。" },
+  { id: "enh_drop_fire", name: "火の強化落下", effect: "enhance_chance_color", params: { color: "fire" }, value: 0.15, price: 8, desc: "火ドロップが15%強化で落下。" },
+  { id: "enh_drop_water", name: "水の強化落下", effect: "enhance_chance_color", params: { color: "water" }, value: 0.15, price: 8, desc: "水ドロップが15%強化で落下。" },
+  { id: "enh_drop_wood", name: "木の強化落下", effect: "enhance_chance_color", params: { color: "wood" }, value: 0.15, price: 8, desc: "木ドロップが15%強化で落下。" },
+  { id: "enh_drop_light", name: "光の強化落下", effect: "enhance_chance_color", params: { color: "light" }, value: 0.15, price: 8, desc: "光ドロップが15%強化で落下。" },
+  { id: "enh_drop_dark", name: "闇の強化落下", effect: "enhance_chance_color", params: { color: "dark" }, value: 0.15, price: 8, desc: "闇ドロップが15%強化で落下。" },
+  { id: "enh_drop_heart", name: "回復の強化落下", effect: "enhance_chance_color", params: { color: "heart" }, value: 0.15, price: 8, desc: "回復ドロップが15%強化で落下。" },
   // --- Skyfall Boost (Probability Up) ---
-  { id: "sf_up_fire", name: "火の呼び声", effect: "skyfall_boost", params: { color: "fire" }, price: 6, desc: "火ドロップが少し落ちやすくなる。" },
-  { id: "sf_up_water", name: "水の呼び声", effect: "skyfall_boost", params: { color: "water" }, price: 6, desc: "水ドロップが少し落ちやすくなる。" },
-  { id: "sf_up_wood", name: "森の呼び声", effect: "skyfall_boost", params: { color: "wood" }, price: 6, desc: "木ドロップが少し落ちやすくなる。" },
-  { id: "sf_up_light", name: "光の呼び声", effect: "skyfall_boost", params: { color: "light" }, price: 6, desc: "光ドロップが少し落ちやすくなる。" },
-  { id: "sf_up_dark", name: "闇の呼び声", effect: "skyfall_boost", params: { color: "dark" }, price: 6, desc: "闇ドロップが少し落ちやすくなる。" },
-  { id: "sf_up_heart", name: "癒しの呼び声", effect: "skyfall_boost", params: { color: "heart" }, price: 6, desc: "回復ドロップが少し落ちやすくなる。" },
+  { id: "sf_up_fire", name: "火の呼び声", effect: "skyfall_boost", params: { color: "fire" }, price: 8, desc: "火ドロップが少し落ちやすくなる。" },
+  { id: "sf_up_water", name: "水の呼び声", effect: "skyfall_boost", params: { color: "water" }, price: 8, desc: "水ドロップが少し落ちやすくなる。" },
+  { id: "sf_up_wood", name: "森の呼び声", effect: "skyfall_boost", params: { color: "wood" }, price: 8, desc: "木ドロップが少し落ちやすくなる。" },
+  { id: "sf_up_light", name: "光の呼び声", effect: "skyfall_boost", params: { color: "light" }, price: 8, desc: "光ドロップが少し落ちやすくなる。" },
+  { id: "sf_up_dark", name: "闇の呼び声", effect: "skyfall_boost", params: { color: "dark" }, price: 8, desc: "闇ドロップが少し落ちやすくなる。" },
+  { id: "sf_up_heart", name: "癒しの呼び声", effect: "skyfall_boost", params: { color: "heart" }, price: 8, desc: "回復ドロップが少し落ちやすくなる。" },
   // --- Skyfall Nerf (Probability Down) ---
-  { id: "sf_down_fire", name: "火の静寂", effect: "skyfall_nerf", params: { color: "fire" }, price: 6, desc: "火ドロップが少し落ちにくくなる。" },
-  { id: "sf_down_water", name: "水の静寂", effect: "skyfall_nerf", params: { color: "water" }, price: 6, desc: "水ドロップが少し落ちにくくなる。" },
-  { id: "sf_down_wood", name: "森の静寂", effect: "skyfall_nerf", params: { color: "wood" }, price: 6, desc: "木ドロップが少し落ちにくくなる。" },
-  { id: "sf_down_light", name: "光の静寂", effect: "skyfall_nerf", params: { color: "light" }, price: 6, desc: "光ドロップが少し落ちにくくなる。" },
-  { id: "sf_down_dark", name: "闇の静寂", effect: "skyfall_nerf", params: { color: "dark" }, price: 6, desc: "闇ドロップが少し落ちにくくなる。" },
-  { id: "sf_down_heart", name: "癒しの静寂", effect: "skyfall_nerf", params: { color: "heart" }, price: 6, desc: "回復ドロップが少し落ちにくくなる。" },
-  { id: "opener", name: "先制の心得", effect: "turn_1_bonus", value: 10, price: 6, desc: "サイクルの1ターン目のみ、コンボ+10。" },
-  { id: "clutch", name: "土壇場の底力", effect: "last_turn_mult", value: 1.5, price: 7, desc: "サイクルの最終ターンのみ、コンボ倍率x1.5。" },
-  { id: "rainbow", name: "虹色の加護", effect: "multi_color", value: 3, price: 8, desc: "4色以上同時消しで、コンボ+3。" },
-  { id: "sniper", name: "一点突破", effect: "single_color", value: 1.3, price: 6, desc: "消した色が2色以下の場合、コンボ倍率x1.3。" },
-  { id: "haste", name: "疾風の刻印", effect: "time_ext_enc", value: 1, price: 7, desc: "操作時間を+1秒延長する。" },
-  { id: "quick_charge", name: "急速チャージ", effect: "charge_boost_passive", price: 8, desc: "スキルのチャージ速度が2倍になる。" },
-  { id: "critical", name: "会心の一撃", effect: "critical_strike", value: 10, price: 7, desc: "20%の確率で、この補正倍率が10倍になる。" },
-  { id: "gamble", name: "運命の悪戯", effect: "random_bonus", price: 5, desc: "ターンごとに -5〜+15 のランダムなコンボ加算。" },
+  { id: "sf_down_fire", name: "火の静寂", effect: "skyfall_nerf", params: { color: "fire" }, price: 8, desc: "火ドロップが少し落ちにくくなる。" },
+  { id: "sf_down_water", name: "水の静寂", effect: "skyfall_nerf", params: { color: "water" }, price: 8, desc: "水ドロップが少し落ちにくくなる。" },
+  { id: "sf_down_wood", name: "森の静寂", effect: "skyfall_nerf", params: { color: "wood" }, price: 8, desc: "木ドロップが少し落ちにくくなる。" },
+  { id: "sf_down_light", name: "光の静寂", effect: "skyfall_nerf", params: { color: "light" }, price: 8, desc: "光ドロップが少し落ちにくくなる。" },
+  { id: "sf_down_dark", name: "闇の静寂", effect: "skyfall_nerf", params: { color: "dark" }, price: 8, desc: "闇ドロップが少し落ちにくくなる。" },
+  { id: "sf_down_heart", name: "癒しの静寂", effect: "skyfall_nerf", params: { color: "heart" }, price: 8, desc: "回復ドロップが少し落ちにくくなる。" },
+  { id: "opener", name: "先制の心得", effect: "turn_1_bonus", value: 20, price: 9, desc: "サイクルの1ターン目のみ、コンボ+20。" },
+  { id: "clutch", name: "土壇場の底力", effect: "last_turn_mult", value: 2.5, price: 10, desc: "サイクルの最終ターンのみ、コンボ倍率x2.5。" },
+  { id: "rainbow", name: "虹色の加護", effect: "multi_color", value: 5, price: 10, desc: "4色以上同時消しで、コンボ+5。" },
+  { id: "sniper", name: "一点突破", effect: "single_color", value: 1.8, price: 9, desc: "消した色が2色以下の場合、コンボ倍率x1.8。" },
+  { id: "haste", name: "疾風の刻印", effect: "time_ext_enc", value: 2, price: 9, desc: "操作時間を+2秒延長する。" },
+  { id: "quick_charge", name: "急速チャージ", effect: "charge_boost_passive", price: 10, desc: "スキルのチャージ速度が2倍になる。" },
+  { id: "critical", name: "会心の一撃", effect: "critical_strike", value: 15, price: 10, desc: "20%の確率で、この補正倍率が15倍になる。" },
+  { id: "gamble", name: "運命の悪戯", effect: "random_bonus", price: 7, desc: "ターンごとに -5〜+15 のランダムなコンボ加算。" },
 
   // --- 形状別極意エンチャント (Geometry Split) ---
-  { id: "shape_match4", name: "四連の極意", effect: "shape_match4", value: 1.2, price: 6, desc: "4つ消し1つにつき、コンボ倍率x1.2。" },
-  { id: "shape_cross", name: "十字の極意", effect: "shape_cross", value: 1.3, price: 6, desc: "十字消し1つにつき、コンボ倍率x1.3。" },
-  { id: "shape_row", name: "一列の極意", effect: "shape_row", value: 1.4, price: 6, desc: "横一列消し1つにつき、コンボ倍率x1.4。" },
-  { id: "shape_l", name: "L字の極意", effect: "shape_l", value: 1.3, price: 6, desc: "L字消し1つにつき、コンボ倍率x1.3。" },
-  { id: "shape_square", name: "正方形の極意", effect: "shape_square", value: 1.5, price: 6, desc: "正方形消し1つにつき、コンボ倍率x1.5。" },
+  { id: "shape_match4", name: "四連の極意", effect: "shape_match4", value: 1.5, price: 8, desc: "4つ消し1つにつき、コンボ倍率x1.5。" },
+  { id: "shape_cross", name: "十字の極意", effect: "shape_cross", value: 1.8, price: 8, desc: "十字消し1つにつき、コンボ倍率x1.8。" },
+  { id: "shape_row", name: "一列の極意", effect: "shape_row", value: 2.0, price: 8, desc: "横一列消し1つにつき、コンボ倍率x2.0。" },
+  { id: "shape_l", name: "L字の極意", effect: "shape_l", value: 1.8, price: 8, desc: "L字消し1つにつき、コンボ倍率x1.8。" },
+  { id: "shape_square", name: "正方形の極意", effect: "shape_square", value: 2.5, price: 8, desc: "正方形消し1つにつき、コンボ倍率x2.5。" },
 
-  { id: "efficiency", name: "魔力節約", effect: "cost_down", price: 8, desc: "このスキルの消費エネルギーを-1する(最小1)。" },
-  { id: "berserk", name: "狂戦士の刻印", effect: "berserk_mode", value: 1.5, price: 7, desc: "操作時間-1秒、コンボ倍率x1.5。" },
-  { id: "aftershock", name: "追撃の心得", effect: "skyfall_mult", value: 1.4, price: 6, desc: "落ちコン発生時、最終コンボ倍率x1.4。" },
-  { id: "investment", name: "資産価値", effect: "high_sell", price: 4, desc: "このトークンの売却価格が購入価格の300%になる。" },
+  { id: "efficiency", name: "魔力節約", effect: "cost_down", price: 10, desc: "このスキルの消費エネルギーを-1する(最小1)。" },
+  { id: "berserk", name: "狂戦士の刻印", effect: "berserk_mode", value: 2, price: 10, desc: "操作時間-1秒、コンボ倍率x2。" },
+  { id: "aftershock", name: "追撃の心得", effect: "skyfall_mult", value: 2, price: 9, desc: "落ちコン発生時、最終コンボ倍率x2。" },
+  { id: "investment", name: "資産価値", effect: "high_sell", price: 6, desc: "このトークンの売却価格が購入価格の300%になる。" },
   // --- 色別連舞エンチャント (1.2倍) ---
-  { id: "enc_bonus_fire", name: "炎の連舞", effect: "color_multiplier_enc", params: { color: "fire" }, value: 1.2, price: 5, desc: "火を消しているとコンボ倍率x1.2。" },
-  { id: "enc_bonus_water", name: "水の連舞", effect: "color_multiplier_enc", params: { color: "water" }, value: 1.2, price: 5, desc: "水を消しているとコンボ倍率x1.2。" },
-  { id: "enc_bonus_wood", name: "木の連舞", effect: "color_multiplier_enc", params: { color: "wood" }, value: 1.2, price: 5, desc: "木を消しているとコンボ倍率x1.2。" },
-  { id: "enc_bonus_light", name: "光の連舞", effect: "color_multiplier_enc", params: { color: "light" }, value: 1.2, price: 5, desc: "光を消しているとコンボ倍率x1.2。" },
-  { id: "enc_bonus_dark", name: "闇の連舞", effect: "color_multiplier_enc", params: { color: "dark" }, value: 1.2, price: 5, desc: "闇を消しているとコンボ倍率x1.2。" },
-  { id: "enc_bonus_heart", name: "癒しの連舞", effect: "color_multiplier_enc", params: { color: "heart" }, value: 1.2, price: 5, desc: "回復を消しているとコンボ倍率x1.2。" },
+  { id: "enc_bonus_fire", name: "炎の連舞", effect: "color_multiplier_enc", params: { color: "fire" }, value: 1.5, price: 8, desc: "火を消しているとコンボ倍率x1.5。" },
+  { id: "enc_bonus_water", name: "水の連舞", effect: "color_multiplier_enc", params: { color: "water" }, value: 1.5, price: 8, desc: "水を消しているとコンボ倍率x1.5。" },
+  { id: "enc_bonus_wood", name: "木の連舞", effect: "color_multiplier_enc", params: { color: "wood" }, value: 1.5, price: 8, desc: "木を消しているとコンボ倍率x1.5。" },
+  { id: "enc_bonus_light", name: "光の連舞", effect: "color_multiplier_enc", params: { color: "light" }, value: 1.5, price: 8, desc: "光を消しているとコンボ倍率x1.5。" },
+  { id: "enc_bonus_dark", name: "闇の連舞", effect: "color_multiplier_enc", params: { color: "dark" }, value: 1.5, price: 8, desc: "闇を消しているとコンボ倍率x1.5。" },
+  { id: "enc_bonus_heart", name: "癒しの連舞", effect: "color_multiplier_enc", params: { color: "heart" }, value: 1.5, price: 8, desc: "回復を消しているとコンボ倍率x1.5。" },
 ];
 
 const getEffectiveCost = (token) => {
@@ -752,8 +844,8 @@ class PuzzleEngine {
     this.state.forEach((row, r) => {
       row.forEach((orb, c) => {
         if (orb) {
-          orb.baseTop = (r * (this.orbSize + this.gap)) + (this.gap / 2);
-          orb.baseLeft = (c * (this.orbSize + this.gap)) + (this.gap / 2);
+          orb.baseTop = (r * (this.orbSize + this.gap));
+          orb.baseLeft = (c * (this.orbSize + this.gap));
           orb.el.style.width = `${this.orbSize}px`;
           orb.el.style.height = `${this.orbSize}px`;
           orb.el.style.top = `${orb.baseTop}px`;
@@ -840,8 +932,8 @@ class PuzzleEngine {
     */
 
     // 基準位置を設定（top/leftは一度だけ設定し、以降transformで移動）
-    const baseTop = (r * (this.orbSize + this.gap)) + (this.gap / 2);
-    const baseLeft = (c * (this.orbSize + this.gap)) + (this.gap / 2);
+    const baseTop = (r * (this.orbSize + this.gap));
+    const baseLeft = (c * (this.orbSize + this.gap));
     el.style.width = `${this.orbSize}px`;
     el.style.height = `${this.orbSize}px`;
     el.style.top = `${baseTop}px`;
@@ -885,8 +977,8 @@ class PuzzleEngine {
     this.state.forEach((row, r) => {
       row.forEach((orb, c) => {
         if (orb && orb !== this.dragging) {
-          const targetTop = (r * (this.orbSize + this.gap)) + (this.gap / 2);
-          const targetLeft = (c * (this.orbSize + this.gap)) + (this.gap / 2);
+          const targetTop = (r * (this.orbSize + this.gap));
+          const targetLeft = (c * (this.orbSize + this.gap));
           // transformで移動量を計算
           const dx = targetLeft - orb.baseLeft;
           const dy = targetTop - orb.baseTop;
@@ -1254,7 +1346,11 @@ class PuzzleEngine {
       this.comboEl.style.display = "block";
     }
     const colorComboCounts = {};
-    this.types.forEach(t => colorComboCounts[t] = 0);
+    const erasedColorCounts = {};
+    this.types.forEach(t => {
+      colorComboCounts[t] = 0;
+      erasedColorCounts[t] = 0;
+    });
     let hasSkyfallCombo = false;
     const shapes = []; // 特殊消し形状判定結果を蓄積
     let overLinkMultiplier = 1; // 過剰結合倍率
@@ -1273,6 +1369,7 @@ class PuzzleEngine {
           const type = group[0].type;
           if (colorComboCounts[type] !== undefined) {
             colorComboCounts[type]++;
+            erasedColorCounts[type] += group.length;
           }
         }
         // 落ちコンで消えたグループかチェック（skyfall_bonus判定用）
@@ -1402,7 +1499,7 @@ class PuzzleEngine {
     }
 
     this.processing = false;
-    this.onTurnEnd(this.currentCombo, colorComboCounts, hasSkyfallCombo, shapes, overLinkMultiplier);
+    this.onTurnEnd(this.currentCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes, overLinkMultiplier);
   }
 
   findCombos() {
@@ -1697,6 +1794,8 @@ const App = () => {
   const [target, setTarget] = useState(8);
   const [turn, setTurn] = useState(1);
   const [cycleTotalCombo, setCycleTotalCombo] = useState(0);
+  const [shopRerollBasePrice, setShopRerollBasePrice] = useState(1);
+  const [shopRerollPrice, setShopRerollPrice] = useState(1);
 
   /* const [energy, setEnergy] = useState(0); // REMOVED: Global Energy */
   /* const [maxEnergy] = useState(10); // REMOVED: Global Energy */
@@ -1919,7 +2018,7 @@ const App = () => {
   // Debug State
   // const [debugLog, setDebugLog] = useState(null);
 
-  const handleTurnEnd = async (turnCombo, colorComboCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1) => {
+  const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1) => {
     let bonus = 0;
     let multiplier = 1;
     let timeMultiplier = 1; // 次手の操作時間倍率
@@ -1929,6 +2028,7 @@ const App = () => {
       tokens: tokens,
       matchedColors: Array.from(matchedColorSet),
       colorComboCounts,
+      erasedColorCounts,
       turnCombo,
       shapes,
       bonuses: [],
@@ -2049,11 +2149,17 @@ const App = () => {
       // Base bonuses
       // エンチャント効果（複数対応）
       enchList.forEach(enc => {
-        if (enc.effect === "fixed_add") { bonus += 2; logData.bonuses.push("fixed_add"); }
+        if (enc.effect === "fixed_add") { const v = enc.value || 3; bonus += v; logData.bonuses.push(`fixed_add:${v}`); }
         if (enc.effect === "star_add") { bonus += stars; logData.bonuses.push("star_add"); }
         if (enc.effect === "skip_turn_combo") { bonus += skippedTurnsBonus; logData.bonuses.push("skip_add"); }
       });
       if (t.effect === "base_add") { const v = t.values?.[lv - 1] || 0; bonus += v; logData.bonuses.push(`base_add:${v}`); }
+      if (t.effect === "random_add") {
+        const pool = t.values?.[lv - 1] || [0];
+        const v = pool[Math.floor(Math.random() * pool.length)];
+        bonus += v;
+        logData.bonuses.push(`random_add:${v}`);
+      }
 
       // Skyfall bonus
       if (t.effect === "skyfall_bonus" && hasSkyfallCombo) {
@@ -2142,6 +2248,27 @@ const App = () => {
 
         if (match) {
           multiplier *= t.values?.[lv - 1] || 1;
+        }
+      }
+
+      // Color Drop Count Multiplier
+      if (t.effect === "color_count_bonus") {
+        const color = t.params?.color;
+        const requiredCount = t.params?.count || 0;
+        if (color && erasedColorCounts[color] >= requiredCount) {
+          const v = t.values?.[lv - 1] || 1;
+          multiplier *= v;
+          logData.multipliers.push(`color_count_bonus_${color}_${requiredCount}:${v}`);
+        }
+      }
+
+      // Shape Variety Multiplier (2+ unique shapes)
+      if (t.effect === "shape_variety_mult") {
+        const uniqueShapes = new Set(shapes).size;
+        if (uniqueShapes >= 2) {
+          const v = t.values?.[lv - 1] || 1;
+          multiplier *= v;
+          logData.multipliers.push(`shape_variety_mult_${uniqueShapes}:${v}`);
         }
       }
 
@@ -2284,17 +2411,28 @@ const App = () => {
     /* setEnergy((prev) => Math.min(maxEnergy, prev + 2)); // REMOVED */
 
     // --- Charge Skills ---
+    // Zero Combo Charge check
+    let zeroComboBonusCharge = 0;
+    if (effectiveCombo === 0) {
+      tokens.forEach(t => {
+        if (!t) return;
+        const lv = t.level || 1;
+        if (t.effect === "zero_combo_charge") {
+          zeroComboBonusCharge += t.values?.[lv - 1] || 0;
+        }
+      });
+    }
+
     setTokens(prevTokens => {
       return prevTokens.map(t => {
         if (!t || t.type !== 'skill') return t;
         const currentCharge = t.charge || 0;
         const maxCharge = t.cost || 0;
         // Increment charge by 1 per turn, up to max cost
-        // Increment charge by 1 per turn, up to max cost
 
         // --- 変更: 急速チャージ (Quick Charge) ---
         const chargeBoostCount = t.enchantments?.filter(e => e.effect === "charge_boost_passive").length || 0;
-        const chargeAmount = 1 + chargeBoostCount;
+        const chargeAmount = 1 + chargeBoostCount + zeroComboBonusCharge;
 
         const nextCharge = Math.min(maxCharge, currentCharge + chargeAmount);
         return { ...t, charge: nextCharge };
@@ -2308,6 +2446,9 @@ const App = () => {
     );
 
     if (newCycleTotalCombo >= target) {
+      if (!goalReached) {
+        setShopRerollPrice(shopRerollBasePrice);
+      }
       setGoalReached(true);
     }
 
@@ -2365,6 +2506,12 @@ const App = () => {
     setGoalReached(false);
     setSkippedTurnsBonus(0);
     setStarProgress(0); // Reset progress if needed or keep it? Keeping it feels better but usually resets per cycle
+
+    // Update shop reroll prices
+    const nextBase = Math.ceil(shopRerollBasePrice * 1.5);
+    setShopRerollBasePrice(nextBase);
+    setShopRerollPrice(nextBase);
+
     generateShop();
     setShowShop(false);
     notify("NEXT CYCLE STARTED!");
@@ -2404,6 +2551,8 @@ const App = () => {
     setTarget(8);
     setTurn(1);
     setCycleTotalCombo(0);
+    setShopRerollBasePrice(1);
+    setShopRerollPrice(1);
     setTokens([]);
     /* setEnergy(0); // REMOVED */
     setActiveBuffs([]);
@@ -2444,10 +2593,20 @@ const App = () => {
     const isLuxury = totalPurchases >= 6;
 
     let saleBonus = 0;
+    let enchantGrantBonus = 0;
+    let shopExpandBonus = 0;
     tokens.forEach((t) => {
       if (t?.id === "bargain") {
         const value = t.values[(t.level || 1) - 1];
         saleBonus += (value - 1);
+      }
+      if (t?.effect === "enchant_grant_boost") {
+        const value = t.values[(t.level || 1) - 1];
+        enchantGrantBonus += value;
+      }
+      if (t?.effect === "shop_expand") {
+        const value = t.values[(t.level || 1) - 1];
+        shopExpandBonus += value;
       }
     });
     const saleCount = 1 + saleBonus;
@@ -2476,7 +2635,8 @@ const App = () => {
     }
 
     const pool = [...ALL_TOKEN_BASES];
-    for (let i = 0; i < 4; i++) {
+    const shopBaseCount = 6 + shopExpandBonus;
+    for (let i = 0; i < shopBaseCount; i++) {
       const idx = Math.floor(Math.random() * pool.length);
       const base = pool[idx];
       // Initialize charge to max (cost) for new skills
@@ -2492,9 +2652,9 @@ const App = () => {
       items.push(item);
     }
 
-    // Apply sales only to the standard pool items (last 4 items)
-    const standardItemsStartIndex = items.length - 4;
-    const indices = [0, 1, 2, 3].map(i => i + standardItemsStartIndex);
+    // Apply sales only to the standard pool items (last `shopBaseCount` items)
+    const standardItemsStartIndex = items.length - shopBaseCount;
+    const indices = Array.from({ length: shopBaseCount }, (_, i) => i + standardItemsStartIndex);
 
     for (let i = 0; i < saleCount && indices.length > 0; i++) {
       const randIdx = Math.floor(Math.random() * indices.length);
@@ -2510,6 +2670,13 @@ const App = () => {
       const enc = ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
       items.push({ ...enc, type: "enchant_grant", price: enc.price - 2 });
     }
+
+    // Add extra enchant grant tokens from the passive bonus
+    for (let i = 0; i < enchantGrantBonus; i++) {
+      const enc = ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
+      items.push({ ...enc, type: "enchant_grant", price: Math.max(1, enc.price - 2) });
+    }
+
     setShopItems(items);
   };
 
@@ -2683,6 +2850,11 @@ const App = () => {
   const activateSkill = (token) => {
     if (!token || token.type !== "skill") return;
 
+    // オーバーレイ表示時はスキル発動不可
+    if (isGameOver) return notify("ゲームオーバー時は使用できません");
+    if (turn > maxTurns && goalReached) return notify("クリア時は使用できません");
+    if (showShop) return notify("ショップ画面では使用できません");
+
     // Check individual charge
     const currentCharge = token.charge || 0;
     const cost = getEffectiveCost(token);
@@ -2824,9 +2996,10 @@ const App = () => {
   };
 
   const refreshShop = () => {
-    if (stars < 3) return notify("★が足りません");
-    setStars(s => s - 3);
-    setTotalStarsSpent((prev) => prev + 3);
+    if (stars < shopRerollPrice) return notify("★が足りません");
+    setStars(s => s - shopRerollPrice);
+    setTotalStarsSpent((prev) => prev + shopRerollPrice);
+    setShopRerollPrice(prev => Math.ceil(prev * 1.5));
     generateShop();
     notify("商品を入荷しました");
   };
@@ -2841,151 +3014,184 @@ const App = () => {
           <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
         </div>
 
-        {/* Top Status Bar */}
-        <header className="relative z-10 px-4 pt-6 pb-2 flex justify-between items-center glass-panel border-b border-white/5">
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-white">Cycle {Math.ceil(turn / maxTurns)}</span>
-              <span className="text-primary font-bold">/</span>
-              <span className="text-lg font-bold text-white">Turn {turn}{isEndlessMode ? ' (∞)' : ''}</span>
-            </div>
-          </div>
-          <div
-            onClick={openShop}
-            className="flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-transform"
-          >
-            <span className="material-icons-round text-yellow-400 text-sm">star</span>
-            <span className="font-bold text-sm tracking-wide">{stars.toLocaleString()}</span>
-          </div>
-        </header>
+        {/* --- Top Area Swipe Handler --- */}
+        <div
+          className="flex-none flex flex-col relative z-30"
+          onTouchStart={(e) => {
+            // パズル盤面など必要な部分に影響しないように、画面上部のコンテナにのみ適用
+            timerRef.current && (timerRef.current._swipeStartX = e.touches[0].clientX);
+            timerRef.current && (timerRef.current._swipeStartY = e.touches[0].clientY);
+            timerRef.current && (timerRef.current._swipeStartTime = Date.now());
+          }}
+          onTouchEnd={(e) => {
+            if (!timerRef.current || !timerRef.current._swipeStartX) return;
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const dx = touchEndX - timerRef.current._swipeStartX;
+            const dy = touchEndY - timerRef.current._swipeStartY;
+            const dt = Date.now() - timerRef.current._swipeStartTime;
 
-        {/* Main Stats Area */}
-        <section className="relative z-10 px-6 py-3 flex-none">
-          <div className="flex justify-between items-center">
-            {/* Target Combo テキスト表示 */}
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary">
-                <span className="material-icons-round text-xl">whatshot</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase text-slate-400 font-bold">Target Combo</span>
-                <span
-                  ref={targetComboRef}
-                  className={`text-xl font-mono font-bold text-white inline-block ${targetPulse ? 'animate-target-pulse' : ''}`}
-                >
-                  {cycleTotalCombo}<span className="text-slate-500 text-lg">/{target}</span>
-                </span>
-              </div>
-            </div>
-            {/* 操作時間テキスト */}
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary">
-                <span className="material-icons-round text-xl">timer</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase text-slate-400 font-bold">Move Time</span>
-                <span className="text-xl font-mono font-bold text-white">
-                  {(getTimeLimit() / 1000).toFixed(1)}<span className="text-xs text-slate-500 ml-0.5">s</span>
-                </span>
+            // X方向（右）への移動量が十分大きく、Y方向のズレが少なく、短時間でのフリック判定
+            // ※ shop画面を開くのは条件満たしている、かつ現在開いていない場合のみ（openShop内にロジックあり）
+            if (dx < -50 && Math.abs(dy) < 50 && dt < 300) { // 右から左（左フリック）で開く？いや、「右フリックでショップ画面に」
+              // ...要求は「画面上部を右フリックでショップ画面に」
+              // dx > 50 が右フリック
+            }
+            if (dx > 50 && Math.abs(dy) < 50 && dt < 300) {
+              openShop();
+            }
+            timerRef.current._swipeStartX = null;
+          }}
+        >
+          {/* Top Status Bar */}
+          <header className="relative z-10 px-4 pt-6 pb-2 flex justify-between items-center glass-panel border-b border-white/5">
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-white">Cycle {Math.ceil(turn / maxTurns)}</span>
+                <span className="text-primary font-bold">/</span>
+                <span className="text-lg font-bold text-white">Turn {turn}{isEndlessMode ? ' (∞)' : ''}</span>
               </div>
             </div>
-          </div>
-        </section>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 bg-slate-800/50 px-2 py-1 rounded-full border border-white/10">
+                <span className="material-icons-round text-yellow-400 text-sm">star</span>
+                <span className="font-bold text-sm tracking-wide">{stars.toLocaleString()}</span>
+              </div>
+              <button
+                onClick={openShop}
+                className="flex items-center gap-1 bg-slate-800/50 hover:bg-slate-700/50 px-3 py-1 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-all text-sm font-bold text-white"
+              >
+                <span className="material-icons-round text-primary text-sm">storefront</span>
+                <span>Shop</span>
+              </button>
+            </div>
+          </header>
 
-
-
-
-        {/* Token/Skill Belt */}
-        <section className="relative z-30 px-6 py-2 flex-none mb-4 flex flex-col gap-2">
-          {/* Passive Tokens Row */}
-          <div>
-            <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider flex justify-between">
-              <span>Passive Artifacts</span>
-              <span className="text-[9px]">{tokens.filter(t => t && t.type !== 'skill').length}/5</span>
-            </h3>
-            <div className="grid grid-cols-5 gap-2">
-              {Array.from({ length: 5 }).map((_, i) => {
-                const passiveTokens = tokens.filter(t => t && t.type !== 'skill');
-                const t = passiveTokens[i];
-                return (
-                  <div
-                    key={`passive-${i}`}
-                    onClick={() => t && setSelectedTokenDetail({ token: t })}
-                    className={`aspect-square rounded-xl flex items-center justify-center relative border transition-all 
-                      ${t ? 'bg-slate-800 border-white/10 cursor-pointer hover:bg-white/5' : 'bg-slate-900/30 border-white/5 border-dashed'}
-                    `}
+          {/* Main Stats Area */}
+          <section className="relative z-10 px-6 py-3 flex-none">
+            <div className="flex justify-between items-center">
+              {/* Target Combo テキスト表示 */}
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary">
+                  <span className="material-icons-round text-xl">whatshot</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase text-slate-400 font-bold">Target Combo</span>
+                  <span
+                    ref={targetComboRef}
+                    className={`text-xl font-mono font-bold text-white inline-block ${targetPulse ? 'animate-target-pulse' : ''}`}
                   >
-                    {t && (
-                      <>
-                        <span className="material-icons-round text-2xl text-slate-400 relative z-10">
-                          auto_awesome
-                        </span>
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
-                          {t.level || 1}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+                    {cycleTotalCombo}<span className="text-slate-500 text-lg">/{target}</span>
+                  </span>
+                </div>
+              </div>
+              {/* 操作時間テキスト */}
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary">
+                  <span className="material-icons-round text-xl">timer</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase text-slate-400 font-bold">Move Time</span>
+                  <span className="text-xl font-mono font-bold text-white">
+                    {(getTimeLimit() / 1000).toFixed(1)}<span className="text-xs text-slate-500 ml-0.5">s</span>
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
 
-          {/* Active Tokens Row */}
-          <div>
-            <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider flex justify-between">
-              <span>Active Spells</span>
-              <span className="text-[9px]">{tokens.filter(t => t && t.type === 'skill').length}/5</span>
-            </h3>
-            <div className="grid grid-cols-5 gap-2">
-              {Array.from({ length: 5 }).map((_, i) => {
-                const activeTokens = tokens.filter(t => t && t.type === 'skill');
-                const t = activeTokens[i];
-                // Calculate charge status
-                const isSkill = t?.type === 'skill';
-                const charge = t?.charge || 0;
-                const cost = getEffectiveCost(t);
-                const progress = isSkill ? Math.min(100, (charge / cost) * 100) : 100;
-                const isReady = isSkill && charge >= cost;
-
-                return (
-                  <div
-                    key={`active-${i}`}
-                    onClick={() => t && setSelectedTokenDetail({ token: t })}
-                    className={`aspect-square rounded-xl flex items-center justify-center relative border transition-all 
-                      ${t ? (isReady ? 'bg-slate-800 border-primary/50 cursor-pointer shadow-[0_0_10px_rgba(91,19,236,0.2)] group hover:scale-105' : 'bg-slate-900 border-white/5 opacity-80 cursor-pointer') : 'bg-slate-900/30 border-white/5 border-dashed'}
-                    `}
-                  >
-                    {t && (
-                      <>
-                        <div className="absolute inset-0 bg-primary/10 rounded-xl overflow-hidden">
-                          {isSkill && (
-                            <div
-                              className="absolute bottom-0 left-0 right-0 bg-primary/20 transition-all duration-500"
-                              style={{ height: `${progress}%` }}
-                            ></div>
-                          )}
-                        </div>
-                        <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${isReady ? 'text-primary' : 'text-slate-500'}`}>
-                          sports_martial_arts
-                        </span>
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
-                          {t.level || 1}
-                        </div>
-                        {t.cost > 0 && (
-                          <div className="absolute top-0.5 right-1 z-20 flex flex-col items-end">
-                            <span className="text-[7px] text-slate-400 font-mono">{t.cost}E</span>
+          {/* Token/Skill Belt */}
+          <section className="relative z-30 px-6 py-2 flex-none mb-4 flex flex-col gap-2">
+            {/* Passive Tokens Row */}
+            <div>
+              <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider flex justify-between">
+                <span>Passive Artifacts</span>
+                <span className="text-[9px]">{tokens.filter(t => t && t.type !== 'skill').length}/5</span>
+              </h3>
+              <div className="grid grid-cols-5 gap-2">
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const passiveTokens = tokens.filter(t => t && t.type !== 'skill');
+                  const t = passiveTokens[i];
+                  return (
+                    <div
+                      key={`passive-${i}`}
+                      onClick={() => t && setSelectedTokenDetail({ token: t })}
+                      className={`aspect-square rounded-xl flex items-center justify-center relative border transition-all 
+                        ${t ? 'bg-slate-800 border-white/10 cursor-pointer hover:bg-white/5' : 'bg-slate-900/30 border-white/5 border-dashed'}
+                      `}
+                    >
+                      {t && (
+                        <>
+                          <span className="material-icons-round text-2xl text-slate-400 relative z-10">
+                            auto_awesome
+                          </span>
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
+                            {t.level || 1}
                           </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </section>
+
+            {/* Active Tokens Row */}
+            <div>
+              <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider flex justify-between">
+                <span>Active Spells</span>
+                <span className="text-[9px]">{tokens.filter(t => t && t.type === 'skill').length}/5</span>
+              </h3>
+              <div className="grid grid-cols-5 gap-2">
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const activeTokens = tokens.filter(t => t && t.type === 'skill');
+                  const t = activeTokens[i];
+                  // Calculate charge status
+                  const isSkill = t?.type === 'skill';
+                  const charge = t?.charge || 0;
+                  const cost = getEffectiveCost(t);
+                  const progress = isSkill ? Math.min(100, (charge / cost) * 100) : 100;
+                  const isReady = isSkill && charge >= cost;
+
+                  return (
+                    <div
+                      key={`active-${i}`}
+                      onClick={() => t && setSelectedTokenDetail({ token: t })}
+                      className={`aspect-square rounded-xl flex items-center justify-center relative border transition-all 
+                        ${t ? (isReady ? 'bg-slate-800 border-primary/50 cursor-pointer shadow-[0_0_10px_rgba(91,19,236,0.2)] group hover:scale-105' : 'bg-slate-900 border-white/5 opacity-80 cursor-pointer') : 'bg-slate-900/30 border-white/5 border-dashed'}
+                      `}
+                    >
+                      {t && (
+                        <>
+                          <div className="absolute inset-0 bg-primary/10 rounded-xl overflow-hidden">
+                            {isSkill && (
+                              <div
+                                className="absolute bottom-0 left-0 right-0 bg-primary/20 transition-all duration-500"
+                                style={{ height: `${progress}%` }}
+                              ></div>
+                            )}
+                          </div>
+                          <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${isReady ? 'text-primary' : 'text-slate-500'}`}>
+                            sports_martial_arts
+                          </span>
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
+                            {t.level || 1}
+                          </div>
+                          {t.cost > 0 && (
+                            <div className="absolute top-0.5 right-1 z-20 flex flex-col items-end">
+                              <span className="text-[7px] text-slate-400 font-mono">{t.cost}E</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        </div>
 
         {/* 操作時間ゲージ（トークンの下） */}
         <div className="relative z-30 px-6 mb-2">
@@ -3021,9 +3227,9 @@ const App = () => {
             </div>
           )}
 
-          <div className="relative w-full h-full p-4 flex flex-col justify-start pt-12">
+          <div className="relative w-full h-full p-4 pt-4 flex flex-col justify-start">
             {/* コンボ表示 */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50 flex justify-center w-full">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 flex justify-center w-full">
               <div ref={comboRef} className="combo-display"></div>
             </div>
 
@@ -3108,6 +3314,7 @@ const App = () => {
               onClose={() => setShowShop(false)}
               onRefresh={refreshShop}
               goalReached={goalReached}
+              rerollPrice={shopRerollPrice}
             />
           </div>
         )}
@@ -3214,10 +3421,10 @@ const App = () => {
                     </button>
                   )}
                   <button
-                    onClick={() => sellToken(selectedTokenDetail.index)}
+                    onClick={() => sellToken(t)}
                     className="w-full text-center bg-red-600/20 hover:bg-red-600/40 text-red-300 py-3 rounded-lg font-bold transition-colors"
                   >
-                    売却 (+{Math.floor(t.price / 2)} ★)
+                    売却 (+{Math.floor(t.price * (t.enchantments?.some(e => e.effect === "high_sell") ? 3.0 : 0.5))} ★)
                   </button>
                   <button onClick={() => setSelectedTokenDetail(null)} className="text-slate-400 text-xs font-bold py-2">
                     閉じる

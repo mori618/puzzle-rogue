@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached }) => {
+const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached, rerollPrice }) => {
     // Separate items into categories
     const passiveItems = items.filter(item => item.type === 'passive' || item.type === 'collector');
     const activeItems = items.filter(item => item.type !== 'passive' && item.type !== 'collector');
@@ -49,42 +49,53 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached }) =>
         return { bg: 'from-primary/20 to-primary/5', border: 'border-primary/20', iconColor: 'text-primary' };
     };
 
+    // Swipe back to exit shop
+    const [touchStartInfo, setTouchStartInfo] = React.useState(null);
+
+    const handleTouchStart = (e) => {
+        setTouchStartInfo({
+            x: e.touches[0].clientX,
+            y: e.touches[0].clientY,
+            time: Date.now()
+        });
+    };
+
+    const handleTouchEnd = (e) => {
+        if (!touchStartInfo) return;
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const dx = touchEndX - touchStartInfo.x;
+        const dy = touchEndY - touchStartInfo.y;
+        const dt = Date.now() - touchStartInfo.time;
+
+        // X方向への移動量が十分大きく、Y方向のズレが少なく、短時間でのフリック判定
+        if (dx > 50 && Math.abs(dy) < 50 && dt < 300) {
+            onClose();
+        }
+        setTouchStartInfo(null);
+    };
+
     return (
-        <main className="w-full h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden">
+        <main
+            className="w-full h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+        >
             {/* Header: Currency & Title */}
-            <header className="flex-none px-6 pt-6 pb-4 z-20 glass-panel border-b border-white/5 relative">
-                <div className="absolute inset-0 bg-gradient-to-b from-background-dark to-transparent opacity-90 -z-10"></div>
-                <div className="flex items-center justify-between mb-2">
+            <header className="flex-none px-6 py-4 z-20 relative">
+                <div className="flex items-center justify-between">
                     <button onClick={onClose} className="p-2 -ml-2 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
                         <span className="material-icons-round">arrow_back</span>
                     </button>
                     <h1 className="text-sm font-medium tracking-widest uppercase text-slate-400">Merchant's Wares</h1>
-                    <button className="p-2 -mr-2 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
-                        <span className="material-icons-round">help_outline</span>
-                    </button>
-                </div>
-                {/* Currency Display */}
-                <div className="flex items-center justify-center space-x-2 py-2">
-                    <div className="flex items-center bg-surface-dark border border-primary/30 rounded-full px-4 py-1.5 shadow-lg shadow-primary/10">
-                        <span className="material-icons-round text-gold text-xl mr-2 animate-pulse">star</span>
-                        <span className="text-xl font-bold text-white tracking-wide">{stars.toLocaleString()}</span>
+                    <div className="flex items-center space-x-1 p-2 -mr-2 text-white">
+                        <span className="material-icons-round text-gold text-lg animate-pulse">star</span>
+                        <span className="text-lg font-bold tracking-wide">{stars.toLocaleString()}</span>
                     </div>
                 </div>
             </header>
 
-            {/* Merchant Banner */}
-            <section className="flex-none px-6 py-4 relative">
-                <div className="bg-gradient-to-r from-primary/20 to-primary/5 rounded-xl p-4 flex items-center border border-primary/20">
-                    <div className="w-12 h-12 rounded-full bg-surface-dark border-2 border-primary overflow-hidden flex-shrink-0 relative flex items-center justify-center">
-                        {/* Placeholder for merchant image if not available, or use icon */}
-                        <span className="material-icons-round text-3xl text-primary opacity-80">storefront</span>
-                    </div>
-                    <div className="ml-4">
-                        <p className="text-xs text-primary font-bold uppercase tracking-wider mb-0.5">The Void Trader</p>
-                        <p className="text-sm text-slate-300 italic">"Power comes at a price, traveler. What do you seek?"</p>
-                    </div>
-                </div>
-            </section>
+
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-32 space-y-6">
@@ -174,9 +185,8 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached }) =>
                     >
                         <span className="material-icons-round text-xl mb-0.5 group-hover:rotate-180 transition-transform duration-500">sync</span>
                         <div className="flex flex-col items-center leading-none">
-                            <span className="text-[10px] font-bold mb-0.5">refresh</span>
                             <span className="flex items-center bg-slate-800/80 px-1.5 rounded-full border border-white/5">
-                                <span className="text-[10px] font-mono">3</span>
+                                <span className="text-[10px] font-mono">{rerollPrice}</span>
                                 <span className="material-icons-round text-gold text-[8px] ml-0.5">star</span>
                             </span>
                         </div>
