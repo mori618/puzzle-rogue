@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached, rerollPrice }) => {
+const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached, rerollPrice, onPause }) => {
     // Separate items into categories
     const passiveItems = items.filter(item => item.type === 'passive' || item.type === 'collector');
     const activeItems = items.filter(item => item.type !== 'passive' && item.type !== 'collector');
@@ -32,21 +32,27 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached, rero
 
     // Helper for background gradients - matches shopcode.html style logic concept
     // In shopcode.html, they use specific color classes. We will map item types to colors.
+    // Apply background and border colors based on rarity, overriding previous rules
     const getItemColors = (item) => {
-        if (item.type === 'skill') {
-            // Mapping specific skills to colors if needed, or general
-            if (item.action === 'convert' && item.params?.to === 'fire') return { bg: 'from-red-500/20 to-red-900/20', border: 'border-red-500/30', iconColor: 'text-red-400' };
-            return { bg: 'from-primary/20 to-primary/5', border: 'border-primary/20', iconColor: 'text-primary' };
+        // Enchantment grants and upgrades can keep their specific colors or we can force them too. Let's keep them if they are special items, otherwise use rarity.
+        if (item.type === 'enchant_grant' || item.type === 'enchant_random') {
+            return { bg: 'from-purple-500/20 to-purple-900/20', border: 'border-purple-500/30', iconColor: 'text-purple-300' };
         }
-        if (item.type === 'passive') {
-            if (item.id === 'collector') return { bg: 'from-yellow-500/20 to-yellow-900/20', border: 'border-yellow-500/30', iconColor: 'text-gold' };
-            if (item.id === 'time_ext') return { bg: 'from-blue-500/20 to-blue-900/20', border: 'border-blue-500/30', iconColor: 'text-blue-400' };
-            return { bg: 'from-slate-500/20 to-slate-900/20', border: 'border-white/10', iconColor: 'text-slate-400' };
+        if (item.type === 'upgrade_random') {
+            return { bg: 'from-green-500/20 to-green-900/20', border: 'border-green-500/30', iconColor: 'text-green-400' };
         }
-        if (item.type === 'enchant_grant' || item.type === 'enchant_random') return { bg: 'from-purple-500/20 to-purple-900/20', border: 'border-purple-500/30', iconColor: 'text-purple-300' };
-        if (item.type === 'upgrade_random') return { bg: 'from-green-500/20 to-green-900/20', border: 'border-green-500/30', iconColor: 'text-green-400' };
 
-        return { bg: 'from-primary/20 to-primary/5', border: 'border-primary/20', iconColor: 'text-primary' };
+        const rarity = item.rarity || 1;
+        if (rarity === 3) {
+            // Epic (★3) - Purple/Gold
+            return { bg: 'from-fuchsia-600/20 to-purple-900/20', border: 'border-fuchsia-500/40', iconColor: 'text-fuchsia-300' };
+        } else if (rarity === 2) {
+            // Rare (★2) - Blue
+            return { bg: 'from-blue-500/20 to-blue-900/20', border: 'border-blue-500/30', iconColor: 'text-blue-300' };
+        } else {
+            // Common (★1) - Slate/Gray
+            return { bg: 'from-slate-500/20 to-slate-800/20', border: 'border-white/10', iconColor: 'text-slate-300' };
+        }
     };
 
     // Swipe back to exit shop
@@ -89,6 +95,9 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached, rero
                     </button>
                     <h1 className="text-sm font-medium tracking-widest uppercase text-slate-400">Merchant's Wares</h1>
                     <div className="flex items-center space-x-1 p-2 -mr-2 text-white">
+                        <button onClick={onPause} className="p-2 mr-2 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-colors flex items-center justify-center">
+                            <span className="material-icons-round">pause</span>
+                        </button>
                         <span className="material-icons-round text-gold text-lg animate-pulse">star</span>
                         <span className="text-lg font-bold tracking-wide">{stars.toLocaleString()}</span>
                     </div>
@@ -117,7 +126,14 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached, rero
                                             <span className={`material-icons-round ${styles.iconColor} text-2xl relative z-10`}>{getItemIcon(item)}</span>
                                         </div>
                                         <div className="ml-3 flex-1">
-                                            <h3 className="font-bold text-white text-base">{item.name}</h3>
+                                            <div className="flex items-center space-x-2">
+                                                <h3 className="font-bold text-white text-base">{item.name}</h3>
+                                                <div className="flex text-gold text-[10px]">
+                                                    {Array.from({ length: item.rarity || 1 }).map((_, i) => (
+                                                        <span key={i} className="material-icons-round">star</span>
+                                                    ))}
+                                                </div>
+                                            </div>
                                             <p className="text-xs text-slate-400 mt-0.5 leading-tight">{item.desc}</p>
                                         </div>
                                         <button
@@ -154,7 +170,14 @@ const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached, rero
                                             <span className={`material-icons-round ${styles.iconColor} text-2xl relative z-10`}>{getItemIcon(item)}</span>
                                         </div>
                                         <div className="ml-3 flex-1">
-                                            <h3 className="font-bold text-white text-base">{item.name}</h3>
+                                            <div className="flex items-center space-x-2">
+                                                <h3 className="font-bold text-white text-base">{item.name}</h3>
+                                                <div className="flex text-gold text-[10px]">
+                                                    {Array.from({ length: item.rarity || 1 }).map((_, i) => (
+                                                        <span key={i} className="material-icons-round">star</span>
+                                                    ))}
+                                                </div>
+                                            </div>
                                             <p className="text-xs text-slate-400 mt-0.5 leading-tight">{item.desc}</p>
                                         </div>
                                         <button
