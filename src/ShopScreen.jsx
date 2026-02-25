@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, goalReached, rerollPrice, onPause }) => {
+const ShopScreen = ({ items, stars, onBuy, onClose, onRefresh, rerollPrice, onPause }) => {
     // Separate items into categories
     const passiveItems = items.filter(item => item.type === 'passive' || item.type === 'collector');
     const activeItems = items.filter(item => item.type !== 'passive' && item.type !== 'collector');

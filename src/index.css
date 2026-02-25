@@ -467,3 +467,28 @@ body {
   pointer-events: none;
   z-index: 51;
 }
+
+/* ボムマークのスタイル */
+.bomb-mark {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  font-size: 24px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+  z-index: 20;
+  pointer-events: none;
+  user-select: none;
+  animation: bomb-float 2s infinite ease-in-out;
+}
+
+@keyframes bomb-float {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(-10deg);
+  }
+
+  50% {
+    transform: translateY(-4px) rotate(10deg);
+  }
+}

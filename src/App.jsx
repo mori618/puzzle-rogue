@@ -61,6 +61,15 @@ const ALL_TOKEN_BASES = [
   { id: "board_mono5", name: "真・常闇の極致", type: "skill", cost: 6, costLevels: true, action: "board_change", params: { colors: ["dark"] }, rarity: 2, price: 6, desc: "盤面すべてを闇に変更。消費E:{cost}" },
   { id: "board_mono6", name: "真・生命の極致", type: "skill", cost: 6, costLevels: true, action: "board_change", params: { colors: ["heart"] }, rarity: 2, price: 6, desc: "盤面すべてを回復に変更。消費E:{cost}" },
 
+  // --- Skills: Bomb Generation ---
+  { id: "gen_bomb_rand", name: "爆発の種", type: "skill", cost: 3, costLevels: true, action: "spawn_bomb_random", params: { count: 1 }, rarity: 1, price: 2, desc: "ランダムなドロップ1つをボムドロップにする。消費E:{cost}", levelsConfig: [3, 2, 1] },
+  { id: "conv_bomb_target_fire", name: "紅炎の火薬", type: "skill", cost: 4, costLevels: true, action: "convert_bomb_targeted", params: { count: 1, type: "fire" }, rarity: 2, price: 3, desc: "火ドロップ1つをボムドロップにする。消費E:{cost}", levelsConfig: [4, 3, 2] },
+  { id: "conv_bomb_target_water", name: "蒼氷の火薬", type: "skill", cost: 4, costLevels: true, action: "convert_bomb_targeted", params: { count: 1, type: "water" }, rarity: 2, price: 3, desc: "水ドロップ1つをボムドロップにする。消費E:{cost}", levelsConfig: [4, 3, 2] },
+  { id: "conv_bomb_target_wood", name: "翠嵐の火薬", type: "skill", cost: 4, costLevels: true, action: "convert_bomb_targeted", params: { count: 1, type: "wood" }, rarity: 2, price: 3, desc: "木ドロップ1つをボムドロップにする。消費E:{cost}", levelsConfig: [4, 3, 2] },
+  { id: "conv_bomb_target_light", name: "雷煌の火薬", type: "skill", cost: 4, costLevels: true, action: "convert_bomb_targeted", params: { count: 1, type: "light" }, rarity: 2, price: 3, desc: "光ドロップ1つをボムドロップにする。消費E:{cost}", levelsConfig: [4, 3, 2] },
+  { id: "conv_bomb_target_dark", name: "暗黒の火薬", type: "skill", cost: 4, costLevels: true, action: "convert_bomb_targeted", params: { count: 1, type: "dark" }, rarity: 2, price: 3, desc: "闇ドロップ1つをボムドロップにする。消費E:{cost}", levelsConfig: [4, 3, 2] },
+  { id: "conv_bomb_target_heart", name: "生命の火薬", type: "skill", cost: 4, costLevels: true, action: "convert_bomb_targeted", params: { count: 1, type: "heart" }, rarity: 2, price: 3, desc: "回復ドロップ1つをボムドロップにする。消費E:{cost}", levelsConfig: [4, 3, 2] },
+
   // --- Skills: Random Generation ---
   { id: "gen_rand_fire", name: "火の創造", type: "skill", cost: 2, costLevels: true, action: "spawn_random", params: { color: "fire", count: 5 }, rarity: 1, price: 2, desc: "火ドロップをランダムに5個生成。消費E:{cost}" },
   { id: "gen_rand_water", name: "水の創造", type: "skill", cost: 2, costLevels: true, action: "spawn_random", params: { color: "water", count: 5 }, rarity: 1, price: 2, desc: "水ドロップをランダムに5個生成。消費E:{cost}" },
@@ -591,6 +600,101 @@ const ALL_TOKEN_BASES = [
     id: "enchant_mult_boost", name: "魔導の共犯", type: "passive", effect: "enchant_count_combo_mult",
     values: [1.1, 1.2, 1.5], rarity: 3, price: 9,
     desc: "所持しているエンチャント数 × [1.1/1.2/1.5]倍 コンボ倍率を乗算する。",
+  },
+  // --- New Stat-Based Passives (Combo & Multiplier) ---
+  {
+    id: "memory_of_combo", name: "コンボの記憶", type: "passive", effect: "stat_combo_記憶",
+    values: [1, 2, 3], rarity: 2, price: 6,
+    desc: "現在のゲーム中の「最大コンボ数」5コンボにつき、常にコンボ加算 +[1/2/3]。",
+  },
+  {
+    id: "echo_of_max", name: "極大の余韻", type: "passive", effect: "stat_mult_余韻",
+    values: [0.1, 0.2, 0.5], rarity: 3, price: 9,
+    desc: "現在のゲーム中の「最大コンボ倍率」の[10/20/50]%を、常時コンボ倍率に乗算する。",
+  },
+  {
+    id: "thousand_arms", name: "千手観音", type: "passive", effect: "stat_mult_千手",
+    values: [1.1, 1.2, 1.3], rarity: 3, price: 10,
+    desc: "現在のゲーム中の「累計コンボ数」100ごとに、コンボ倍率が x[1.1/1.2/1.3] 上昇する。",
+  },
+  // --- New Stat-Based Passives (Shape) ---
+  {
+    id: "seeker_of_cross", name: "十字の求道者", type: "passive", effect: "stat_shape_cross",
+    values: [1, 2, 3], rarity: 3, price: 8,
+    desc: "現在のゲーム中の「十字消し累計回数」5回につき、十字消しの際に追加でコンボ加算 +[1/2/3]。",
+  },
+  {
+    id: "seeker_of_len4", name: "四連の探求者", type: "passive", effect: "stat_shape_len4",
+    values: [1, 2, 3], rarity: 3, price: 6,
+    desc: "現在のゲーム中の「4個消し累計回数」20回につき、4個消しの際に追加でコンボ加算 +[1/2/3]。",
+  },
+  {
+    id: "polishing_claw", name: "鉤爪の研鑽", type: "passive", effect: "stat_shape_l",
+    values: [1, 2, 3], rarity: 2, price: 5,
+    desc: "現在のゲーム中の「L字消し累計回数」1回につき、このトークンの売却値が[1/2/3]上がる。",
+  },
+  {
+    id: "memory_of_flash", name: "一閃の記憶", type: "passive", effect: "stat_shape_row",
+    values: [1.1, 1.3, 1.5], rarity: 3, price: 9,
+    desc: "現在のゲーム中の「横1列消し累計回数」5回につき、横1列消しのコンボ倍率が x[1.1/1.3/1.5] 上昇する。",
+  },
+  {
+    id: "artisan_of_square", name: "方陣の職人", type: "passive", effect: "stat_shape_square",
+    values: [1.5, 2, 4], rarity: 3, price: 10,
+    desc: "現在のゲーム中の「四角消し累計回数」5回につき、コンボ倍率が x[1.5/2/4] 上昇する。",
+  },
+  {
+    id: "guide_of_fivestar", name: "五星の導き手", type: "passive", effect: "stat_shape_len5",
+    values: [0.5, 1.0, 1.5], rarity: 2, price: 8,
+    desc: "現在のゲーム中の「5個以上連結消し累計回数」10回につき、5個消しの次手操作時間が +[0.5/1.0/1.5]秒 される。",
+  },
+  // --- New Stat-Based Passives (Resource & Action) ---
+  {
+    id: "pride_of_spendthrift", name: "浪費家の意地", type: "passive", effect: "stat_spend_star",
+    values: [1.1, 1.2, 1.3], rarity: 3, price: 10,
+    desc: "現在のゲーム中の「累計消費スター数」50★につき、コンボ倍率 x[1.1/1.2/1.3] 上昇。",
+  },
+  // --- New Stat-Based Passives (Time & Progress) ---
+  {
+    id: "proof_of_veteran", name: "歴戦の証明", type: "passive", effect: "stat_progress_clear",
+    values: [0.01, 0.02, 0.03], rarity: 3, price: 9,
+    desc: "「現在のクリア回数」の進行ごとに、強化ドロップ確率が +[1/2/3]%。",
+  },
+  {
+    id: "end_of_thought", name: "熟考の果て", type: "passive", effect: "stat_time_move",
+    values: [0.05, 0.1, 0.15], rarity: 2, price: 7,
+    desc: "「合計操作時間」1分につき、目標達成後のスキップボーナス獲得量が +[5/10/15]%。",
+  },
+  {
+    id: "bomb_erase_mult", name: "爆熱の余韻", type: "passive", effect: "bomb_erase_mult",
+    values: [1.2, 1.3, 1.5], rarity: 3, price: 9,
+    desc: "ボムの効果で消えたドロップ数 × [1.2/1.3/1.5] 倍、コンボ倍率に乗算される。",
+  },
+  {
+    id: "ignited_drop_fire", name: "爆炎の兆し", type: "passive", effect: "bomb_chance_color", params: { color: "fire" },
+    values: [0.03, 0.05, 0.10], rarity: 3, price: 9,
+    desc: "火ドロップが、[3/5/10]%の確率でボムドロップとして降ってくるようになる。",
+  },
+  // --- New Active Skills ---
+  { id: "active_mult_1", name: "覚醒の鼓動", type: "skill", cost: 6, costLevels: true, action: "temp_mult", params: { multiplier: 2, duration: 3 }, rarity: 2, price: 6, desc: "3手番、最終コンボ倍率が2倍になる。消費E:{cost}" },
+  { id: "active_mult_2", name: "一刃の極意", type: "skill", cost: 6, costLevels: true, action: "temp_mult", params: { multiplier: 5, duration: 1 }, rarity: 3, price: 10, desc: "1手番、最終コンボ倍率が5倍になる。消費E:{cost}" },
+  { id: "seal_of_power", name: "力の封印", type: "skill", cost: 6, costLevels: true, action: "seal_of_power", params: { multiplier: 5, duration: 1 }, rarity: 3, price: 10, desc: "1手番、全エンチャント効果が無効になるが、コンボ倍率が5倍になる。消費E:{cost}" },
+  {
+    id: "contract_of_void", name: "虚無の契約", type: "passive", effect: "contract_of_void",
+    values: [3.0, 4.0, 5.0], rarity: 3, price: 12,
+    desc: "全エンチャント効果が無効になる代わりに、コンボ倍率が常にx[3.0/4.0/5.0]倍になる。",
+  },
+  { id: "gen_repeat_rand", name: "循環の理", type: "skill", cost: 3, costLevels: true, action: "spawn_repeat", params: { count: 1 }, rarity: 2, price: 5, desc: "ランダムなドロップ1つをリピートドロップ（2回消える）にする。消費E:{cost}" },
+  { id: "conv_repeat_water", name: "水鏡の輪廻", type: "skill", cost: 4, costLevels: true, action: "convert_repeat", params: { count: 2, color: "water" }, rarity: 3, price: 9, desc: "ランダムな水ドロップ2つをリピートドロップにする。消費E:{cost}" },
+  {
+    id: "repeat_chance_water", name: "水波の巡り", type: "passive", effect: "repeat_chance_color", params: { color: "water" },
+    values: [0.03, 0.05, 0.10], rarity: 2, price: 7,
+    desc: "水ドロップが、[3/5/10]%の確率でリピートドロップとして降ってくるようになる。",
+  },
+  {
+    id: "repeat_erase_combo", name: "反響する輪舞", type: "passive", effect: "repeat_erase_combo",
+    values: [2, 3, 5], rarity: 3, price: 10,
+    desc: "ターン中にリピートドロップが消えた数 × [2/3/5] コンボを加算する。",
   }
 ];
 
@@ -691,46 +795,53 @@ const ENCHANTMENTS = [
   { id: "enc_bonus_light", name: "光の連舞", effect: "color_multiplier_enc", params: { color: "light" }, value: 1.5, rarity: 3, price: 8, desc: "光を消しているとコンボ倍率x1.5。" },
   { id: "enc_bonus_dark", name: "闇の連舞", effect: "color_multiplier_enc", params: { color: "dark" }, value: 1.5, rarity: 3, price: 8, desc: "闇を消しているとコンボ倍率x1.5。" },
   { id: "enc_bonus_heart", name: "癒しの連舞", effect: "color_multiplier_enc", params: { color: "heart" }, value: 1.5, rarity: 3, price: 8, desc: "回復を消しているとコンボ倍率x1.5。" },
+
+  // --- New Stat-Based Enchantments ---
+  { id: "bomb_burst_combo", name: "誘爆の雷管", effect: "bomb_burst_combo", rarity: 3, price: 9, desc: "ボムドロップが消えた時、追加で3コンボ加算する。" },
+  { id: "accum_technique", name: "技巧の蓄積", effect: "stat_shape_all", rarity: 3, price: 9, desc: "「合計特殊消し回数(4個+1列+L字+十字+四角)」20回につき、コンボ加算+1。" },
+  { id: "magic_resonance", name: "魔力共鳴", effect: "stat_skill_use", rarity: 3, price: 10, desc: "「スキル使用回数」10回につき、全アクティブスキルの消費エネルギー-1。" }
 ];
 
-const getEffectiveCost = (token) => {
+const getEffectiveCost = (token, currentRunStats = null, currentTokens = [], currentBuffs = []) => {
   if (!token || token.type !== 'skill') return token?.cost || 0;
   const baseCost = token.cost || 0;
   if (baseCost === 0) return 0;
   const level = token.level || 1;
   const reduction = Math.max(0, level - 1);
 
-  // --- 追加: 魔力節約 (efficiency) ---
-  const enchantReduction = token.enchantments?.filter(e => e.effect === "cost_down").length || 0;
+  const isEnchantDisabled = currentTokens.some(t => t?.effect === "contract_of_void") ||
+    currentBuffs.some(b => b?.action === "seal_of_power");
 
-  // const minCost = Math.max(1, Math.floor(baseCost / 2)); // 旧ロジック: 半分まで
-  const minCost = 1; // 変更: 最小値1まで下がることを許容
+  let enchantReduction = 0;
+  let resonanceReduction = 0;
 
-  // 最後に enchantReduction を引く (最小値1は維持)
-  return Math.max(minCost, baseCost - reduction - enchantReduction);
+  if (!isEnchantDisabled) {
+    enchantReduction = token.enchantments?.filter(e => e.effect === "cost_down").length || 0;
+    if (currentRunStats && token.enchantments?.some(e => e.effect === "stat_skill_use")) {
+      resonanceReduction = Math.floor((currentRunStats.currentSkillsUsed || 0) / 10);
+    }
+  }
+
+  const minCost = 1;
+  return Math.max(minCost, baseCost - reduction - enchantReduction - resonanceReduction);
 };
 
-const getTokenDescription = (item, level) => {
+const getTokenDescription = (item, level, currentRunStats = null, currentTokens = [], currentBuffs = []) => {
   const base = ALL_TOKEN_BASES.find((b) => b.id === (item.id || item));
   if (!base) return item?.desc || "";
 
   const targetLv = level || item?.level || 1;
   let d = base.desc;
 
-  // {cost} の置換
   if (base.costLevels) {
-    // getEffectiveCost には level と cost, type があれば良い
-    const cost = getEffectiveCost({ cost: base.cost, level: targetLv, type: 'skill' });
+    const cost = getEffectiveCost({ ...item, cost: base.cost, level: targetLv, type: 'skill' }, currentRunStats, currentTokens, currentBuffs);
     d = d.replace(/{cost}/g, cost);
   }
 
-  // 既存のvaluesの置換
   if (base.values) {
     const value = base.values[targetLv - 1];
-    // 1/2/3 や [1.3/1.5/2] のようなパターンを現在のレベルの値で置換
     if (value !== undefined) {
       d = d.replace(/(\[?[\d.]+(?:\/[\d.]+)+\]?)/g, value);
-      // 「Lvに応じ」や「Lv分」といった文言を調整
       d = d.replace(/Lvに応じ/g, "");
       d = d.replace(/Lv分/g, `${value}`);
     }
@@ -798,6 +909,10 @@ class PuzzleEngine {
 
   setEnhanceRates(rates) {
     this.enhanceRates = rates;
+  }
+
+  setBombRates(rates) {
+    this.bombRates = rates;
   }
 
   addPlusMark(el) {
@@ -950,6 +1065,24 @@ class PuzzleEngine {
     inner.appendChild(iconSpan);
     el.appendChild(inner);
 
+    // ボムかどうか
+    let isBomb = false;
+    if (isNew && this.bombRates && this.bombRates.colors) {
+      const colorBombRate = this.bombRates.colors[type] || 0;
+      if (colorBombRate > 0 && Math.random() < colorBombRate) {
+        isBomb = true;
+      }
+    }
+
+    // リピートドロップかどうか
+    let isRepeat = false;
+    if (isNew && this.repeatRates && this.repeatRates.colors) {
+      const colorRepeatRate = this.repeatRates.colors[type] || 0;
+      if (colorRepeatRate > 0 && Math.random() < colorRepeatRate) {
+        isRepeat = true;
+      }
+    }
+
     // handler definition moved below orb creation
     /*
     const handler = (e) => {
@@ -968,7 +1101,14 @@ class PuzzleEngine {
     el.style.top = `${baseTop}px`;
     el.style.left = `${baseLeft}px`;
 
-    const orb = { type, el, r, c, isSkyfall: isNew, baseTop, baseLeft, isEnhanced: false };
+    const orb = { type, el, r, c, isSkyfall: isNew, baseTop, baseLeft, isEnhanced: false, isBomb, isRepeat };
+
+    if (isBomb) {
+      this.addBombMark(el);
+    }
+    if (isRepeat) {
+      this.addRepeatMark(el);
+    }
 
     const handler = (e) => {
       if (e.type === "touchstart") e.preventDefault();
@@ -1337,6 +1477,24 @@ class PuzzleEngine {
     this.process();
   }
 
+  addBombMark(el) {
+    if (el.querySelector('.bomb-mark')) return;
+    const bombSpan = document.createElement('span');
+    bombSpan.className = 'bomb-mark material-icons-round';
+    bombSpan.style.color = 'white';
+    bombSpan.innerText = 'cyclone';
+    el.appendChild(bombSpan);
+  }
+
+  addRepeatMark(el) {
+    if (el.querySelector('.repeat-mark')) return;
+    const repeatSpan = document.createElement('span');
+    repeatSpan.className = 'repeat-mark material-icons-round absolute bottom-0 left-0 text-white text-xs drop-shadow-md font-bold z-10';
+    repeatSpan.style.color = 'white';
+    repeatSpan.innerText = 'autorenew';
+    el.appendChild(repeatSpan);
+  }
+
   async forceRefresh() {
     if (this.processing) return;
     this.processing = true;
@@ -1394,88 +1552,207 @@ class PuzzleEngine {
     const initialOrbCount = this.state.flat().filter(orb => orb !== null).length;
     let clearedInitialOrbs = 0;
 
+    // --- ボムで消えたドロップ数のカウンター ---
+    let erasedByBombTotal = 0;
+
+    // --- リピートドロップで消えた回数のカウンター ---
+    let erasedByRepeatTotal = 0;
+
     while (true) {
       const groups = this.findCombos();
       if (groups.length === 0) break;
 
-      for (const group of groups) {
-        // 消した色とコンボ数を記録
-        if (group.length > 0 && group[0].type) {
-          const type = group[0].type;
-          if (colorComboCounts[type] !== undefined) {
-            colorComboCounts[type]++;
-            erasedColorCounts[type] += group.length;
+      // --- ボム処理を一番初めに行う ---
+      const bombGroups = groups.filter(g => g.some(o => o.isBomb));
+      if (bombGroups.length > 0) {
+        // ボムの起爆色をすべて収集
+        const targetColors = new Set();
+        bombGroups.forEach(g => {
+          if (g.length > 0 && g[0].type) {
+            targetColors.add(g[0].type);
           }
-        }
-        // 落ちコンで消えたグループかチェック（skyfall_bonus判定用）
-        if (group.some(o => o.isSkyfall)) {
-          hasSkyfallCombo = true;
-        }
-
-        // --- カウント：初期盤のドロップがどれだけ消えたか ---
-        const nonSkyfallCount = group.filter(o => !o.isSkyfall).length;
-        clearedInitialOrbs += nonSkyfallCount;
-
-        const shape = this.classifyShape(group);
-        if (shape) shapes.push(shape);
-
-        // 消えたオーブの色を取得
-        const type = group.length > 0 ? group[0].type : null;
-
-        // --- 特殊消しリアルタイム加算 ---
-        let addition = 1;
-
-        // 強化ドロップボーナス
-        const enhancedCount = group.filter(o => o.isEnhanced).length;
-        const enhancedBonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
-        addition += enhancedCount * enhancedBonusPerOrb;
-
-        // 過剰結合チェック
-        if (enhancedCount >= (this.realtimeBonuses?.overLink?.count || 999)) {
-          if (!overLinkMultiplier || overLinkMultiplier < (this.realtimeBonuses?.overLink?.value || 1)) {
-            overLinkMultiplier = this.realtimeBonuses?.overLink?.value || 1;
-          }
-        }
-
-        // Base Bonuses
-        if (shape === "len5") addition += 1;
-        if (shape === "l_shape") addition += 1;
-        if (shape === "cross") addition += 2;
-
-        if (shape === "len4" && this.realtimeBonuses?.len4) addition += this.realtimeBonuses.len4;
-        if (shape === "row" && this.realtimeBonuses?.row) addition += this.realtimeBonuses.row;
-        if (shape === "l_shape" && this.realtimeBonuses?.l_shape) addition += this.realtimeBonuses.l_shape;
-
-        // Color Combo Bonus (Enchantment)
-        if (type && this.realtimeBonuses?.color_combo?.[type]) {
-          addition += this.realtimeBonuses.color_combo[type];
-        }
-
-        // Heart Combo Bonus (Passive)
-        if (type === 'heart' && this.realtimeBonuses?.heart_combo) {
-          addition += this.realtimeBonuses.heart_combo;
-        }
-
-        group.forEach((o) => o.el.classList.add("orb-matching"));
-
-        // Start combo animation in parallel with orb disappearance
-        // ドロップ消失アニメーション(300ms)と並行してコンボ加算を開始
-        const comboPromise = (group.length === this.rows * this.cols)
-          ? this.animateComboAdd(10)
-          : this.animateComboAdd(addition);
-
-        await this.sleep(300);
-        if (this._isDestroyed) return;
-        group.forEach((o) => {
-          o.el.remove();
-          this.state[o.r][o.c] = null;
         });
 
-        // Wait for combo animation to finish if it's still running
-        await comboPromise;
+        // 盤面から起爆色のドロップをすべて収集
+        const bombTargets = [];
+        this.state.forEach(row => {
+          row.forEach(orb => {
+            if (orb && targetColors.has(orb.type)) {
+              bombTargets.push(orb);
+            }
+          });
+        });
 
-        await this.sleep(50);
-        if (this._isDestroyed) return;
+        if (bombTargets.length > 0) {
+          erasedByBombTotal += bombTargets.length;
+
+          const enhancedBonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
+
+          for (const targetOrb of bombTargets) {
+            targetOrb.el.classList.add("orb-matching");
+            await this.sleep(100);
+            if (this._isDestroyed) return;
+
+            let addition = 1;
+            // プラスドロップ効果は発動する（特殊消し効果は乗らない）
+            if (targetOrb.isEnhanced) {
+              addition += enhancedBonusPerOrb;
+            }
+            this.animateComboAdd(addition);
+
+            await this.sleep(200);
+            if (this._isDestroyed) return;
+
+            targetOrb.el.remove();
+            this.state[targetOrb.r][targetOrb.c] = null;
+
+            const type = targetOrb.type;
+            if (colorComboCounts[type] !== undefined) {
+              colorComboCounts[type]++;
+              erasedColorCounts[type]++; // NOTE: This adds +1 per orb, not per group. Compatible with color combo.
+            }
+            if (!targetOrb.isSkyfall) clearedInitialOrbs++;
+          }
+          await this.sleep(50);
+          if (this._isDestroyed) return;
+
+          // --- ボム消去ボーナス (エンチャント) ---
+          const destroyedBombsCount = bombTargets.filter(o => o.isBomb).length;
+          const bombBurstCombo = this.realtimeBonuses?.bomb_burst_combo || 0;
+          if (destroyedBombsCount > 0 && bombBurstCombo > 0) {
+            await this.animateComboAdd(destroyedBombsCount * bombBurstCombo);
+          }
+
+          // ボム処理後の落下処理
+          if (this.noSkyfall) {
+            await this.gravityOnly();
+            if (this._isDestroyed) return;
+            await this.sleep(450);
+            if (this._isDestroyed) return;
+          } else {
+            await this.simultaneousGravity();
+            if (this._isDestroyed) return;
+            await this.sleep(450);
+            if (this._isDestroyed) return;
+          }
+        }
+
+        // ボム処理を行った場合、盤面が変わったので最初からコンボ判定をやり直す
+        continue;
+      }
+
+      for (const group of groups) {
+        // グループ内のリピートドロップ数をカウント
+        const repeatCount = group.filter(o => o.isRepeat).length;
+        // リピート回数は最低1回（通常の消去）＋リピートドロップ数
+        const totalClears = 1 + repeatCount;
+
+        for (let clearNum = 0; clearNum < totalClears; clearNum++) {
+          if (clearNum > 0) {
+            // 2回目以降の消去時：復活アニメーション（アイコンを消して再度準備）
+            group.forEach((o) => {
+              o.isRepeat = false;
+              o.el.classList.remove("orb-matching"); // 前回のアニメーションを解除
+              const repeatMark = o.el.querySelector('.repeat-mark');
+              if (repeatMark) repeatMark.remove();
+            });
+            // 復活後のわずかな待機
+            await this.sleep(100);
+            if (this._isDestroyed) return;
+            erasedByRepeatTotal += repeatCount; // 消えたリピートドロップ数を加算
+          }
+
+          // 消した色とコンボ数を記録
+          if (group.length > 0 && group[0].type) {
+            const type = group[0].type;
+            if (colorComboCounts[type] !== undefined) {
+              colorComboCounts[type]++;
+              erasedColorCounts[type] += group.length;
+            }
+          }
+          // 落ちコンで消えたグループかチェック（skyfall_bonus判定用、1回目のみ判定）
+          if (clearNum === 0 && group.some(o => o.isSkyfall)) {
+            hasSkyfallCombo = true;
+          }
+
+          // --- カウント：初期盤のドロップがどれだけ消えたか ---
+          if (clearNum === 0) { // 1回目だけカウント
+            const nonSkyfallCount = group.filter(o => !o.isSkyfall).length;
+            clearedInitialOrbs += nonSkyfallCount;
+          }
+
+          const shape = this.classifyShape(group);
+          if (shape && clearNum === 0) shapes.push(shape); // shapeの蓄積も1回目の属性として代表させる（あるいは全回数分蓄積するかは仕様次第。今回は蓄積は1回分、加算は毎回行う）
+
+          // 消えたオーブの色を取得
+          const type = group.length > 0 ? group[0].type : null;
+
+          // --- 特殊消しリアルタイム加算 ---
+          let addition = 1;
+
+          // 強化ドロップボーナス（1回目のみ加算するのが自然だが、リピートという性質上毎回適用する）
+          const enhancedCount = group.filter(o => o.isEnhanced).length;
+          const enhancedBonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
+          addition += enhancedCount * enhancedBonusPerOrb;
+
+          // 過剰結合チェック
+          if (enhancedCount >= (this.realtimeBonuses?.overLink?.count || 999)) {
+            if (!overLinkMultiplier || overLinkMultiplier < (this.realtimeBonuses?.overLink?.value || 1)) {
+              overLinkMultiplier = this.realtimeBonuses?.overLink?.value || 1;
+            }
+          }
+
+          // Base Bonuses
+          if (shape === "len5") addition += 1;
+          if (shape === "l_shape") addition += 1;
+          if (shape === "cross") addition += 2;
+          if (shape === "row") addition += 2;
+
+          if (shape === "len4" && this.realtimeBonuses?.len4) addition += this.realtimeBonuses.len4;
+          if (shape === "row" && this.realtimeBonuses?.row) addition += this.realtimeBonuses.row;
+          if (shape === "l_shape" && this.realtimeBonuses?.l_shape) addition += this.realtimeBonuses.l_shape;
+
+          // Color Combo Bonus (Enchantment)
+          if (type && this.realtimeBonuses?.color_combo?.[type]) {
+            addition += this.realtimeBonuses.color_combo[type];
+          }
+
+          // Heart Combo Bonus (Passive)
+          if (type === 'heart' && this.realtimeBonuses?.heart_combo) {
+            addition += this.realtimeBonuses.heart_combo;
+          }
+
+          // 2回目以降は、エンチャント「連舞」などの全体補正重複を避ける（または許容する）
+          // 今回の仕様では、純粋に「もう一度消えた」扱いとする。
+
+          group.forEach((o) => {
+            // force reflow before re-adding matching animation for repeats
+            void o.el.offsetWidth;
+            o.el.classList.add("orb-matching");
+          });
+
+          // Start combo animation in parallel with orb disappearance
+          // ドロップ消失アニメーション(300ms)と並行してコンボ加算を開始
+          const comboPromise = (group.length === this.rows * this.cols)
+            ? this.animateComboAdd(10)
+            : this.animateComboAdd(addition);
+
+          await this.sleep(300);
+          if (this._isDestroyed) return;
+
+          // 全てのクリアが終了した場合のみ DOM を remove する
+          if (clearNum === totalClears - 1) {
+            group.forEach((o) => {
+              o.el.remove();
+              this.state[o.r][o.c] = null;
+            });
+          }
+
+          await comboPromise;
+
+          await this.sleep(50);
+          if (this._isDestroyed) return;
+        }
       }
 
       // noSkyfall時はオーブを落下させるが新規オーブは生成しない
@@ -1534,7 +1811,9 @@ class PuzzleEngine {
     }
 
     this.processing = false;
-    this.onTurnEnd(this.currentCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes, overLinkMultiplier);
+    if (this.onTurnEnd) {
+      this.onTurnEnd(this.currentCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes, overLinkMultiplier, erasedByBombTotal, erasedByRepeatTotal);
+    }
   }
 
   findCombos() {
@@ -1737,6 +2016,7 @@ class PuzzleEngine {
         const type = deck[idx++] || "heart"; // Fallback to heart if deck empty (shouldn't happen)
         const orb = this.state[r][c];
         orb.type = type;
+        orb.isBomb = false;
 
         if (orb.el) {
           orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
@@ -1751,9 +2031,132 @@ class PuzzleEngine {
             inner.appendChild(iconSpan);
             if (star) inner.appendChild(star);
           }
+          const bombMark = orb.el.querySelector('.bomb-mark');
+          if (bombMark) bombMark.remove();
         }
       }
     }
+  }
+
+  spawnBombRandom(count) {
+    if (this.processing) return;
+    const candidates = [];
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const orb = this.state[r][c];
+        if (orb && !orb.isBomb) {
+          candidates.push(orb);
+        }
+      }
+    }
+
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+
+    const targets = candidates.slice(0, count);
+    targets.forEach((orb) => {
+      // ランダムな色に変更してボム化
+      const type = this.types[Math.floor(Math.random() * this.types.length)];
+      orb.type = type;
+      orb.isBomb = true;
+
+      if (orb.el) {
+        orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
+        const inner = orb.el.querySelector('.orb-inner');
+        if (inner) {
+          inner.className = `orb-inner orb-${type} shadow-lg`;
+          const star = inner.querySelector('.enhanced-mark');
+          inner.innerHTML = '';
+          const iconSpan = document.createElement("span");
+          iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
+          iconSpan.innerText = this.icons[type];
+          inner.appendChild(iconSpan);
+          if (star) inner.appendChild(star);
+        }
+        this.addBombMark(orb.el);
+      }
+    });
+  }
+
+  convertBombTargeted(count, targetType) {
+    if (this.processing) return;
+    const candidates = [];
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const orb = this.state[r][c];
+        if (orb && !orb.isBomb && (!targetType || orb.type === targetType)) {
+          candidates.push(orb);
+        }
+      }
+    }
+
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+
+    const targets = candidates.slice(0, count);
+    targets.forEach((orb) => {
+      // 色は維持したままボム化
+      orb.isBomb = true;
+      if (orb.el) {
+        this.addBombMark(orb.el);
+      }
+    });
+  }
+
+  spawnRepeatRandom(count) {
+    if (this.processing) return;
+    const candidates = [];
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const orb = this.state[r][c];
+        if (orb && !orb.isRepeat) {
+          candidates.push(orb);
+        }
+      }
+    }
+
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+
+    const targets = candidates.slice(0, count);
+    targets.forEach((orb) => {
+      orb.isRepeat = true;
+      if (orb.el) {
+        this.addRepeatMark(orb.el);
+      }
+    });
+  }
+
+  convertRepeatTargeted(count, targetType) {
+    if (this.processing) return;
+    const candidates = [];
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const orb = this.state[r][c];
+        if (orb && !orb.isRepeat && (!targetType || orb.type === targetType)) {
+          candidates.push(orb);
+        }
+      }
+    }
+
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+
+    const targets = candidates.slice(0, count);
+    targets.forEach((orb) => {
+      orb.isRepeat = true;
+      if (orb.el) {
+        this.addRepeatMark(orb.el);
+      }
+    });
   }
 
   // 重力処理のみ（新規オーブ生成なし）- noSkyfall時に使用
@@ -1870,6 +2273,7 @@ const App = () => {
     lifetimeShapeRow: 0,      // 1列消し累計回数
     lifetimeShapeLShape: 0,   // L字消し累計回数
     lifetimeShapeSquare: 0,   // 四角消し(2x2)累計回数
+    lifetimeShapeLen5: 0,     // 5個消し累計回数
   });
   const initialCurrentRunStats = {
     currentTotalCombo: 0,
@@ -1882,6 +2286,7 @@ const App = () => {
     currentStarsSpent: 0,
     currentSkillsUsed: 0,
     currentShapeLen4: 0,
+    currentShapeLen5: 0,
     currentShapeCross: 0,
     currentShapeRow: 0,
     currentShapeLShape: 0,
@@ -1903,6 +2308,7 @@ const App = () => {
   const [isEndlessMode, setIsEndlessMode] = useState(false); // New: Endless Mode state
   const [starProgress, setStarProgress] = useState(0); // 累積スター進捗
   const [selectedTokenDetail, setSelectedTokenDetail] = useState(null);
+  const [selectedEnchantDetail, setSelectedEnchantDetail] = useState(null);
 
   const timerRef = useRef(null);
   const comboRef = useRef(null);
@@ -2012,6 +2418,7 @@ const App = () => {
     const weights = {};
     const ALL_COLORS = ["fire", "water", "wood", "light", "dark", "heart"];
     ALL_COLORS.forEach((c) => (weights[c] = 1));
+    const isEnchantDisabled = tokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
 
     // 偏食家: 指定色の出現率を0にする
     tokens.forEach((t) => {
@@ -2020,7 +2427,7 @@ const App = () => {
       }
 
       // エンチャントによる出現率変動
-      if (t?.enchantments) {
+      if (!isEnchantDisabled && t?.enchantments) {
         t.enchantments.forEach(e => {
           if (e.effect === "skyfall_boost" && e.params?.color) {
             weights[e.params.color] += 0.5; // 加算 (Boost)
@@ -2048,6 +2455,7 @@ const App = () => {
   }, [activeBuffs, tokens]);
 
   const getTimeLimit = useCallback(() => {
+    const isEnchantDisabled = tokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
     // 背水の陣: 他の延長効果をすべて無視して4秒固定
     const hasDesperateStance = tokens.some(t => t?.effect === "desperate_stance");
     if (hasDesperateStance) {
@@ -2060,21 +2468,30 @@ const App = () => {
       if (t?.effect === "cursed_power") base -= 2000;
 
       // --- 追加: エンチャントによる時間変動 ---
-      t?.enchantments?.forEach(enc => {
-        if (enc.effect === "time_ext_enc") base += (enc.value || 1) * 1000;
-        if (enc.effect === "berserk_mode") base -= 1000; // 狂戦士: -1秒
-      });
+      if (!isEnchantDisabled) {
+        t?.enchantments?.forEach(enc => {
+          if (enc.effect === "time_ext_enc") base += (enc.value || 1) * 1000;
+          if (enc.effect === "berserk_mode") base -= 1000; // 狂戦士: -1秒
+        });
+      }
 
       // --- 新規: 星2トークン数×操作時間延長 ---
       if (t?.effect === "star_count_time_ext") {
         const rarity2Count = tokens.filter(tok => tok?.rarity === 2).length;
         base += (t.values[(t.level || 1) - 1] * 1000) * rarity2Count;
       }
+
+      // --- 五星の導き手 ---
+      if (t?.effect === "stat_shape_len5") {
+        const v = t.values[(t.level || 1) - 1]; // 0.5/1.0/1.5
+        const count = Math.floor((currentRunStats.currentShapeLen5 || 0) / 10);
+        if (count > 0) base += (v * 1000) * count;
+      }
     });
     // 特殊消しボーナスによる操作時間延長（五星の印・十字の祈り）
     base *= nextTurnTimeMultiplier;
     return Math.max(1000, base); // 最低1秒
-  }, [tokens, nextTurnTimeMultiplier]);
+  }, [tokens, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs]);
 
   // --- Init Engine ---
   useEffect(() => {
@@ -2092,9 +2509,9 @@ const App = () => {
         onCombo: () => {
           // No-op for now to avoid re-renders
         },
-        onTurnEnd: (total, colorComboCounts, skyfall, shapes, overLinkMultiplier) => {
+        onTurnEnd: (total, colorComboCounts, erasedColorCounts, skyfall, shapes, overLinkMultiplier, erasedByBombTotal, erasedByRepeatTotal) => {
           if (handleTurnEndRef.current) {
-            handleTurnEndRef.current(total, colorComboCounts, skyfall, shapes, overLinkMultiplier);
+            handleTurnEndRef.current(total, colorComboCounts, erasedColorCounts, skyfall, shapes, overLinkMultiplier, erasedByBombTotal, erasedByRepeatTotal);
           }
         },
       },
@@ -2112,6 +2529,8 @@ const App = () => {
     if (engineRef.current) {
       engineRef.current.timeLimit = getTimeLimit();
       engineRef.current.minMatchLength = minMatchLength;
+
+      const isEnchantDisabled = tokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
 
       // Calculate realtime bonuses from tokens
       const bonuses = { len4: 0, row: 0, l_shape: 0, color_combo: {}, heart_combo: 0, enhancedOrbBonus: 0, overLink: null };
@@ -2142,11 +2561,14 @@ const App = () => {
         }
 
         // Add color combo enchantments to realtime bonuses
-        const enchList = t.enchantments || [];
+        const enchList = isEnchantDisabled ? [] : (t.enchantments || []);
         enchList.forEach(enc => {
           if (enc.effect === 'color_combo' && enc.params?.color) {
             const color = enc.params.color;
             bonuses.color_combo[color] = (bonuses.color_combo[color] || 0) + 1; // +1 per combo
+          }
+          if (enc.effect === 'bomb_burst_combo') {
+            bonuses.bomb_burst_combo = (bonuses.bomb_burst_combo || 0) + 3;
           }
         });
       });
@@ -2171,8 +2593,34 @@ const App = () => {
         });
       });
       engineRef.current.setEnhanceRates(rates);
+
+      // ボムドロップ確率の計算
+      const bombRates = { colors: {} };
+      tokens.forEach(t => {
+        if (!t) return;
+        const lv = t.level || 1;
+
+        if (t.effect === 'bomb_chance_color' && t.params?.color) {
+          const color = t.params.color;
+          bombRates.colors[color] = (bombRates.colors[color] || 0) + (t.values[lv - 1] || 0);
+        }
+      });
+      engineRef.current.setBombRates(bombRates);
+
+      // リピートドロップ確率の計算
+      const repeatRates = { colors: {} };
+      tokens.forEach(t => {
+        if (!t) return;
+        const lv = t.level || 1;
+
+        if (t.effect === 'repeat_chance_color' && t.params?.color) {
+          const color = t.params.color;
+          repeatRates.colors[color] = (repeatRates.colors[color] || 0) + (t.values[lv - 1] || 0);
+        }
+      });
+      engineRef.current.repeatRates = repeatRates;
     }
-  }, [tokens, getTimeLimit, minMatchLength]);
+  }, [tokens, getTimeLimit, minMatchLength, activeBuffs]);
 
   // --- Init Shop on Start ---
   useEffect(() => {
@@ -2184,11 +2632,12 @@ const App = () => {
   // Debug State
   // const [debugLog, setDebugLog] = useState(null);
 
-  const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1) => {
+  const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0) => {
     let bonus = 0;
     let multiplier = 1;
     let timeMultiplier = 1; // 次手の操作時間倍率
     const matchedColorSet = new Set(Object.keys(colorComboCounts).filter(k => colorComboCounts[k] > 0));
+    const isEnchantDisabled = tokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
 
     const logData = {
       tokens: tokens,
@@ -2204,7 +2653,7 @@ const App = () => {
     tokens.forEach((t) => {
       if (!t) return;
       const lv = t.level || 1;
-      const enchList = t.enchantments || [];
+      const enchList = isEnchantDisabled ? [] : (t.enchantments || []);
 
       // --- 共通処理関数 (トークン効果とエンチャント効果の両方をチェック) ---
       const checkEffect = (effect, params, val) => {
@@ -2321,6 +2770,11 @@ const App = () => {
         if (enc.effect === "rarity_down_combo") { bonus += 1; logData.bonuses.push("rarity_down_combo:1"); }
       });
       if (t.effect === "base_add") { const v = t.values?.[lv - 1] || 0; bonus += v; logData.bonuses.push(`base_add:${v}`); }
+      if (t.effect === "contract_of_void") {
+        const v = t.values?.[lv - 1] || 1;
+        multiplier *= v;
+        logData.multipliers.push(`contract_of_void:x${v.toFixed(2)}`);
+      }
       if (t.effect === "random_add") {
         const pool = t.values?.[lv - 1] || [0];
         const v = pool[Math.floor(Math.random() * pool.length)];
@@ -2354,6 +2808,14 @@ const App = () => {
           multiplier *= v;
           logData.multipliers.push(`enchant_mult_boost:x${v.toFixed(2)}`);
         }
+      }
+
+      // --- 新規: ボム消去数×倍率 (パッシブ) ---
+      if (t.effect === "bomb_erase_mult" && erasedByBombTotal > 0) {
+        const baseMult = t.values?.[lv - 1] || 1.2;
+        const v = erasedByBombTotal * baseMult;
+        multiplier *= v;
+        logData.multipliers.push(`bomb_erase_mult:x${v.toFixed(2)}`);
       }
 
       // Skyfall bonus
@@ -2426,6 +2888,19 @@ const App = () => {
           multiplier *= lv;
           logData.multipliers.push(`lvl_mult:${lv}`);
         }
+        if (enc.effect === "stat_shape_all") {
+          const totalShape = (currentRunStats.currentShapeLen4 || 0) +
+            (currentRunStats.currentShapeRow || 0) +
+            (currentRunStats.currentShapeLShape || 0) +
+            (currentRunStats.currentShapeCross || 0) +
+            (currentRunStats.currentShapeSquare || 0) +
+            (currentRunStats.currentShapeLen5 || 0); // Include len5!
+          const b = Math.floor(totalShape / 20) * 1;
+          if (b > 0) {
+            bonus += b;
+            logData.bonuses.push(`stat_shape_all(enc):+${b}`);
+          }
+        }
       });
 
       // Color multiplier
@@ -2497,6 +2972,78 @@ const App = () => {
         bonus += v;
         logData.bonuses.push(`cursed_power:${v}`);
       }
+
+      // --- 実績参照系パッシブ ---
+      if (t.effect === "stat_combo_記憶") {
+        const v = t.values?.[lv - 1] || 1;
+        const b = Math.floor((currentRunStats.maxCombo || 0) / 5) * v;
+        if (b > 0) {
+          bonus += b;
+          logData.bonuses.push(`stat_combo_記憶:+${b}`);
+        }
+      }
+      if (t.effect === "stat_mult_余韻") {
+        const v = t.values?.[lv - 1] || 0.1;
+        const maxMult = currentRunStats.maxComboMultiplier || 1;
+        if (maxMult > 1) {
+          const m = 1 + (maxMult * v);
+          multiplier *= m;
+          logData.multipliers.push(`stat_mult_余韻:x${m.toFixed(2)}`);
+        }
+      }
+      if (t.effect === "stat_mult_千手") {
+        const v = t.values?.[lv - 1] || 1.1;
+        const count = Math.floor((currentRunStats.currentTotalCombo || 0) / 100);
+        if (count > 0) {
+          const m = Math.pow(v, count);
+          multiplier *= m;
+          logData.multipliers.push(`stat_mult_千手:x${m.toFixed(2)}`);
+        }
+      }
+      if (t.effect === "stat_shape_cross" && shapes.includes("cross")) {
+        const v = t.values?.[lv - 1] || 1;
+        const b = Math.floor((currentRunStats.currentShapeCross || 0) / 5) * v;
+        if (b > 0) {
+          bonus += b;
+          logData.bonuses.push(`stat_shape_cross:+${b}`);
+        }
+      }
+      if (t.effect === "stat_shape_len4" && shapes.includes("len4")) {
+        const v = t.values?.[lv - 1] || 1;
+        const b = Math.floor((currentRunStats.currentShapeLen4 || 0) / 20) * v;
+        if (b > 0) {
+          bonus += b;
+          logData.bonuses.push(`stat_shape_len4:+${b}`);
+        }
+      }
+      if (t.effect === "stat_shape_row" && shapes.includes("row")) {
+        const v = t.values?.[lv - 1] || 1.1;
+        const rowCountInTurn = shapes.filter(s => s === "row").length;
+        const count = Math.floor((currentRunStats.currentShapeRow || 0) / 5);
+        if (count > 0 && rowCountInTurn > 0) {
+          const m = Math.pow(Math.pow(v, count), rowCountInTurn);
+          multiplier *= m;
+          logData.multipliers.push(`stat_shape_row:x${m.toFixed(2)}`);
+        }
+      }
+      if (t.effect === "stat_shape_square") {
+        const v = t.values?.[lv - 1] || 1.5;
+        const count = Math.floor((currentRunStats.currentShapeSquare || 0) / 5);
+        if (count > 0) {
+          const m = Math.pow(v, count);
+          multiplier *= m;
+          logData.multipliers.push(`stat_shape_square:x${m.toFixed(2)}`);
+        }
+      }
+      if (t.effect === "stat_spend_star") {
+        const v = t.values?.[lv - 1] || 1.1;
+        const count = Math.floor((currentRunStats.currentStarsSpent || 0) / 50);
+        if (count > 0) {
+          const m = Math.pow(v, count);
+          multiplier *= m;
+          logData.multipliers.push(`stat_spend_star:x${m.toFixed(2)}`);
+        }
+      }
     });
 
     // 12. Min Match Multiplier (Dual Match)
@@ -2518,6 +3065,17 @@ const App = () => {
     // 次手の操作時間倍率を設定（1ならリセット）
     setNextTurnTimeMultiplier(timeMultiplier);
 
+    // アクティブスキル（時限コンボ倍率）Buffの適用
+    activeBuffs.forEach(buff => {
+      if (buff.action === "temp_mult") {
+        multiplier *= buff.params.multiplier;
+        logData.multipliers.push(`temp_mult:${buff.params.multiplier}`);
+      } else if (buff.action === "seal_of_power") {
+        multiplier *= buff.params.multiplier;
+        logData.multipliers.push(`seal_of_power:x${buff.params.multiplier}`);
+      }
+    });
+
     logData.finalMultiplier = multiplier;
     logData.finalBonus = bonus;
     // setDebugLog(logData);
@@ -2527,23 +3085,24 @@ const App = () => {
 
     // --- Update Stats ---
     setCurrentRunTotalCombo(prev => prev + effectiveCombo);
+
+    const currentEnchantCount = isEnchantDisabled ? 0 : tokens.reduce((sum, tok) => sum + (tok?.enchantments?.length || 0), 0);
+    const measuredTime = totalMoveTimeRef.current;
+    totalMoveTimeRef.current = 0; // 次のターンのためにリセット
+
+    const countLen4 = shapes.filter(s => s === 'len4').length;
+    const countCross = shapes.filter(s => s === 'cross').length;
+    const countRow = shapes.filter(s => s === 'row').length;
+    const countLShape = shapes.filter(s => s === 'l_shape').length;
+    const countSquare = shapes.filter(s => s === 'square').length;
+
     setStats(prev => {
-      const enchantCount = tokens.reduce((sum, tok) => sum + (tok?.enchantments?.length || 0), 0);
-      const measuredTime = totalMoveTimeRef.current;
-      totalMoveTimeRef.current = 0; // 次のターンのためにリセット
-
-      const countLen4 = shapes.filter(s => s === 'len4').length;
-      const countCross = shapes.filter(s => s === 'cross').length;
-      const countRow = shapes.filter(s => s === 'row').length;
-      const countLShape = shapes.filter(s => s === 'l_shape').length;
-      const countSquare = shapes.filter(s => s === 'square').length;
-
       return {
         ...prev,
         lifetimeTotalCombo: (prev.lifetimeTotalCombo || 0) + effectiveCombo,
         maxComboAllTime: Math.max(prev.maxComboAllTime || 0, effectiveCombo),
         maxComboMultiplierAllTime: Math.max(prev.maxComboMultiplierAllTime || 1, multiplier),
-        maxEnchantsAllTime: Math.max(prev.maxEnchantsAllTime || 0, enchantCount),
+        maxEnchantsAllTime: Math.max(prev.maxEnchantsAllTime || 0, currentEnchantCount),
         lifetimeTotalMoveTime: (prev.lifetimeTotalMoveTime || 0) + measuredTime,
         lifetimeShapeLen4: (prev.lifetimeShapeLen4 || 0) + countLen4,
         lifetimeShapeCross: (prev.lifetimeShapeCross || 0) + countCross,
@@ -2557,7 +3116,7 @@ const App = () => {
       currentTotalCombo: (prev.currentTotalCombo || 0) + effectiveCombo,
       maxCombo: Math.max(prev.maxCombo || 0, effectiveCombo),
       maxComboMultiplier: Math.max(prev.maxComboMultiplier || 1, multiplier),
-      maxEnchants: Math.max(prev.maxEnchants || 0, enchantCount),
+      maxEnchants: Math.max(prev.maxEnchants || 0, currentEnchantCount),
       currentTotalMoveTime: (prev.currentTotalMoveTime || 0) + measuredTime,
       currentShapeLen4: (prev.currentShapeLen4 || 0) + countLen4,
       currentShapeCross: (prev.currentShapeCross || 0) + countCross,
@@ -2779,6 +3338,17 @@ const App = () => {
       bonusMultiplier = skipTokens.reduce((acc, t) => acc + (t.values[(t.level || 1) - 1] || 0), 0);
     }
 
+    // --- 熟考の果て ---
+    const endOfThoughtTokens = tokens.filter(t => t?.effect === 'stat_time_move');
+    if (endOfThoughtTokens.length > 0) {
+      const timeBonusPct = endOfThoughtTokens.reduce((acc, t) => {
+        const v = t.values[(t.level || 1) - 1] || 0.05;
+        const minutes = Math.floor((currentRunStats.currentTotalMoveTime || 0) / 60000);
+        return acc + (minutes * v);
+      }, 0);
+      bonusMultiplier = Math.floor(bonusMultiplier * (1 + timeBonusPct));
+    }
+
     const bonus = remainingTurns * bonusMultiplier;
     setStars((s) => s + bonus);
     notify(`SKIP BONUS: +${bonus} STARS!`);
@@ -2788,15 +3358,7 @@ const App = () => {
     setTurn(maxTurns + 1);
   };
 
-  // Deprecated/Simplified: No longer takes params regarding turns, just opens shop if needed, but we do this in overlay now.
-  const handleCycleClear = () => {
-    // No-op or notification only, state is handled by startNextCycle
-    notify("CYCLE CLEARED!");
-  };
 
-  const handleGameOver = () => {
-    setIsGameOver(true);
-  };
 
   const resetGame = () => {
     setStars(5);
@@ -2950,7 +3512,7 @@ const App = () => {
 
       // Initialize charge to max (cost) for new skills
       const item = { ...base, level: 1, charge: base.cost || 0 };
-      item.desc = getTokenDescription(item, 1);
+      item.desc = getTokenDescription(item, 1, currentRunStats, tokens, activeBuffs);
 
       if (isLuxury && Math.random() < 0.3) {
         const enc =
@@ -3009,7 +3571,7 @@ const App = () => {
         next[targetIdx] = {
           ...next[targetIdx],
           level: nextLevel,
-          desc: getTokenDescription(next[targetIdx], nextLevel)
+          desc: getTokenDescription(next[targetIdx], nextLevel, currentRunStats, next, activeBuffs)
         };
         return next;
       });
@@ -3118,7 +3680,7 @@ const App = () => {
           next[idx] = {
             ...next[idx],
             level: nextLevel,
-            desc: getTokenDescription(next[idx], nextLevel)
+            desc: getTokenDescription(next[idx], nextLevel, currentRunStats, next, activeBuffs)
           };
         }
         return next;
@@ -3141,7 +3703,7 @@ const App = () => {
             next[idx] = {
               ...next[idx],
               level: nextLevel,
-              desc: getTokenDescription(next[idx], nextLevel)
+              desc: getTokenDescription(next[idx], nextLevel, currentRunStats, next, activeBuffs)
             };
           }
           return next;
@@ -3172,7 +3734,7 @@ const App = () => {
 
     // Check individual charge
     const currentCharge = token.charge || 0;
-    const cost = getEffectiveCost(token);
+    const cost = getEffectiveCost(token, currentRunStats, tokens, activeBuffs);
 
     if (currentCharge < cost) {
       return notify(`チャージ不足です (${currentCharge}/${cost})`);
@@ -3210,6 +3772,18 @@ const App = () => {
         break;
       case "board_balance":
         engine.changeBoardBalanced();
+        break;
+      case "spawn_bomb_random":
+        engine.spawnBombRandom(token.params.count);
+        break;
+      case "convert_bomb_targeted":
+        engine.convertBombTargeted(token.params.count, token.params.type);
+        break;
+      case "spawn_repeat":
+        engine.spawnRepeatRandom(token.params.count);
+        break;
+      case "convert_repeat":
+        engine.convertRepeatTargeted(token.params.count, token.params.color);
         break;
       case "skyfall":
       case "skyfall_limit":
@@ -3298,7 +3872,15 @@ const App = () => {
     if (token.enchantments?.some(e => e.effect === "high_sell")) {
       sellRate = 3.0; // 300%
     }
-    const sellPrice = Math.floor(token.price * sellRate);
+    let sellPrice = Math.floor(token.price * sellRate);
+
+    // --- 追加: 鉤爪の研鑽 (polishing_claw) ---
+    if (token.effect === "stat_shape_l") {
+      const v = token.values?.[(token.level || 1) - 1] || 1;
+      const lCount = currentRunStats.currentShapeLShape || 0;
+      sellPrice += (lCount * v);
+    }
+
     setStars(s => s + sellPrice);
 
     setTokens(prev => prev.filter(t => t.instanceId !== token.instanceId));
@@ -3369,6 +3951,23 @@ const App = () => {
       />
     );
   }
+
+  const toggleEnchantStatus = (tokenInstanceId, enchantIndex) => {
+    setTokens(prev => {
+      const next = [...prev];
+      const tIdx = next.findIndex(t => t.instanceId === tokenInstanceId);
+      if (tIdx === -1) return next;
+      const newEnchants = [...(next[tIdx].enchantments || [])];
+      if (newEnchants[enchantIndex]) {
+        newEnchants[enchantIndex] = {
+          ...newEnchants[enchantIndex],
+          disabled: !newEnchants[enchantIndex].disabled
+        };
+      }
+      next[tIdx] = { ...next[tIdx], enchantments: newEnchants };
+      return next;
+    });
+  };
 
   return (
     <div className="bg-background-dark font-display text-slate-100 h-screen overflow-hidden flex justify-center w-full">
@@ -3517,7 +4116,7 @@ const App = () => {
                   // Calculate charge status
                   const isSkill = t?.type === 'skill';
                   const charge = t?.charge || 0;
-                  const cost = getEffectiveCost(t);
+                  const cost = getEffectiveCost(t, currentRunStats, tokens, activeBuffs);
                   const progress = isSkill ? Math.min(100, (charge / cost) * 100) : 100;
                   const isReady = isSkill && charge >= cost;
 
@@ -3739,7 +4338,8 @@ const App = () => {
 
         {/* Token Detail Modal */}
         {selectedTokenDetail && (() => {
-          const t = selectedTokenDetail.token;
+          const snapshotToken = selectedTokenDetail.token;
+          const t = tokens.find(tok => tok.instanceId === snapshotToken.instanceId) || snapshotToken;
           const lv = t.level || 1;
           const isSkill = t.type === 'skill';
           const charge = t.charge || 0;
@@ -3774,7 +4374,7 @@ const App = () => {
 
                 {/* 効果説明 */}
                 <div className="bg-slate-900/60 rounded-xl p-3 mb-3 border border-white/5">
-                  <p className="text-xs text-slate-300 leading-relaxed">{getTokenDescription(t, lv)}</p>
+                  <p className="text-xs text-slate-300 leading-relaxed">{getTokenDescription(t, lv, currentRunStats, tokens, activeBuffs)}</p>
                 </div>
 
                 {/* スキルチャージ状態 */}
@@ -3794,13 +4394,19 @@ const App = () => {
                 {enchList.length > 0 ? (
                   enchList.map((enc, encIdx) => {
                     const enchDef = ENCHANTMENTS.find(e => e.effect === enc.effect);
+                    const encIsDisabled = enc.disabled;
                     return (
-                      <div key={encIdx} className="bg-amber-500/10 rounded-xl p-3 mb-3 border border-amber-500/20">
+                      <div
+                        key={encIdx}
+                        onClick={() => setSelectedEnchantDetail({ tokenInstanceId: t.instanceId, enchantIndex: encIdx })}
+                        className={`rounded-xl p-3 mb-3 border cursor-pointer hover:scale-[1.02] transition-transform ${encIsDisabled ? 'bg-slate-700/50 border-slate-600/50' : 'bg-amber-500/10 border-amber-500/20'}`}
+                      >
                         <div className="flex items-center gap-1.5 mb-1">
-                          <span className="material-icons-round text-amber-400 text-sm">auto_fix_high</span>
-                          <span className="text-xs font-bold text-amber-400">{enc.name}</span>
+                          <span className={`material-icons-round text-sm ${encIsDisabled ? 'text-slate-400' : 'text-amber-400'}`}>auto_fix_high</span>
+                          <span className={`text-xs font-bold ${encIsDisabled ? 'text-slate-400' : 'text-amber-400'}`}>{enc.name}</span>
+                          {encIsDisabled && <span className="ml-auto text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded-sm">無効</span>}
                         </div>
-                        <p className="text-[11px] text-amber-200/70 leading-relaxed">{enchDef?.desc || ''}</p>
+                        <p className={`text-[11px] leading-relaxed ${encIsDisabled ? 'text-slate-500' : 'text-amber-200/70'}`}>{enchDef?.desc || ''}</p>
                       </div>
                     );
                   })
@@ -3828,6 +4434,67 @@ const App = () => {
                     売却 (+{Math.floor(t.price * (t.enchantments?.some(e => e.effect === "high_sell") ? 3.0 : 0.5))} ★)
                   </button>
                   <button onClick={() => setSelectedTokenDetail(null)} className="text-slate-400 text-xs font-bold py-2">
+                    閉じる
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Enchant Detail Modal */}
+        {selectedEnchantDetail && (() => {
+          const t = tokens.find(tok => tok.instanceId === selectedEnchantDetail.tokenInstanceId);
+          if (!t) {
+            // schedule close
+            setTimeout(() => setSelectedEnchantDetail(null), 0);
+            return null;
+          }
+          const enc = t.enchantments?.[selectedEnchantDetail.enchantIndex];
+          if (!enc) {
+            setTimeout(() => setSelectedEnchantDetail(null), 0);
+            return null;
+          }
+          const enchDef = ENCHANTMENTS.find(e => e.effect === enc.effect);
+          const encIsDisabled = enc.disabled;
+
+          return (
+            <div className="fixed inset-0 z-[400] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setSelectedEnchantDetail(null)}>
+              <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border shadow-[0_0_40px_rgba(245,158,11,0.15)] border-amber-500/30" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${encIsDisabled ? 'bg-slate-700 border-slate-600' : 'bg-amber-500/20 border border-amber-500/30'}`}>
+                    <span className={`material-icons-round text-2xl ${encIsDisabled ? 'text-slate-400' : 'text-amber-400'}`}>
+                      auto_fix_high
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className={`text-lg font-bold font-display italic leading-tight ${encIsDisabled ? 'text-slate-300' : 'text-amber-400'}`}>{enc.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${encIsDisabled ? 'bg-slate-700 text-slate-400' : 'bg-amber-500/20 text-amber-500'}`}>
+                        {encIsDisabled ? '無効' : '有効'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/60 rounded-xl p-3 mb-6 border border-white/5">
+                  <p className="text-xs text-slate-300 leading-relaxed">{enchDef?.desc || ''}</p>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => {
+                      toggleEnchantStatus(selectedEnchantDetail.tokenInstanceId, selectedEnchantDetail.enchantIndex);
+                    }}
+                    className={`py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${encIsDisabled
+                      ? 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-lg shadow-amber-500/25'
+                      : 'bg-slate-700 hover:bg-slate-600 text-white'
+                      }`}
+                  >
+                    {encIsDisabled ? '有効にする' : '無効にする'}
+                  </button>
+
+                  <button onClick={() => setSelectedEnchantDetail(null)} className="text-slate-400 text-xs font-bold py-2">
                     閉じる
                   </button>
                 </div>

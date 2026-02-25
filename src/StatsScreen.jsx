@@ -29,6 +29,7 @@ const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
 
         // 特殊消し
         shapeLen4: activeTab === "current" ? currentRunStats.currentShapeLen4 : stats.lifetimeShapeLen4,
+        shapeLen5: activeTab === "current" ? currentRunStats.currentShapeLen5 : stats.lifetimeShapeLen5,
         shapeRow: activeTab === "current" ? currentRunStats.currentShapeRow : stats.lifetimeShapeRow,
         shapeLShape: activeTab === "current" ? currentRunStats.currentShapeLShape : stats.lifetimeShapeLShape,
         shapeCross: activeTab === "current" ? currentRunStats.currentShapeCross : stats.lifetimeShapeCross,
@@ -49,8 +50,8 @@ const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
                         onClick={() => setActiveTab("current")}
                         disabled={!isActiveGame}
                         className={`flex-1 py-2 rounded-lg font-bold transition-all text-sm ${activeTab === "current"
-                                ? "bg-slate-600 text-white shadow-md"
-                                : "text-slate-400 hover:text-slate-300 disabled:opacity-30 disabled:hover:text-slate-400"
+                            ? "bg-slate-600 text-white shadow-md"
+                            : "text-slate-400 hover:text-slate-300 disabled:opacity-30 disabled:hover:text-slate-400"
                             }`}
                     >
                         現在のゲーム
@@ -58,8 +59,8 @@ const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
                     <button
                         onClick={() => setActiveTab("lifetime")}
                         className={`flex-1 py-2 rounded-lg font-bold transition-all text-sm ${activeTab === "lifetime"
-                                ? "bg-slate-600 text-white shadow-md"
-                                : "text-slate-400 hover:text-slate-300"
+                            ? "bg-slate-600 text-white shadow-md"
+                            : "text-slate-400 hover:text-slate-300"
                             }`}
                     >
                         累計記録
@@ -106,6 +107,10 @@ const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">4個消し</span>
                             <span className="font-black text-white">{(displayData.shapeLen4 || 0).toLocaleString()} 回</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm text-slate-400">5個異常消し</span>
+                            <span className="font-black text-white">{(displayData.shapeLen5 || 0).toLocaleString()} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">1列消し</span>
