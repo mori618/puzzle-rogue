@@ -667,6 +667,11 @@ const ALL_TOKEN_BASES = [
     desc: "ボムの効果で消えたドロップ数 × [1.2/1.3/1.5] 倍、コンボ倍率に乗算される。",
   },
   {
+    id: "repeat_combo_mult", name: "連鎖の共鳴", type: "passive", effect: "repeat_combo_mult",
+    values: [1.3, 1.5, 2.0], rarity: 3, price: 9,
+    desc: "リピートドロップの消去数 × [1.3/1.5/2.0] 倍、コンボ倍率に乗算される。",
+  },
+  {
     id: "ignited_drop_fire", name: "爆炎の兆し", type: "passive", effect: "bomb_chance_color", params: { color: "fire" },
     values: [0.03, 0.05, 0.10], rarity: 2, price: 9,
     desc: "炎ドロップが、[3/5/10]%の確率でボムドロップとして降ってくるようになる。",
@@ -3049,7 +3054,7 @@ const App = () => {
   // Debug State
   // const [debugLog, setDebugLog] = useState(null);
 
-  const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0) => {
+  const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0, erasedByRepeatTotal = 0, erasedByStarTotal = 0) => {
     let bonus = 0;
     let multiplier = 1;
     let timeMultiplier = 1; // 次手の操作時間倍率
@@ -3279,6 +3284,15 @@ const App = () => {
         triggerPassive(t.instanceId || t.id);
         multiplier *= v;
         logData.multipliers.push(`bomb_erase_mult:x${v.toFixed(2)}`);
+      }
+
+      // --- 新規: リピートドロップ消去数×倍率 (パッシブ) ---
+      if (t.effect === "repeat_combo_mult" && erasedByRepeatTotal > 0) {
+        const baseMult = t.values?.[lv - 1] || 1.3;
+        const v = erasedByRepeatTotal * baseMult;
+        triggerPassive(t.instanceId || t.id);
+        multiplier *= v;
+        logData.multipliers.push(`repeat_combo_mult:x${v.toFixed(2)}`);
       }
 
       // Skyfall bonus
