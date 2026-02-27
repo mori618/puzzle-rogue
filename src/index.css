@@ -347,6 +347,17 @@ body {
   animation: bonus-slide-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* 段階的演出：エフェクト名表示用のラベル */
+.combo-step-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  opacity: 0.8;
+  display: block;
+  text-align: center;
+  margin-top: 2px;
+}
+
 /* パーフェクトクリアラベル */
 .combo-perfect-label {
   font-size: 0.9rem;

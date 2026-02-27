@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PauseScreen = ({ onResume, onTitle, onHelp, onStats }) => {
+const PauseScreen = ({ onResume, onTitle, onHelp, onStats, onCredits, onSettings }) => {
     return (
         <div className="w-full h-full bg-background-dark flex flex-col items-center justify-center p-6 animate-fade-in font-display">
             <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-xs shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative p-6">
@@ -30,6 +30,21 @@ const PauseScreen = ({ onResume, onTitle, onHelp, onStats }) => {
                     >
                         <span className="material-icons-round text-xl">emoji_events</span>
                         実績 (Stats)
+                    </button>
+                    <button
+                        onClick={onCredits}
+                        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-3.5 rounded-xl font-bold border border-white/10 transition-all active:scale-95 flex justify-center items-center gap-2"
+                    >
+                        <span className="material-icons-round text-xl">info</span>
+                        クレジット
+                    </button>
+                    {/* 設定ボタン */}
+                    <button
+                        onClick={onSettings}
+                        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-3.5 rounded-xl font-bold border border-white/10 transition-all active:scale-95 flex justify-center items-center gap-2"
+                    >
+                        <span className="material-icons-round text-xl">settings</span>
+                        設定
                     </button>
                     <div className="my-2 border-b border-white/5 w-full"></div>
                     <button

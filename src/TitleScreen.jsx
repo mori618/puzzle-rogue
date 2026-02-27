@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue }) => {
+const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCredits, onSettings }) => {
     return (
         <div className="w-full h-screen bg-background-dark flex flex-col items-center justify-center relative overflow-hidden font-display">
             {/* Background effects */}
@@ -58,6 +58,20 @@ const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue }) => {
                     >
                         <span className="material-icons-round text-xl">emoji_events</span>
                         実績画面
+                    </button>
+                    <button
+                        onClick={onSettings}
+                        className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl border border-white/10 transform transition-all active:scale-95 flex items-center justify-center gap-2 mt-2"
+                    >
+                        <span className="material-icons-round text-xl">settings</span>
+                        設定
+                    </button>
+                    <button
+                        onClick={onCredits}
+                        className="w-full bg-slate-900/50 hover:bg-slate-800 text-slate-400 font-bold py-4 rounded-xl border border-white/5 transform transition-all active:scale-95 flex justify-center items-center gap-2 mt-2"
+                    >
+                        <span className="material-icons-round text-xl">info</span>
+                        クレジット
                     </button>
                 </div>
             </div>
