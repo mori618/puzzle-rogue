@@ -224,7 +224,7 @@ body {
   filter: brightness(1.15) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
 }
 
-.orb-matching>div {
+.orb-matching>* {
   animation: orb-dissolve 0.3s ease-out forwards;
   will-change: transform, opacity;
 }
@@ -565,4 +565,77 @@ body {
     transform: scale(1);
     filter: brightness(1) drop-shadow(0 0 0px white);
   }
+}
+
+/* === プレミアム通知トースト === */
+@keyframes toast-premium-flow {
+  0% {
+    transform: translate(-50%, -100%) scale(0.9);
+    opacity: 0;
+  }
+
+  10% {
+    transform: translate(-50%, 20px) scale(1.05);
+    opacity: 1;
+  }
+
+  15%,
+  85% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -120%) scale(0.9);
+    opacity: 0;
+  }
+}
+
+.premium-toast {
+  position: fixed;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  pointer-events: none;
+  /* 3秒間で一連のアニメーションを実行 */
+  animation: toast-premium-flow 3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.premium-toast-inner {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 2rem;
+  border-radius: 9999px;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    0 0 20px rgba(91, 19, 236, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 2px solid var(--color-primary);
+}
+
+.premium-toast-text {
+  color: white;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: var(--font-display);
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+}
+
+.premium-toast-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 110%;
+  height: 120%;
+  background: radial-gradient(circle, rgba(91, 19, 236, 0.15) 0%, transparent 70%);
+  z-index: -1;
+  border-radius: 9999px;
 }

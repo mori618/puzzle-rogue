@@ -34,6 +34,7 @@ const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
         shapeLShape: activeTab === "current" ? currentRunStats.currentShapeLShape : stats.lifetimeShapeLShape,
         shapeCross: activeTab === "current" ? currentRunStats.currentShapeCross : stats.lifetimeShapeCross,
         shapeSquare: activeTab === "current" ? currentRunStats.currentShapeSquare : stats.lifetimeShapeSquare,
+        maxCycle: stats.maxCycleAllTime,
     };
 
     return (
@@ -85,6 +86,12 @@ const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
                             <span className="font-bold text-sm">クリア回数</span>
                             <span className="font-black text-amber-500">{(displayData.clears || 0).toLocaleString()} 回</span>
                         </div>
+                        {activeTab === "lifetime" && (
+                            <div className="flex justify-between items-center">
+                                <span className="font-bold text-sm">最大到達サイクル</span>
+                                <span className="font-black text-amber-500">Cycle {displayData.maxCycle || 1}</span>
+                            </div>
+                        )}
 
                         <div className="border-t border-white/5 my-1"></div>
 
