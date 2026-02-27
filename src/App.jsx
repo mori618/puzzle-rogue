@@ -180,10 +180,10 @@ const ALL_TOKEN_BASES = [
     id: "time_ext",
     name: "時の砂",
     type: "passive",
-    effect: "time",
-    values: [2, 3, 5],
-    rarity: 1, price: 4,
-    desc: "操作時間を2/3/5秒延長。",
+    effect: "time_permanent",
+    price: 4,
+    rarity: 1,
+    desc: "操作時間を2秒延長。（購入するごとに累積し、トークン枠を消費しない）",
   },
   {
     id: "power_up",
@@ -2609,6 +2609,7 @@ const App = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasSaveData, setHasSaveData] = useState(false);
   const [tokens, setTokens] = useState(Array(6).fill(null));
+  const [sandsOfTimeSeconds, setSandsOfTimeSeconds] = useState(0); // 永続強化: 時の砂
   const [isGameOver, setIsGameOver] = useState(false);
   const [target, setTarget] = useState(100);
   const [goalReached, setGoalReached] = useState(false);
@@ -2749,6 +2750,7 @@ const App = () => {
         setTarget(parsed.target || 8);
         setGoalReached(parsed.goalReached || false);
         setStars(parsed.stars || 0);
+        setSandsOfTimeSeconds(parsed.sandsOfTimeSeconds || 0);
 
         // tokens は配列として復元
         if (parsed.tokens && Array.isArray(parsed.tokens)) {
@@ -2829,6 +2831,7 @@ const App = () => {
       totalPurchases,
       totalStarsSpent,
       isGameOver,
+      sandsOfTimeSeconds,
       shopRerollBasePrice,
       shopRerollPrice,
       currentRunTotalCombo,
@@ -2839,7 +2842,7 @@ const App = () => {
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveObj));
     setHasSaveData(true);
 
-  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard]);
+  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard]);
 
   // --- Auto Save Stats ---
   useEffect(() => {
@@ -2896,7 +2899,7 @@ const App = () => {
     if (hasDesperateStance) {
       return 4000;
     }
-    let base = 5000;
+    let base = 5000 + (sandsOfTimeSeconds * 1000);
     tokens.forEach((t) => {
       if (t?.effect === "time") base += (t.values[(t.level || 1) - 1] * 1000);
       // 呪われた力: 操作時間-2秒
@@ -2926,7 +2929,7 @@ const App = () => {
     // 特殊消しボーナスによる操作時間延長（五星の印・十字の祈り）
     base *= nextTurnTimeMultiplier;
     return Math.max(1000, base); // 最低1秒
-  }, [tokens, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs]);
+  }, [tokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs]);
 
   // --- Init Engine ---
   useEffect(() => {
@@ -4116,6 +4119,7 @@ const App = () => {
     setShopRerollBasePrice(1);
     setShopRerollPrice(1);
     setTokens([]);
+    setSandsOfTimeSeconds(0);
     /* setEnergy(0); // REMOVED */
     setActiveBuffs([]);
     setSkippedTurnsBonus(0);
@@ -4321,6 +4325,18 @@ const App = () => {
 
   const buyItem = (item) => {
     if (stars < item.price) return notify("★が足りません");
+
+    // 永続強化: 時の砂
+    if (item.id === "time_ext") {
+      setSandsOfTimeSeconds(prev => prev + 2);
+      setStars((s) => s - item.price);
+      setTotalPurchases((p) => p + 1);
+      setTotalStarsSpent((prev) => prev + item.price);
+      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
+      setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
+      setShopItems((prev) => prev.filter((i) => i !== item));
+      return notify("操作時間が2秒延長されました！");
+    }
 
     if (item.type === "upgrade_random") {
       // Filter only tokens that are not max level (Max Lv 3)
