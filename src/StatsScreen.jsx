@@ -101,7 +101,7 @@ const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">最大コンボ倍率</span>
-                            <span className="font-black text-white">x{(displayData.maxComboMultiplier || 1).toFixed(2)}</span>
+                            <span className="font-black text-white">x{Math.round((displayData.maxComboMultiplier || 1) * 100) / 100}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">最大エンチャント数</span>
