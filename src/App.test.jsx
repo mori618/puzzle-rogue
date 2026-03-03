@@ -1,5 +1,5 @@
 import { render, screen, act, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import App from './App';
 
 // Mock Lucide icons
@@ -39,9 +39,8 @@ describe('App Monkey Test', () => {
     });
 
     it('runs without crashing through various random actions', async () => {
-        let root;
         await act(async () => {
-            root = render(<App />);
+            render(<App />);
         });
 
         // Start game from title screen

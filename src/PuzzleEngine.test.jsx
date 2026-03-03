@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PuzzleEngine, ALL_TOKEN_BASES } from './App';
 
 describe('PuzzleEngine Headless Tests', () => {
@@ -40,7 +40,7 @@ describe('PuzzleEngine Headless Tests', () => {
         expect(engine.state[0][0]).not.toBeNull();
     });
 
-    it('can drag and drop an orb without throwing', () => {
+    it('can drag and drop an orb without throwing', async () => {
         const orb = engine.state[0][0];
 
         // Fake down event
@@ -59,7 +59,7 @@ describe('PuzzleEngine Headless Tests', () => {
         window.dispatchEvent(upEvent);
 
         // Engine should process combos
-        vi.advanceTimersByTime(1000);
+        await vi.advanceTimersByTimeAsync(3000);
         expect(engine.processing).toBe(false);
     });
 

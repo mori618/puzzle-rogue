@@ -11,7 +11,7 @@ export default defineConfig({
       plugins: [
         license({
           thirdParty: {
-            output: path.resolve(process.cwd(), 'dist/licenses.txt'),
+            output: path.resolve(process.cwd(), 'dist/licenses.txt'), // eslint-disable-line no-undef
             includePrivate: false,
           },
         }),
