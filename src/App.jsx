@@ -428,7 +428,14 @@ const App = () => {
       const bonuses = {
         len4: 0, row: 0, l_shape: 0, color_combo: {}, heart_combo: 0, enhancedOrbBonus: 0, overLink: null,
         extra_repeat_activations: 0,
-        tokenIds: { len4: [], row: [], l_shape: [], heart_combo: [], enhancedOrbBonus: [], overLink: [], rainbow_combo_bonus: [], extra_repeat_activations: [] }
+        stat_shape_additions: { cross: 0, len4: 0 },
+        skyfall: 0,
+        rainbow: 0,
+        tokenIds: {
+          len4: [], row: [], l_shape: [], heart_combo: [], enhancedOrbBonus: [], overLink: [],
+          rainbow_combo_bonus: [], extra_repeat_activations: [], stat_shape_additions: { cross: [], len4: [] },
+          skyfall: [], rainbow: []
+        }
       };
       effectiveTokens.forEach(t => {
         if (!t) return;
@@ -470,13 +477,31 @@ const App = () => {
         }
 
         if (t.effect === 'rainbow_combo_bonus') {
-          bonuses.rainbow_combo_bonus = (bonuses.rainbow_combo_bonus || 0) + (t.values[lv - 1] || 0);
-          bonuses.tokenIds.rainbow_combo_bonus.push(tId);
+          bonuses.rainbow += (t.values[lv - 1] || 0);
+          bonuses.tokenIds.rainbow.push(tId);
+        }
+
+        if (t.effect === 'bonus_skyfall') {
+          bonuses.skyfall += (t.values[lv - 1] || 0);
+          bonuses.tokenIds.skyfall.push(tId);
         }
 
         if (t.effect === 'extra_repeat_activations') {
           bonuses.extra_repeat_activations += t.values[lv - 1] || 0;
           bonuses.tokenIds.extra_repeat_activations.push(tId);
+        }
+
+        if (t.effect === "stat_shape_cross") {
+          const v = t.values?.[lv - 1] || 1;
+          const b = Math.floor((currentRunStats.currentShapeCross || 0) / 5) * v;
+          bonuses.stat_shape_additions.cross += b;
+          bonuses.tokenIds.stat_shape_additions.cross.push(tId);
+        }
+        if (t.effect === "stat_shape_len4") {
+          const v = t.values?.[lv - 1] || 1;
+          const b = Math.floor((currentRunStats.currentShapeLen4 || 0) / 20) * v;
+          bonuses.stat_shape_additions.len4 += b;
+          bonuses.tokenIds.stat_shape_additions.len4.push(tId);
         }
 
         // Add color combo enchantments to realtime bonuses
@@ -908,13 +933,9 @@ const App = () => {
         logData.multiplierSteps.push({ label: t.name || 'リピート消去倍率', value: v, tokenId: tId });
       }
 
-      // Skyfall bonus
+      // Skyfall bonus - Already handled in PuzzleEngine
       if (t.effect === "skyfall_bonus" && hasSkyfallCombo) {
-        const v = t.values?.[lv - 1] || 0;
-        if (isInstant) triggerPassive(tId);
-        bonus += v;
-        logData.bonuses.push(`skyfall:${v}`);
-        if (v > 0) logData.bonusSteps.push({ label: t.name || 'スカイフォール', value: v, tokenId: tId });
+        logData.bonuses.push(`skyfall:(applied)`);
       }
 
       // New: Exact Combo Bonus
@@ -971,8 +992,7 @@ const App = () => {
             // 十字の祈り: 次手操作延長 (重複適用)
             for (let i = 0; i < matchCount; i++) timeMultiplier *= v;
             logData.bonuses.push(`shape_cross:time_x${v}_count_${matchCount}`);
-          } else {
-            // len4 / row: すでに PuzzleEngine 内でリアルタイム加算済み
+            // len4 / row / l_shape: すでに PuzzleEngine 内でリアルタイム加算済み
             // ここでの v は集計ロジック用であり、段階的演出（演出データ）には追加しない（リアルタイムで跳ねるため）
             logData.bonuses.push(`shape_${shape}:${v}x${matchCount}(applied)`);
           }
@@ -1133,25 +1153,12 @@ const App = () => {
           logData.multiplierSteps.push({ label: t.name || '千手', value: m, tokenId: tId });
         }
       }
+      // 十字・4連は PuzzleEngine 内でリアルタイム加算済み
       if (t.effect === "stat_shape_cross" && shapes.includes("cross")) {
-        const v = t.values?.[lv - 1] || 1;
-        const b = Math.floor((currentRunStats.currentShapeCross || 0) / 5) * v;
-        if (b > 0) {
-          if (isInstant) triggerPassive(t.instanceId || t.id);
-          bonus += b;
-          logData.bonuses.push(`stat_shape_cross:+${b}`);
-          logData.bonusSteps.push({ label: t.name || '十字の叡智', value: b, tokenId: tId });
-        }
+        logData.bonuses.push(`stat_shape_cross:(applied)`);
       }
       if (t.effect === "stat_shape_len4" && shapes.includes("len4")) {
-        const v = t.values?.[lv - 1] || 1;
-        const b = Math.floor((currentRunStats.currentShapeLen4 || 0) / 20) * v;
-        if (b > 0) {
-          if (isInstant) triggerPassive(t.instanceId || t.id);
-          bonus += b;
-          logData.bonuses.push(`stat_shape_len4:+${b}`);
-          logData.bonusSteps.push({ label: t.name || '連鎖の叡智', value: b, tokenId: tId });
-        }
+        logData.bonuses.push(`stat_shape_len4:(applied)`);
       }
       if (t.effect === "stat_shape_row" && shapes.includes("row")) {
         const v = t.values?.[lv - 1] || 1.1;
@@ -1167,9 +1174,10 @@ const App = () => {
       }
       if (t.effect === "stat_shape_square") {
         const v = t.values?.[lv - 1] || 1.5;
+        const squareCountInTurn = shapes.filter(s => s === "square").length;
         const count = Math.floor((currentRunStats.currentShapeSquare || 0) / 5);
-        if (count > 0) {
-          const m = Math.pow(v, count);
+        if (count > 0 && squareCountInTurn > 0) {
+          const m = Math.pow(Math.pow(v, count), squareCountInTurn);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
           logData.multipliers.push(`stat_shape_square:x${formatNum(m)}`);
@@ -1186,6 +1194,15 @@ const App = () => {
           logData.multipliers.push(`stat_spend_star:x${formatNum(m)}`);
           logData.multiplierSteps.push({ label: t.name || '富の余韻', value: m, tokenId: tId });
         }
+      }
+
+      if (t.effect === 'rainbow_combo_bonus') {
+        // Already handled in PuzzleEngine
+        logData.bonuses.push(`rainbow:(applied)`);
+      }
+      if (t.effect === 'heart_combo_bonus') {
+        // Already handled in PuzzleEngine
+        logData.bonuses.push(`heart_combo:(applied)`);
       }
     });
 
@@ -1708,6 +1725,20 @@ const App = () => {
       if (t?.id === "bargain") {
         const value = t.values[(t.level || 1) - 1];
         saleBonus += (value - 1);
+      }
+      if (t.effect === 'rainbow_combo_bonus') {
+        // Already handled in PuzzleEngine
+        // This is a shop generation loop, not star calculation.
+        // The instruction "Remove redundant end-of-turn calculations for real-time additions"
+        // implies this logData push should be removed from here if it's meant for star calculation.
+        // However, the instruction also says "Update the calculation loop for these bonuses"
+        // and provides this snippet. Given the context, I will keep it as provided in the snippet.
+        // It's possible this is for debugging shop generation.
+        // logData.bonuses.push(`rainbow:(applied)`); // This line was not in the original code, but in the instruction snippet.
+      }
+      if (t.effect === 'heart_combo_bonus') {
+        // Already handled in PuzzleEngine
+        // logData.bonuses.push(`heart_combo:(applied)`); // Same as above.
       }
       if (t?.effect === "enchant_grant_boost") {
         const value = t.values[(t.level || 1) - 1];

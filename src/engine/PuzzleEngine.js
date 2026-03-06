@@ -50,9 +50,19 @@ class PuzzleEngine {
 
     this._isDestroyed = false;
     this._rafId = null; // requestAnimationFrame ID
-    this.realtimeBonuses = { len4: 0, row: 0 };
-    this.enhanceRates = { global: 0, colors: {} };
-    this.rainbowRates = 0; // chance to spawn rainbow drop
+    this.realtimeBonuses = {
+      len4: 0,
+      row: 0,
+      l_shape: 0,
+      rainbow_combo_bonus: 0,
+      heart_combo: 0,
+      skyfall_bonus: 0,
+      enhancedOrbBonus: 0,
+      rainbow: 0,
+      skyfall: 0
+    };
+    this.enhanceRates = { global: [], colors: {} };
+    this.rainbowRates = []; // chance to spawn rainbow drop
     this.chronosStopActive = false;
     this.chronosTimerId = null;
   }
@@ -1050,6 +1060,8 @@ class PuzzleEngine {
             if (colorComboCounts[type] !== undefined) {
               colorComboCounts[type]++;
               erasedColorCounts[type] += group.length;
+              // Add to iteration tracking
+              iterationErasedColors.add(type);
             }
           }
 
@@ -1108,6 +1120,12 @@ class PuzzleEngine {
               this.realtimeBonuses.tokenIds.len4.forEach(id => this.onPassiveTrigger(id));
             }
           }
+          if (shape === "len4" && this.realtimeBonuses?.stat_shape_additions?.len4) {
+            addition += this.realtimeBonuses.stat_shape_additions.len4;
+            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.stat_shape_additions?.len4) {
+              this.realtimeBonuses.tokenIds.stat_shape_additions.len4.forEach(id => this.onPassiveTrigger(id));
+            }
+          }
           if (shape === "row" && this.realtimeBonuses?.row) {
             addition += this.realtimeBonuses.row;
             if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.row) {
@@ -1118,6 +1136,12 @@ class PuzzleEngine {
             addition += this.realtimeBonuses.l_shape;
             if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.l_shape) {
               this.realtimeBonuses.tokenIds.l_shape.forEach(id => this.onPassiveTrigger(id));
+            }
+          }
+          if (shape === "cross" && this.realtimeBonuses?.stat_shape_additions?.cross) {
+            addition += this.realtimeBonuses.stat_shape_additions.cross;
+            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.stat_shape_additions?.cross) {
+              this.realtimeBonuses.tokenIds.stat_shape_additions.cross.forEach(id => this.onPassiveTrigger(id));
             }
           }
 
@@ -1131,6 +1155,24 @@ class PuzzleEngine {
             addition += this.realtimeBonuses.heart_combo;
             if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.heart_combo) {
               this.realtimeBonuses.tokenIds.heart_combo.forEach(id => this.onPassiveTrigger(id));
+            }
+          }
+
+          // Skyfall Bonus
+          const isSkyfall = group.some(o => o.isSkyfall);
+          if (isSkyfall && this.realtimeBonuses?.skyfall) {
+            addition += this.realtimeBonuses.skyfall;
+            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.skyfall) {
+              this.realtimeBonuses.tokenIds.skyfall.forEach(id => this.onPassiveTrigger(id));
+            }
+          }
+
+          // Rainbow Bridge (虹ドロップがコンボに関与した際のボーナス)
+          const involvedRainbow = group.some(o => o.isRainbow);
+          if (involvedRainbow && this.realtimeBonuses?.rainbow) {
+            addition += Number(this.realtimeBonuses.rainbow || 0);
+            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.rainbow) {
+              this.realtimeBonuses.tokenIds.rainbow.forEach(id => this.onPassiveTrigger(id));
             }
           }
 
