@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCredits, onSettings }) => {
+const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCredits, onSettings, onStartMultiTest }) => {
     return (
         <div className="w-full h-screen bg-background-dark flex flex-col items-center justify-center relative overflow-hidden font-display">
             {/* Background effects */}
@@ -45,6 +45,13 @@ const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCred
                             始める
                         </button>
                     )}
+                    <button
+                        onClick={onStartMultiTest}
+                        className="w-full bg-slate-900 hover:bg-slate-800 text-yellow-400 font-bold py-4 rounded-xl border border-yellow-400/30 shadow-[0_0_10px_rgba(250,204,21,0.2)] transform transition-all active:scale-95 flex items-center justify-center gap-2 mt-4"
+                    >
+                        <span className="material-icons-round text-xl">bug_report</span>
+                        10分割 AI自動テスト実行
+                    </button>
                     <button
                         onClick={onHelp}
                         className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl border border-white/10 transform transition-all active:scale-95 flex items-center justify-center gap-2"

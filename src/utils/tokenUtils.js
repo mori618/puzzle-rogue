@@ -2,7 +2,10 @@ import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 
 // --- Utils ---
 // --- Utils ---
-const formatNum = (n) => Math.round(n * 100) / 100;
+const formatNum = (n) => {
+  const num = Number(n);
+  return isNaN(num) ? 0 : Math.round(num * 100) / 100;
+};
 
 const getEffectiveCost = (token, currentRunStats = null, currentTokens = [], currentBuffs = []) => {
   if (!token || token.type !== 'skill') return token?.cost || 0;
@@ -18,8 +21,8 @@ const getEffectiveCost = (token, currentRunStats = null, currentTokens = [], cur
   let resonanceReduction = 0;
 
   if (!isEnchantDisabled) {
-    enchantReduction = token.enchantments?.filter(e => e.effect === "cost_down").length || 0;
-    if (currentRunStats && token.enchantments?.some(e => e.effect === "stat_skill_use")) {
+    enchantReduction = token.enchantments?.filter(e => e?.effect === "cost_down").length || 0;
+    if (currentRunStats && token.enchantments?.some(e => e?.effect === "stat_skill_use")) {
       resonanceReduction = Math.floor((currentRunStats.currentSkillsUsed || 0) / 10);
     }
   }

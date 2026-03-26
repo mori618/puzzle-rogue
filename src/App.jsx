@@ -14,15 +14,19 @@ import { ENCHANT_DESCRIPTIONS, getEnchantDescription, ENCHANTMENTS } from './con
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS } from './constants/gameConstants.js';
 import { formatNum, getEffectiveCost, getTokenDescription } from './utils/tokenUtils.js';
 import { PuzzleEngine } from './engine/PuzzleEngine.js';
+import { AITester } from './utils/AITester.js';
+const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = false, onStartMultiTest = null }) => {
+  const instanceSaveKey = isMultiTest ? `${SAVE_KEY}_test_${testInstanceId}` : SAVE_KEY;
+  const instanceSettingsKey = isMultiTest ? `${SETTINGS_KEY}_test_${testInstanceId}` : SETTINGS_KEY;
+  const instanceStatsKey = isMultiTest ? `puzzle_rogue_stats_test_${testInstanceId}` : 'puzzle_rogue_stats';
 
-const App = () => {
   // Game State
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasSaveData, setHasSaveData] = useState(false);
   const [tokens, setTokens] = useState(Array(6).fill(null));
   const [sandsOfTimeSeconds, setSandsOfTimeSeconds] = useState(0); // 永続強化: 時の砂
   const [isGameOver, setIsGameOver] = useState(false);
-  const [target, setTarget] = useState(100);
+  const [target, setTarget] = useState(8);
   const [goalReached, setGoalReached] = useState(false);
   const [message, setMessage] = useState(null); // Centralized message toast
   const [shopItems, setShopItems] = useState([]);
@@ -60,7 +64,7 @@ const App = () => {
   const handleSettingsChange = useCallback((key, value) => {
     setSettings(prev => {
       const next = { ...prev, [key]: value };
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+      localStorage.setItem(instanceSettingsKey, JSON.stringify(next));
       return next;
     });
   }, []);
@@ -128,6 +132,8 @@ const App = () => {
   const [selectedEnchantDetail, setSelectedEnchantDetail] = useState(null);
   const [tokenMoveInput, setTokenMoveInput] = useState(''); // 並び替え用の入力値
   const [showGameClear, setShowGameClear] = useState(false); // 全画面クリア画面の表示フラグ
+  const [autoPlayActive, setAutoPlayActive] = useState(initialAutoStartAI);
+  const aiTesterRef = useRef(null);
 
   // --- 覚醒ショップ State ---
   const [isEnchantShopUnlocked, setIsEnchantShopUnlocked] = useState(false); // エンチャントショップ解放フラグ
@@ -151,13 +157,13 @@ const App = () => {
   const skipTurnProgressRef = useRef(false);
 
   // Derived
-  const hasGiantDomain = tokens.some((t) => t?.id === "giant" || t?.enchantments?.some(e => e.effect === "expand_board"));
+  const hasGiantDomain = tokens.some((t) => t?.id === "giant" || t?.enchantments?.some(e => e?.effect === "expand_board"));
   // NOTE: Changing board size forces re-init.
   const rows = hasGiantDomain ? 6 : 5;
   const cols = hasGiantDomain ? 7 : 6;
 
   const maxTurns = Math.max(1, 3
-    + tokens.reduce((acc, t) => acc + (t?.enchantments?.filter(e => e.effect === "add_turn").length || 0), 0)
+    + tokens.reduce((acc, t) => acc + (t?.enchantments?.filter(e => e?.effect === "add_turn").length || 0), 0)
     + tokens.reduce((acc, t) => {
       if (t?.effect === "picky_eater") return acc + (t.values[(t.level || 1) - 1] || 0);
       return acc;
@@ -168,7 +174,7 @@ const App = () => {
 
   // --- Load Save Data ---
   useEffect(() => {
-    const savedData = localStorage.getItem(SAVE_KEY);
+    const savedData = localStorage.getItem(instanceSaveKey);
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -181,7 +187,10 @@ const App = () => {
 
         // tokens は配列として復元
         if (parsed.tokens && Array.isArray(parsed.tokens)) {
-          setTokens(parsed.tokens);
+          const loadedTokens = parsed.tokens || [];
+          const paddedTokens = [...loadedTokens];
+          while (paddedTokens.length < 6) paddedTokens.push(null);
+          setTokens(paddedTokens);
         }
 
         setTotalPurchases(parsed.totalPurchases || 0);
@@ -219,7 +228,7 @@ const App = () => {
     }
 
     // Load Stats
-    const savedStats = localStorage.getItem('puzzle_rogue_stats');
+    const savedStats = localStorage.getItem(instanceStatsKey);
     if (savedStats) {
       try {
         setStats(JSON.parse(savedStats));
@@ -229,7 +238,7 @@ const App = () => {
     }
 
     // 設定のロード
-    const savedSettings = localStorage.getItem(SETTINGS_KEY);
+    const savedSettings = localStorage.getItem(instanceSettingsKey);
     if (savedSettings) {
       try {
         setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }));
@@ -247,7 +256,7 @@ const App = () => {
 
     if (isGameOver) {
       // ゲームオーバー時はセーブデータを消去
-      localStorage.removeItem(SAVE_KEY);
+      localStorage.removeItem(instanceSaveKey);
       setHasSaveData(false);
       return;
     }
@@ -274,7 +283,7 @@ const App = () => {
       board: engineRef.current ? engineRef.current.getState() : (savedBoard || null)
     };
 
-    localStorage.setItem(SAVE_KEY, JSON.stringify(saveObj));
+    localStorage.setItem(instanceSaveKey, JSON.stringify(saveObj));
     setHasSaveData(true);
 
   }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, isAwakeningLevelUpBought]);
@@ -282,7 +291,7 @@ const App = () => {
   // --- Auto Save Stats ---
   useEffect(() => {
     if (!isLoaded) return;
-    localStorage.setItem('puzzle_rogue_stats', JSON.stringify(stats));
+    localStorage.setItem(instanceStatsKey, JSON.stringify(stats));
   }, [stats, isLoaded]);
 
   // --- Skyfall Weight Management ---
@@ -302,9 +311,9 @@ const App = () => {
       // エンチャントによる出現率変動
       if (!isEnchantDisabled && t?.enchantments) {
         t.enchantments.forEach(e => {
-          if (e.effect === "skyfall_boost" && e.params?.color) {
+          if (e?.effect === "skyfall_boost" && e.params?.color) {
             weights[e.params.color] += 0.5; // 加算 (Boost)
-          } else if (e.effect === "skyfall_nerf" && e.params?.color) {
+          } else if (e?.effect === "skyfall_nerf" && e.params?.color) {
             weights[e.params.color] *= 0.5; // 乗算 (Nerf)
           }
         });
@@ -343,8 +352,8 @@ const App = () => {
       // --- 追加: エンチャントによる時間変動 ---
       if (!isEnchantDisabled) {
         t?.enchantments?.forEach(enc => {
-          if (enc.effect === "time_ext_enc") base += (enc.value || 1) * 1000;
-          if (enc.effect === "berserk_mode") base -= 1000; // 狂戦士: -1秒
+          if (enc?.effect === "time_ext_enc") base += (enc.value || 1) * 1000;
+          if (enc?.effect === "berserk_mode") base -= 1000; // 狂戦士: -1秒
         });
       }
 
@@ -399,6 +408,14 @@ const App = () => {
     engine.init(savedBoard);
     engineRef.current = engine;
 
+    // AI Auto Play Object Initialization (Synchronized with engine)
+    if (!aiTesterRef.current) {
+      aiTesterRef.current = new AITester(engine);
+    } else {
+      aiTesterRef.current.engine = engine;
+    }
+    if (autoPlayActive) aiTesterRef.current.start();
+
     return () => {
       if (engineRef.current) {
         setSavedBoard(engineRef.current.getState());
@@ -406,7 +423,165 @@ const App = () => {
       engine.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, cols, showTitle, showHelp, showStats, showCredits, showSettings]);
+  }, [rows, cols, showTitle, showHelp, showStats, showCredits, showSettings, autoPlayActive]);
+
+  // AI Tester Auto start/stop logic (merged into engine init)
+
+  // Expose shop actions and logging to the interval without stale closure issues
+  const aiStateRef = useRef({});
+  aiStateRef.current = { 
+    tokens, activeBuffs, stars, shopItems, shopRerollPrice,
+    buyItem: (item) => {
+      // Find the actual buy functions which will be defined later, so we proxy them
+      // Actually we must proxy through a state dispatch or just call the function if it's hoisted.
+      // Easiest is to bind them below or just depend on the state in the interval.
+    } 
+  };
+  // Wait, if I just add them to the dependency array, I don't need a complex ref proxy!
+
+  // Helper to log AI Run Data to global scope
+  const logAIRunData = useCallback(() => {
+    const report = {
+      instanceId: testInstanceId || "Main",
+      cycle: Math.floor(target / 100),
+      maxCombo: currentRunStats.maxCombo,
+      maxComboMultiplier: currentRunStats.maxComboMultiplier,
+      starsSpent: currentRunStats.currentStarsSpent,
+      tokens: tokens.map(t => t ? `${t.name}(Lv${t.level||1}) [${(t.enchantments||[]).map(e=>e.name).join(',')}]` : "Empty"),
+      buffs: activeBuffs.map(b => b.name)
+    };
+    if (!window.AILogs) window.AILogs = [];
+    window.AILogs.push(report);
+    // Simple console table log for developers
+    console.log(`[AI Test Report #${report.instanceId}] Cycle: ${report.cycle} | MaxCombo: ${report.maxCombo}`);
+    console.table(report.tokens);
+  }, [testInstanceId, target, currentRunStats, tokens, activeBuffs]);
+
+  // Handle AI Toggle
+  useEffect(() => {
+    if (aiTesterRef.current) {
+      if (autoPlayActive) aiTesterRef.current.start();
+      else aiTesterRef.current.stop();
+    }
+  }, [autoPlayActive]);
+
+  // AI Main Loop
+
+  useEffect(() => {
+    if (!autoPlayActive) return;
+    const loop = setInterval(() => {
+      if (!isLoaded) return;
+      
+      if (showTitle) {
+        if (hasSaveData) {
+          setShowTitle(false);
+        } else {
+          localStorage.removeItem(instanceSaveKey);
+          setHasSaveData(false);
+          resetGame(); // resetGame() is declared below, make sure it's accessible or hoisted? It's fine in useEffect.
+          setShowTitle(false);
+        }
+        } else if (pendingShopItem) {
+          // AI Duplicate Token Logic
+          if (shopMethodsRef.current?.handleChoice) {
+            const choice = Math.random() > 0.5 ? "upgrade" : "new";
+            shopMethodsRef.current.handleChoice(choice);
+          }
+        } else if (showShop) {
+          // AI Shop Logic
+          const affordable = shopItems.filter(item => {
+            // Price check
+            const cost = getEffectiveCost(item, currentRunStats, tokens, activeBuffs);
+            if (stars < cost) return false;
+            
+            // Item specific checks
+            if (item.type === 'enchant_random' || item.type === 'enchant_grant') {
+              const enchantable = tokens.filter(t => t && t.effect !== 'copy_left');
+              return enchantable.length > 0;
+            } else if (item.type === 'upgrade_random') {
+              const upgradeable = tokens.filter(t => t && (t.level || 1) < 3 && t.effect !== 'copy_left');
+              return upgradeable.length > 0;
+            } else if (item.id === "time_ext") {
+              return true; // Operation time is always buyable
+            } else {
+              // Normal Token Purchase logic
+              const isActive = item.type === 'skill';
+              const activeCount = tokens.filter(t => t?.type === 'skill').length;
+              const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
+              const maxSlots = 5 + tokenSlotExpansionCount;
+              
+              const existingIdx = tokens.findIndex((t) => t?.id === item.id);
+              if (existingIdx !== -1) {
+                const maxLv = tokens[existingIdx].values?.length || 3;
+                return (tokens[existingIdx].level || 1) < maxLv;
+              }
+              
+              if (isActive && activeCount >= maxSlots) return false;
+              if (!isActive && passiveCount >= maxSlots) return false;
+              
+              const emptyIdx = tokens.findIndex(t => t === null);
+              return emptyIdx !== -1;
+            }
+          });
+          
+          if (affordable.length > 0) {
+            const randItem = affordable[Math.floor(Math.random() * affordable.length)];
+            const evt = new CustomEvent('AIBuyItem', { detail: randItem });
+            window.dispatchEvent(evt);
+          } else if (stars >= shopRerollPrice && Math.random() > 0.5) {
+            window.dispatchEvent(new CustomEvent('AIRefreshShop'));
+          } else {
+            if (shopMethodsRef.current?.startNextCycle) {
+              shopMethodsRef.current.startNextCycle();
+            }
+          }
+      } else if (isGameOver) {
+        // Log stats before resetting
+        logAIRunData();
+        setShowTitle(true);
+        setIsGameOver(false);
+      } else if (goalReached) {
+        // AI should open shop when goal reached
+        if (shopMethodsRef.current?.openShop) {
+          shopMethodsRef.current.openShop();
+        }
+      } else if (showSettings || showCredits || showStats || showHelp) {
+        setShowSettings(false);
+        setShowCredits(false);
+        setShowStats(false);
+        setShowHelp(false);
+      } else {
+        // Inside game
+        if (aiTesterRef.current && engineRef.current && !engineRef.current.processing && !engineRef.current.chronosStopActive) {
+          aiTesterRef.current.executeTurn();
+        }
+      }
+    }, 800);
+    return () => clearInterval(loop);
+  }, [autoPlayActive, isLoaded, showTitle, showShop, pendingShopItem, isGameOver, goalReached, showSettings, showCredits, showStats, showHelp, hasSaveData, shopItems, stars, shopRerollPrice, tokens, activeBuffs, tokenSlotExpansionCount]);
+
+  // AI Shop Event Listeners (because buyItem/refreshShop are defined below)
+  useEffect(() => {
+    const handleAIBuy = (e) => {
+       const item = e.detail;
+       // Assuming buyItem is accessible inside the component body, we just wrap it in a ref.
+       if (shopMethodsRef.current?.buyItem) {
+          shopMethodsRef.current.buyItem(item);
+       }
+    };
+    const handleAIRefresh = () => {
+       if (shopMethodsRef.current?.refreshShop) {
+          shopMethodsRef.current.refreshShop();
+       }
+    };
+    window.addEventListener('AIBuyItem', handleAIBuy);
+    window.addEventListener('AIRefreshShop', handleAIRefresh);
+    return () => {
+      window.removeEventListener('AIBuyItem', handleAIBuy);
+      window.removeEventListener('AIRefreshShop', handleAIRefresh);
+    };
+  }, []);
+
 
   // Update time limit and realtime bonuses live
   useEffect(() => {
@@ -505,13 +680,13 @@ const App = () => {
         }
 
         // Add color combo enchantments to realtime bonuses
-        const enchList = isEnchantDisabled ? [] : (t.enchantments || []);
+        const enchList = isEnchantDisabled ? [] : (t?.enchantments || []);
         enchList.forEach(enc => {
-          if (enc.effect === 'color_combo' && enc.params?.color) {
+          if (enc?.effect === 'color_combo' && enc.params?.color) {
             const color = enc.params.color;
             bonuses.color_combo[color] = (bonuses.color_combo[color] || 0) + 1; // +1 per combo
           }
-          if (enc.effect === 'bomb_burst_combo') {
+          if (enc?.effect === 'bomb_burst_combo') {
             bonuses.bomb_burst_combo = (bonuses.bomb_burst_combo || 0) + 3;
           }
         });
@@ -538,7 +713,7 @@ const App = () => {
           }
         }
 
-        const enchList = t.enchantments || [];
+        const enchList = t?.enchantments || [];
         enchList.forEach(enc => {
           if (enc.effect === 'enhance_chance_color' && enc.params?.color) {
             const color = enc.params.color;
@@ -660,7 +835,7 @@ const App = () => {
       if (!t) return;
 
       const lv = t.level || 1;
-      const enchList = isEnchantDisabled ? [] : (t.enchantments || []);
+      const enchList = isEnchantDisabled ? [] : (t?.enchantments || []);
 
       // --- 共通処理関数 (トークン効果とエンチャント効果の両方をチェック) ---
       const checkEffect = (effect, params, val, tokenName, tokenId) => {
@@ -799,16 +974,16 @@ const App = () => {
 
       // エンチャントの効果をチェック
       enchList.forEach(enc => {
-        checkEffect(enc.effect, enc.params, enc.value, t.name, tId);
+        checkEffect(enc?.effect, enc?.params, enc?.value, t.name, tId);
       });
 
       // Base bonuses
       // エンチャント効果（複数対応）
       enchList.forEach(enc => {
-        if (enc.effect === "fixed_add") { const v = enc.value || 3; bonus += v; logData.bonuses.push(`fixed_add:${v}`); logData.bonusSteps.push({ label: t.name || '固定加算', value: v, tokenId: tId }); }
-        if (enc.effect === "star_add") { bonus += stars; logData.bonuses.push("star_add"); logData.bonusSteps.push({ label: t.name || 'スター加算', value: stars, tokenId: tId }); }
-        if (enc.effect === "skip_turn_combo") { bonus += skippedTurnsBonus; logData.bonuses.push("skip_add"); if (skippedTurnsBonus > 0) logData.bonusSteps.push({ label: t.name || 'スキップボーナス', value: skippedTurnsBonus, tokenId: tId }); }
-        if (enc.effect === "rarity_down_combo") { bonus += 1; logData.bonuses.push("rarity_down_combo:1"); logData.bonusSteps.push({ label: t.name || 'レア度下げ', value: 1, tokenId: tId }); }
+        if (enc?.effect === "fixed_add") { const v = enc.value || 3; bonus += v; logData.bonuses.push(`fixed_add:${v}`); logData.bonusSteps.push({ label: t.name || '固定加算', value: v, tokenId: tId }); }
+        if (enc?.effect === "star_add") { bonus += stars; logData.bonuses.push("star_add"); logData.bonusSteps.push({ label: t.name || 'スター加算', value: stars, tokenId: tId }); }
+        if (enc?.effect === "skip_turn_combo") { bonus += skippedTurnsBonus; logData.bonuses.push("skip_add"); if (skippedTurnsBonus > 0) logData.bonusSteps.push({ label: t.name || 'スキップボーナス', value: skippedTurnsBonus, tokenId: tId }); }
+        if (enc?.effect === "rarity_down_combo") { bonus += 1; logData.bonuses.push("rarity_down_combo:1"); logData.bonusSteps.push({ label: t.name || 'レア度下げ', value: 1, tokenId: tId }); }
       });
       if (t.effect === "base_add") {
         const v = t.values?.[lv - 1] || 0;
@@ -1014,11 +1189,11 @@ const App = () => {
         logData.multiplierSteps.push({ label: t.name || '禁忌(一時)', value: 3, tokenId: tId });
       }
       enchList.forEach(enc => {
-        if (enc.effect === "lvl_mult") {
+        if (enc?.effect === "lvl_mult") {
           multiplier *= lv;
           logData.multipliers.push(`lvl_mult:${lv}`);
         }
-        if (enc.effect === "stat_shape_all") {
+        if (enc?.effect === "stat_shape_all") {
           const totalShape = (currentRunStats.currentShapeLen4 || 0) +
             (currentRunStats.currentShapeRow || 0) +
             (currentRunStats.currentShapeLShape || 0) +
@@ -1308,11 +1483,13 @@ const App = () => {
           if (!comboRef.current) break;
           // トークン跳ねるアニメーションをトリガー
           if (step.tokenId) triggerPassive(step.tokenId);
-          currentVal = Math.min(currentVal + step.value, MAX_COMBO);
+          const stepValue = isNaN(step.value) ? 0 : step.value;
+          currentVal = Math.min(currentVal + stepValue, MAX_COMBO);
           const eEl = comboRef.current;
-          const sign = step.value >= 0 ? '+' : '';
-          const prevVal = Math.max(0, currentVal - step.value);
-          eEl.innerHTML = `<span class="combo-number">${prevVal.toLocaleString()}</span><span class="combo-bonus-add">${sign}${step.value.toLocaleString()}<span class="combo-step-label"> ${step.label}</span></span>`;
+          const sign = stepValue >= 0 ? '+' : '';
+          const prevVal = Math.max(0, currentVal - stepValue);
+          const safePrevVal = isNaN(prevVal) ? 0 : prevVal;
+          eEl.innerHTML = `<span class="combo-number">${safePrevVal.toLocaleString()}</span><span class="combo-bonus-add">${sign}${stepValue.toLocaleString()}<span class="combo-step-label"> ${step.label}</span></span>`;
           eEl.classList.remove('animate-combo-pop');
           void eEl.offsetWidth;
           eEl.classList.add('animate-combo-pop');
@@ -1325,10 +1502,11 @@ const App = () => {
           if (!comboRef.current) break;
           // トークン跳ねるアニメーションをトリガー
           if (step.tokenId) triggerPassive(step.tokenId);
-          const prevVal = currentVal;
-          currentVal = Math.min(Math.floor(currentVal * step.value), MAX_COMBO);
+          const safeStepValue = isNaN(step.value) ? 1 : step.value;
+          const prevVal = isNaN(currentVal) ? 0 : currentVal;
+          currentVal = Math.min(Math.floor(prevVal * safeStepValue), MAX_COMBO);
           const eEl = comboRef.current;
-          const roundedV = formatNum(step.value);
+          const roundedV = formatNum(safeStepValue);
           eEl.innerHTML = `<span class="combo-number">${prevVal.toLocaleString()}</span><span class="combo-bonus-mult">×${roundedV}<span class="combo-step-label"> ${step.label}</span></span>`;
           eEl.classList.remove('animate-combo-pop');
           void eEl.offsetWidth;
@@ -1339,7 +1517,8 @@ const App = () => {
         // ステップ3: 最終値をパルス演出で表示
         await new Promise(r => setTimeout(r, 300));
         if (comboRef.current) {
-          comboRef.current.innerHTML = `<span class="combo-number combo-number-final">${effectiveCombo.toLocaleString()}</span><span class="combo-label">COMBO</span>`;
+          const safeCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
+          comboRef.current.innerHTML = `<span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">COMBO</span>`;
           comboRef.current.classList.remove('animate-combo-pop');
           comboRef.current.classList.add('animate-combo-pulse');
           void comboRef.current.offsetWidth;
@@ -1351,7 +1530,9 @@ const App = () => {
         // ステップ1: 素コンボ → ボーナス加算表示
         if (turnCombo > 0 && bonus > 0) {
           await new Promise(r => setTimeout(r, 400));
-          el.innerHTML = `<span class="combo-number">${turnCombo}</span><span class="combo-bonus-add">+${bonus}</span>`;
+          const safeTurnCombo = isNaN(turnCombo) ? 0 : turnCombo;
+          const safeBonus = isNaN(bonus) ? 0 : bonus;
+          el.innerHTML = `<span class="combo-number">${safeTurnCombo}</span><span class="combo-bonus-add">+${safeBonus}</span>`;
           el.classList.remove('animate-combo-pop');
           void el.offsetWidth;
           el.classList.add('animate-combo-pop');
@@ -1360,8 +1541,8 @@ const App = () => {
         // ステップ2: 倍率表示
         if (turnCombo > 0 && multiplier > 1) {
           await new Promise(r => setTimeout(r, 500));
-          const baseVal = turnCombo + bonus;
-          const roundedMultiplier = formatNum(multiplier);
+          const baseVal = (isNaN(turnCombo) ? 0 : turnCombo) + (isNaN(bonus) ? 0 : bonus);
+          const roundedMultiplier = formatNum(isNaN(multiplier) ? 1 : multiplier);
           el.innerHTML = `<span class="combo-number">${baseVal}</span><span class="combo-bonus-mult">×${roundedMultiplier}</span>`;
           el.classList.remove('animate-combo-pop');
           void el.offsetWidth;
@@ -1371,7 +1552,8 @@ const App = () => {
         // ステップ3: 最終値をパルス演出で表示
         if (turnCombo > 0) {
           await new Promise(r => setTimeout(r, 600));
-          el.innerHTML = `<span class="combo-number combo-number-final">${effectiveCombo}</span><span class="combo-label">COMBO</span>`;
+          const safeEffectiveCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
+          el.innerHTML = `<span class="combo-number combo-number-final">${safeEffectiveCombo}</span><span class="combo-label">COMBO</span>`;
           el.classList.remove('animate-combo-pop');
           el.classList.add('animate-combo-pulse');
           void el.offsetWidth;
@@ -1542,12 +1724,14 @@ const App = () => {
     };
   });
 
-  // Sanitize tokens on mount/update to remove nulls if any exist from legacy state
+  // REMOVED: Destructive token sanitization that was causing slot issues.
+  /*
   useEffect(() => {
     if (tokens.some(t => t === null)) {
       setTokens(prev => prev.filter(t => t !== null));
     }
   }, [tokens]);
+  */
 
   // REMOVED: Automatic turn transition watcher
   /*******************************************************
@@ -1660,7 +1844,7 @@ const App = () => {
     setCurrentRunTotalCombo(0);
     setShopRerollBasePrice(1);
     setShopRerollPrice(1);
-    setTokens([]);
+    setTokens(Array(6).fill(null));
     setSandsOfTimeSeconds(0);
     /* setEnergy(0); // REMOVED */
     setActiveBuffs([]);
@@ -1726,19 +1910,11 @@ const App = () => {
         const value = t.values[(t.level || 1) - 1];
         saleBonus += (value - 1);
       }
-      if (t.effect === 'rainbow_combo_bonus') {
+      if (t?.effect === 'rainbow_combo_bonus') {
         // Already handled in PuzzleEngine
-        // This is a shop generation loop, not star calculation.
-        // The instruction "Remove redundant end-of-turn calculations for real-time additions"
-        // implies this logData push should be removed from here if it's meant for star calculation.
-        // However, the instruction also says "Update the calculation loop for these bonuses"
-        // and provides this snippet. Given the context, I will keep it as provided in the snippet.
-        // It's possible this is for debugging shop generation.
-        // logData.bonuses.push(`rainbow:(applied)`); // This line was not in the original code, but in the instruction snippet.
       }
-      if (t.effect === 'heart_combo_bonus') {
+      if (t?.effect === 'heart_combo_bonus') {
         // Already handled in PuzzleEngine
-        // logData.bonuses.push(`heart_combo:(applied)`); // Same as above.
       }
       if (t?.effect === "enchant_grant_boost") {
         const value = t.values[(t.level || 1) - 1];
@@ -1774,9 +1950,9 @@ const App = () => {
     let rarityDownCount = 0;
     tokens.forEach((t) => {
       if (t?.enchantments) {
-        t.enchantments.forEach((enc) => {
-          if (enc.effect === "rarity_up") rarityUpCount++;
-          if (enc.effect === "rarity_down_combo") rarityDownCount++;
+        t?.enchantments.forEach((enc) => {
+          if (enc?.effect === "rarity_up") rarityUpCount++;
+          if (enc?.effect === "rarity_down_combo") rarityDownCount++;
         });
       }
     });
@@ -1883,30 +2059,28 @@ const App = () => {
   };
 
   const buyItem = (item) => {
-    if (stars < item.price) return notify("★が足りません");
+    if (!item) return;
+    const cost = getEffectiveCost(item, currentRunStats, tokens, activeBuffs);
+    if (stars < cost) return notify("★が足りません");
 
     // 永続強化: 時の砂
     if (item.id === "time_ext") {
       setSandsOfTimeSeconds(prev => prev + 2);
-      setStars((s) => s - item.price);
+      setStars((s) => s - cost);
       setTotalPurchases((p) => p + 1);
-      setTotalStarsSpent((prev) => prev + item.price);
-      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
-      setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
+      setTotalStarsSpent((prev) => prev + cost);
+      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + cost }));
+      setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + cost }));
       setShopItems((prev) => prev.filter((i) => i !== item));
       return notify("操作時間が2秒延長されました！");
     }
 
     if (item.type === "upgrade_random") {
-      // Filter only tokens that are not max level (Max Lv 3) and not copy tokens
-      const upgradeableTokens = tokens.filter(t => (t.level || 1) < 3 && t.effect !== 'copy_left');
-
+      const upgradeableTokens = tokens.filter(t => t && (t.level || 1) < 3 && t.effect !== 'copy_left');
       if (upgradeableTokens.length === 0) return notify("強化可能なトークンがありません");
 
-      // Randomly select one from upgradeable tokens
       const targetToken = upgradeableTokens[Math.floor(Math.random() * upgradeableTokens.length)];
-      // Find index in original array to update
-      const targetIdx = tokens.findIndex(t => t.instanceId === targetToken.instanceId);
+      const targetIdx = tokens.findIndex(t => t?.instanceId === targetToken.instanceId);
 
       setTokens((prev) => {
         const next = [...prev];
@@ -1919,16 +2093,16 @@ const App = () => {
         return next;
       });
 
-      setStars((s) => s - item.price);
+      setStars((s) => s - cost);
       setTotalPurchases((p) => p + 1);
-      setTotalStarsSpent((prev) => prev + item.price);
-      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
-      setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
+      setTotalStarsSpent((prev) => prev + cost);
+      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + cost }));
+      setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + cost }));
       setShopItems((prev) => prev.filter((i) => i !== item));
       notify(`${targetToken.name} が強化されました! (Lv${(targetToken.level || 1) + 1})`);
 
     } else if (item.type === "enchant_random") {
-      const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left');
+      const enchantableTokens = tokens.filter(t => t && t.effect !== 'copy_left');
       if (enchantableTokens.length === 0) return notify("付与可能なトークンがありません");
 
       const targetToken = enchantableTokens[Math.floor(Math.random() * enchantableTokens.length)];
@@ -1943,16 +2117,16 @@ const App = () => {
         return next;
       });
 
-      setStars((s) => s - item.price);
+      setStars((s) => s - cost);
       setTotalPurchases((p) => p + 1);
-      setTotalStarsSpent((prev) => prev + item.price);
-      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
-      setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
+      setTotalStarsSpent((prev) => prev + cost);
+      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + cost }));
+      setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + cost }));
       setShopItems((prev) => prev.filter((i) => i !== item));
       notify(`${targetToken.name} に「${item.originalName}」を付与!`);
 
     } else if (item.type === "enchant_grant") {
-      const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left');
+      const enchantableTokens = tokens.filter(t => t && t.effect !== 'copy_left');
       if (enchantableTokens.length === 0) return notify("付与可能なトークンがありません");
 
       const targetToken = enchantableTokens[Math.floor(Math.random() * enchantableTokens.length)];
@@ -1966,41 +2140,45 @@ const App = () => {
         };
         return next;
       });
-      setStars((s) => s - item.price);
+      setStars((s) => s - cost);
       setTotalPurchases((p) => p + 1);
-      setTotalStarsSpent((prev) => prev + item.price);
-      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
+      setTotalStarsSpent((prev) => prev + cost);
+      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + cost }));
       setShopItems((prev) => prev.filter((i) => i !== item));
       notify("購入完了!");
     } else {
-      // Normal Token Purchase
-      const isActive = item.type === 'skill';
-      const activeCount = tokens.filter(t => t?.type === 'skill').length;
-      const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
-      const maxSlots = 5 + tokenSlotExpansionCount;
-      if (isActive && activeCount >= maxSlots) return notify(`アクティブスキルは${maxSlots}個までです`);
-      if (!isActive && passiveCount >= maxSlots) return notify(`パッシブアイテムは${maxSlots}個までです`);
-
       const existingIdx = tokens.findIndex((t) => t?.id === item.id);
       if (existingIdx !== -1) {
-        // Double check if max level (Use values.length as reference, default to 3)
         const maxLv = tokens[existingIdx].values?.length || 3;
         if ((tokens[existingIdx].level || 1) >= maxLv) {
           return notify(`これ以上強化できません (Max Lv${maxLv})`);
         }
         setPendingShopItem(item);
       } else {
-        setTokens((prev) => [
-          ...prev,
-          { ...item, instanceId: Date.now() + Math.random() } // Add unique instance ID
-        ]);
-        setStars((s) => s - item.price);
-        setTotalPurchases((p) => p + 1);
-        setTotalStarsSpent((prev) => prev + item.price);
-        setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
-        setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
-        setShopItems((prev) => prev.filter((i) => i !== item));
-        notify("購入完了!");
+        const isActive = item.type === 'skill';
+        const activeCount = tokens.filter(t => t?.type === 'skill').length;
+        const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
+        const maxSlots = 5 + tokenSlotExpansionCount;
+        if (isActive && activeCount >= maxSlots) return notify(`アクティブスキルは${maxSlots}個までです`);
+        if (!isActive && passiveCount >= maxSlots) return notify(`パッシブアイテムは${maxSlots}個までです`);
+
+        const emptyIdx = tokens.findIndex(t => t === null);
+        if (emptyIdx !== -1) {
+          setTokens((prev) => {
+            const next = [...prev];
+            next[emptyIdx] = { ...item, instanceId: Date.now() + Math.random() };
+            return next;
+          });
+          setStars((s) => s - cost);
+          setTotalPurchases((p) => p + 1);
+          setTotalStarsSpent((prev) => prev + cost);
+          setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + cost }));
+          setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + cost }));
+          setShopItems((prev) => prev.filter((i) => i !== item));
+          notify("購入完了!");
+        } else {
+          notify("空きスロットがありません");
+        }
       }
     }
   };
@@ -2089,11 +2267,8 @@ const App = () => {
     } else {
 
       // "Equip Second" logic - check limits again
-      const isActive = item.type === 'skill';
-      const activeCount = tokens.filter(t => t.type === 'skill').length;
-      const passiveCount = tokens.filter(t => t.type !== 'skill').length;
-
-      if ((isActive && activeCount >= 5) || (!isActive && passiveCount >= 5)) {
+      const maxSlots = 5 + tokenSlotExpansionCount;
+      if ((isActive && activeCount >= maxSlots) || (!isActive && passiveCount >= maxSlots)) {
         notify("スロットがいっぱいです。代わりに強化します。");
         setTokens((prev) => {
           const next = [...prev];
@@ -2368,6 +2543,10 @@ const App = () => {
     notify("商品を入荷しました");
   };
 
+  // Expose methods to AI Event listeners
+  const shopMethodsRef = useRef({});
+  shopMethodsRef.current = { buyItem, refreshShop, openShop, startNextCycle, handleChoice };
+
   // ロード中の画面
   if (!isLoaded) {
     return (
@@ -2419,7 +2598,7 @@ const App = () => {
           // if (engineRef.current && savedBoard) engineRef.current.init(savedBoard);
         }}
         onStart={() => {
-          localStorage.removeItem(SAVE_KEY);
+          localStorage.removeItem(instanceSaveKey);
           setHasSaveData(false);
           resetGame();
           setShowTitle(false);
@@ -2428,6 +2607,7 @@ const App = () => {
         onStats={() => setShowStats(true)}
         onCredits={() => setShowCredits(true)}
         onSettings={() => setShowSettings(true)}
+        onStartMultiTest={onStartMultiTest}
       />
     );
   }
@@ -2497,6 +2677,14 @@ const App = () => {
                 <span className="text-primary font-bold">/</span>
                 <span className="text-lg font-bold text-white">Turn {turn}{isEndlessMode ? ' (∞)' : ''}</span>
               </div>
+            </div>
+            <div className="flex flex-col items-center">
+              <button 
+                onClick={() => setAutoPlayActive(!autoPlayActive)}
+                className={`text-[10px] font-bold px-2 py-1 rounded-full border ${autoPlayActive ? 'bg-red-500/80 border-red-500 text-white animate-pulse' : 'bg-slate-800/80 border-slate-600 text-slate-300'}`}
+              >
+                {autoPlayActive ? 'AI PLAYING' : 'AI AUTO PLAY'}
+              </button>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 bg-slate-800/50 px-2 py-1 rounded-full border border-white/10">
@@ -3116,13 +3304,13 @@ const App = () => {
           {
             selectedTokenDetail && (() => {
               const snapshotToken = selectedTokenDetail.token;
-              const t = tokens.find(tok => tok.instanceId === snapshotToken.instanceId) || snapshotToken;
+              const t = tokens.find(tok => tok?.instanceId === snapshotToken.instanceId) || snapshotToken;
               const lv = t.level || 1;
               const isSkill = t.type === 'skill';
               const charge = t.charge || 0;
               const cost = getEffectiveCost(t);
               const isReady = isSkill && charge >= cost;
-              const enchList = t.enchantments || [];
+              const enchList = t?.enchantments || [];
               return (
                 <div className="fixed inset-0 z-[350] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setSelectedTokenDetail(null)}>
                   <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border border-primary/30 shadow-[0_0_40px_rgba(91,19,236,0.15)]" onClick={e => e.stopPropagation()}>
@@ -3267,7 +3455,7 @@ const App = () => {
           {/* Enchant Detail Modal */}
           {
             selectedEnchantDetail && (() => {
-              const t = tokens.find(tok => tok.instanceId === selectedEnchantDetail.tokenInstanceId);
+              const t = tokens.find(tok => tok?.instanceId === selectedEnchantDetail.tokenInstanceId);
               if (!t) {
                 // schedule close
                 setTimeout(() => setSelectedEnchantDetail(null), 0);
