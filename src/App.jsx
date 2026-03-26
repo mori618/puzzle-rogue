@@ -1308,11 +1308,13 @@ const App = () => {
           if (!comboRef.current) break;
           // トークン跳ねるアニメーションをトリガー
           if (step.tokenId) triggerPassive(step.tokenId);
-          currentVal = Math.min(currentVal + step.value, MAX_COMBO);
+          const stepValue = isNaN(step.value) ? 0 : step.value;
+          currentVal = Math.min(currentVal + stepValue, MAX_COMBO);
           const eEl = comboRef.current;
-          const sign = step.value >= 0 ? '+' : '';
-          const prevVal = Math.max(0, currentVal - step.value);
-          eEl.innerHTML = `<span class="combo-number">${prevVal.toLocaleString()}</span><span class="combo-bonus-add">${sign}${step.value.toLocaleString()}<span class="combo-step-label"> ${step.label}</span></span>`;
+          const sign = stepValue >= 0 ? '+' : '';
+          const prevVal = Math.max(0, currentVal - stepValue);
+          const safePrevVal = isNaN(prevVal) ? 0 : prevVal;
+          eEl.innerHTML = `<span class="combo-number">${safePrevVal.toLocaleString()}</span><span class="combo-bonus-add">${sign}${stepValue.toLocaleString()}<span class="combo-step-label"> ${step.label}</span></span>`;
           eEl.classList.remove('animate-combo-pop');
           void eEl.offsetWidth;
           eEl.classList.add('animate-combo-pop');
@@ -1325,10 +1327,11 @@ const App = () => {
           if (!comboRef.current) break;
           // トークン跳ねるアニメーションをトリガー
           if (step.tokenId) triggerPassive(step.tokenId);
-          const prevVal = currentVal;
-          currentVal = Math.min(Math.floor(currentVal * step.value), MAX_COMBO);
+          const safeStepValue = isNaN(step.value) ? 1 : step.value;
+          const prevVal = isNaN(currentVal) ? 0 : currentVal;
+          currentVal = Math.min(Math.floor(prevVal * safeStepValue), MAX_COMBO);
           const eEl = comboRef.current;
-          const roundedV = formatNum(step.value);
+          const roundedV = formatNum(safeStepValue);
           eEl.innerHTML = `<span class="combo-number">${prevVal.toLocaleString()}</span><span class="combo-bonus-mult">×${roundedV}<span class="combo-step-label"> ${step.label}</span></span>`;
           eEl.classList.remove('animate-combo-pop');
           void eEl.offsetWidth;
@@ -1339,7 +1342,8 @@ const App = () => {
         // ステップ3: 最終値をパルス演出で表示
         await new Promise(r => setTimeout(r, 300));
         if (comboRef.current) {
-          comboRef.current.innerHTML = `<span class="combo-number combo-number-final">${effectiveCombo.toLocaleString()}</span><span class="combo-label">COMBO</span>`;
+          const safeCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
+          comboRef.current.innerHTML = `<span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">COMBO</span>`;
           comboRef.current.classList.remove('animate-combo-pop');
           comboRef.current.classList.add('animate-combo-pulse');
           void comboRef.current.offsetWidth;
@@ -1351,7 +1355,9 @@ const App = () => {
         // ステップ1: 素コンボ → ボーナス加算表示
         if (turnCombo > 0 && bonus > 0) {
           await new Promise(r => setTimeout(r, 400));
-          el.innerHTML = `<span class="combo-number">${turnCombo}</span><span class="combo-bonus-add">+${bonus}</span>`;
+          const safeTurnCombo = isNaN(turnCombo) ? 0 : turnCombo;
+          const safeBonus = isNaN(bonus) ? 0 : bonus;
+          el.innerHTML = `<span class="combo-number">${safeTurnCombo}</span><span class="combo-bonus-add">+${safeBonus}</span>`;
           el.classList.remove('animate-combo-pop');
           void el.offsetWidth;
           el.classList.add('animate-combo-pop');
@@ -1360,8 +1366,8 @@ const App = () => {
         // ステップ2: 倍率表示
         if (turnCombo > 0 && multiplier > 1) {
           await new Promise(r => setTimeout(r, 500));
-          const baseVal = turnCombo + bonus;
-          const roundedMultiplier = formatNum(multiplier);
+          const baseVal = (isNaN(turnCombo) ? 0 : turnCombo) + (isNaN(bonus) ? 0 : bonus);
+          const roundedMultiplier = formatNum(isNaN(multiplier) ? 1 : multiplier);
           el.innerHTML = `<span class="combo-number">${baseVal}</span><span class="combo-bonus-mult">×${roundedMultiplier}</span>`;
           el.classList.remove('animate-combo-pop');
           void el.offsetWidth;
@@ -1371,7 +1377,8 @@ const App = () => {
         // ステップ3: 最終値をパルス演出で表示
         if (turnCombo > 0) {
           await new Promise(r => setTimeout(r, 600));
-          el.innerHTML = `<span class="combo-number combo-number-final">${effectiveCombo}</span><span class="combo-label">COMBO</span>`;
+          const safeEffectiveCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
+          el.innerHTML = `<span class="combo-number combo-number-final">${safeEffectiveCombo}</span><span class="combo-label">COMBO</span>`;
           el.classList.remove('animate-combo-pop');
           el.classList.add('animate-combo-pulse');
           void el.offsetWidth;

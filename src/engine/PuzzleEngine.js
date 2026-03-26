@@ -678,7 +678,8 @@ class PuzzleEngine {
       this.currentCombo = Math.min(this.currentCombo + 1, MAX_COMBO);
       this.onCombo(this.currentCombo);
       if (this.comboEl) {
-        this.comboEl.innerHTML = `<span class="combo-number">${this.currentCombo.toLocaleString()}</span><span class="combo-label">COMBO</span>`;
+        const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
+        this.comboEl.innerHTML = `<span class="combo-number">${safeCombo.toLocaleString()}</span><span class="combo-label">COMBO</span>`;
         this.comboEl.classList.remove('animate-combo-pop');
         void this.comboEl.offsetWidth;
         this.comboEl.classList.add('animate-combo-pop');
@@ -1267,7 +1268,8 @@ class PuzzleEngine {
     if (allInitialOrbsCleared && this.currentCombo > 0) {
       this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
       if (this.comboEl) {
-        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ ALL CLEAR ✦</div><span class="combo-number combo-number-final">${this.currentCombo.toLocaleString()}</span><span class="combo-label">×2</span>`;
+        const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
+        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ ALL CLEAR ✦</div><span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">×2</span>`;
         this.comboEl.classList.remove('animate-combo-pop');
         void this.comboEl.offsetWidth;
         this.comboEl.classList.add('animate-combo-pop');
@@ -1286,7 +1288,8 @@ class PuzzleEngine {
       this.currentCombo = Math.min(this.currentCombo + 10, MAX_COMBO);
       this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
       if (this.comboEl) {
-        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ PERFECT CLEAR ✦</div><span class="combo-number combo-number-final">${this.currentCombo.toLocaleString()}</span><span class="combo-label">+10 & ×2</span>`;
+        const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
+        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ PERFECT CLEAR ✦</div><span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">+10 & ×2</span>`;
         this.comboEl.classList.remove('animate-combo-pop');
         void this.comboEl.offsetWidth;
         this.comboEl.classList.add('animate-combo-pop');
@@ -1808,7 +1811,8 @@ class PuzzleEngine {
 
     this.currentCombo = Math.min(this.currentCombo + 20, MAX_COMBO);
     if (this.comboEl) {
-      this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ MONO CLEAR ✦</div><span class="combo-number combo-number-final">${this.currentCombo.toLocaleString()}</span><span class="combo-label">+20</span>`;
+      const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
+      this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ MONO CLEAR ✦</div><span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">+20</span>`;
       this.comboEl.classList.remove('animate-combo-pop');
       void this.comboEl.offsetWidth;
       this.comboEl.classList.add('animate-combo-pop');

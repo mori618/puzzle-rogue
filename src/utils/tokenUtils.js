@@ -2,7 +2,10 @@ import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 
 // --- Utils ---
 // --- Utils ---
-const formatNum = (n) => Math.round(n * 100) / 100;
+const formatNum = (n) => {
+  const num = Number(n);
+  return isNaN(num) ? 0 : Math.round(num * 100) / 100;
+};
 
 const getEffectiveCost = (token, currentRunStats = null, currentTokens = [], currentBuffs = []) => {
   if (!token || token.type !== 'skill') return token?.cost || 0;
