@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCredits, onSettings, onStartMultiTest }) => {
+const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCredits, onSettings, onStartMultiTest, testInstanceId }) => {
     return (
         <div className="w-full h-screen bg-background-dark flex flex-col items-center justify-center relative overflow-hidden font-display">
             {/* Background effects */}
@@ -22,6 +22,7 @@ const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCred
                     {hasSaveData ? (
                         <>
                             <button
+                                id={`ai-start-continue-${testInstanceId}`}
                                 onClick={onContinue}
                                 className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] transform transition-all active:scale-95 flex items-center justify-center gap-2 text-lg"
                             >
@@ -29,6 +30,7 @@ const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCred
                                 続きから
                             </button>
                             <button
+                                id={`ai-start-new-${testInstanceId}`}
                                 onClick={onStart}
                                 className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-4 rounded-xl border border-white/10 transform transition-all active:scale-95 flex items-center justify-center gap-2"
                             >
@@ -38,6 +40,7 @@ const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCred
                         </>
                     ) : (
                         <button
+                            id={`ai-start-initial-${testInstanceId}`}
                             onClick={onStart}
                             className="w-full bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(91,19,236,0.4)] transform transition-all active:scale-95 flex items-center justify-center gap-2 text-lg"
                         >

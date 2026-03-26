@@ -71,8 +71,8 @@ const getEnchantRarityStyle = (rarity) => {
     };
 };
 
-// 通常アイテムのカードを描画するコンポーネント（トップレベルで定義することでスマホの2タップ問題を解消）
-const NormalItemCard = ({ item, stars, onBuy }) => {
+// 通常アイテムのカードを描画するコンポーネント
+const NormalItemCard = ({ item, stars, onBuy, testInstanceId }) => {
     const styles = getItemColors(item);
     const isAffordable = stars >= item.price;
     return (
@@ -95,6 +95,7 @@ const NormalItemCard = ({ item, stars, onBuy }) => {
                 <p className="text-xs text-slate-400 mt-0.5 leading-tight">{item.desc}</p>
             </div>
             <button
+                id={`ai-shop-buy-${testInstanceId}-${item.id}`}
                 onClick={() => onBuy(item)}
                 disabled={!isAffordable}
                 style={{ touchAction: 'manipulation' }}
@@ -109,8 +110,8 @@ const NormalItemCard = ({ item, stars, onBuy }) => {
     );
 };
 
-// 覚醒ショップのカードを描画するコンポーネント（トップレベルで定義することでスマホの2タップ問題を解消）
-const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disabled, disabledReason, badgeText, color }) => {
+// 覚醒ショップのカードを描画するコンポーネント
+const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disabled, disabledReason, badgeText, color, id }) => {
     const isAffordable = stars >= price && !disabled;
     const colorMap = {
         green: {
@@ -169,6 +170,7 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
             {/* 購入ボタン */}
             <div className="px-4 pb-4">
                 <button
+                    id={id}
                     onClick={onCardBuy}
                     disabled={!isAffordable}
                     style={{ touchAction: 'manipulation' }}
@@ -195,7 +197,7 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
 const ShopScreen = ({
     items, stars, onBuy, onClose, onRefresh, rerollPrice, onPause,
     isEnchantShopUnlocked, tokenSlotExpansionCount, onAwakeningBuy,
-    isAwakeningLevelUpBought,
+    isAwakeningLevelUpBought, testInstanceId
 }) => {
     const [activeTab, setActiveTab] = React.useState('normal');
 
@@ -261,6 +263,8 @@ const ShopScreen = ({
                 {/* タブUI */}
                 <div className="flex space-x-1 p-1 bg-black/20 rounded-xl">
                     <button
+                        id={`ai-shop-tab-normal-${testInstanceId}`}
+                        data-active={activeTab === 'normal'}
                         onClick={() => setActiveTab('normal')}
                         style={{ touchAction: 'manipulation' }}
                         className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 ${activeTab === 'normal' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]' : 'text-slate-400'}`}
@@ -269,6 +273,8 @@ const ShopScreen = ({
                         <span>ノーマル</span>
                     </button>
                     <button
+                        id={`ai-shop-tab-enchant-${testInstanceId}`}
+                        data-active={activeTab === 'enchant'}
                         onClick={() => isEnchantShopUnlocked && setActiveTab('enchant')}
                         style={{ touchAction: 'manipulation' }}
                         className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 relative ${!isEnchantShopUnlocked
@@ -291,6 +297,8 @@ const ShopScreen = ({
                         )}
                     </button>
                     <button
+                        id={`ai-shop-tab-awakening-${testInstanceId}`}
+                        data-active={activeTab === 'awakening'}
                         onClick={() => setActiveTab('awakening')}
                         style={{ touchAction: 'manipulation' }}
                         className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 ${activeTab === 'awakening' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40 scale-[1.02]' : 'text-slate-400'}`}
@@ -314,7 +322,7 @@ const ShopScreen = ({
                                     <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Passive Artifacts</h2>
                                 </div>
                                 <div className="space-y-3">
-                                    {passiveItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} onBuy={onBuy} />)}
+                                    {passiveItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} onBuy={onBuy} testInstanceId={testInstanceId} />)}
                                 </div>
                             </div>
                         )}
@@ -325,7 +333,7 @@ const ShopScreen = ({
                                     <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Active Spells</h2>
                                 </div>
                                 <div className="space-y-3">
-                                    {activeItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} onBuy={onBuy} />)}
+                                    {activeItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} onBuy={onBuy} testInstanceId={testInstanceId} />)}
                                 </div>
                             </div>
                         )}
@@ -381,6 +389,7 @@ const ShopScreen = ({
                                             </div>
                                             <div className="px-4 pb-4">
                                                 <button
+                                                    id={`ai-shop-buy-${testInstanceId}-enchant-${item.id}`}
                                                     onClick={() => onBuy(item)}
                                                     disabled={!isAffordable}
                                                     style={{ touchAction: 'manipulation' }}
@@ -418,6 +427,7 @@ const ShopScreen = ({
 
                         {/* 1. ランダムなトークンをレベルアップ */}
                         <AwakeningCard
+                            id={`ai-shop-buy-${testInstanceId}-awakening-levelup`}
                             icon="trending_up"
                             title="ランダムレベルアップ"
                             desc="所持しているトークンの中からランダムに1つを選び、レベルアップさせます（最大Lv3）。"
@@ -432,6 +442,7 @@ const ShopScreen = ({
 
                         {/* 2. エンチャントショップの解放 */}
                         <AwakeningCard
+                            id={`ai-shop-buy-${testInstanceId}-awakening-unlock-enchant`}
                             icon="auto_fix_high"
                             title="エンチャントショップ解放"
                             desc="「エンチャント」タブを解放し、エンチャントを購入してトークンに付与できるようになります。一度購入すれば永続です。"
@@ -445,6 +456,7 @@ const ShopScreen = ({
 
                         {/* 3. トークン所持枠の解放 */}
                         <AwakeningCard
+                            id={`ai-shop-buy-${testInstanceId}-awakening-token-slot`}
                             icon="add_box"
                             title="トークン所持枠の拡張"
                             desc={`トークンの最大所持枠を ${currentMaxSlots} → ${nextMaxSlots} に拡張します。購入するごとに価格が ${AWAKENING_TOKEN_SLOT_PRICE_STEP}★ 上昇します。`}
@@ -463,6 +475,7 @@ const ShopScreen = ({
             <footer className="absolute bottom-0 left-0 w-full p-6 glass-panel border-t border-white/10 z-30">
                 <div className="flex space-x-3 h-14">
                     <button
+                        id={`ai-shop-refresh-${testInstanceId}`}
                         onClick={onRefresh}
                         style={{ touchAction: 'manipulation' }}
                         className="h-full aspect-square flex flex-col items-center justify-center bg-surface-dark border border-white/10 rounded-xl text-slate-400 transition-colors active:scale-95 relative"
@@ -476,6 +489,7 @@ const ShopScreen = ({
                         </div>
                     </button>
                     <button
+                        id={`ai-shop-close-${testInstanceId}`}
                         onClick={onClose}
                         style={{ touchAction: 'manipulation' }}
                         className="h-full flex-1 bg-gradient-to-r from-primary to-indigo-600 active:scale-[0.98] transition-all rounded-xl shadow-glow flex items-center justify-center space-x-2 text-white relative overflow-hidden"

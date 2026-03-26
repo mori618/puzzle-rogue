@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import App from './App.jsx';
+import { SAVE_KEY, SETTINGS_KEY } from './constants/gameConstants.js';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -43,6 +44,28 @@ class ErrorBoundary extends Component {
 const TestRunner = ({ onExit }) => {
   const instances = Array.from({ length: 10 }).map((_, i) => i);
   const [showReport, setShowReport] = React.useState(false);
+  const [isInitialized, setIsInitialized] = React.useState(false);
+
+  React.useEffect(() => {
+    // Clear all test-related localStorage on start
+    for (let i = 0; i < 10; i++) {
+        localStorage.removeItem(`${SAVE_KEY}_test_${i}`);
+        localStorage.removeItem(`${SETTINGS_KEY}_test_${i}`);
+        localStorage.removeItem(`puzzle_rogue_stats_test_${i}`);
+    }
+    // Clear global logs for a fresh report
+    window.AILogs = [];
+    window.AIErrors = [];
+    setIsInitialized(true);
+  }, []);
+
+  if (!isInitialized) {
+      return (
+        <div className="w-full h-screen bg-black flex items-center justify-center">
+          <div className="text-blue-400 font-bold animate-pulse">Initializing Test Instances...</div>
+        </div>
+      );
+  }
 
   const getReportStats = () => {
     const logs = window.AILogs || [];
@@ -50,27 +73,80 @@ const TestRunner = ({ onExit }) => {
     
     if (logs.length === 0 && errors.length === 0) return "まだAIのプレイデータがありません。";
     
-    const maxCycle = logs.length > 0 ? Math.max(...logs.map(l => l.cycle)) : 0;
-    const avgCycle = logs.length > 0 ? (logs.reduce((a, b) => a + b.cycle, 0) / logs.length).toFixed(1) : 0;
+    const overallAvgCombo = logs.length > 0 ? (logs.reduce((sum, l) => sum + l.maxCombo, 0) / logs.length) : 0;
     
-    // トークン使用率の集計
+    // トークン使用率・シナジー・エンチャント・インフレの集計
     const tokenCounts = {};
+    const tokenContribution = {}; // {name: {sum: 0, count: 0}}
+    const enchantContribution = {}; // {name: {sum: 0, count: 0}}
+    const synergies = {}; // Pair counts
+    const synergyContribution = {}; // {pair: {sum: 0, count: 0}}
+    const cycleInflation = {}; // cycle -> { totalStars: 0, count: 0 }
+
     logs.forEach(l => {
-       l.tokens.forEach(t => {
-          if (t !== "Empty") {
-             const baseName = t.split('(')[0];
-             tokenCounts[baseName] = (tokenCounts[baseName] || 0) + 1;
+       // Inflation trend
+       const cyc = l.cycle;
+       if (!cycleInflation[cyc]) cycleInflation[cyc] = { totalStars: 0, count: 0 };
+       cycleInflation[cyc].totalStars += (l.stars || 0);
+       cycleInflation[cyc].count++;
+
+       // Tokens & Enchants
+       const uniqueTokens = [...new Set(l.tokens.filter(t => t !== "Empty"))];
+       const uniqueEnchants = [...new Set(l.enchants || [])];
+
+       uniqueTokens.forEach((t, idx) => {
+          tokenCounts[t] = (tokenCounts[t] || 0) + 1;
+          if (!tokenContribution[t]) tokenContribution[t] = { sum: 0, count: 0 };
+          tokenContribution[t].sum += l.maxCombo;
+          tokenContribution[t].count++;
+
+          for (let j = idx + 1; j < uniqueTokens.length; j++) {
+             const t2 = uniqueTokens[j];
+             const pair = [t, t2].sort().join(' + ');
+             synergies[pair] = (synergies[pair] || 0) + 1;
+             if (!synergyContribution[pair]) synergyContribution[pair] = { sum: 0, count: 0 };
+             synergyContribution[pair].sum += l.maxCombo;
+             synergyContribution[pair].count++;
           }
+       });
+
+       uniqueEnchants.forEach(e => {
+          if (!enchantContribution[e]) enchantContribution[e] = { sum: 0, count: 0 };
+          enchantContribution[e].sum += l.maxCombo;
+          enchantContribution[e].count++;
        });
     });
 
-    const popularTokens = Object.entries(tokenCounts)
-       .sort((a, b) => b[1] - a[1])
-       .slice(0, 10)
-       .map(([name, count]) => `${name}: ${count}回`);
+    const strengthRanking = Object.entries(tokenContribution)
+       .map(([name, data]) => ({ name, index: (data.sum / data.count) / (overallAvgCombo || 1), count: data.count }))
+       .filter(x => x.count >= 2)
+       .sort((a, b) => b.index - a.index)
+       .slice(0, 8)
+       .map(x => `${x.name}: 指数 x${x.index.toFixed(1)} (${x.count}回)`);
+
+    const enchantRanking = Object.entries(enchantContribution)
+       .map(([name, data]) => ({ name, index: (data.sum / data.count) / (overallAvgCombo || 1), count: data.count }))
+       .filter(x => x.count >= 1)
+       .sort((a, b) => b.index - a.index)
+       .slice(0, 8)
+       .map(x => `${x.name}: 指数 x${x.index.toFixed(1)} (${x.count}回)`);
+
+    const synergyRanking = Object.entries(synergyContribution)
+       .map(([pair, data]) => ({ pair, index: (data.sum / data.count) / (overallAvgCombo || 1), count: data.count }))
+       .filter(x => x.count >= 2)
+       .sort((a, b) => b.index - a.index)
+       .slice(0, 8)
+       .map(x => `${x.pair}: 指数 x${x.index.toFixed(1)} (${x.count}回)`);
+
+    const inflationTrend = Object.entries(cycleInflation)
+       .sort((a, b) => Number(a[0]) - Number(b[0]))
+       .map(([cyc, data]) => `Cycle ${cyc}: 平均 ${(data.totalStars / data.count).toLocaleString()} ★`);
 
     // 最大コンボ
     const maxComboEver = logs.length > 0 ? Math.max(...logs.map(l => l.maxCombo)) : 0;
+    const avgCombo = logs.length > 0 ? (overallAvgCombo).toLocaleString() : 0;
+    const avgCycle = logs.length > 0 ? (logs.reduce((sum, l) => sum + (l.cycle || 1), 0) / logs.length).toFixed(1) : 0;
+    const maxCycle = logs.length > 0 ? Math.max(...logs.map(l => l.cycle || 1)) : 0;
 
     // エラー統計
     const errorStats = {};
@@ -81,20 +157,28 @@ const TestRunner = ({ onExit }) => {
        .map(([msg, count]) => `- ${msg}: ${count}件`)
        .join('\n') || "なし";
 
-    return `【AI自動テスト レポート】
-総ゲームオーバー回数: ${logs.length}
-平均到達サイクル: ${avgCycle}
-最高到達サイクル: ${maxCycle}
-歴代最大コンボ: ${maxComboEver}
+    return `【AI自動テスト 強度分析レポート V2】
+総ログ数: ${logs.length} (平均到達: ${avgCycle} | 最高: ${maxCycle})
+平均コンボ: ${avgCombo} | 歴代最大: ${maxComboEver.toLocaleString()}
+
+■ インフレ貢献度 (Token Strength Index)
+${strengthRanking.join('\n') || "データ不足"}
+
+■ エンチャント貢献度 (Enchant Strength Index)
+※ 特定のエンチャントが装備されている時の平均コンボ倍率です。
+${enchantRanking.join('\n') || "データ不足"}
+
+■ 最強シナジー (Combo Multiplier Index)
+${synergyRanking.join('\n') || "データ不足"}
+
+■ インフレ曲線 (サイクル毎の平均所持金)
+${inflationTrend.join('\n') || "データ不足"}
 
 ■ エラーレポート (発生件数: ${errors.length}件)
 ${errorSummary}
 
-■ よく使われるトークン (Top10)
-${popularTokens.join('\n') || "データなし"}
-
-■ 全ログデータ (直近5件)
-${JSON.stringify(logs.slice(-5), null, 2)}`;
+■ 全ログデータ (直近1件)
+${JSON.stringify(logs.slice(-1), null, 2)}`;
   };
 
 

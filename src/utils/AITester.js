@@ -6,6 +6,11 @@ export class AITester {
     this.isExecuting = false;
   }
 
+  // 外部から状態を同期させる
+  updateState(data) {
+    Object.assign(this, data);
+  }
+
   // AIループ開始
   start() {
     this.isPlaying = true;
@@ -38,69 +43,93 @@ export class AITester {
     return newState;
   }
 
-  // 仮想盤面内のコンボ数を計算する (test_find_combos.cjs のロジックを簡略化)
+  // 仮想盤面内のコンボ数を計算する
   evaluateBoard(state, minMatchLength, cols, rows) {
-    let score = 0;
     const basicTypes = ["fire", "water", "wood", "light", "dark", "heart"];
     const matched = Array.from({ length: rows }, () => Array(cols).fill(false));
+    const prefColorTypes = (this.preferredColors || []).map(idx => basicTypes[idx]);
 
-    // Horizontal matches
+    // 1. マッチ判定 (水平・垂直)
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c <= cols - minMatchLength; c++) {
         const orb = state[r][c];
         if (!orb || (basicTypes.indexOf(orb.type) === -1 && !orb.isRainbow)) continue;
         const color = orb.isRainbow ? "rainbow" : orb.type;
-        
-        let isMatch = true;
-        for (let k = 1; k < minMatchLength; k++) {
+        let matchLen = 1;
+        for (let k = 1; c + k < cols; k++) {
           const nextOrb = state[r][c + k];
-          if (!nextOrb) { isMatch = false; break; }
+          if (!nextOrb) break;
           const nextColor = nextOrb.isRainbow ? "rainbow" : nextOrb.type;
-          // rainbow matches anything, or color matches color
-          if (color !== "rainbow" && nextColor !== "rainbow" && nextColor !== color) {
-             isMatch = false; break;
-          }
+          if (color !== "rainbow" && nextColor !== "rainbow" && nextColor !== color) break;
+          matchLen++;
         }
-        if (isMatch) {
-            for (let k = 0; k < minMatchLength; k++) matched[r][c + k] = true;
-            score += 10;
+        if (matchLen >= minMatchLength) {
+          for (let k = 0; k < matchLen; k++) matched[r][c + k] = true;
         }
       }
     }
-
-    // Vertical matches
     for (let c = 0; c < cols; c++) {
       for (let r = 0; r <= rows - minMatchLength; r++) {
         const orb = state[r][c];
         if (!orb || (basicTypes.indexOf(orb.type) === -1 && !orb.isRainbow)) continue;
         const color = orb.isRainbow ? "rainbow" : orb.type;
-        
-        let isMatch = true;
-        for (let k = 1; k < minMatchLength; k++) {
+        let matchLen = 1;
+        for (let k = 1; r + k < rows; k++) {
           const nextOrb = state[r + k][c];
-          if (!nextOrb) { isMatch = false; break; }
+          if (!nextOrb) break;
           const nextColor = nextOrb.isRainbow ? "rainbow" : nextOrb.type;
-          if (color !== "rainbow" && nextColor !== "rainbow" && nextColor !== color) {
-             isMatch = false; break;
-          }
+          if (color !== "rainbow" && nextColor !== "rainbow" && nextColor !== color) break;
+          matchLen++;
         }
-        if (isMatch) {
-            for (let k = 0; k < minMatchLength; k++) matched[r + k][c] = true;
-            score += 10;
+        if (matchLen >= minMatchLength) {
+          for (let k = 0; k < matchLen; k++) matched[r + k][c] = true;
         }
       }
     }
 
-    // 評価を強化：複数のコンボが繋がる場合、その数の2乗でスコアを倍増させる（同時消しの価値を高める）
-    if (score > 0) {
-        // score / 10 は見つけたコンボの数
-        const comboCount = score / 10;
-        return score * Math.pow(1.5, comboCount - 1);
+    // 2. 連結成分の抽出 (実際のコンボ数カウント)
+    let comboCount = 0;
+    let totalMatchedOrbs = 0;
+    const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+    let prefBonus = 0;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (matched[r][c] && !visited[r][c]) {
+          comboCount++;
+          // BFSで連結成分を特定
+          const q = [{ r, c }];
+          visited[r][c] = true;
+          let size = 0;
+          while (q.length > 0) {
+            const curr = q.shift();
+            size++;
+            totalMatchedOrbs++;
+            
+            const orb = state[curr.r][curr.c];
+            const type = orb.isRainbow ? "rainbow" : orb.type;
+            if (prefColorTypes.includes(type) || type === "rainbow") prefBonus += 2;
+
+            const neighbors = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+            for (const [dr, dc] of neighbors) {
+              const nr = curr.r + dr, nc = curr.c + dc;
+              if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && matched[nr][nc] && !visited[nr][nc]) {
+                visited[nr][nc] = true;
+                q.push({ r: nr, c: nc });
+              }
+            }
+          }
+        }
+      }
     }
-    return score;
+
+    if (comboCount === 0) return 0;
+    
+    // スコア計算: (コンボ数 ^ 1.8) * 10 + 消去数 + 優先属性ボーナス
+    return Math.pow(comboCount, 1.8) * 20 + totalMatchedOrbs + prefBonus;
   }
 
-  // 最適な経路（簡単なランダムウォーク＋評価によるヒューリスティック）を見つける
+  // 最適な経路を見つける
   findBestPath() {
     if (!this.engine || !this.engine.state || this.engine.state.length === 0) return [];
     
@@ -115,8 +144,8 @@ export class AITester {
 
     // N回ランダムウォークして一番スコアが高いものを採用
     // 試行回数と手数を増やし、より高度な経路を発見可能にする
-    const ITERATIONS = 800;
-    const MAX_STEPS = 25;
+    const ITERATIONS = 1500;
+    const MAX_STEPS = 70;     // 移動距離をさらに強化
 
     for (let i = 0; i < ITERATIONS; i++) {
         const sr = Math.floor(Math.random() * rows);
@@ -141,8 +170,8 @@ export class AITester {
         const newState = this.applyPath(state, path);
         let score = this.evaluateBoard(newState, minMatchLength, cols, rows);
         
-        // 追加: 移動距離が短くてスコアが高いルートをわずかに優遇するため、手数によるペナルティを課す
-        score -= path.length * 0.1;
+        // 移動距離ペナルティを軽減（長い方がコンボは組みやすいため）
+        score -= path.length * 0.05;
 
         if (score > bestScore) {
             bestScore = score;
@@ -168,6 +197,27 @@ export class AITester {
     if (this.engine.processing || this.isExecuting) return; // 処理中なら待つ
 
     this.isExecuting = true;
+    
+    // AIの「優先属性」を更新
+    this.preferredColors = this.preferredColors || [];
+    if (this.engine.tokens) {
+      const newPref = [];
+      this.engine.tokens.forEach(t => {
+        if (!t) return;
+        const name = t.name || "";
+        const effect = t.effect || "";
+        const combined = (name + effect).toLowerCase();
+        
+        if (combined.includes("炎") || combined.includes("火") || combined.includes("fire") || combined.includes("赤")) newPref.push(0);
+        if (combined.includes("水") || combined.includes("青") || combined.includes("water") || combined.includes("ice")) newPref.push(1);
+        if (combined.includes("風") || combined.includes("緑") || combined.includes("wind") || combined.includes("green")) newPref.push(2);
+        if (combined.includes("光") || combined.includes("黄") || combined.includes("light") || combined.includes("yellow")) newPref.push(3);
+        if (combined.includes("闇") || combined.includes("紫") || combined.includes("dark") || combined.includes("shadow")) newPref.push(4);
+        if (combined.includes("命") || combined.includes("ハート") || combined.includes("heart") || combined.includes("heal")) newPref.push(5);
+      });
+      this.preferredColors = [...new Set(newPref)];
+    }
+
     try {
         const path = this.findBestPath();
         if (path.length === 0) return;
@@ -212,5 +262,34 @@ export class AITester {
     } finally {
         this.isExecuting = false;
     }
+  }
+
+  // UI要素をクリックする（実際の座標を使ってイベントを発火）
+  clickUIElement(id) {
+    const el = document.getElementById(id);
+    if (!el) return false;
+
+    const rect = el.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+
+    const mouseDown = new MouseEvent('mousedown', {
+      clientX: x, clientY: y, view: window, bubbles: true, cancelable: true
+    });
+    const mouseUp = new MouseEvent('mouseup', {
+      clientX: x, clientY: y, view: window, bubbles: true, cancelable: true
+    });
+    const click = new MouseEvent('click', {
+      clientX: x, clientY: y, view: window, bubbles: true, cancelable: true
+    });
+
+    el.dispatchEvent(mouseDown);
+    el.dispatchEvent(mouseUp);
+    el.dispatchEvent(click);
+    
+    // ReactのonClickイベントを確実に発火させるため
+    if (el.click) el.click();
+    
+    return true;
   }
 }
