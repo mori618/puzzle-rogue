@@ -1,7 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Star as StarIcon,
-} from "lucide-react";
 import ShopScreen from "./ShopScreen";
 import TitleScreen from "./TitleScreen";
 import PauseScreen from "./PauseScreen";
@@ -9,6 +6,7 @@ import HelpScreen from "./HelpScreen";
 import StatsScreen from "./StatsScreen";
 import CreditsScreen from "./CreditsScreen";
 import SettingsScreen from "./SettingsScreen";
+import StartOptionScreen from "./StartOptionScreen";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, getEnchantDescription, ENCHANTMENTS } from './constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS } from './constants/gameConstants.js';
@@ -51,6 +49,7 @@ const App = () => {
   const [showShop, setShowShop] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
+  const [showStartOption, setShowStartOption] = useState(false);
   const [savedBoard, setSavedBoard] = useState(null);
 
   // --- ゲーム設定 ---
@@ -101,6 +100,9 @@ const App = () => {
     currentShapeRow: 0,
     currentShapeLShape: 0,
     currentShapeSquare: 0,
+    totalHeartsErased: 0,
+    totalStarsEarned: 0,
+    tokensSold: 0,
   };
   const [currentRunStats, setCurrentRunStats] = useState(initialCurrentRunStats);
   // const [isLuxury, setIsLuxury] = useState(false); // Unused
@@ -143,6 +145,23 @@ const App = () => {
 
   const timerRef = useRef(null);
   const comboRef = useRef(null);
+
+  const getCurseProgress = (t) => {
+    if (!t || t.type !== 'curse') return null;
+    const cond = t.condition;
+    const target = t.targetValue || 1;
+    let current = 0;
+    switch (cond) {
+      case 'clears': current = currentRunStats.currentClears || 0; break;
+      case 'heart_erase': current = currentRunStats.totalHeartsErased || 0; break;
+      case 'total_combo': current = currentRunStats.currentTotalCombo || 0; break;
+      case 'total_stars': current = currentRunStats.totalStarsEarned || 0; break;
+      case 'max_combo': current = currentRunStats.maxCombo || 0; break;
+      case 'tokens_sold': current = currentRunStats.tokensSold || 0; break;
+      default: break;
+    }
+    return { current, target, percent: Math.min(100, (current / target) * 100) };
+  };
   const engineRef = useRef(null);
   const handleTurnEndRef = useRef(null);
   const onPassiveTriggerRef = useRef(null);
@@ -162,6 +181,7 @@ const App = () => {
       if (t?.effect === "picky_eater") return acc + (t.values[(t.level || 1) - 1] || 0);
       return acc;
     }, 0)
+    - (tokens.some(t => t?.id === "curse_turns") ? 1 : 0)
   );
 
   const minMatchLength = tokens.some(t => t?.effect === "min_match") ? 2 : 3;
@@ -194,6 +214,9 @@ const App = () => {
         setIsEnchantShopUnlocked(parsed.isEnchantShopUnlocked || false);
         setTokenSlotExpansionCount(parsed.tokenSlotExpansionCount || 0);
         setIsAwakeningLevelUpBought(parsed.isAwakeningLevelUpBought || false);
+        if (parsed.currentRunStats) {
+          setCurrentRunStats(parsed.currentRunStats);
+        }
         if (parsed.shopItems) {
           setShopItems(parsed.shopItems);
         } else if (!parsed.isGameOver) {
@@ -271,13 +294,14 @@ const App = () => {
       isEnchantShopUnlocked,
       tokenSlotExpansionCount,
       isAwakeningLevelUpBought,
+      currentRunStats,
       board: engineRef.current ? engineRef.current.getState() : (savedBoard || null)
     };
 
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveObj));
     setHasSaveData(true);
 
-  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, isAwakeningLevelUpBought]);
+  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, isAwakeningLevelUpBought, currentRunStats]);
 
   // --- Auto Save Stats ---
   useEffect(() => {
@@ -334,6 +358,11 @@ const App = () => {
     if (hasDesperateStance) {
       return 4000;
     }
+    // 焦燥の刻印: 操作時間4秒固定
+    if (tokens.some(t => t?.id === "curse_time")) {
+      return 4000;
+    }
+
     let base = 5000 + (sandsOfTimeSeconds * 1000);
     tokens.forEach((t) => {
       if (t?.effect === "time") base += (t.values[(t.level || 1) - 1] * 1000);
@@ -421,6 +450,10 @@ const App = () => {
         }
         return t;
       });
+
+      const hasForbiddenLiteral = effectiveTokens.some((t) => t?.id === "forbidden" || t?.effect === "forbidden");
+      const hasCurseSkyfall = effectiveTokens.some((t) => t?.id === "curse_skyfall" || t?.effect === "curse_skyfall");
+      engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall;
 
       const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
 
@@ -615,13 +648,23 @@ const App = () => {
   // const [debugLog, setDebugLog] = useState(null);
 
   const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0, erasedByRepeatTotal = 0, erasedByStarTotal = 0, isAllClear = false) => {
-    const tc = Number(turnCombo) || 0;
+    let tc = Number(turnCombo) || 0;
+    
+    // 絶望の癒し: ハートドロップを消してもコンボが増えなくなる
+    const isCurseHeartActive = tokens.some(t => t?.id === "curse_heart");
+    if (isCurseHeartActive) {
+      const heartMatches = colorComboCounts["heart"] || 0;
+      tc = Math.max(0, tc - heartMatches);
+    }
+
     setLastTurnCombo(tc);
     setLastErasedColorCounts(erasedColorCounts);
+
     let bonus = 0;
     let multiplier = 1;
     let timeMultiplier = 1; // 次手の操作時間倍率
     const matchedColorSet = new Set(Object.keys(colorComboCounts).filter(k => colorComboCounts[k] > 0));
+    if (isCurseHeartActive) matchedColorSet.delete("heart");
 
     const effectiveTokens = tokens.map((t, index) => {
       if (!t) return t;
@@ -1000,7 +1043,7 @@ const App = () => {
       }
 
       // Multipliers
-      if (t.id === "forbidden") {
+      if (t.id === "forbidden" || t.effect === "forbidden") {
         const v = t.values?.[lv - 1] || 1;
         if (isInstant) triggerPassive(t.instanceId || t.id);
         multiplier *= v;
@@ -1242,6 +1285,14 @@ const App = () => {
     });
 
     logData.finalMultiplier = multiplier;
+    
+    // 脆弱の断層: コンボ数が半分になる (倍率 0.5)
+    if (tokens.some(t => t?.id === "curse_half")) {
+      multiplier *= 0.5;
+      logData.multipliers.push("curse_half:x0.5");
+      logData.multiplierSteps.push({ label: '脆弱の断層', value: 0.5 });
+    }
+
     logData.finalBonus = bonus;
     // setDebugLog(logData);
 
@@ -1423,17 +1474,19 @@ const App = () => {
         extraStarsPerStarDropErase += t.values?.[(t.level || 1) - 1] || 0;
       }
     });
-    const starThreshold = Math.max(1, 5 - totalReduction);
+    const isCurseInitActive = tokens.some(t => t?.id === "curse_init");
+    const baseStarThreshold = Math.max(1, 5 - totalReduction);
+    const starThreshold = isCurseInitActive ? baseStarThreshold + 1 : baseStarThreshold;
 
-    // 累積方式に変更
     const currentProgress = starProgress + effectiveCombo;
-    let totalStarsEarned = starThreshold > 0 ? Math.floor(currentProgress / starThreshold) : 0;
+    const totalStarsEarned = starThreshold > 0 ? Math.floor(currentProgress / starThreshold) : 0;
     const nextProgress = starThreshold > 0 ? currentProgress % starThreshold : 0;
 
     setStarProgress(nextProgress);
 
     if (totalStarsEarned > 0) {
       setStars((s) => s + totalStarsEarned);
+      setCurrentRunStats(prev => ({ ...prev, totalStarsEarned: (prev.totalStarsEarned || 0) + totalStarsEarned }));
       notify(`+ ${totalStarsEarned} STARS!`);
 
       // 黄金の収集者を跳ねさせる
@@ -1492,6 +1545,46 @@ const App = () => {
       });
     });
 
+    // --- 呪いの浄化判定 ---
+    const heartsErasedThisTurn = erasedColorCounts["heart"] || 0;
+    setCurrentRunStats(prev => {
+      const nextHearts = (prev.totalHeartsErased || 0) + heartsErasedThisTurn;
+      const nextStats = { ...prev, totalHeartsErased: nextHearts };
+      
+      // 条件達成チェック
+      setTokens(currentTokens => {
+        let transformed = false;
+        const nextTokens = currentTokens.map(t => {
+          if (!t || t.type !== 'curse') return t;
+          
+          let satisfied = false;
+          if (t.condition === "clears" && nextStats.currentClears >= t.targetValue) satisfied = true;
+          if (t.condition === "heart_erase" && nextStats.totalHeartsErased >= t.targetValue) satisfied = true;
+          if (t.condition === "total_combo" && nextStats.currentTotalCombo >= t.targetValue) satisfied = true;
+          if (t.condition === "total_stars" && nextStats.totalStarsEarned >= t.targetValue) satisfied = true;
+          if (t.condition === "max_combo" && nextStats.maxCombo >= t.targetValue) satisfied = true;
+          if (t.condition === "tokens_sold" && nextStats.tokensSold >= t.targetValue) satisfied = true;
+          
+          if (satisfied) {
+            transformed = true;
+            const star3Pool = ALL_TOKEN_BASES.filter(tok => tok.rarity === 3);
+            const randomStar3 = star3Pool[Math.floor(Math.random() * star3Pool.length)];
+            const newT = { ...randomStar3, instanceId: Date.now() + Math.random(), level: 1, charge: randomStar3.cost || 0 };
+            return newT;
+          }
+          return t;
+        });
+        
+        if (transformed) {
+          setStars(s => s + 100);
+          notify("呪いが浄化され、新たな力が宿った！ (+100★)");
+        }
+        return nextTokens;
+      });
+
+      return nextStats;
+    });
+
     if (!skipTurnProgressRef.current) {
       setActiveBuffs((prev) =>
         prev
@@ -1508,8 +1601,9 @@ const App = () => {
 
     // Reset or persist noSkyfall based on passive tokens
     if (engineRef.current) {
-      const hasForbiddenLiteral = tokens.some((t) => t?.id === "forbidden");
-      engineRef.current.noSkyfall = hasForbiddenLiteral;
+      const hasForbiddenLiteral = tokens.some((t) => t?.id === "forbidden" || t?.effect === "forbidden");
+      const hasCurseSkyfall = tokens.some((t) => t?.id === "curse_skyfall" || t?.effect === "curse_skyfall");
+      engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall;
     }
 
     skipTurnProgressRef.current = false;
@@ -1601,6 +1695,7 @@ const App = () => {
     setTarget((t) => Math.min(Math.floor(t * 1.5) + 2, MAX_TARGET));
     setGoalReached(false);
     setSkippedTurnsBonus(0);
+    setCurrentRunStats(prev => ({ ...prev, currentClears: (prev.currentClears || 0) + 1 }));
     setStarProgress(0); // Reset progress if needed or keep it? Keeping it feels better but usually resets per cycle
 
     // Update shop reroll prices
@@ -1702,7 +1797,42 @@ const App = () => {
     });
     setCurrentRunStats(initialCurrentRunStats);
     setCurrentRunStats(prev => ({ ...prev, currentPlays: 1 })); // Plays is always 1 for the current run
-    notify("NEW GAME STARTED!");
+    
+    // 開始スタイルによって初期スターを調整
+    // 無の対価 の場合は0、それ以外は5
+  };
+
+  const handleStartOptionSelection = (option) => {
+    resetGame();
+    setShowStartOption(false);
+    setShowTitle(false);
+
+    if (option === 'safety') {
+      // 安全: 操作時間3秒延長、星1トークン
+      setSandsOfTimeSeconds(3);
+      const star1Pool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type !== 'curse');
+      const randomToken = star1Pool[Math.floor(Math.random() * star1Pool.length)];
+      setTokens([{ ...randomToken, instanceId: Date.now() + Math.random(), level: 1, charge: randomToken.cost || 0 }]);
+      notify("「安全」スタイルで開始しました (+3s, 星1トークン)");
+    } else if (option === 'solid') {
+      // 堅実: 星2パッシブ
+      const star2PassivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 2 && t.type === 'passive' && t.type !== 'curse');
+      const randomToken = star2PassivePool[Math.floor(Math.random() * star2PassivePool.length)];
+      setTokens([{ ...randomToken, instanceId: Date.now() + Math.random(), level: 1 }]);
+      setStars(5);
+      notify("「堅実」スタイルで開始しました (星2パッシブ)");
+    } else if (option === 'challenge') {
+      // 挑戦: 呪い、初期スター0
+      const cursePool = ALL_TOKEN_BASES.filter(t => t.type === 'curse');
+      const randomCurse = cursePool[Math.floor(Math.random() * cursePool.length)];
+      setTokens([{ ...randomCurse, instanceId: Date.now() + Math.random() }]);
+      setStars(0);
+      notify("「挑戦」スタイルで開始しました (呪い獲得, 0★)");
+    }
+    
+    if (engineRef.current) {
+      engineRef.current.init(null);
+    }
   };
 
 
@@ -1733,19 +1863,11 @@ const App = () => {
         const value = t.values[(t.level || 1) - 1];
         saleBonus += (value - 1);
       }
-      if (t.effect === 'rainbow_combo_bonus') {
+      if (t?.effect === 'rainbow_combo_bonus') {
         // Already handled in PuzzleEngine
-        // This is a shop generation loop, not star calculation.
-        // The instruction "Remove redundant end-of-turn calculations for real-time additions"
-        // implies this logData push should be removed from here if it's meant for star calculation.
-        // However, the instruction also says "Update the calculation loop for these bonuses"
-        // and provides this snippet. Given the context, I will keep it as provided in the snippet.
-        // It's possible this is for debugging shop generation.
-        // logData.bonuses.push(`rainbow:(applied)`); // This line was not in the original code, but in the instruction snippet.
       }
-      if (t.effect === 'heart_combo_bonus') {
+      if (t?.effect === 'heart_combo_bonus') {
         // Already handled in PuzzleEngine
-        // logData.bonuses.push(`heart_combo:(applied)`); // Same as above.
       }
       if (t?.effect === "enchant_grant_boost") {
         const value = t.values[(t.level || 1) - 1];
@@ -2312,6 +2434,7 @@ const App = () => {
 
   const sellToken = (token) => {
     if (!token) return;
+    if (token.isLocked) return notify("このトークンは売却できません");
 
     // --- 変更: 資産価値 (Investment) ---
     let sellRate = 0.5;
@@ -2330,6 +2453,11 @@ const App = () => {
     setStars(s => s + sellPrice);
 
     setTokens(prev => prev.filter(t => t.instanceId !== token.instanceId));
+    setCurrentRunStats(prev => ({ 
+      ...prev, 
+      tokensSold: (prev.tokensSold || 0) + 1,
+      totalStarsEarned: (prev.totalStarsEarned || 0) + sellPrice 
+    }));
 
     setSelectedTokenDetail(null);
     notify(`${token.name} を売却しました (+${sellPrice} ★)`);
@@ -2429,6 +2557,7 @@ const App = () => {
           localStorage.removeItem(SAVE_KEY);
           setHasSaveData(false);
           resetGame();
+          setShowStartOption(true);
           setShowTitle(false);
         }}
         onHelp={() => setShowHelp(true)}
@@ -2458,6 +2587,9 @@ const App = () => {
 
   return (
     <div className="bg-background-dark font-display text-slate-100 h-screen overflow-hidden flex justify-center w-full">
+      {showStartOption && (
+        <StartOptionScreen onSelect={handleStartOptionSelection} />
+      )}
       {/* Mobile Container */}
       <div className="w-full max-w-md h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden">
         {/* Abstract Background Pattern */}
@@ -3255,11 +3387,44 @@ const App = () => {
                           {isReady ? 'スキル発動' : 'チャージ不足'}
                         </button>
                       )}
+                      {/* 呪い解除条件の表示 */}
+                      {t.type === 'curse' && (() => {
+                        const prog = getCurseProgress(t);
+                        if (!prog) return null;
+                        return (
+                          <div className="bg-slate-900 border border-red-500/30 rounded-xl p-3 mb-2 flex flex-col gap-2 shadow-[inset_0_0_10px_rgba(239,68,68,0.1)] relative overflow-hidden">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-red-400">
+                                <span className="material-icons-round text-sm">lock</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider">呪い解除条件</span>
+                              </div>
+                              <span className="text-[10px] font-mono text-slate-400">{Math.floor(prog.current)} / {prog.target}</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5">
+                              <div 
+                                className="h-full bg-gradient-to-r from-red-600 to-orange-500 transition-all duration-500" 
+                                style={{ width: `${prog.percent}%` }}
+                              />
+                            </div>
+                            <p className="text-[10px] text-slate-500 italic text-center">条件達成で浄化され、星3の力に変わる...</p>
+                            {/* 装飾 */}
+                            <div className="absolute top-0 right-0 w-12 h-12 bg-red-500/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-lg" />
+                          </div>
+                        );
+                      })()}
+
                       <button
                         onClick={() => sellToken(t)}
-                        className="w-full text-center bg-red-600/20 hover:bg-red-600/40 text-red-300 py-3 rounded-lg font-bold transition-colors"
+                        className={`w-full text-center py-3 rounded-lg font-bold transition-all ${t.isLocked ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed border border-white/5' : 'bg-red-600/20 hover:bg-red-600/40 text-red-300'}`}
                       >
-                        売却 (+{Math.floor(t.price * (t.enchantments?.some(e => e.effect === "high_sell") ? 3.0 : 0.5))} ★)
+                        {t.isLocked ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="material-icons-round text-sm">lock_person</span>
+                            <span>売却不可</span>
+                          </div>
+                        ) : (
+                          `売却 (+${Math.floor(t.price * (t.enchantments?.some(e => e.effect === "high_sell") ? 3.0 : 0.5))} ★)`
+                        )}
                       </button>
                       <button onClick={() => setSelectedTokenDetail(null)} className="text-slate-400 text-xs font-bold py-2">
                         閉じる
