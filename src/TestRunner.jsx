@@ -177,8 +177,8 @@ ${inflationTrend.join('\n') || "データ不足"}
 ■ エラーレポート (発生件数: ${errors.length}件)
 ${errorSummary}
 
-■ 全ログデータ (直近1件)
-${JSON.stringify(logs.slice(-1), null, 2)}`;
+■ 全ログデータ (直近5件サンプル)
+${JSON.stringify(logs.slice(-5), null, 2)}`;
   };
 
 

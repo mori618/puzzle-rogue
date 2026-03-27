@@ -100,13 +100,20 @@ export class AITester {
           // BFSで連結成分を特定
           const q = [{ r, c }];
           visited[r][c] = true;
-          let size = 0;
+          let hasBomb = false;
+          let groupColor = null;
+          
           while (q.length > 0) {
             const curr = q.shift();
-            size++;
             totalMatchedOrbs++;
             
             const orb = state[curr.r][curr.c];
+            if (orb.isBomb) {
+              hasBomb = true;
+              groupColor = orb.type;
+            }
+            if (orb.isStar) prefBonus += 50; // スタードロップは優先的に消す
+
             const type = orb.isRainbow ? "rainbow" : orb.type;
             if (prefColorTypes.includes(type) || type === "rainbow") prefBonus += 2;
 
@@ -119,14 +126,49 @@ export class AITester {
               }
             }
           }
+
+          // ボムが含まれる場合、同色の他ドロップもスコアに加重
+          if (hasBomb && groupColor) {
+            for (let br = 0; br < rows; br++) {
+              for (let bc = 0; bc < cols; bc++) {
+                const bOrb = state[br][bc];
+                if (bOrb && bOrb.type === groupColor && !matched[br][bc]) {
+                  totalMatchedOrbs += 0.8; // 同色全消しの擬似評価
+                }
+              }
+            }
+            prefBonus += 30; // ボム起爆自体のボーナス
+          }
         }
       }
     }
 
-    if (comboCount === 0) return 0;
+    // 3. 隣接ボーナス (コンボになっていなくても、同じ色が隣り合っている状態をわずかに評価する)
+    // これにより、ランダムウォークが「コンボの種」を作る方向に誘導される
+    let adjacencyBonus = 0;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols - 1; c++) {
+        const orb1 = state[r][c];
+        const orb2 = state[r][c + 1];
+        if (orb1 && orb2 && !orb1.isRainbow && !orb2.isRainbow && orb1.type === orb2.type) {
+          adjacencyBonus += 0.2;
+        }
+      }
+    }
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows - 1; r++) {
+        const orb1 = state[r][c];
+        const orb2 = state[r + 1][c];
+        if (orb1 && orb2 && !orb1.isRainbow && !orb2.isRainbow && orb1.type === orb2.type) {
+          adjacencyBonus += 0.2;
+        }
+      }
+    }
+
+    if (comboCount === 0) return adjacencyBonus;
     
-    // スコア計算: (コンボ数 ^ 1.8) * 10 + 消去数 + 優先属性ボーナス
-    return Math.pow(comboCount, 1.8) * 20 + totalMatchedOrbs + prefBonus;
+    // スコア計算: (コンボ数 ^ 1.8) * 20 + 消去数 + 優先属性ボーナス + 隣接ボーナス
+    return Math.pow(comboCount, 1.8) * 20 + totalMatchedOrbs + prefBonus + adjacencyBonus;
   }
 
   // 最適な経路を見つける

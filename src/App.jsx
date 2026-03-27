@@ -142,6 +142,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
   // トークンベルトのページネーション用 State
   const [passiveTokenPage, setPassiveTokenPage] = useState(0);
   const [activeTokenPage, setActiveTokenPage] = useState(0);
+  const aiLoopTrackingRef = useRef({ lastLoggedCycle: -1, lastLoggedGameOver: false });
   // スワイプ座標の管理（useRef でレンダー外管理）
   const passiveSwipeRef = useRef(null);
   const activeSwipeRef = useRef(null);
@@ -165,13 +166,6 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
   };
 
   const loopStateRef = useRef({});
-  useEffect(() => {
-    loopStateRef.current = { 
-      stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, 
-      isEnchantShopUnlocked, showShop, showTitle, isLoaded, autoPlayActive, isGameOver, goalReached,
-      hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest
-    };
-  }, [stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, isEnchantShopUnlocked, showShop, showTitle, isLoaded, autoPlayActive, isGameOver, goalReached, hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest]);
   const comboRef = useRef(null);
   const engineRef = useRef(null);
   const handleTurnEndRef = useRef(null);
@@ -179,6 +173,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
   const onStarEraseRef = useRef(null);
   const totalMoveTimeRef = useRef(0); // エンジン内での操作時間累積用
   const skipTurnProgressRef = useRef(false);
+  const lastProcessingTimeRef = useRef(0);
 
   // Derived
   const hasGiantDomain = tokens.some((t) => t?.id === "giant" || t?.enchantments?.some(e => e?.effect === "expand_board"));
@@ -195,6 +190,15 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
   );
 
   const minMatchLength = tokens.some(t => t?.effect === "min_match") ? 2 : 3;
+  
+  useEffect(() => {
+    loopStateRef.current = { 
+      stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, 
+      isEnchantShopUnlocked, showShop, showTitle, isLoaded, autoPlayActive, isGameOver, goalReached,
+      hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest,
+      currentRunStats, target, turn, maxTurns, showGameClear
+    };
+  }, [stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, isEnchantShopUnlocked, showShop, showTitle, isLoaded, autoPlayActive, isGameOver, goalReached, hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest, currentRunStats, target, turn, maxTurns, showGameClear]);
 
   // --- Load Save Data ---
   useEffect(() => {
@@ -471,6 +475,12 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
 
   // Helper to log AI Run Data to global scope
   const logAIRunData = useCallback(() => {
+    // 常に最新の loopStateRef から取得する
+    const state = loopStateRef.current;
+    if (!state) return;
+
+    const { testInstanceId, target, currentRunStats, tokens, activeBuffs } = state;
+
     const report = {
       instanceId: testInstanceId || "Main",
       cycle: currentRunStats.currentClears + 1,
@@ -488,7 +498,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     // Simple console table log for developers
     console.log(`[AI Test Report #${report.instanceId}] Cycle: ${report.cycle} | MaxCombo: ${report.maxCombo}`);
     console.table(report.tokens);
-  }, [testInstanceId, target, currentRunStats, tokens, activeBuffs]);
+  }, []); // useCallback の依存関係を空にし、内部で ref を使用する
 
   useEffect(() => {
     // This effect runs only once on mount. It periodically syncs state to the AI instance
@@ -529,7 +539,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       const { 
         stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, 
         isEnchantShopUnlocked, showShop, showTitle, isGameOver, goalReached,
-        hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest
+        hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest,
+        currentRunStats, turn, maxTurns, showGameClear
       } = state;
       
       try {
@@ -537,12 +548,15 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           const startBtnId = hasSaveData ? `ai-start-continue-${testInstanceId}` : `ai-start-initial-${testInstanceId}`;
           const clicked = aiTesterRef.current.clickUIElement(startBtnId);
           if (isMultiTest) console.log(`[AI-${testInstanceId}] Title screen breakthrough: ${startBtnId}, success: ${clicked}`);
+          // Reset tracking on title screen
+          aiLoopTrackingRef.current = { lastLoggedCycle: -1, lastLoggedGameOver: false };
         } else if (pendingShopItem) {
           if (aiControlRef.current?.handleChoice) {
             const choice = Math.random() > 0.5 ? "upgrade" : "new";
             aiControlRef.current.handleChoice(choice);
           }
         } else if (showShop) {
+          // Shop logic...
           const activeCount = tokens.filter(t => t?.type === 'skill').length;
           const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
           const maxSlots = 5 + (tokenSlotExpansionCount || 0);
@@ -550,20 +564,15 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           const normalBuyable = shopItems.find(item => {
             if (stars < item.price || item.isLocked) return false;
             if (item.type === 'enchant_grant' || item.type === 'enchant_random') return false;
-
-            // すでに持っていて最大レベルなら除外
             const existing = tokens.find(t => t?.id === item.id);
             if (existing) {
               const maxLv = existing.values?.length || 3;
               if ((existing.level || 1) >= maxLv) return false;
-              return true; // アップグレードなら空きに関わらず買える
+              return true;
             }
-
-            // 新規アイテムの場合、スロット空きが必要
             const isActiveItem = item.type === 'skill';
             if (isActiveItem && activeCount >= maxSlots) return false;
             if (!isActiveItem && passiveCount >= maxSlots) return false;
-
             return true;
           });
           const enchantBuyable = shopItems.find(item => stars >= 5 && (item.type === 'enchant_grant' || item.type === 'enchant_random') && !item.isLocked);
@@ -574,64 +583,66 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
             const tabId = `ai-shop-tab-normal-${testInstanceId}`;
             const tab = document.getElementById(tabId);
             const isTabActive = tab?.getAttribute('data-active') === 'true' || tab?.classList.contains('bg-primary') || tab?.classList.contains('text-primary');
-            if (isMultiTest) console.log(`[AI-${testInstanceId}] NormalBuyable: ${normalBuyable.id}, TabActive: ${isTabActive}`);
-            if (!isTabActive) {
-               aiTesterRef.current.clickUIElement(tabId);
-            } else {
-               const btnId = `ai-shop-buy-${testInstanceId}-${normalBuyable.id}`;
-               aiTesterRef.current.clickUIElement(btnId);
-            }
+            if (!isTabActive) aiTesterRef.current.clickUIElement(tabId);
+            else aiTesterRef.current.clickUIElement(`ai-shop-buy-${testInstanceId}-${normalBuyable.id}`);
           } else if (enchantBuyable && isEnchantShopUnlocked) {
             const tabId = `ai-shop-tab-enchant-${testInstanceId}`;
             const tab = document.getElementById(tabId);
             const isTabActive = tab?.getAttribute('data-active') === 'true' || tab?.classList.contains('bg-purple-600') || tab?.classList.contains('text-primary');
-            if (isMultiTest) console.log(`[AI-${testInstanceId}] EnchantBuyable: ${enchantBuyable.id}, TabActive: ${isTabActive}`);
-            if (!isTabActive) {
-               aiTesterRef.current.clickUIElement(tabId);
-            } else {
-               const btnId = `ai-shop-buy-${testInstanceId}-enchant-${enchantBuyable.id}`;
-               aiTesterRef.current.clickUIElement(btnId);
-            }
+            if (!isTabActive) aiTesterRef.current.clickUIElement(tabId);
+            else aiTesterRef.current.clickUIElement(`ai-shop-buy-${testInstanceId}-enchant-${enchantBuyable.id}`);
           } else if (awakeningBuyable) {
             const tabId = `ai-shop-tab-awakening-${testInstanceId}`;
             const tab = document.getElementById(tabId);
             const isTabActive = tab?.getAttribute('data-active') === 'true' || tab?.classList.contains('bg-amber-600') || tab?.classList.contains('text-primary');
-            if (isMultiTest) console.log(`[AI-${testInstanceId}] AwakeningBuyable, TabActive: ${isTabActive}`);
-            if (!isTabActive) {
-               aiTesterRef.current.clickUIElement(tabId);
-            } else {
-               const btnId = `ai-shop-buy-${testInstanceId}-awakening-levelup`;
-               aiTesterRef.current.clickUIElement(btnId);
-            }
+            if (!isTabActive) aiTesterRef.current.clickUIElement(tabId);
+            else aiTesterRef.current.clickUIElement(`ai-shop-buy-${testInstanceId}-awakening-levelup`);
           } else if (tokenSlotBuyable) {
             const tabId = `ai-shop-tab-awakening-${testInstanceId}`;
             const tab = document.getElementById(tabId);
             const isTabActive = tab?.getAttribute('data-active') === 'true' || tab?.classList.contains('bg-amber-600') || tab?.classList.contains('text-primary');
-            if (isMultiTest) console.log(`[AI-${testInstanceId}] TokenSlotBuyable, TabActive: ${isTabActive}`);
-            if (!isTabActive) {
-               aiTesterRef.current.clickUIElement(tabId);
-            } else {
-               const btnId = `ai-shop-buy-${testInstanceId}-awakening-token-slot`;
-               aiTesterRef.current.clickUIElement(btnId);
-            }
+            if (!isTabActive) aiTesterRef.current.clickUIElement(tabId);
+            else aiTesterRef.current.clickUIElement(`ai-shop-buy-${testInstanceId}-awakening-token-slot`);
           } else if (stars >= shopRerollPrice && Math.random() > 0.4) {
-             const refreshBtnId = `ai-shop-refresh-${testInstanceId}`;
-             aiTesterRef.current.clickUIElement(refreshBtnId);
+            aiTesterRef.current.clickUIElement(`ai-shop-refresh-${testInstanceId}`);
           } else {
             const closeBtnId = `ai-shop-close-${testInstanceId}`;
-            if (isMultiTest) console.log(`[AI-${testInstanceId}] Closing shop: ${closeBtnId}`);
             const clicked = aiTesterRef.current.clickUIElement(closeBtnId);
-            if (clicked && aiControlRef.current?.startNextCycle) {
+            if (!clicked && aiControlRef.current?.startNextCycle) {
+              // ボタンが見つからない場合のフォールバック
+              setShowShop(false);
               aiControlRef.current.startNextCycle();
             }
           }
         } else if (isGameOver) {
-          logAIRunData();
+          if (!aiLoopTrackingRef.current.lastLoggedGameOver) {
+            logAIRunData();
+            aiLoopTrackingRef.current.lastLoggedGameOver = true;
+          }
           setShowTitle(true);
           setIsGameOver(false);
         } else if (goalReached) {
-          if (!showShop && isMultiTest) logAIRunData();
-          if (aiControlRef.current?.openShop) aiControlRef.current.openShop();
+          const currentCycle = currentRunStats.currentClears + 1;
+          if (aiLoopTrackingRef.current.lastLoggedCycle < currentCycle) {
+            if (isMultiTest) logAIRunData();
+            aiLoopTrackingRef.current.lastLoggedCycle = currentCycle;
+          }
+          
+          // ターンが余っている場合は「NEXT GOAL REACHED」をクリックしてスキップ
+          if (turn <= maxTurns) {
+            const nextGoalBtnId = `ai-next-goal-${testInstanceId}`;
+            aiTesterRef.current.clickUIElement(nextGoalBtnId);
+          } else {
+            // "CLEARED!" Overlay is visible
+            const shopBtnId = `ai-go-to-shop-${testInstanceId}`;
+            const clicked = aiTesterRef.current.clickUIElement(shopBtnId);
+            if (!clicked && aiControlRef.current?.openShop) {
+              aiControlRef.current.openShop();
+            }
+          }
+        } else if (showGameClear) {
+          const continueBtnId = `ai-game-clear-continue-${testInstanceId}`;
+          aiTesterRef.current.clickUIElement(continueBtnId);
         } else if (showSettings || showCredits || showStats || showHelp) {
           setShowSettings(false);
           setShowCredits(false);
@@ -639,7 +650,31 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           setShowHelp(false);
         } else {
           // Inside game
-          if (aiTesterRef.current && engineRef.current && !engineRef.current.processing && !engineRef.current.chronosStopActive) {
+          const engine = engineRef.current;
+          if (engine?.processing) {
+            if (lastProcessingTimeRef.current === 0) lastProcessingTimeRef.current = Date.now();
+            const elapsed = Date.now() - lastProcessingTimeRef.current;
+            if (elapsed > 20000) { // 20 seconds timeout
+              console.error(`[AI-${testInstanceId}] Watchdog: Engine stuck in processing for >20s. Forcing reset.`);
+              if (isMultiTest) {
+                window.AIErrors = window.AIErrors || [];
+                window.AIErrors.push({
+                  instanceId: testInstanceId,
+                  type: "watchdog_timeout",
+                  cycle: (currentRunStats?.currentClears || 0) + 1,
+                  message: "Engine processing timeout (>20s)",
+                  timestamp: Date.now()
+                });
+              }
+              engine.processing = false;
+              lastProcessingTimeRef.current = 0;
+            }
+            return;
+          } else {
+            lastProcessingTimeRef.current = 0;
+          }
+
+          if (aiTesterRef.current && engine && !engine.chronosStopActive) {
             const readySkill = tokens.find(t => {
               if (t?.type !== 'skill') return false;
               const cost = getEffectiveCost(t, currentRunStats, tokens, activeBuffs);
@@ -655,6 +690,17 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         }
       } catch (err) {
         console.error(`[AI-${testInstanceId}] Error in loop:`, err);
+        if (isMultiTest) {
+          window.AIErrors = window.AIErrors || [];
+          window.AIErrors.push({
+            instanceId: testInstanceId,
+            type: "error",
+            cycle: (currentRunStats?.currentClears || 0) + 1,
+            message: err.message || String(err),
+            stack: err.stack,
+            timestamp: Date.now()
+          });
+        }
       }
     }, 1000);
     return () => clearInterval(loop);
@@ -2383,6 +2429,9 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     } else {
 
       // "Equip Second" logic - check limits again
+      const isActive = item.type === 'skill';
+      const activeCount = tokens.filter(t => t?.type === 'skill').length;
+      const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
       const maxSlots = 5 + tokenSlotExpansionCount;
       if ((isActive && activeCount >= maxSlots) || (!isActive && passiveCount >= maxSlots)) {
         notify("スロットがいっぱいです。代わりに強化します。");
@@ -3135,6 +3184,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           <div className="absolute bottom-[50%] left-0 right-0 z-30 px-6 flex justify-center pointer-events-none">
             {goalReached && turn <= maxTurns && (
               <button
+                id={`ai-next-goal-${testInstanceId}`}
                 onClick={skipTurns}
                 className="pointer-events-auto bg-primary text-white font-bold py-3 px-8 rounded-full shadow-[0_4px_20px_rgba(91,19,236,0.5)] border border-white/20 flex items-center gap-2 transform transition hover:scale-105 active:scale-95 animate-bounce"
               >
@@ -3181,6 +3231,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
 
                     <div className="flex flex-col gap-4 w-full">
                       <button
+                        id={`ai-go-to-shop-${testInstanceId}`}
                         onClick={() => setShowShop(true)}
                         className="group bg-slate-800 text-white py-4 rounded-2xl font-bold border border-white/10 hover:bg-slate-700 transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
                       >
@@ -3190,6 +3241,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                         <span>ショップで強化</span>
                       </button>
                       <button
+                        id={`ai-next-area-${testInstanceId}`}
                         onClick={startNextCycle}
                         className="bg-gradient-to-r from-primary to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full animate-pulse-slow"
                       >
@@ -3236,7 +3288,10 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                   items={shopItems}
                   stars={stars}
                   onBuy={buyItem}
-                  onClose={() => setShowShop(false)}
+                  onClose={() => {
+                    setShowShop(false);
+                    if (goalReached) startNextCycle();
+                  }}
                   onRefresh={refreshShop}
                   goalReached={goalReached}
                   rerollPrice={shopRerollPrice}
@@ -3367,6 +3422,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
               {/* Victory Actions */}
               <div className="flex flex-col gap-4 w-full max-w-sm mt-auto mb-10 shrink-0">
                 <button
+                  id={`ai-game-clear-continue-${testInstanceId}`}
                   onClick={() => {
                     setShowGameClear(false);
                     startNextCycle();
