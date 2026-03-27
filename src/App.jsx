@@ -10,7 +10,7 @@ import StartOptionScreen from "./StartOptionScreen";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, getEnchantDescription, ENCHANTMENTS } from './constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS } from './constants/gameConstants.js';
-import { formatNum, getEffectiveCost, getTokenDescription } from './utils/tokenUtils.js';
+import { formatNum, getEffectiveCost, getTokenDescription, getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
 import { PuzzleEngine } from './engine/PuzzleEngine.js';
 
 const App = () => {
@@ -141,6 +141,9 @@ const App = () => {
   // スワイプ座標の管理（useRef でレンダー外管理）
   const passiveSwipeRef = useRef(null);
   const activeSwipeRef = useRef(null);
+
+  // --- Drag and Drop State ---
+  const [draggedToken, setDraggedToken] = useState(null);
 
 
   const timerRef = useRef(null);
@@ -1845,6 +1848,7 @@ const App = () => {
   const handleGiveUp = () => {
     setIsGameOver(false);
     resetGame();
+    setShowStartOption(true);
   };
 
   const notify = (text) => {
@@ -2134,9 +2138,9 @@ const App = () => {
     }
   };
 
-  // --- \u899a\u9192\u30b7\u30e7\u30c3\u30d7\u306e\u8cfc\u5165\u51e6\u7406 ---
-  const AWAKENING_TOKEN_SLOT_BASE_PRICE = 100; // \u30c8\u30fc\u30af\u30f3\u67a0\u62e1\u5f35\u306e\u521d\u671f\u4fa1\u683c
-  const AWAKENING_TOKEN_SLOT_PRICE_STEP = 50;  // \u8cfc\u5165\u3054\u3068\u306b\u4e0a\u6607\u3059\u308b\u91d1\u984d
+  // --- 覚醒ショップの購入処理 ---
+  const AWAKENING_TOKEN_SLOT_BASE_PRICE = 100; // トークン枠拡張の初期価格
+  const AWAKENING_TOKEN_SLOT_PRICE_STEP = 50;  // 購入ごとに上昇する金額
 
   const getTokenSlotExpandPrice = () =>
     AWAKENING_TOKEN_SLOT_BASE_PRICE + tokenSlotExpansionCount * AWAKENING_TOKEN_SLOT_PRICE_STEP;
@@ -2145,9 +2149,9 @@ const App = () => {
     switch (type) {
       case 'random_levelup': {
         const price = 5;
-        if (stars < price) return notify('\u2605\u304c\u8db3\u308a\u307e\u305b\u3093');
+        if (stars < price) return notify('★が足りません');
         const upgradeableTokens = tokens.filter(t => (t?.level || 1) < 3);
-        if (upgradeableTokens.length === 0) return notify('\u5f37\u5316\u53ef\u80fd\u306a\u30c8\u30fc\u30af\u30f3\u304c\u3042\u308a\u307e\u305b\u3093 (Max Lv3)');
+        if (upgradeableTokens.length === 0) return notify('強化可能なトークンがありません (Max Lv3)');
         const targetToken = upgradeableTokens[Math.floor(Math.random() * upgradeableTokens.length)];
         const targetIdx = tokens.findIndex(t => t?.instanceId === targetToken.instanceId);
         setTokens(prev => {
@@ -2166,24 +2170,24 @@ const App = () => {
         setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + price }));
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + price }));
         setIsAwakeningLevelUpBought(true);
-        notify(`${targetToken.name} \u304c\u5f37\u5316\u3055\u308c\u307e\u3057\u305f! (Lv${(targetToken.level || 1) + 1})`);
+        notify(`${targetToken.name} が強化されました! (Lv${(targetToken.level || 1) + 1})`);
         break;
       }
       case 'unlock_enchant_shop': {
         const price = 10;
-        if (stars < price) return notify('\u2605\u304c\u8db3\u308a\u307e\u305b\u3093');
-        if (isEnchantShopUnlocked) return notify('\u30a8\u30f3\u30c1\u30e3\u30f3\u30c8\u30b7\u30e7\u30c3\u30d7\u306f\u3059\u3067\u306b\u89e3\u653e\u6e08\u307f\u3067\u3059');
+        if (stars < price) return notify('★が足りません');
+        if (isEnchantShopUnlocked) return notify('エンチャントショップはすでに解放済みです');
         setIsEnchantShopUnlocked(true);
         setStars(s => s - price);
-        notify('\u30a8\u30f3\u30c1\u30e3\u30f3\u30c8\u30b7\u30e7\u30c3\u30d7\u304c\u89e3\u653e\u3055\u308c\u307e\u3057\u305f!');
+        notify('エンチャントショップが解放されました!');
         break;
       }
       case 'expand_token_slots': {
         const price = getTokenSlotExpandPrice();
-        if (stars < price) return notify('\u2605\u304c\u8db3\u308a\u307e\u305b\u3093');
+        if (stars < price) return notify('★が足りません');
         setTokenSlotExpansionCount(prev => prev + 1);
         setStars(s => s - price);
-        notify(`\u30c8\u30fc\u30af\u30f3\u67a0\u304c ${5 + tokenSlotExpansionCount + 1} / ${5 + tokenSlotExpansionCount + 1} \u306b\u62e1\u5f35\u3055\u308c\u307e\u3057\u305f!`);
+        notify(`トークン枠が ${5 + tokenSlotExpansionCount + 1} / ${5 + tokenSlotExpansionCount + 1} に拡張されました!`);
         break;
       }
       default:
@@ -2485,6 +2489,33 @@ const App = () => {
     notify(`${token.name} を ${targetPos} 番目に移動しました`);
   };
 
+  const handleDragStart = (e, token) => {
+    if (!token) return;
+    setDraggedToken(token);
+    e.dataTransfer.effectAllowed = 'move';
+    // Set a transparent image or just use default browser ghosting
+    // e.dataTransfer.setData('text/plain', token.instanceId);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, targetPos, isSkill) => {
+    e.preventDefault();
+    if (!draggedToken) return;
+
+    // Different types cannot be swapped in this implementation logic
+    if ((draggedToken.type === 'skill') !== isSkill) {
+      setDraggedToken(null);
+      return;
+    }
+
+    moveToken(draggedToken, targetPos);
+    setDraggedToken(null);
+  };
+
   const openShop = () => {
     if (shopItems.length === 0) {
       generateShop();
@@ -2747,64 +2778,81 @@ const App = () => {
                       {Array.from({ length: passivePages }).map((_, pageIdx) => (
                         <div key={pageIdx} className="grid grid-cols-5 gap-2 flex-shrink-0 w-full">
                           {Array.from({ length: TOKENS_PER_PAGE }).map((_, slotIdx) => {
-                            const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
-                            const t = passiveTokens[globalSlot];
-                            const isLocked = globalSlot >= maxSlots;
-                            let borderColor = isLocked ? 'border-slate-800' : (t ? (t.rarity === 3 ? 'border-yellow-400/60' : t.rarity === 2 ? 'border-sky-400/60' : 'border-white/20') : 'border-white/5');
-                            let shadowClass = '';
-                            let animClass = '';
-                            if (t && triggeredPassives.includes(t.instanceId || t.id)) {
-                              animClass = 'animate-bounce';
-                              shadowClass = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
+                        const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
+                        const t = passiveTokens[globalSlot];
+                        const isLocked = globalSlot >= maxSlots;
+                        let borderColor = isLocked ? 'border-slate-800' : (t ? (t.rarity === 3 ? 'border-yellow-400/60' : t.rarity === 2 ? 'border-sky-400/60' : 'border-white/20') : 'border-white/5');
+                        let shadowClass = '';
+                        let animClass = '';
+                        if (t && triggeredPassives.includes(t.instanceId || t.id)) {
+                          animClass = 'animate-bounce';
+                          shadowClass = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
+                        }
+                        if (t && !animClass) {
+                          let conditionMet = false;
+                          switch (t.effect) {
+                            case 'color_count_bonus': {
+                              const countReq = t.params?.count || 0;
+                              const cColor = t.params?.color;
+                              conditionMet = cColor && (lastErasedColorCounts[cColor] || 0) >= countReq;
+                              break;
                             }
-                            if (t && !animClass) {
-                              let conditionMet = false;
-                              switch (t.effect) {
-                                case 'color_count_bonus': {
-                                  const countReq = t.params?.count || 0;
-                                  const cColor = t.params?.color;
-                                  conditionMet = cColor && (lastErasedColorCounts[cColor] || 0) >= countReq;
-                                  break;
-                                }
-                                case 'combo_if_ge':
-                                  conditionMet = lastTurnCombo >= (t.params?.combo || 0);
-                                  break;
-                                case 'combo_if_exact':
-                                  conditionMet = lastTurnCombo === (t.params?.combo || 0);
-                                  break;
-                                default:
-                                  break;
-                              }
-                              if (conditionMet) {
-                                borderColor = 'border-green-400/80';
-                                shadowClass = 'shadow-[0_0_15px_rgba(74,222,128,0.5)]';
-                              }
-                            }
-                            return (
-                              <div
-                                key={`passive-p${pageIdx}-${slotIdx}`}
-                                onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
-                                className={`aspect-square rounded-xl relative border transition-all duration-300 ${animClass} ${shadowClass} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
-                              >
-                                {isLocked ? (
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="material-icons-round text-slate-700 text-lg">lock</span>
-                                  </div>
-                                ) : t ? (
-                                  <>
-                                    <div className="absolute inset-0 rounded-xl overflow-hidden flex items-center justify-center">
-                                      <span className={`material-icons-round text-2xl relative z-10 ${animClass ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-slate-400'}`}>
-                                        auto_awesome
-                                      </span>
-                                    </div>
-                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
-                                      {t.level || 1}
-                                    </div>
-                                  </>
-                                ) : null}
-                              </div>
-                            );
-                          })}
+                            case 'combo_if_ge':
+                              conditionMet = lastTurnCombo >= (t.params?.combo || 0);
+                              break;
+                            case 'combo_if_exact':
+                              conditionMet = lastTurnCombo === (t.params?.combo || 0);
+                              break;
+                            default:
+                              break;
+                          }
+                          if (conditionMet) {
+                            borderColor = 'border-green-400/80';
+                            shadowClass = 'shadow-[0_0_15px_rgba(74,222,128,0.5)]';
+                          }
+                        }
+                        return (
+                          <div
+                            key={`passive-p${pageIdx}-${slotIdx}`}
+                            onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
+                            draggable={!!t && !isLocked}
+                            onDragStart={(e) => handleDragStart(e, t)}
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDrop(e, globalSlot + 1, false)}
+                            onDragEnd={() => setDraggedToken(null)}
+                            className={`aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
+                          >
+                            <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
+                              {/* 属性バー */}
+                              {t && (
+                                <div 
+                                  className="absolute left-0 top-0 bottom-0 w-1 z-30" 
+                                  style={getAttributeBarStyles(t?.attributes)}
+                                />
+                              )}
+                              {isLocked ? (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <span className="material-icons-round text-slate-700 text-lg">lock</span>
+                                </div>
+                              ) : t ? (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <span className={`material-icons-round text-2xl relative z-10 ${animClass ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-slate-400'}`}>
+                                    {getTokenIcon(t)}
+                                  </span>
+                                </div>
+                              ) : null}
+                            </div>
+                            {t && !isLocked && (
+                              <>
+                                {/* 属性丸は削除 */}
+                                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
+                                  {t.level || 1}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
                         </div>
                       ))}
                     </div>
@@ -2898,23 +2946,41 @@ const App = () => {
                               <div
                                 key={`active-p${pageIdx}-${slotIdx}`}
                                 onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
-                                className={`aspect-square rounded-xl relative border transition-all duration-300 ${containerClasses}`}
+                                draggable={!!t && !isLocked}
+                                onDragStart={(e) => handleDragStart(e, t)}
+                                onDragOver={handleDragOver}
+                                onDrop={(e) => handleDrop(e, globalSlot + 1, true)}
+                                onDragEnd={() => setDraggedToken(null)}
+                                className={`aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${containerClasses}`}
                               >
-                                {isLocked ? (
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="material-icons-round text-slate-700 text-lg">lock</span>
-                                  </div>
-                                ) : t ? (
-                                  <>
-                                    <div className="absolute inset-0 rounded-xl overflow-hidden flex items-center justify-center">
+                                <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
+                                  {/* 属性バー */}
+                                  {t && (
+                                    <div 
+                                      className="absolute left-0 top-0 bottom-0 w-1 z-30 transition-all" 
+                                      style={getAttributeBarStyles(t?.attributes)}
+                                    />
+                                  )}
+                                  {isLocked ? (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <span className="material-icons-round text-slate-700 text-lg">lock</span>
+                                    </div>
+                                  ) : t ? (
+                                    <div className="absolute inset-0 flex items-center justify-center">
                                       <div className="absolute inset-0 bg-primary/10">
                                         {isSkill && <div className="absolute bottom-0 left-0 right-0 bg-primary/20 transition-all duration-500" style={{ height: `${progress}%` }}></div>}
                                         {stackCount > 0 && activeBuff && <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cyan-500/60 to-blue-400/30 transition-all duration-500" style={{ height: `${buffProgress}%` }}></div>}
                                       </div>
                                       <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : isReady ? 'text-primary' : 'text-slate-500'}`}>
-                                        sports_martial_arts
+                                        {getTokenIcon(t)}
                                       </span>
                                     </div>
+                                  ) : null}
+                                </div>
+                                
+                                {t && !isLocked && (
+                                  <>
+                                    {/* 属性丸は削除 */}
                                     <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
                                       {t.level || 1}
                                     </div>
@@ -2934,7 +3000,7 @@ const App = () => {
                                       </div>
                                     )}
                                   </>
-                                ) : null}
+                                )}
                               </div>
                             );
                           })}
@@ -3170,10 +3236,11 @@ const App = () => {
                   const isSkill = t.type === 'skill';
                   return (
                     <div key={idx} className="bg-slate-900/40 rounded-3xl p-4 border border-white/5 flex items-center gap-5 backdrop-blur-sm group hover:border-white/20 transition-all active:scale-[0.98]">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${isSkill ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20 group-hover:bg-blue-600/30' : 'bg-purple-600/20 text-purple-400 border border-purple-500/20 group-hover:bg-purple-600/30'}`}>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg relative overflow-hidden ${isSkill ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20 group-hover:bg-blue-600/30' : 'bg-purple-600/20 text-purple-400 border border-purple-500/20 group-hover:bg-purple-600/30'}`}>
                         <span className="material-icons-round text-3xl">
-                          {isSkill ? 'sports_martial_arts' : 'auto_awesome'}
+                          {getTokenIcon(t)}
                         </span>
+                        {/* 属性丸は削除 */}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
@@ -3267,9 +3334,14 @@ const App = () => {
                   <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border border-primary/30 shadow-[0_0_40px_rgba(91,19,236,0.15)]" onClick={e => e.stopPropagation()}>
                     {/* ヘッダー */}
                     <div className="flex items-center gap-3 mb-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSkill ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-purple-500/20 border border-purple-500/30'}`}>
+                      <div className={`w-12 h-12 rounded-tr-xl rounded-br-xl relative flex items-center justify-center overflow-hidden ${isSkill ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-purple-500/20 border border-purple-500/30'}`}>
+                        {/* 属性バー */}
+                        <div 
+                          className="absolute left-0 top-0 bottom-0 w-1 z-30" 
+                          style={getAttributeBarStyles(t?.attributes)}
+                        />
                         <span className={`material-icons-round text-2xl ${isSkill ? 'text-blue-400' : 'text-purple-400'}`}>
-                          {isSkill ? 'sports_martial_arts' : 'auto_awesome'}
+                          {getTokenIcon(t)}
                         </span>
                       </div>
                       <div className="flex-1">
@@ -3285,6 +3357,7 @@ const App = () => {
                           </span>
                           <span className="text-[10px] font-bold text-amber-400">Lv.{lv}</span>
                         </div>
+                        {/* 属性丸は削除 */}
                       </div>
                     </div>
 
@@ -3394,11 +3467,14 @@ const App = () => {
                         return (
                           <div className="bg-slate-900 border border-red-500/30 rounded-xl p-3 mb-2 flex flex-col gap-2 shadow-[inset_0_0_10px_rgba(239,68,68,0.1)] relative overflow-hidden">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 text-red-400">
-                                <span className="material-icons-round text-sm">lock</span>
-                                <span className="text-[10px] font-bold uppercase tracking-wider">呪い解除条件</span>
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-1.5 text-red-400">
+                                  <span className="material-icons-round text-sm">lock</span>
+                                  <span className="text-[10px] font-bold uppercase tracking-wider">呪い解除条件</span>
+                                </div>
+                                <p className="text-[11px] text-red-200/80 font-bold ml-5">{t.conditionDesc}</p>
                               </div>
-                              <span className="text-[10px] font-mono text-slate-400">{Math.floor(prog.current)} / {prog.target}</span>
+                              <span className="text-[10px] font-mono text-slate-400 self-start mt-0.5">{Math.floor(prog.current)} / {prog.target}</span>
                             </div>
                             <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5">
                               <div 

@@ -1,29 +1,7 @@
 import React from 'react';
+import { getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
 
-// アイテムのアイコンを決定するヘルパー
-const getItemIcon = (item) => {
-    if (item.type === 'skill') {
-        if (item.action === 'refresh' || item.action === 'force_refresh') return 'refresh';
-        if (item.action === 'skyfall' || item.action === 'skyfall_limit') return 'auto_awesome';
-        if (item.action === 'convert' || item.action === 'convert_multi') return 'bolt';
-        if (item.action === 'board_change') return 'grid_view';
-        if (item.action === 'row_fix') return 'splitscreen';
-        if (item.action === 'forbidden_temp') return 'block';
-        return 'bolt';
-    }
-    if (item.type === 'passive') {
-        if (item.id === 'time_ext') return 'hourglass_top';
-        if (item.id === 'power_up') return 'fitness_center';
-        if (item.id === 'collector') return 'savings';
-        if (item.id === 'forbidden') return 'dangerous';
-        if (item.id === 'bargain') return 'percent';
-        if (item.id === 'skip_master') return 'fast_forward';
-        return 'auto_awesome';
-    }
-    if (item.type === 'enchant_grant' || item.type === 'enchant_random') return 'auto_fix_high';
-    if (item.type === 'upgrade_random') return 'arrow_upward';
-    return 'star';
-};
+// 通常アイテムの背景・ボーダー色を返すヘルパー
 
 // 通常アイテムの背景・ボーダー色を返すヘルパー
 const getItemColors = (item) => {
@@ -77,8 +55,16 @@ const NormalItemCard = ({ item, stars, onBuy }) => {
     const isAffordable = stars >= item.price;
     return (
         <div className="bg-surface-dark border border-white/5 rounded-xl p-3 flex items-center">
-            <div className={`w-14 h-14 rounded-lg bg-gradient-to-br ${styles.bg} border ${styles.border} flex items-center justify-center flex-shrink-0 relative overflow-hidden`}>
-                <span className={`material-icons-round ${styles.iconColor} text-2xl relative z-10`}>{getItemIcon(item)}</span>
+            <div className={`w-14 h-14 rounded-tr-lg rounded-br-lg bg-gradient-to-br ${styles.bg} border ${styles.border} flex items-center justify-center flex-shrink-0 relative`}>
+                <div className="absolute inset-0 rounded-tr-lg rounded-br-lg overflow-hidden">
+                    {/* 属性バー */}
+                    <div 
+                        className="absolute left-0 top-0 bottom-0 w-1 z-30" 
+                        style={getAttributeBarStyles(item.attributes)}
+                    />
+                    <span className={`material-icons-round ${styles.iconColor} text-2xl relative z-10`}>{getTokenIcon(item)}</span>
+                    {/* 属性丸は削除 */}
+                </div>
             </div>
             <div className="ml-3 flex-1">
                 <div className="flex items-center space-x-2">

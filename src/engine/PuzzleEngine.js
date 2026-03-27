@@ -23,11 +23,11 @@ class PuzzleEngine {
 
     this.types = ["fire", "water", "wood", "light", "dark", "heart"];
     this.icons = {
-      fire: "local_fire_department",
+      fire: "whatshot",
       water: "water_drop",
-      wood: "grass",
-      light: "light_mode",
-      dark: "dark_mode",
+      wood: "air",
+      light: "bolt",
+      dark: "nightlight_round",
       heart: "favorite",
     };
 

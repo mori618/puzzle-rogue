@@ -30,15 +30,19 @@ const StartOptionScreen = ({ onSelect }) => {
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px]" />
       </div>
 
-      <div className="relative z-10 w-full max-w-4xl">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="relative z-10 w-full max-w-2xl text-center">
+        <h2 className="text-slate-400 text-sm font-black tracking-[0.3em] uppercase mb-12 animate-in slide-in-from-bottom-4 duration-700">
+          始まりの力を選択
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {options.map((option) => (
             <button
               key={option.id}
               onClick={() => onSelect(option.id)}
-              className={`group relative flex items-center justify-center aspect-[4/3] bg-slate-900/50 border border-white/10 rounded-3xl transition-all duration-300 hover:scale-[1.05] hover:bg-slate-800/80 hover:border-white/20 shadow-2xl ${option.shadow}`}
+              className={`group relative flex items-center justify-center p-8 bg-slate-900/60 border border-white/10 rounded-3xl transition-all duration-300 hover:scale-[1.05] hover:bg-slate-800/80 hover:border-white/20 shadow-2xl ${option.shadow}`}
             >
-              <span className={`text-5xl font-black bg-clip-text text-transparent bg-gradient-to-br ${option.color} group-hover:scale-110 transition-transform duration-500`}>
+              <span className={`text-4xl font-black bg-clip-text text-transparent bg-gradient-to-br ${option.color} group-hover:scale-110 transition-transform duration-500`}>
                 {option.name}
               </span>
 
