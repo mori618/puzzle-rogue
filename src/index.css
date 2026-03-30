@@ -331,16 +331,18 @@ body {
   text-align: center;
   font-family: "Orbitron", "Inter", sans-serif;
   pointer-events: none;
+  width: 100%;
+  max-width: 95vw;
 }
 
 /* コンボ数字（大きく表示） */
 .combo-number {
-  font-size: clamp(2.5rem, 12vw, 5rem);
+  font-size: clamp(2rem, 10vw, 4rem);
   font-weight: 900;
   color: white;
-  line-height: 1;
+  line-height: 1.1;
   letter-spacing: -2px;
-  white-space: nowrap;
+  word-break: break-all;
   text-shadow:
     -2px -2px 0 var(--color-outline-stylish),
     2px -2px 0 var(--color-outline-stylish),
@@ -352,7 +354,7 @@ body {
 
 /* 最終値確定時のグロー強化 */
 .combo-number-final {
-  font-size: clamp(3rem, 15vw, 6rem);
+  font-size: clamp(2.5rem, 12vw, 5rem);
   color: #fbbf24;
   text-shadow:
     -3px -3px 0 white,
@@ -381,10 +383,11 @@ body {
 
 /* ボーナス加算表示 (+N) */
 .combo-bonus-add {
-  font-size: clamp(1.5rem, 8vw, 2.8rem);
+  font-size: clamp(1.2rem, 6vw, 2.4rem);
   font-weight: 950;
   color: #fbbf24;
-  line-height: 1;
+  line-height: 1.1;
+  word-break: break-all;
   text-shadow:
     -2px -2px 0 white,
     2px -2px 0 white,
@@ -396,10 +399,11 @@ body {
 
 /* 倍率表示 (×N) */
 .combo-bonus-mult {
-  font-size: clamp(1.5rem, 8vw, 2.8rem);
+  font-size: clamp(1.2rem, 6vw, 2.4rem);
   font-weight: 950;
   color: #f472b6;
-  line-height: 1;
+  line-height: 1.1;
+  word-break: break-all;
   text-shadow:
     -2px -2px 0 var(--color-outline-stylish),
     2px -2px 0 var(--color-outline-stylish),

@@ -147,16 +147,16 @@ const ALL_TOKEN_BASES = [
 
   // --- スキル: 特殊（時間・倍率・チャージ・再落下）---
   {
-        id: "refresh",
-        name: "次元の再編",
-        type: "skill",
-        cost: 3,
-        costLevels: true,
-        action: "force_refresh",
-        rarity: 1, price: 2,
-        desc: "全消去して再落下。落ちコンあり。消費E:{cost}",
-        attributes: []
-      },
+    id: "refresh",
+    name: "次元の再編",
+    type: "skill",
+    cost: 3,
+    costLevels: true,
+    action: "force_refresh",
+    rarity: 1, price: 2,
+    desc: "全消去して再落下。落ちコンあり。消費E:{cost}",
+    attributes: []
+  },
   {
     id: "charge_boost",
     name: "練気の波動",
@@ -179,65 +179,65 @@ const ALL_TOKEN_BASES = [
 
   // --- パッシブ: 汎用ユーティリティ（ショップ・時間・基礎強化）---
   {
-        id: "collector",
-        name: "黄金の収集者",
-        type: "passive",
-        effect: "star_gain",
-        values: [4, 2, 1],
-        rarity: 1, price: 5,
-        desc: "★獲得に必要なコンボ数を4/2/1に短縮。",
-        attributes: []
-      },
+    id: "collector",
+    name: "黄金の収集者",
+    type: "passive",
+    effect: "star_gain",
+    values: [4, 2, 1],
+    rarity: 1, price: 5,
+    desc: "★獲得に必要なコンボ数を4/2/1に短縮。",
+    attributes: []
+  },
   {
-        id: "time_ext",
-        name: "時の砂",
-        type: "passive",
-        effect: "time_permanent",
-        price: 4,
-        rarity: 1,
-        desc: "操作時間を2秒延長。（購入するごとに累積し、トークン枠を消費しない）",
-        attributes: []
-      },
+    id: "time_ext",
+    name: "時の砂",
+    type: "passive",
+    effect: "time_permanent",
+    price: 4,
+    rarity: 1,
+    desc: "操作時間を2秒延長。（購入するごとに累積し、トークン枠を消費しない）",
+    attributes: []
+  },
   {
-        id: "power_up",
-        name: "力の鼓動",
-        type: "passive",
-        effect: "base_add",
-        values: [2, 3, 5],
-        rarity: 1, price: 4,
-        desc: "コンボ加算に2/3/5の固定値を追加。",
-        attributes: []
-      },
+    id: "power_up",
+    name: "力の鼓動",
+    type: "passive",
+    effect: "base_add",
+    values: [2, 3, 5],
+    rarity: 1, price: 4,
+    desc: "コンボ加算に2/3/5の固定値を追加。",
+    attributes: []
+  },
   {
-        id: "forbidden",
-        name: "禁忌の儀式",
-        type: "passive",
-        effect: "forbidden",
-        values: [2, 3, 5],
-        rarity: 2, price: 7,
-        desc: "常時落ちコン停止。コンボ加算2/3/5倍。",
-        attributes: []
-      },
+    id: "forbidden",
+    name: "禁忌の儀式",
+    type: "passive",
+    effect: "forbidden",
+    values: [2, 3, 5],
+    rarity: 2, price: 7,
+    desc: "常時落ちコン停止。コンボ加算2/3/5倍。",
+    attributes: []
+  },
   {
-        id: "bargain",
-        name: "商談の極意",
-        type: "passive",
-        effect: "sale_boost",
-        values: [2, 4, 6],
-        rarity: 1, price: 6,
-        desc: "ショップに並ぶセール品（半額）の数を2/4/6個に増加させる。",
-        attributes: []
-      },
+    id: "bargain",
+    name: "商談の極意",
+    type: "passive",
+    effect: "sale_boost",
+    values: [2, 4, 6],
+    rarity: 1, price: 6,
+    desc: "ショップに並ぶセール品（半額）の数を2/4/6個に増加させる。",
+    attributes: []
+  },
   {
-        id: "enchant_boost",
-        name: "魔道の極意",
-        type: "passive",
-        effect: "enchant_grant_boost",
-        values: [1, 2, 3],
-        rarity: 2, price: 8,
-        desc: "ショップに並ぶエンチャントの数を1/2/3個増加させる。",
-        attributes: []
-      },
+    id: "enchant_boost",
+    name: "魔道の極意",
+    type: "passive",
+    effect: "enchant_grant_boost",
+    values: [1, 2, 3],
+    rarity: 2, price: 8,
+    desc: "ショップに並ぶエンチャントの数を1/2/3個増加させる。",
+    attributes: []
+  },
   {
     id: "shop_expand",
     name: "陳列の極意",
@@ -249,63 +249,63 @@ const ALL_TOKEN_BASES = [
     attributes: []
   },
   {
-        id: "skip_master",
-        name: "時短の心得",
-        type: "passive",
-        effect: "skip_bonus_multiplier",
-        values: [6, 8, 10],
-        rarity: 2, price: 6,
-        desc: "目標達成後のスキップボーナスを6/8/10倍にする。",
-        attributes: []
-      },
+    id: "skip_master",
+    name: "時短の心得",
+    type: "passive",
+    effect: "skip_bonus_multiplier",
+    values: [6, 8, 10],
+    rarity: 2, price: 6,
+    desc: "目標達成後のスキップボーナスを6/8/10倍にする。",
+    attributes: []
+  },
   {
-        id: "dual_match",
-        name: "双連の極意",
-        type: "passive",
-        effect: "min_match",
-        values: [0.8, 1.2, 1.5],
-        rarity: 3, price: 15,
-        desc: "2つ以上でドロップが消える。コンボ倍率x[0.8/1.2/1.5]。",
-        attributes: []
-      },
+    id: "dual_match",
+    name: "双連の極意",
+    type: "passive",
+    effect: "min_match",
+    values: [0.8, 1.2, 1.5],
+    rarity: 3, price: 15,
+    desc: "2つ以上でドロップが消える。コンボ倍率x[0.8/1.2/1.5]。",
+    attributes: []
+  },
 
   // --- パッシブ: コンボ倍率（1色）---
   {
-        id: "bonus_1c_fire", name: "炎の連舞", type: "passive", effect: "color_multiplier",
-        params: { colors: ["fire"] }, values: [1.5, 2, 3], rarity: 1, price: 6,
-        desc: "炎を消しているとコンボ数x[1.5/2/3]倍。",
-        attributes: ["fire"]
-      },
+    id: "bonus_1c_fire", name: "炎の連舞", type: "passive", effect: "color_multiplier",
+    params: { colors: ["fire"] }, values: [1.5, 2, 3], rarity: 1, price: 6,
+    desc: "炎を消しているとコンボ数x[1.5/2/3]倍。",
+    attributes: ["fire"]
+  },
   {
-        id: "bonus_1c_water", name: "雨の連舞", type: "passive", effect: "color_multiplier",
-        params: { colors: ["water"] }, values: [1.5, 2, 3], rarity: 1, price: 6,
-        desc: "雨を消しているとコンボ数x[1.5/2/3]倍。",
-        attributes: ["water"]
-      },
+    id: "bonus_1c_water", name: "雨の連舞", type: "passive", effect: "color_multiplier",
+    params: { colors: ["water"] }, values: [1.5, 2, 3], rarity: 1, price: 6,
+    desc: "雨を消しているとコンボ数x[1.5/2/3]倍。",
+    attributes: ["water"]
+  },
   {
-        id: "bonus_1c_wood", name: "風の連舞", type: "passive", effect: "color_multiplier",
-        params: { colors: ["wood"] }, values: [1.5, 2, 3], rarity: 1, price: 6,
-        desc: "風を消しているとコンボ数x[1.5/2/3]倍。",
-        attributes: ["wood"]
-      },
+    id: "bonus_1c_wood", name: "風の連舞", type: "passive", effect: "color_multiplier",
+    params: { colors: ["wood"] }, values: [1.5, 2, 3], rarity: 1, price: 6,
+    desc: "風を消しているとコンボ数x[1.5/2/3]倍。",
+    attributes: ["wood"]
+  },
   {
-        id: "bonus_1c_light", name: "雷の連舞", type: "passive", effect: "color_multiplier",
-        params: { colors: ["light"] }, values: [1.5, 2, 3], rarity: 1, price: 6,
-        desc: "雷を消しているとコンボ数x[1.5/2/3]倍。",
-        attributes: ["light"]
-      },
+    id: "bonus_1c_light", name: "雷の連舞", type: "passive", effect: "color_multiplier",
+    params: { colors: ["light"] }, values: [1.5, 2, 3], rarity: 1, price: 6,
+    desc: "雷を消しているとコンボ数x[1.5/2/3]倍。",
+    attributes: ["light"]
+  },
   {
-        id: "bonus_1c_dark", name: "月の連舞", type: "passive", effect: "color_multiplier",
-        params: { colors: ["dark"] }, values: [1.5, 2, 3], rarity: 1, price: 6,
-        desc: "月を消しているとコンボ数x[1.5/2/3]倍。",
-        attributes: ["dark"]
-      },
+    id: "bonus_1c_dark", name: "月の連舞", type: "passive", effect: "color_multiplier",
+    params: { colors: ["dark"] }, values: [1.5, 2, 3], rarity: 1, price: 6,
+    desc: "月を消しているとコンボ数x[1.5/2/3]倍。",
+    attributes: ["dark"]
+  },
   {
-        id: "bonus_1c_heart", name: "癒の連舞", type: "passive", effect: "color_multiplier",
-        params: { colors: ["heart"] }, values: [1.5, 2, 3], rarity: 1, price: 6,
-        desc: "ハートを消しているとコンボ数x[1.5/2/3]倍。",
-        attributes: ["heart"]
-      },
+    id: "bonus_1c_heart", name: "癒の連舞", type: "passive", effect: "color_multiplier",
+    params: { colors: ["heart"] }, values: [1.5, 2, 3], rarity: 1, price: 6,
+    desc: "ハートを消しているとコンボ数x[1.5/2/3]倍。",
+    attributes: ["heart"]
+  },
 
   // --- パッシブ: コンボ倍率（2色同時）---
   { id: "bonus_2c_fd", name: "炎月の律動", type: "passive", effect: "color_multiplier", params: { colors: ["fire", "dark"] }, values: [1.8, 2.5, 4], rarity: 2, price: 8, desc: "炎/月を同時に消すとコンボ数x[1.8/2.5/4]倍。", attributes: ["fire", "dark"] },
@@ -327,23 +327,23 @@ const ALL_TOKEN_BASES = [
 
   // --- パッシブ: コンボ倍率（4色以上・色数指定）---
   {
-        id: "bonus_4c_fwlh", name: "四天の秘儀", type: "passive", effect: "color_multiplier",
-        params: { colors: ["fire", "water", "light", "heart"] }, values: [2.5, 4, 6], rarity: 2, price: 10,
-        desc: "炎/雨/雷/ハートを同時に消すとコンボ数x[2.5/4/6]倍。",
-        attributes: ["fire", "water", "light", "heart"]
-      },
+    id: "bonus_4c_fwlh", name: "四天の秘儀", type: "passive", effect: "color_multiplier",
+    params: { colors: ["fire", "water", "light", "heart"] }, values: [2.5, 4, 6], rarity: 2, price: 10,
+    desc: "炎/雨/雷/ハートを同時に消すとコンボ数x[2.5/4/6]倍。",
+    attributes: ["fire", "water", "light", "heart"]
+  },
   {
-        id: "bonus_5c", name: "五色の秘儀", type: "passive", effect: "color_multiplier",
-        params: { count: 5 }, values: [3, 5, 8], rarity: 2, price: 12,
-        desc: "5色以上を同時に消すとコンボ数x[3/5/8]倍。",
-        attributes: ["fire", "water", "wood", "light", "dark"]
-      },
+    id: "bonus_5c", name: "五色の秘儀", type: "passive", effect: "color_multiplier",
+    params: { count: 5 }, values: [3, 5, 8], rarity: 2, price: 12,
+    desc: "5色以上を同時に消すとコンボ数x[3/5/8]倍。",
+    attributes: ["fire", "water", "wood", "light", "dark"]
+  },
   {
-        id: "bonus_6c", name: "六色の秘儀", type: "passive", effect: "color_multiplier",
-        params: { count: 6 }, values: [4, 7, 12], rarity: 2, price: 15,
-        desc: "6色すべてを同時に消すとコンボ数x[4/7/12]倍。",
-        attributes: ["fire", "water", "wood", "light", "dark", "heart"]
-      },
+    id: "bonus_6c", name: "六色の秘儀", type: "passive", effect: "color_multiplier",
+    params: { count: 6 }, values: [4, 7, 12], rarity: 2, price: 15,
+    desc: "6色すべてを同時に消すとコンボ数x[4/7/12]倍。",
+    attributes: ["fire", "water", "wood", "light", "dark", "heart"]
+  },
 
   // --- パッシブ: 色消し数ボーナス（6個以上）---
   { id: "req_6_fire", name: "炎の真髄", type: "passive", effect: "color_count_bonus", params: { color: "fire", count: 6 }, values: [2, 2.5, 3], rarity: 1, price: 9, desc: "炎を合計で6個以上消しているとコンボ数x[2/2.5/3]倍。", attributes: ["fire"] },
@@ -400,93 +400,93 @@ const ALL_TOKEN_BASES = [
 
   // --- パッシブ: 特殊消しボーナス ---
   {
-        id: "len4", name: "四連の術", type: "passive", effect: "shape_bonus",
-        params: { shape: "len4" }, values: [2, 4, 6], rarity: 1, price: 5,
-        desc: "4個ちょうど連結でコンボ+[2/4/6]。",
-        attributes: []
-      },
+    id: "len4", name: "四連の術", type: "passive", effect: "shape_bonus",
+    params: { shape: "len4" }, values: [2, 4, 6], rarity: 1, price: 5,
+    desc: "4個ちょうど連結でコンボ+[2/4/6]。",
+    attributes: []
+  },
   {
-        id: "row_clear", name: "横一閃", type: "passive", effect: "shape_bonus",
-        params: { shape: "row" }, values: [5, 10, 15], rarity: 1, price: 8,
-        desc: "横1列消しでコンボ+[5/10/15]。",
-        attributes: []
-      },
+    id: "row_clear", name: "横一閃", type: "passive", effect: "shape_bonus",
+    params: { shape: "row" }, values: [5, 10, 15], rarity: 1, price: 8,
+    desc: "横1列消しでコンボ+[5/10/15]。",
+    attributes: []
+  },
   {
-        id: "square", name: "四方の型", type: "passive", effect: "shape_bonus",
-        params: { shape: "square" }, values: [2, 3, 5], rarity: 1, price: 9,
-        desc: "3x3正方形消しでコンボ×[2/3/5]倍。",
-        attributes: []
-      },
+    id: "square", name: "四方の型", type: "passive", effect: "shape_bonus",
+    params: { shape: "square" }, values: [2, 3, 5], maxMultipliers: [10, 20, 50], rarity: 1, price: 9,
+    desc: "3x3正方形消しでコンボ×[2/3/5]倍。",
+    attributes: []
+  },
   {
-        id: "len5", name: "五星の印", type: "passive", effect: "shape_bonus",
-        params: { shape: "len5" }, values: [1.5, 2, 3], rarity: 1, price: 7,
-        desc: "5個以上連結で次手の操作時間[1.5/2/3]倍。",
-        attributes: []
-      },
+    id: "len5", name: "五星の印", type: "passive", effect: "shape_bonus",
+    params: { shape: "len5" }, values: [1.5, 2, 3], rarity: 1, price: 7,
+    desc: "5個以上連結で次手の操作時間[1.5/2/3]倍。",
+    attributes: []
+  },
   {
-        id: "cross", name: "十字の祈り", type: "passive", effect: "shape_bonus",
-        params: { shape: "cross" }, values: [2, 3, 5], rarity: 1, price: 9,
-        desc: "十字型消しで次手の操作時間[2/3/5]倍。",
-        attributes: []
-      },
+    id: "cross", name: "十字の祈り", type: "passive", effect: "shape_bonus",
+    params: { shape: "cross" }, values: [2, 3, 5], rarity: 1, price: 9,
+    desc: "十字型消しで次手の操作時間[2/3/5]倍。",
+    attributes: []
+  },
   {
-        id: "l_shape", name: "鉤十字の型", type: "passive", effect: "shape_bonus",
-        params: { shape: "l_shape" }, values: [3, 6, 9], rarity: 1, price: 9,
-        desc: "L字消しでコンボ+[3/6/9]。",
-        attributes: []
-      },
+    id: "l_shape", name: "鉤十字の型", type: "passive", effect: "shape_bonus",
+    params: { shape: "l_shape" }, values: [3, 6, 9], rarity: 1, price: 9,
+    desc: "L字消しでコンボ+[3/6/9]。",
+    attributes: []
+  },
   {
-        id: "bonus_heart", name: "癒の波動", type: "passive", effect: "heart_combo_bonus",
-        values: [3, 5, 7], rarity: 1, price: 6,
-        desc: "ハートドロップを消したコンボ数分、追加でコンボ+[3/5/7]。",
-        attributes: ["heart"]
-      },
+    id: "bonus_heart", name: "癒の波動", type: "passive", effect: "heart_combo_bonus",
+    values: [3, 5, 7], rarity: 1, price: 6,
+    desc: "ハートドロップを消したコンボ数分、追加でコンボ+[3/5/7]。",
+    attributes: ["heart"]
+  },
   {
-        id: "giant",
-        name: "巨人の領域",
-        type: "passive",
-        effect: "expand_board",
-        values: [1.2, 1.5, 2],
-        rarity: 3, price: 9,
-        desc: "装備中、盤面が7x6に拡張。コンボ倍率[1.2/1.5/2]倍。",
-        attributes: []
-      },
+    id: "giant",
+    name: "巨人の領域",
+    type: "passive",
+    effect: "expand_board",
+    values: [1.2, 1.5, 2],
+    rarity: 3, price: 9,
+    desc: "装備中、盤面が7x6に拡張。コンボ倍率[1.2/1.5/2]倍。",
+    attributes: []
+  },
 
   // --- パッシブ: 強化ドロップ ---
   {
-        id: "mana_crystal", name: "マナの結晶化", type: "passive", effect: "enhance_chance",
-        values: [0.05, 0.1, 0.2], rarity: 1, price: 4,
-        desc: "落下ドロップの[5/10/20]%が強化ドロップになる。",
-        attributes: []
-      },
+    id: "mana_crystal", name: "マナの結晶化", type: "passive", effect: "enhance_chance",
+    values: [0.05, 0.1, 0.2], rarity: 1, price: 4,
+    desc: "落下ドロップの[5/10/20]%が強化ドロップになる。",
+    attributes: []
+  },
   {
-        id: "enhance_amp", name: "強化増幅", type: "passive", effect: "enhanced_orb_bonus",
-        values: [2, 4, 6], rarity: 2, price: 8,
-        desc: "強化1個あたりのコンボ加算を+[2/4/6]する。",
-        attributes: []
-      },
+    id: "enhance_amp", name: "強化増幅", type: "passive", effect: "enhanced_orb_bonus",
+    values: [2, 4, 6], rarity: 2, price: 8,
+    desc: "強化1個あたりのコンボ加算を+[2/4/6]する。",
+    attributes: []
+  },
   {
-        id: "over_link", name: "過剰結合", type: "passive", effect: "enhanced_link_multiplier",
-        params: { count: 5 }, values: [2, 3, 5], rarity: 2, price: 9,
-        desc: "強化5個以上を消したら倍率x[2/3/5]。",
-        attributes: []
-      },
+    id: "over_link", name: "過剰結合", type: "passive", effect: "enhanced_link_multiplier",
+    params: { count: 5 }, values: [2, 3, 5], rarity: 2, price: 9,
+    desc: "強化5個以上を消したら倍率x[2/3/5]。",
+    attributes: []
+  },
 
   // --- パッシブ: 落ちコンボーナス ---
   {
-        id: "bonus_skyfall", name: "天恵の追撃", type: "passive", effect: "skyfall_bonus",
-        values: [5, 8, 12], rarity: 3, price: 8,
-        desc: "落ちコン発生時にコンボ+[5/8/12]。",
-        attributes: []
-      },
+    id: "bonus_skyfall", name: "天恵の追撃", type: "passive", effect: "skyfall_bonus",
+    values: [5, 8, 12], rarity: 3, price: 8,
+    desc: "落ちコン発生時にコンボ+[5/8/12]。",
+    attributes: []
+  },
 
   // --- パッシブ: ボムドロップ ---
   {
-        id: "bomb_erase_mult", name: "爆熱の余韻", type: "passive", effect: "bomb_erase_mult",
-        values: [1.2, 1.3, 1.5], rarity: 3, price: 9,
-        desc: "ボムの効果で消えたドロップ数 × [1.2/1.3/1.5] 倍、コンボ倍率に乗算される。",
-        attributes: []
-      },
+    id: "bomb_erase_mult", name: "爆熱の余韻", type: "passive", effect: "bomb_erase_mult",
+    values: [1.2, 1.3, 1.5], maxMultipliers: [10, 20, 50], rarity: 3, price: 9,
+    desc: "ボムの効果で消えたドロップ数 × [1.2/1.3/1.5] 倍、コンボ倍率に乗算される。",
+    attributes: []
+  },
   {
     id: "ignited_drop_fire", name: "爆炎の兆し", type: "passive", effect: "bomb_chance_color", params: { color: "fire" },
     values: [0.03, 0.05, 0.10], rarity: 2, price: 9,
@@ -502,11 +502,11 @@ const ALL_TOKEN_BASES = [
 
   // --- パッシブ: リピートドロップ ---
   {
-        id: "repeat_combo_mult", name: "連鎖の共鳴", type: "passive", effect: "repeat_combo_mult",
-        values: [1.3, 1.5, 2], rarity: 3, price: 9,
-        desc: "リピートドロップの消去数 × [1.3/1.5/2] 倍、コンボ倍率に乗算される。",
-        attributes: []
-      },
+    id: "repeat_combo_mult", name: "連鎖の共鳴", type: "passive", effect: "repeat_combo_mult",
+    values: [1.3, 1.5, 2], maxMultipliers: [10, 20, 50], rarity: 3, price: 9,
+    desc: "リピートドロップの消去数 × [1.3/1.5/2] 倍、コンボ倍率に乗算される。",
+    attributes: []
+  },
   {
     id: "repeat_chance_water", name: "雨波の巡り", type: "passive", effect: "repeat_chance_color", params: { color: "water" },
     values: [0.03, 0.05, 0.10], rarity: 2, price: 7,
@@ -520,11 +520,11 @@ const ALL_TOKEN_BASES = [
     attributes: ["heart"]
   },
   {
-        id: "repeat_erase_combo", name: "反響する輪舞", type: "passive", effect: "repeat_erase_combo",
-        values: [2, 3, 5], rarity: 3, price: 10,
-        desc: "ターン中にリピートドロップが消えた数 × [2/3/5] コンボを加算する。",
-        attributes: []
-      },
+    id: "repeat_erase_combo", name: "反響する輪舞", type: "passive", effect: "repeat_erase_combo",
+    values: [2, 3, 5], rarity: 3, price: 10,
+    desc: "ターン中にリピートドロップが消えた数 × [2/3/5] コンボを加算する。",
+    attributes: []
+  },
   {
     id: "repeat_extra_activations", name: "無限の風霊", type: "passive", effect: "extra_repeat_activations",
     values: [1, 2, 3], rarity: 3, price: 9,
@@ -534,37 +534,37 @@ const ALL_TOKEN_BASES = [
 
   // --- パッシブ: スタードロップ ---
   {
-        id: "star_chance_wood", name: "星宿る風", type: "passive", effect: "star_chance_color", params: { color: "wood" },
-        values: [0.10, 0.30, 0.50], rarity: 2, price: 8,
-        desc: "風ドロップが、[10/30/50]%の確率でスタードロップとして降ってくるようになる。",
-        attributes: ["wood"]
-      },
+    id: "star_chance_wood", name: "星宿る風", type: "passive", effect: "star_chance_color", params: { color: "wood" },
+    values: [0.10, 0.30, 0.50], rarity: 2, price: 8,
+    desc: "風ドロップが、[10/30/50]%の確率でスタードロップとして降ってくるようになる。",
+    attributes: ["wood"]
+  },
   {
-        id: "star_chance_light", name: "星宿る雷", type: "passive", effect: "star_chance_color", params: { color: "light" },
-        values: [0.10, 0.30, 0.50], rarity: 2, price: 8,
-        desc: "雷ドロップが、[10/30/50]%の確率でスタードロップとして降ってくるようになる。",
-        attributes: ["light"]
-      },
+    id: "star_chance_light", name: "星宿る雷", type: "passive", effect: "star_chance_color", params: { color: "light" },
+    values: [0.10, 0.30, 0.50], rarity: 2, price: 8,
+    desc: "雷ドロップが、[10/30/50]%の確率でスタードロップとして降ってくるようになる。",
+    attributes: ["light"]
+  },
   {
-        id: "star_erase_mult", name: "星屑の共鳴", type: "passive", effect: "star_erase_mult",
-        values: [0.5, 1.0, 1.5], rarity: 3, price: 10,
-        desc: "ターン中にスタードロップが消えた数 × [0.5/1/1.5] 倍、コンボ倍率に乗算される。",
-        attributes: []
-      },
+    id: "star_erase_mult", name: "星屑の共鳴", type: "passive", effect: "star_erase_mult",
+    values: [0.5, 1.0, 1.5], maxMultipliers: [10, 20, 50], rarity: 3, price: 10,
+    desc: "ターン中にスタードロップが消えた数 × [0.5/1/1.5] 倍、コンボ倍率に乗算される。",
+    attributes: []
+  },
   {
-        id: "star_earn_boost", name: "星の祝福", type: "passive", effect: "star_earn_boost",
-        values: [3, 5, 8], rarity: 2, price: 8,
-        desc: "スタードロップが消えた時にもらえるスター（通貨）の数が3/5/8個増える。",
-        attributes: []
-      },
+    id: "star_earn_boost", name: "星の祝福", type: "passive", effect: "star_earn_boost",
+    values: [3, 5, 8], rarity: 2, price: 8,
+    desc: "スタードロップが消えた時にもらえるスター（通貨）の数が3/5/8個増える。",
+    attributes: []
+  },
 
   // --- パッシブ: 虹ドロップ ---
   {
-        id: "rainbow_chance", name: "虹の呼び声", type: "passive", effect: "rainbow_chance",
-        values: [0.02, 0.04, 0.07], rarity: 2, price: 8,
-        desc: "ドロップが[2/4/7]%の確率で虹ドロップとして降ってくるようになる。",
-        attributes: ["fire", "water", "wood", "light", "dark"]
-      },
+    id: "rainbow_chance", name: "虹の呼び声", type: "passive", effect: "rainbow_chance",
+    values: [0.02, 0.04, 0.07], rarity: 2, price: 8,
+    desc: "ドロップが[2/4/7]%の確率で虹ドロップとして降ってくるようになる。",
+    attributes: ["fire", "water", "wood", "light", "dark"]
+  },
   {
     id: "rainbow_bridge", name: "虹の架け橋", type: "passive", effect: "rainbow_combo_bonus",
     values: [1, 2, 5], rarity: 3, price: 10,
@@ -587,13 +587,13 @@ const ALL_TOKEN_BASES = [
   },
   {
     id: "star3_mult_boost", name: "三星の極雷", type: "passive", effect: "star_count_combo_mult",
-    params: { rarity: 3 }, values: [1.2, 1.5, 2], rarity: 3, price: 9,
+    params: { rarity: 3 }, values: [1.2, 1.5, 2], maxMultipliers: [10, 20, 50], rarity: 3, price: 9,
     desc: "所持している★3トークン数 × [1.2/1.5/2]倍 コンボ倍率を乗算する。",
     attributes: []
   },
   {
     id: "enchant_mult_boost", name: "魔導の共犯", type: "passive", effect: "enchant_count_combo_mult",
-    values: [1.1, 1.2, 1.5], rarity: 3, price: 9,
+    values: [1.1, 1.2, 1.5], maxMultipliers: [10, 20, 50], rarity: 3, price: 9,
     desc: "所持しているエンチャント数 × [1.1/1.2/1.5]倍 コンボ倍率を乗算する。",
     attributes: []
   },
@@ -605,7 +605,7 @@ const ALL_TOKEN_BASES = [
   },
   {
     id: "level3_count_mult", name: "三魂の極致", type: "passive", effect: "level3_count_combo_mult",
-    values: [1, 1.5, 2], rarity: 3, price: 15,
+    values: [1, 1.5, 2], maxMultipliers: [10, 20, 50], rarity: 3, price: 15,
     desc: "所持しているレベル3トークンの数 × [1/1.5/2] 倍 コンボ倍率を乗算する。",
     attributes: []
   },
@@ -624,20 +624,20 @@ const ALL_TOKEN_BASES = [
 
   // --- パッシブ: 統計依存（コンボ・倍率）---
   {
-        id: "memory_of_combo", name: "コンボの記憶", type: "passive", effect: "stat_combo_記憶",
-        values: [1, 2, 3], rarity: 2, price: 6,
-        desc: "現在のゲーム中の「最大コンボ数」5コンボにつき、常にコンボ加算 +[1/2/3]。",
-        attributes: []
-      },
+    id: "memory_of_combo", name: "コンボの記憶", type: "passive", effect: "stat_combo_記憶",
+    values: [1, 2, 3], rarity: 2, price: 6,
+    desc: "現在のゲーム中の「最大コンボ数」5コンボにつき、常にコンボ加算 +[1/2/3]。",
+    attributes: []
+  },
   {
-        id: "echo_of_max", name: "極大の余韻", type: "passive", effect: "stat_mult_余韻",
-        values: [0.1, 0.2, 0.5], rarity: 3, price: 9,
-        desc: "現在のゲーム中の「最大コンボ倍率」の[10/20/50]%を、常時コンボ倍率に乗算する。",
-        attributes: []
-      },
+    id: "echo_of_max", name: "極大の余韻", type: "passive", effect: "stat_mult_余韻",
+    values: [0.1, 0.2, 0.5], maxMultipliers: [10, 20, 50], rarity: 3, price: 9,
+    desc: "現在のゲーム中の「最大コンボ倍率」の[10/20/50]%を、常時コンボ倍率に乗算する。",
+    attributes: []
+  },
   {
     id: "thousand_arms", name: "千手観音", type: "passive", effect: "stat_mult_千手",
-    values: [1.1, 1.2, 1.3], rarity: 3, price: 10,
+    values: [1.1, 1.2, 1.3], maxMultipliers: [10, 20, 50], rarity: 3, price: 10,
     desc: "現在のゲーム中の「累計コンボ数」100ごとに、コンボ倍率が x[1.1/1.2/1.3] 上昇する。",
     attributes: []
   },
@@ -663,13 +663,13 @@ const ALL_TOKEN_BASES = [
   },
   {
     id: "memory_of_flash", name: "一閃の記憶", type: "passive", effect: "stat_shape_row",
-    values: [1.1, 1.3, 1.5], rarity: 2, price: 9,
+    values: [1.1, 1.3, 1.5], maxMultipliers: [10, 20, 50], rarity: 2, price: 9,
     desc: "現在のゲーム中の「横1列消し累計回数」5回につき、横1列消しのコンボ倍率が x[1.1/1.3/1.5] 上昇する。",
     attributes: []
   },
   {
     id: "artisan_of_square", name: "方陣の職人", type: "passive", effect: "stat_shape_square",
-    values: [1.5, 2, 4], rarity: 3, price: 10,
+    values: [1.5, 2, 4], maxMultipliers: [10, 20, 50], rarity: 3, price: 10,
     desc: "現在のゲーム中の「四角消し累計回数」5回につき、コンボ倍率が x[1.5/2/4] 上昇する。",
     attributes: []
   },
@@ -683,7 +683,7 @@ const ALL_TOKEN_BASES = [
   // --- パッシブ: 統計依存（リソース・進行）---
   {
     id: "pride_of_spendthrift", name: "浪費家の意地", type: "passive", effect: "stat_spend_star",
-    values: [1.1, 1.2, 1.3], rarity: 3, price: 10,
+    values: [1.1, 1.2, 1.3], maxMultipliers: [10, 20, 50], rarity: 3, price: 10,
     desc: "現在のゲーム中の「累計消費スター数」50★につき、コンボ倍率 x[1.1/1.2/1.3] 上昇。",
     attributes: []
   },
@@ -709,8 +709,8 @@ const ALL_TOKEN_BASES = [
   },
   {
     id: "greed_power", name: "金満の暴力", type: "passive", effect: "greed_power",
-    values: [7, 5, 3], rarity: 1, price: 10,
-    desc: "★[7/5/3]個につきコンボ倍率+1加算。",
+    values: [7, 5, 3], maxMultipliers: [10, 20, 50], rarity: 1, price: 10,
+    desc: "★[20/15/10]個につきコンボ倍率+1加算。",
     attributes: []
   },
   {
@@ -723,7 +723,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "cursed_power", name: "呪われた力", type: "passive", effect: "cursed_power",
     values: [15, 25, 40], rarity: 1, price: 10,
-    desc: "常にコンボ+[15/25/40]。操作時間−2秒。",
+    desc: "常にコンボ+[15/25/40]。操作時間−3秒。",
     attributes: []
   },
   {
@@ -774,6 +774,12 @@ const ALL_TOKEN_BASES = [
     id: "contract_of_void", name: "虚無の契約", type: "passive", effect: "contract_of_void",
     values: [3, 4, 5], rarity: 3, price: 12,
     desc: "全エンチャント効果が無効になる代わりに、コンボ倍率が常にx[3/4/5]倍になる。",
+    attributes: []
+  },
+  {
+    id: "limit_breaker", name: "神ノ理", type: "passive", effect: "limit_break",
+    values: [2, 5, Infinity], rarity: 3, price: 15,
+    desc: "一部のパッシブ効果による「動的コンボ倍率の最大上限」をLvで上昇させる(Lv1:x2/Lv2:x5)。Lv3で上限が撤廃される。",
     attributes: []
   },
   // ==========================================

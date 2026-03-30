@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatJapaneseNumber } from './utils/numberUtils.js';
 
 const formatTime = (ms) => {
     if (!ms || ms < 0) return "0s";
@@ -76,15 +77,15 @@ const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
 
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">コンボ数</span>
-                            <span className="font-black text-amber-500">{(displayData.totalCombo || 0).toLocaleString()}</span>
+                            <span className="font-black text-amber-500">{formatJapaneseNumber(displayData.totalCombo || 0)}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">プレイ回数</span>
-                            <span className="font-black text-amber-500">{(displayData.plays || 0).toLocaleString()} 回</span>
+                            <span className="font-black text-amber-500">{formatJapaneseNumber(displayData.plays || 0)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">クリア回数</span>
-                            <span className="font-black text-amber-500">{(displayData.clears || 0).toLocaleString()} 回</span>
+                            <span className="font-black text-amber-500">{formatJapaneseNumber(displayData.clears || 0)} 回</span>
                         </div>
                         {activeTab === "lifetime" && (
                             <div className="flex justify-between items-center">
@@ -97,7 +98,7 @@ const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
 
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">最大コンボ</span>
-                            <span className="font-black text-white">{(displayData.maxCombo || 0).toLocaleString()}</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.maxCombo || 0)}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">最大コンボ倍率</span>
@@ -113,38 +114,38 @@ const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
                         <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">特殊消し回数</span>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">4個消し</span>
-                            <span className="font-black text-white">{(displayData.shapeLen4 || 0).toLocaleString()} 回</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeLen4 || 0)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">5個異常消し</span>
-                            <span className="font-black text-white">{(displayData.shapeLen5 || 0).toLocaleString()} 回</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeLen5 || 0)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">1列消し</span>
-                            <span className="font-black text-white">{(displayData.shapeRow || 0).toLocaleString()} 回</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeRow || 0)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">L字消し</span>
-                            <span className="font-black text-white">{(displayData.shapeLShape || 0).toLocaleString()} 回</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeLShape || 0)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">十字消し</span>
-                            <span className="font-black text-white">{(displayData.shapeCross || 0).toLocaleString()} 回</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeCross || 0)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">四角消し(2x2)</span>
-                            <span className="font-black text-white">{(displayData.shapeSquare || 0).toLocaleString()} 回</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeSquare || 0)} 回</span>
                         </div>
 
                         <div className="border-t border-white/5 my-1"></div>
 
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">消費スター数</span>
-                            <span className="font-black text-yellow-400">{(displayData.starsSpent || 0).toLocaleString()} ★</span>
+                            <span className="font-black text-yellow-400">{formatJapaneseNumber(displayData.starsSpent || 0)} ★</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">スキル使用回数</span>
-                            <span className="font-black text-indigo-400">{(displayData.skillsUsed || 0).toLocaleString()} 回</span>
+                            <span className="font-black text-indigo-400">{formatJapaneseNumber(displayData.skillsUsed || 0)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">操作時間</span>

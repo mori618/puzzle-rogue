@@ -11,6 +11,7 @@ import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, getEnchantDescription, ENCHANTMENTS } from './constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS } from './constants/gameConstants.js';
 import { formatNum, getEffectiveCost, getTokenDescription, getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
+import { formatJapaneseNumber } from './utils/numberUtils.js';
 import { PuzzleEngine } from './engine/PuzzleEngine.js';
 
 const App = () => {
@@ -652,7 +653,7 @@ const App = () => {
 
   const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0, erasedByRepeatTotal = 0, erasedByStarTotal = 0, isAllClear = false) => {
     let tc = Number(turnCombo) || 0;
-    
+
     // 絶望の癒し: ハートドロップを消してもコンボが増えなくなる
     const isCurseHeartActive = tokens.some(t => t?.id === "curse_heart");
     if (isCurseHeartActive) {
@@ -680,6 +681,32 @@ const App = () => {
     const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
     const animationMode = settings?.comboAnimationMode || 'instant';
     const isInstant = animationMode === 'instant';
+
+    // 限界突破（limit_breaker）の判定
+    let limitBreakerLevel = 0;
+    effectiveTokens.forEach(t => {
+      if (t && t.effect === "limit_break") {
+        const lv = t.level || 1;
+        if (lv > limitBreakerLevel) limitBreakerLevel = lv;
+      }
+    });
+
+    // 汎用: 上限キャップ適用関数
+    const applyMultiplierCap = (baseVal, token) => {
+      if (!token || !token.maxMultipliers) return baseVal;
+      const lv = token.level || 1;
+      let limit = token.maxMultipliers[lv - 1];
+      if (limit === undefined) return baseVal;
+
+      if (limitBreakerLevel === 1) limit *= 2;
+      else if (limitBreakerLevel === 2) limit *= 5;
+      else if (limitBreakerLevel >= 3) limit = Infinity;
+
+      if (baseVal > limit) {
+        return limit;
+      }
+      return baseVal;
+    };
 
     const logData = {
       tokens: effectiveTokens,
@@ -756,7 +783,8 @@ const App = () => {
           const count = shapes.filter(s => s === targetShape).length;
           if (count > 0) {
             // 個数分だけ倍率を乗算 (例: 1.2のcount乗)
-            const totalMult = Math.pow(val || 1.0, count);
+            let totalMult = Math.pow(val || 1.0, count);
+            totalMult = applyMultiplierCap(totalMult, t);
             multiplier *= totalMult;
             logData.multipliers.push(`${effect}:${val}^${count}=x${totalMult.toFixed(2)}`);
             logData.multiplierSteps.push({ label: tokenName || effect, value: totalMult, tokenId });
@@ -826,7 +854,8 @@ const App = () => {
               }
             }
             // 個数分だけ倍率を乗算 (例: 1.2のcount乗)
-            const totalMult = Math.pow(val || 1.0, count);
+            let totalMult = Math.pow(val || 1.0, count);
+            totalMult = applyMultiplierCap(totalMult, t);
             multiplier *= totalMult;
             logData.multipliers.push(`${effect}:${val}^${count}=x${totalMult.toFixed(2)}`);
             logData.multiplierSteps.push({ label: tokenName || effect, value: totalMult, tokenId });
@@ -896,7 +925,8 @@ const App = () => {
       // --- 新規: 星3トークン数×コンボ倍率 ---
       if (t.effect === "star_count_combo_mult") {
         const rarity3Count = tokens.filter(tok => tok?.rarity === 3).length;
-        const v = Math.pow(t.values?.[lv - 1] || 1, rarity3Count);
+        let v = Math.pow(t.values?.[lv - 1] || 1, rarity3Count);
+        v = applyMultiplierCap(v, t);
         if (v > 1) {
           multiplier *= v;
           logData.multipliers.push(`star3_mult_boost:x${v.toFixed(2)}`);
@@ -920,7 +950,8 @@ const App = () => {
       if (t.effect === "level3_count_combo_mult") {
         const level3Count = tokens.filter(tok => tok?.level === 3).length;
         const base = t.values?.[lv - 1] || 1;
-        const v = level3Count * base;
+        let v = level3Count * base;
+        v = applyMultiplierCap(v, t);
         if (v > 1) {
           if (isInstant) triggerPassive(tId);
           multiplier *= v;
@@ -932,7 +963,8 @@ const App = () => {
       // --- 新規: スタードロップ消去数×倍率 (パッシブ) ---
       if (t.effect === "star_erase_mult" && erasedByStarTotal > 0) {
         const baseMult = t.values?.[lv - 1] || 1.0;
-        const multVal = erasedByStarTotal * baseMult;
+        let multVal = erasedByStarTotal * baseMult;
+        multVal = applyMultiplierCap(multVal, t);
         if (multVal > 1) {
           if (isInstant) triggerPassive(tId);
           multiplier *= multVal;
@@ -950,7 +982,8 @@ const App = () => {
       // エンチャントによる倍率アップ（全トークンのエンチャント数をカウントして適用）
       if (t.effect === "enchant_count_combo_mult") {
         const enchantCount = isEnchantDisabled ? 0 : tokens.reduce((sum, tok) => sum + (tok?.enchantments?.length || 0), 0);
-        const v = Math.pow(t.values?.[lv - 1] || 1, enchantCount);
+        let v = Math.pow(t.values?.[lv - 1] || 1, enchantCount);
+        v = applyMultiplierCap(v, t);
         if (v > 1) {
           if (isInstant) triggerPassive(tId);
           multiplier *= v;
@@ -962,7 +995,8 @@ const App = () => {
       // --- 新規: ボム消去数×倍率 (パッシブ) ---
       if (t.effect === "bomb_erase_mult" && erasedByBombTotal > 0) {
         const baseMult = t.values?.[lv - 1] || 1.2;
-        const v = erasedByBombTotal * baseMult;
+        let v = erasedByBombTotal * baseMult;
+        v = applyMultiplierCap(v, t);
         if (isInstant) triggerPassive(tId);
         multiplier *= v;
         logData.multipliers.push(`bomb_erase_mult:x${formatNum(v)}`);
@@ -972,7 +1006,8 @@ const App = () => {
       // --- 新規: リピートドロップ消去数×倍率 (パッシブ) ---
       if (t.effect === "repeat_combo_mult" && erasedByRepeatTotal > 0) {
         const baseMult = t.values?.[lv - 1] || 1.3;
-        const v = erasedByRepeatTotal * baseMult;
+        let v = erasedByRepeatTotal * baseMult;
+        v = applyMultiplierCap(v, t);
         if (isInstant) triggerPassive(tId);
         multiplier *= v;
         logData.multipliers.push(`repeat_combo_mult:x${formatNum(v)}`);
@@ -1025,7 +1060,8 @@ const App = () => {
           }
           if (shape === "square") {
             // 四方の型: コンボ倍率
-            const totalMult = Math.pow(v, matchCount);
+            let totalMult = Math.pow(v, matchCount);
+            totalMult = applyMultiplierCap(totalMult, t);
             multiplier *= totalMult;
             logData.multipliers.push(`shape_square:mult_x${v}_count_${matchCount}`);
             logData.multiplierSteps.push({ label: t.name || '四方の型', value: totalMult, tokenId: tId });
@@ -1148,7 +1184,8 @@ const App = () => {
       // 金満の暴力: スター数に依存した倍率加算
       if (t.effect === "greed_power") {
         const threshold = t.values?.[lv - 1] || 10;
-        const greedBonus = Math.floor(stars / threshold);
+        let greedBonus = Math.floor(stars / threshold);
+        greedBonus = applyMultiplierCap(greedBonus, t);
         if (greedBonus > 0) {
           if (isInstant) triggerPassive(tId);
           multiplier += greedBonus;
@@ -1181,7 +1218,8 @@ const App = () => {
         const v = t.values?.[lv - 1] || 0.1;
         const maxMult = currentRunStats.maxComboMultiplier || 1;
         if (maxMult > 1) {
-          const m = 1 + (maxMult * v);
+          let m = 1 + (maxMult * v);
+          m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
           logData.multipliers.push(`stat_mult_余韻:x${formatNum(m)}`);
@@ -1192,7 +1230,8 @@ const App = () => {
         const v = t.values?.[lv - 1] || 1.1;
         const count = Math.floor((currentRunStats.currentTotalCombo || 0) / 100);
         if (count > 0) {
-          const m = Math.pow(v, count);
+          let m = Math.pow(v, count);
+          m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
           logData.multipliers.push(`stat_mult_千手:x${formatNum(m)}`);
@@ -1211,7 +1250,8 @@ const App = () => {
         const rowCountInTurn = shapes.filter(s => s === "row").length;
         const count = Math.floor((currentRunStats.currentShapeRow || 0) / 5);
         if (count > 0 && rowCountInTurn > 0) {
-          const m = Math.pow(Math.pow(v, count), rowCountInTurn);
+          let m = Math.pow(Math.pow(v, count), rowCountInTurn);
+          m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
           logData.multipliers.push(`stat_shape_row:x${formatNum(m)}`);
@@ -1223,7 +1263,8 @@ const App = () => {
         const squareCountInTurn = shapes.filter(s => s === "square").length;
         const count = Math.floor((currentRunStats.currentShapeSquare || 0) / 5);
         if (count > 0 && squareCountInTurn > 0) {
-          const m = Math.pow(Math.pow(v, count), squareCountInTurn);
+          let m = Math.pow(Math.pow(v, count), squareCountInTurn);
+          m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
           logData.multipliers.push(`stat_shape_square:x${formatNum(m)}`);
@@ -1234,7 +1275,8 @@ const App = () => {
         const v = t.values?.[lv - 1] || 1.1;
         const count = Math.floor((currentRunStats.currentStarsSpent || 0) / 50);
         if (count > 0) {
-          const m = Math.pow(v, count);
+          let m = Math.pow(v, count);
+          m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
           logData.multipliers.push(`stat_spend_star:x${formatNum(m)}`);
@@ -1288,7 +1330,7 @@ const App = () => {
     });
 
     logData.finalMultiplier = multiplier;
-    
+
     // 脆弱の断層: コンボ数が半分になる (倍率 0.5)
     if (tokens.some(t => t?.id === "curse_half")) {
       multiplier *= 0.5;
@@ -1368,7 +1410,7 @@ const App = () => {
           const sign = stepValue >= 0 ? '+' : '';
           const prevVal = Math.max(0, currentVal - stepValue);
           const safePrevVal = isNaN(prevVal) ? 0 : prevVal;
-          eEl.innerHTML = `<span class="combo-number">${safePrevVal.toLocaleString()}</span><span class="combo-bonus-add">${sign}${stepValue.toLocaleString()}<span class="combo-step-label"> ${step.label}</span></span>`;
+          eEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(safePrevVal)}</span><span class="combo-bonus-add">${sign}${formatJapaneseNumber(stepValue)}<span class="combo-step-label"> ${step.label}</span></span>`;
           eEl.classList.remove('animate-combo-pop');
           void eEl.offsetWidth;
           eEl.classList.add('animate-combo-pop');
@@ -1386,7 +1428,7 @@ const App = () => {
           currentVal = Math.min(Math.floor(prevVal * safeStepValue), MAX_COMBO);
           const eEl = comboRef.current;
           const roundedV = formatNum(safeStepValue);
-          eEl.innerHTML = `<span class="combo-number">${prevVal.toLocaleString()}</span><span class="combo-bonus-mult">×${roundedV}<span class="combo-step-label"> ${step.label}</span></span>`;
+          eEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(prevVal)}</span><span class="combo-bonus-mult">×${roundedV}<span class="combo-step-label"> ${step.label}</span></span>`;
           eEl.classList.remove('animate-combo-pop');
           void eEl.offsetWidth;
           eEl.classList.add('animate-combo-pop');
@@ -1397,7 +1439,7 @@ const App = () => {
         await new Promise(r => setTimeout(r, 300));
         if (comboRef.current) {
           const safeCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
-          comboRef.current.innerHTML = `<span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">COMBO</span>`;
+          comboRef.current.innerHTML = `<span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
           comboRef.current.classList.remove('animate-combo-pop');
           comboRef.current.classList.add('animate-combo-pulse');
           void comboRef.current.offsetWidth;
@@ -1553,13 +1595,13 @@ const App = () => {
     setCurrentRunStats(prev => {
       const nextHearts = (prev.totalHeartsErased || 0) + heartsErasedThisTurn;
       const nextStats = { ...prev, totalHeartsErased: nextHearts };
-      
+
       // 条件達成チェック
       setTokens(currentTokens => {
         let transformed = false;
         const nextTokens = currentTokens.map(t => {
           if (!t || t.type !== 'curse') return t;
-          
+
           let satisfied = false;
           if (t.condition === "clears" && nextStats.currentClears >= t.targetValue) satisfied = true;
           if (t.condition === "heart_erase" && nextStats.totalHeartsErased >= t.targetValue) satisfied = true;
@@ -1567,7 +1609,7 @@ const App = () => {
           if (t.condition === "total_stars" && nextStats.totalStarsEarned >= t.targetValue) satisfied = true;
           if (t.condition === "max_combo" && nextStats.maxCombo >= t.targetValue) satisfied = true;
           if (t.condition === "tokens_sold" && nextStats.tokensSold >= t.targetValue) satisfied = true;
-          
+
           if (satisfied) {
             transformed = true;
             const star3Pool = ALL_TOKEN_BASES.filter(tok => tok.rarity === 3);
@@ -1577,7 +1619,7 @@ const App = () => {
           }
           return t;
         });
-        
+
         if (transformed) {
           setStars(s => s + 100);
           notify("呪いが浄化され、新たな力が宿った！ (+100★)");
@@ -1800,7 +1842,7 @@ const App = () => {
     });
     setCurrentRunStats(initialCurrentRunStats);
     setCurrentRunStats(prev => ({ ...prev, currentPlays: 1 })); // Plays is always 1 for the current run
-    
+
     // 開始スタイルによって初期スターを調整
     // 無の対価 の場合は0、それ以外は5
   };
@@ -1832,7 +1874,7 @@ const App = () => {
       setStars(0);
       notify("「挑戦」スタイルで開始しました (呪い獲得, 0★)");
     }
-    
+
     if (engineRef.current) {
       engineRef.current.init(null);
     }
@@ -2139,11 +2181,11 @@ const App = () => {
   };
 
   // --- 覚醒ショップの購入処理 ---
-  const AWAKENING_TOKEN_SLOT_BASE_PRICE = 100; // トークン枠拡張の初期価格
-  const AWAKENING_TOKEN_SLOT_PRICE_STEP = 50;  // 購入ごとに上昇する金額
+  const AWAKENING_TOKEN_SLOT_PRICES = [100, 500, 2000, 10000, 50000];
 
-  const getTokenSlotExpandPrice = () =>
-    AWAKENING_TOKEN_SLOT_BASE_PRICE + tokenSlotExpansionCount * AWAKENING_TOKEN_SLOT_PRICE_STEP;
+  const getTokenSlotExpandPrice = () => {
+    return AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpansionCount, 4)] || 50000;
+  };
 
   const buyAwakeningItem = (type) => {
     switch (type) {
@@ -2183,6 +2225,7 @@ const App = () => {
         break;
       }
       case 'expand_token_slots': {
+        if (tokenSlotExpansionCount >= 5) return notify('これ以上拡張できません (最大10枠)');
         const price = getTokenSlotExpandPrice();
         if (stars < price) return notify('★が足りません');
         setTokenSlotExpansionCount(prev => prev + 1);
@@ -2457,10 +2500,10 @@ const App = () => {
     setStars(s => s + sellPrice);
 
     setTokens(prev => prev.filter(t => t.instanceId !== token.instanceId));
-    setCurrentRunStats(prev => ({ 
-      ...prev, 
+    setCurrentRunStats(prev => ({
+      ...prev,
       tokensSold: (prev.tokensSold || 0) + 1,
-      totalStarsEarned: (prev.totalStarsEarned || 0) + sellPrice 
+      totalStarsEarned: (prev.totalStarsEarned || 0) + sellPrice
     }));
 
     setSelectedTokenDetail(null);
@@ -2671,7 +2714,7 @@ const App = () => {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 bg-slate-800/50 px-2 py-1 rounded-full border border-white/10">
                 <span className="material-icons-round text-yellow-400 text-sm">star</span>
-                <span className="font-bold text-sm tracking-wide">{stars.toLocaleString()}</span>
+                <span className="font-bold text-sm tracking-wide">{formatJapaneseNumber(stars)}</span>
               </div>
               <button
                 onClick={openShop}
@@ -2778,81 +2821,81 @@ const App = () => {
                       {Array.from({ length: passivePages }).map((_, pageIdx) => (
                         <div key={pageIdx} className="grid grid-cols-5 gap-2 flex-shrink-0 w-full">
                           {Array.from({ length: TOKENS_PER_PAGE }).map((_, slotIdx) => {
-                        const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
-                        const t = passiveTokens[globalSlot];
-                        const isLocked = globalSlot >= maxSlots;
-                        let borderColor = isLocked ? 'border-slate-800' : (t ? (t.rarity === 3 ? 'border-yellow-400/60' : t.rarity === 2 ? 'border-sky-400/60' : 'border-white/20') : 'border-white/5');
-                        let shadowClass = '';
-                        let animClass = '';
-                        if (t && triggeredPassives.includes(t.instanceId || t.id)) {
-                          animClass = 'animate-bounce';
-                          shadowClass = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
-                        }
-                        if (t && !animClass) {
-                          let conditionMet = false;
-                          switch (t.effect) {
-                            case 'color_count_bonus': {
-                              const countReq = t.params?.count || 0;
-                              const cColor = t.params?.color;
-                              conditionMet = cColor && (lastErasedColorCounts[cColor] || 0) >= countReq;
-                              break;
+                            const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
+                            const t = passiveTokens[globalSlot];
+                            const isLocked = globalSlot >= maxSlots;
+                            let borderColor = isLocked ? 'border-slate-800' : (t ? (t.rarity === 3 ? 'border-yellow-400/60' : t.rarity === 2 ? 'border-sky-400/60' : 'border-white/20') : 'border-white/5');
+                            let shadowClass = '';
+                            let animClass = '';
+                            if (t && triggeredPassives.includes(t.instanceId || t.id)) {
+                              animClass = 'animate-bounce';
+                              shadowClass = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
                             }
-                            case 'combo_if_ge':
-                              conditionMet = lastTurnCombo >= (t.params?.combo || 0);
-                              break;
-                            case 'combo_if_exact':
-                              conditionMet = lastTurnCombo === (t.params?.combo || 0);
-                              break;
-                            default:
-                              break;
-                          }
-                          if (conditionMet) {
-                            borderColor = 'border-green-400/80';
-                            shadowClass = 'shadow-[0_0_15px_rgba(74,222,128,0.5)]';
-                          }
-                        }
-                        return (
-                          <div
-                            key={`passive-p${pageIdx}-${slotIdx}`}
-                            onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
-                            draggable={!!t && !isLocked}
-                            onDragStart={(e) => handleDragStart(e, t)}
-                            onDragOver={handleDragOver}
-                            onDrop={(e) => handleDrop(e, globalSlot + 1, false)}
-                            onDragEnd={() => setDraggedToken(null)}
-                            className={`aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
-                          >
-                            <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
-                              {/* 属性バー */}
-                              {t && (
-                                <div 
-                                  className="absolute left-0 top-0 bottom-0 w-1 z-30" 
-                                  style={getAttributeBarStyles(t?.attributes)}
-                                />
-                              )}
-                              {isLocked ? (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <span className="material-icons-round text-slate-700 text-lg">lock</span>
+                            if (t && !animClass) {
+                              let conditionMet = false;
+                              switch (t.effect) {
+                                case 'color_count_bonus': {
+                                  const countReq = t.params?.count || 0;
+                                  const cColor = t.params?.color;
+                                  conditionMet = cColor && (lastErasedColorCounts[cColor] || 0) >= countReq;
+                                  break;
+                                }
+                                case 'combo_if_ge':
+                                  conditionMet = lastTurnCombo >= (t.params?.combo || 0);
+                                  break;
+                                case 'combo_if_exact':
+                                  conditionMet = lastTurnCombo === (t.params?.combo || 0);
+                                  break;
+                                default:
+                                  break;
+                              }
+                              if (conditionMet) {
+                                borderColor = 'border-green-400/80';
+                                shadowClass = 'shadow-[0_0_15px_rgba(74,222,128,0.5)]';
+                              }
+                            }
+                            return (
+                              <div
+                                key={`passive-p${pageIdx}-${slotIdx}`}
+                                onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
+                                draggable={!!t && !isLocked}
+                                onDragStart={(e) => handleDragStart(e, t)}
+                                onDragOver={handleDragOver}
+                                onDrop={(e) => handleDrop(e, globalSlot + 1, false)}
+                                onDragEnd={() => setDraggedToken(null)}
+                                className={`aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
+                              >
+                                <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
+                                  {/* 属性バー */}
+                                  {t && (
+                                    <div
+                                      className="absolute left-0 top-0 bottom-0 w-1 z-30"
+                                      style={getAttributeBarStyles(t?.attributes)}
+                                    />
+                                  )}
+                                  {isLocked ? (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <span className="material-icons-round text-slate-700 text-lg">lock</span>
+                                    </div>
+                                  ) : t ? (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <span className={`material-icons-round text-2xl relative z-10 ${animClass ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-slate-400'}`}>
+                                        {getTokenIcon(t)}
+                                      </span>
+                                    </div>
+                                  ) : null}
                                 </div>
-                              ) : t ? (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <span className={`material-icons-round text-2xl relative z-10 ${animClass ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-slate-400'}`}>
-                                    {getTokenIcon(t)}
-                                  </span>
-                                </div>
-                              ) : null}
-                            </div>
-                            {t && !isLocked && (
-                              <>
-                                {/* 属性丸は削除 */}
-                                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
-                                  {t.level || 1}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })}
+                                {t && !isLocked && (
+                                  <>
+                                    {/* 属性丸は削除 */}
+                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
+                                      {t.level || 1}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       ))}
                     </div>
@@ -2956,8 +2999,8 @@ const App = () => {
                                 <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
                                   {/* 属性バー */}
                                   {t && (
-                                    <div 
-                                      className="absolute left-0 top-0 bottom-0 w-1 z-30 transition-all" 
+                                    <div
+                                      className="absolute left-0 top-0 bottom-0 w-1 z-30 transition-all"
                                       style={getAttributeBarStyles(t?.attributes)}
                                     />
                                   )}
@@ -2977,7 +3020,7 @@ const App = () => {
                                     </div>
                                   ) : null}
                                 </div>
-                                
+
                                 {t && !isLocked && (
                                   <>
                                     {/* 属性丸は削除 */}
@@ -3213,11 +3256,11 @@ const App = () => {
                 <div className="flex flex-col gap-4">
                   <div className="flex items-end justify-between border-b border-white/5 pb-4">
                     <span className="text-slate-500 text-xs font-bold">Total Combo Score</span>
-                    <span className="text-3xl text-white font-black font-mono tracking-tighter drop-shadow-sm">{cycleTotalCombo.toLocaleString()}</span>
+                    <span className="text-3xl text-white font-black font-mono tracking-tighter drop-shadow-sm">{formatJapaneseNumber(cycleTotalCombo)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500 text-xs font-bold">Target Reached</span>
-                    <span className="text-sm text-slate-300 font-mono font-bold">MAX ({MAX_TARGET.toLocaleString()})</span>
+                    <span className="text-sm text-slate-300 font-mono font-bold">MAX ({formatJapaneseNumber(MAX_TARGET)})</span>
                   </div>
                 </div>
               </div>
@@ -3236,7 +3279,7 @@ const App = () => {
                   const isSkill = t.type === 'skill';
                   return (
                     <div key={idx} className="bg-slate-900/40 rounded-3xl p-4 border border-white/5 flex items-center gap-5 backdrop-blur-sm group hover:border-white/20 transition-all active:scale-[0.98]">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg relative overflow-hidden ${isSkill ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20 group-hover:bg-blue-600/30' : 'bg-purple-600/20 text-purple-400 border border-purple-500/20 group-hover:bg-purple-600/30'}`}>
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg relative overflow-hidden ${isSkill ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20 group-hover:bg-blue-600/30' : 'bg-purple-600/20 text-purple-400 border border-purple-500/20 group-hover:bg-purple-600/30'}`}>
                         <span className="material-icons-round text-3xl">
                           {getTokenIcon(t)}
                         </span>
@@ -3336,8 +3379,8 @@ const App = () => {
                     <div className="flex items-center gap-3 mb-4">
                       <div className={`w-12 h-12 rounded-tr-xl rounded-br-xl relative flex items-center justify-center overflow-hidden ${isSkill ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-purple-500/20 border border-purple-500/30'}`}>
                         {/* 属性バー */}
-                        <div 
-                          className="absolute left-0 top-0 bottom-0 w-1 z-30" 
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-1 z-30"
                           style={getAttributeBarStyles(t?.attributes)}
                         />
                         <span className={`material-icons-round text-2xl ${isSkill ? 'text-blue-400' : 'text-purple-400'}`}>
@@ -3477,8 +3520,8 @@ const App = () => {
                               <span className="text-[10px] font-mono text-slate-400 self-start mt-0.5">{Math.floor(prog.current)} / {prog.target}</span>
                             </div>
                             <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5">
-                              <div 
-                                className="h-full bg-gradient-to-r from-red-600 to-orange-500 transition-all duration-500" 
+                              <div
+                                className="h-full bg-gradient-to-r from-red-600 to-orange-500 transition-all duration-500"
                                 style={{ width: `${prog.percent}%` }}
                               />
                             </div>

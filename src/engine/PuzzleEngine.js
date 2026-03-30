@@ -1,4 +1,6 @@
 import { MAX_COMBO, MAX_TARGET } from '../constants/gameConstants.js';
+import { ALL_TOKEN_BASES } from '../constants/tokens.js';
+import { formatJapaneseNumber } from '../utils/numberUtils.js';
 
 // --- Puzzle Engine (Imperative Logic) ---
 // --- Puzzle Engine (Imperative Logic) ---
@@ -436,6 +438,14 @@ class PuzzleEngine {
   onStart(e, orbOrR, c) {
     if (this.processing) return;
 
+    // 操作開始前に、盤面の全ドロップの skyfall フラグをリセットする
+    // これにより、連鎖外の「もともと盤面に残っていたドロップ」が誤って落ちコンとして判定されるのを防ぎます。
+    this.state.forEach(row => {
+      row.forEach(orb => {
+        if (orb) orb.isSkyfall = false;
+      });
+    });
+
     let target;
     if (typeof orbOrR === 'object') {
       target = orbOrR;
@@ -679,7 +689,7 @@ class PuzzleEngine {
       this.onCombo(this.currentCombo);
       if (this.comboEl) {
         const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
-        this.comboEl.innerHTML = `<span class="combo-number">${safeCombo.toLocaleString()}</span><span class="combo-label">COMBO</span>`;
+        this.comboEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
         this.comboEl.classList.remove('animate-combo-pop');
         void this.comboEl.offsetWidth;
         this.comboEl.classList.add('animate-combo-pop');
@@ -829,23 +839,23 @@ class PuzzleEngine {
   createShapeEffect(shape, group) {
     if (!group || group.length === 0) return;
 
-    // 重心を計算
+    // 重心を計算 (現在のグリッド座標から算出)
     let sumTop = 0;
     let sumLeft = 0;
     group.forEach(o => {
-      sumTop += o.baseTop;
-      sumLeft += o.baseLeft;
+      sumTop += o.r * (this.orbSize + this.gap);
+      sumLeft += o.c * (this.orbSize + this.gap);
     });
     const avgTop = sumTop / group.length;
     const avgLeft = sumLeft / group.length;
 
     const effectEl = document.createElement('div');
     effectEl.className = `shape-effect effect-${shape.replace('_', '-')}`;
-    
+
     // 位置設定 (オーブの中央に合わせる)
     const centerX = avgLeft + this.orbSize / 2;
     const centerY = avgTop + this.orbSize / 2;
-    
+
     effectEl.style.left = `${centerX}px`;
     effectEl.style.top = `${centerY}px`;
 
@@ -855,7 +865,7 @@ class PuzzleEngine {
       effectEl.style.width = '100%';
       effectEl.style.top = `${avgTop + this.orbSize / 2}px`;
     }
-    
+
     // Square の場合は範囲をカバーするようにサイズ調整
     if (shape === 'square') {
       const rows = new Set(group.map(o => o.r));
@@ -872,7 +882,7 @@ class PuzzleEngine {
     effectEl.addEventListener('animationend', () => {
       effectEl.remove();
     }, { once: true });
-    
+
     // 安全策として1秒後に削除
     setTimeout(() => {
       if (effectEl.parentNode) effectEl.remove();
@@ -883,13 +893,13 @@ class PuzzleEngine {
   createOrbEffect(type, r, c) {
     const effectEl = document.createElement('div');
     effectEl.className = `shape-effect effect-${type}`;
-    
+
     const top = r * (this.orbSize + this.gap) + this.orbSize / 2;
     const left = c * (this.orbSize + this.gap) + this.orbSize / 2;
-    
+
     effectEl.style.top = `${top}px`;
     effectEl.style.left = `${left}px`;
-    
+
     this.container.appendChild(effectEl);
     effectEl.addEventListener('animationend', () => effectEl.remove(), { once: true });
     setTimeout(() => { if (effectEl.parentNode) effectEl.remove(); }, 1000);
@@ -1014,7 +1024,7 @@ class PuzzleEngine {
 
             targetOrb.el.remove();
             this.state[targetOrb.r][targetOrb.c] = null;
-            
+
             // ボムによる消滅エフェクト (爆発風に)
             this.createOrbEffect('len5', targetOrb.r, targetOrb.c);
 
@@ -1353,7 +1363,7 @@ class PuzzleEngine {
       this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
       if (this.comboEl) {
         const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
-        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ ALL CLEAR ✦</div><span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">×2</span>`;
+        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ ALL CLEAR ✦</div><span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">×2</span>`;
         this.comboEl.classList.remove('animate-combo-pop');
         void this.comboEl.offsetWidth;
         this.comboEl.classList.add('animate-combo-pop');
@@ -1373,7 +1383,7 @@ class PuzzleEngine {
       this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
       if (this.comboEl) {
         const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
-        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ PERFECT CLEAR ✦</div><span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">+10 & ×2</span>`;
+        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ PERFECT CLEAR ✦</div><span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">+10 & ×2</span>`;
         this.comboEl.classList.remove('animate-combo-pop');
         void this.comboEl.offsetWidth;
         this.comboEl.classList.add('animate-combo-pop');
@@ -1896,7 +1906,7 @@ class PuzzleEngine {
     this.currentCombo = Math.min(this.currentCombo + 20, MAX_COMBO);
     if (this.comboEl) {
       const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
-      this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ MONO CLEAR ✦</div><span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">+20</span>`;
+      this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ MONO CLEAR ✦</div><span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">+20</span>`;
       this.comboEl.classList.remove('animate-combo-pop');
       void this.comboEl.offsetWidth;
       this.comboEl.classList.add('animate-combo-pop');

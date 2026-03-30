@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatJapaneseNumber } from './utils/numberUtils.js';
 import { getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
 
 // 通常アイテムの背景・ボーダー色を返すヘルパー
@@ -186,10 +187,11 @@ const ShopScreen = ({
     const [activeTab, setActiveTab] = React.useState('normal');
 
     // 覚醒ショップの価格計算
-    const AWAKENING_TOKEN_SLOT_BASE_PRICE = 100;
-    const AWAKENING_TOKEN_SLOT_PRICE_STEP = 50;
-    const tokenSlotExpandPrice = AWAKENING_TOKEN_SLOT_BASE_PRICE + (tokenSlotExpansionCount || 0) * AWAKENING_TOKEN_SLOT_PRICE_STEP;
-    const currentMaxSlots = 5 + (tokenSlotExpansionCount || 0);
+    const AWAKENING_TOKEN_SLOT_PRICES = [100, 500, 2000, 10000, 50000];
+    const tokenSlotExpCount = tokenSlotExpansionCount || 0;
+    const isTokenSlotMaxed = tokenSlotExpCount >= 5;
+    const tokenSlotExpandPrice = isTokenSlotMaxed ? 0 : (AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpCount, 4)] || 50000);
+    const currentMaxSlots = 5 + tokenSlotExpCount;
     const nextMaxSlots = currentMaxSlots + 1;
 
     // アイテムをカテゴリごとに分類
@@ -240,7 +242,7 @@ const ShopScreen = ({
                             <span className="material-icons-round">pause</span>
                         </button>
                         <span className="material-icons-round text-gold text-lg animate-pulse">star</span>
-                        <span className="text-lg font-bold tracking-wide">{stars.toLocaleString()}</span>
+                        <span className="text-lg font-bold tracking-wide">{formatJapaneseNumber(stars)}</span>
                     </div>
                 </div>
 
@@ -433,13 +435,14 @@ const ShopScreen = ({
                         <AwakeningCard
                             icon="add_box"
                             title="トークン所持枠の拡張"
-                            desc={`トークンの最大所持枠を ${currentMaxSlots} → ${nextMaxSlots} に拡張します。購入するごとに価格が ${AWAKENING_TOKEN_SLOT_PRICE_STEP}★ 上昇します。`}
+                            desc={isTokenSlotMaxed ? `トークンの最大所持枠はこれ以上拡張できません。` : `トークンの最大所持枠を ${currentMaxSlots} → ${nextMaxSlots} に拡張します。購入するごとに価格が大幅に上昇します。`}
                             price={tokenSlotExpandPrice}
                             stars={stars}
                             onBuy={() => onAwakeningBuy('expand_token_slots')}
-                            disabled={false}
+                            disabled={isTokenSlotMaxed}
+                            disabledReason={isTokenSlotMaxed ? "最大拡張済み (上限10枠)" : null}
                             color="amber"
-                            badgeText={`現在 ${currentMaxSlots} 枠`}
+                            badgeText={isTokenSlotMaxed ? `最大拡張済 (10枠)` : `現在 ${currentMaxSlots} 枠`}
                         />
                     </div>
                 )}
