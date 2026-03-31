@@ -4,12 +4,12 @@ const ALL_TOKEN_BASES = [
   // ==========================================
 
   // --- スキル: 変換（1色→1色）---
-  { id: "fired", name: "焔の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "wood", to: "fire" }, rarity: 1, price: 2, desc: "風を炎に変換。消費E:{cost}", attributes: ["fire"] },
-  { id: "waterd", name: "氷の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "fire", to: "water" }, rarity: 1, price: 2, desc: "炎を雨に変換。消費E:{cost}", attributes: ["water"] },
-  { id: "woodd", name: "嵐の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "water", to: "wood" }, rarity: 1, price: 2, desc: "雨を風に変換。消費E:{cost}", attributes: ["wood"] },
-  { id: "lightd", name: "雷の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "dark", to: "light" }, rarity: 1, price: 2, desc: "月を雷に変換。消費E:{cost}", attributes: ["light"] },
-  { id: "darkd", name: "影の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "light", to: "dark" }, rarity: 1, price: 2, desc: "雷を月に変換。消費E:{cost}", attributes: ["dark"] },
-  { id: "heartd", name: "癒の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "fire", to: "heart" }, rarity: 1, price: 2, desc: "炎をハートに変換。消費E:{cost}", attributes: ["heart"] },
+  { id: "fired", name: "焔の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "wood", to: "fire" }, rarity: 1, price: 2, desc: "風を炎に変換。消費E:{cost}", attributes: ["fire"], canBeInitial: true },
+  { id: "waterd", name: "氷の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "fire", to: "water" }, rarity: 1, price: 2, desc: "炎を雨に変換。消費E:{cost}", attributes: ["water"], canBeInitial: true },
+  { id: "woodd", name: "嵐の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "water", to: "wood" }, rarity: 1, price: 2, desc: "雨を風に変換。消費E:{cost}", attributes: ["wood"], canBeInitial: true },
+  { id: "lightd", name: "雷の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "dark", to: "light" }, rarity: 1, price: 2, desc: "月を雷に変換。消費E:{cost}", attributes: ["light"], canBeInitial: true },
+  { id: "darkd", name: "影の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "light", to: "dark" }, rarity: 1, price: 2, desc: "雷を月に変換。消費E:{cost}", attributes: ["dark"], canBeInitial: true },
+  { id: "heartd", name: "癒の変換", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "fire", to: "heart" }, rarity: 1, price: 2, desc: "炎をハートに変換。消費E:{cost}", attributes: ["heart"], canBeInitial: true },
   { id: "conv_h_f", name: "癒の劫炎", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "heart", to: "fire" }, rarity: 1, price: 2, desc: "ハートを炎に変換。消費E:{cost}", attributes: ["fire", "heart"] },
   { id: "conv_h_w", name: "癒の奔流", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "heart", to: "water" }, rarity: 1, price: 2, desc: "ハートを雨に変換。消費E:{cost}", attributes: ["water", "heart"] },
   { id: "conv_h_g", name: "癒の深風", type: "skill", cost: 2, costLevels: true, action: "convert", params: { from: "heart", to: "wood" }, rarity: 1, price: 2, desc: "ハートを風に変換。消費E:{cost}", attributes: ["wood", "heart"] },
@@ -133,17 +133,17 @@ const ALL_TOKEN_BASES = [
 
   // --- スキル: リピートドロップ生成 ---
   { id: "gen_repeat_rand", name: "循環の理", type: "skill", cost: 3, costLevels: true, action: "spawn_repeat", params: { count: 1 }, rarity: 1, price: 5, desc: "ランダムなドロップ1つをリピートドロップ（2回消える）にする。消費E:{cost}", attributes: [] },
-  { id: "conv_repeat_water", name: "雨鏡の輪廻", type: "skill", cost: 4, costLevels: true, action: "convert_repeat", params: { count: 2, color: "water" }, rarity: 3, price: 9, desc: "ランダムな雨ドロップ2つをリピートドロップにする。消費E:{cost}", attributes: ["water"] },
-  { id: "conv_repeat_heart", name: "生命の輪廻", type: "skill", cost: 4, costLevels: true, action: "convert_repeat", params: { count: 2, color: "heart" }, rarity: 3, price: 9, desc: "ランダムなハートドロップ2つをリピートドロップにする。消費E:{cost}", attributes: ["heart"] },
+  { id: "conv_repeat_water", name: "雨鏡の輪廻", type: "skill", cost: 4, costLevels: true, action: "convert_repeat", params: { count: 2, color: "water" }, rarity: 3, price: 9, desc: "ランダムな雨ドロップ2つをリピートドロップにする。消費E:{cost}", attributes: ["water"], canBeCurseReward: true },
+  { id: "conv_repeat_heart", name: "生命の輪廻", type: "skill", cost: 4, costLevels: true, action: "convert_repeat", params: { count: 2, color: "heart" }, rarity: 3, price: 9, desc: "ランダムなハートドロップ2つをリピートドロップにする。消費E:{cost}", attributes: ["heart"], canBeCurseReward: true },
 
   // --- スキル: スタードロップ生成 ---
-  { id: "gen_star_rand", name: "星の創造", type: "skill", cost: 3, costLevels: true, action: "spawn_star", params: { count: 5 }, rarity: 1, price: 6, desc: "ランダムなドロップ5つをスタードロップにする。消費E:{cost}", attributes: [] },
-  { id: "conv_star_wood", name: "星降る森", type: "skill", cost: 5, costLevels: true, action: "convert_star", params: { count: "all", color: "wood" }, rarity: 2, price: 9, desc: "風ドロップを全てスタードロップにする。消費E:{cost}", attributes: ["wood"] },
-  { id: "conv_star_light", name: "星降る雷", type: "skill", cost: 5, costLevels: true, action: "convert_star", params: { count: "all", color: "light" }, rarity: 2, price: 9, desc: "雷ドロップをすべてスタードロップにする。消費E:{cost}", attributes: ["light"] },
+  { id: "gen_star_rand", name: "星の創造", type: "skill", cost: 3, costLevels: true, action: "spawn_star", params: { count: 5 }, rarity: 1, price: 6, desc: "ランダムなドロップ5つをスタードロップにする。消費E:{cost}", attributes: [], canBeInitial: true },
+  { id: "conv_star_wood", name: "星降る森", type: "skill", cost: 5, costLevels: true, action: "convert_star", params: { count: "all", color: "wood" }, rarity: 2, price: 9, desc: "風ドロップを全てスタードロップにする。消費E:{cost}", attributes: ["wood"], canBeInitial: true },
+  { id: "conv_star_light", name: "星降る雷", type: "skill", cost: 5, costLevels: true, action: "convert_star", params: { count: "all", color: "light" }, rarity: 2, price: 9, desc: "雷ドロップをすべてスタードロップにする。消費E:{cost}", attributes: ["light"], canBeInitial: true },
 
   // --- スキル: 虹ドロップ生成 ---
-  { id: "gen_rainbow_rand", name: "虹の創造", type: "skill", cost: 2, costLevels: true, action: "spawn_rainbow", params: { count: 1 }, rarity: 1, price: 6, desc: "ランダムなドロップ1つをカウント3の虹ドロップにする。消費E:{cost}", attributes: ["fire", "water", "wood", "light", "dark"] },
-  { id: "rainbow_masterx", name: "虹の極致", type: "skill", cost: 5, costLevels: true, action: "rainbow_master", params: { count: 1, to: 5 }, rarity: 3, price: 12, desc: "ランダムに虹ドロップを1つ生成し、盤面の全ての虹ドロップのカウントを5にする。消費E:{cost}", attributes: ["fire", "water", "wood", "light", "dark"] },
+  { id: "gen_rainbow_rand", name: "虹の創造", type: "skill", cost: 2, costLevels: true, action: "spawn_rainbow", params: { count: 1 }, rarity: 1, price: 6, desc: "ランダムなドロップ1つをカウント3の虹ドロップにする。消費E:{cost}", attributes: ["fire", "water", "wood", "light", "dark"], canBeInitial: true },
+  { id: "rainbow_masterx", name: "虹の極致", type: "skill", cost: 5, costLevels: true, action: "rainbow_master", params: { count: 1, to: 5 }, rarity: 3, price: 12, desc: "ランダムに虹ドロップを1つ生成し、盤面の全ての虹ドロップ의カウントを5にする。消費E:{cost}", attributes: ["fire", "water", "wood", "light", "dark"], canBeCurseReward: true },
 
   // --- スキル: 特殊（時間・倍率・チャージ・再落下）---
   {
@@ -186,7 +186,8 @@ const ALL_TOKEN_BASES = [
     values: [4, 2, 1],
     rarity: 1, price: 5,
     desc: "★獲得に必要なコンボ数を4/2/1に短縮。",
-    attributes: []
+    attributes: [],
+    canBeInitial: true
   },
   {
     id: "time_ext",
@@ -206,7 +207,8 @@ const ALL_TOKEN_BASES = [
     values: [2, 3, 5],
     rarity: 1, price: 4,
     desc: "コンボ加算に2/3/5の固定値を追加。",
-    attributes: []
+    attributes: [],
+    canBeInitial: true
   },
   {
     id: "forbidden",
@@ -216,7 +218,8 @@ const ALL_TOKEN_BASES = [
     values: [2, 3, 5],
     rarity: 2, price: 7,
     desc: "常時落ちコン停止。コンボ加算2/3/5倍。",
-    attributes: []
+    attributes: [],
+    canBeInitial: true
   },
   {
     id: "bargain",
@@ -266,7 +269,8 @@ const ALL_TOKEN_BASES = [
     values: [0.8, 1.2, 1.5],
     rarity: 3, price: 15,
     desc: "2つ以上でドロップが消える。コンボ倍率x[0.8/1.2/1.5]。",
-    attributes: []
+    attributes: [],
+    canBeCurseReward: true
   },
 
   // --- パッシブ: コンボ倍率（1色）---
@@ -449,7 +453,8 @@ const ALL_TOKEN_BASES = [
     values: [1.2, 1.5, 2],
     rarity: 3, price: 9,
     desc: "装備中、盤面が7x6に拡張。コンボ倍率[1.2/1.5/2]倍。",
-    attributes: []
+    attributes: [],
+    canBeCurseReward: true
   },
 
   // --- パッシブ: 強化ドロップ ---
@@ -477,7 +482,8 @@ const ALL_TOKEN_BASES = [
     id: "bonus_skyfall", name: "天恵の追撃", type: "passive", effect: "skyfall_bonus",
     values: [5, 8, 12], rarity: 3, price: 8,
     desc: "落ちコン発生時にコンボ+[5/8/12]。",
-    attributes: []
+    attributes: [],
+    canBeCurseReward: true
   },
 
   // --- パッシブ: ボムドロップ ---
@@ -613,7 +619,8 @@ const ALL_TOKEN_BASES = [
     id: "copy_token", name: "模倣の魔鏡", type: "passive", effect: "copy_left",
     values: [1], rarity: 3, price: 10,
     desc: "左隣のトークンの効果とエンチャントをコピーする。自身はレベルアップせず、エンチャントも付与されない。",
-    attributes: []
+    attributes: [],
+    canBeCurseReward: true
   },
   {
     id: "duration_booster", name: "刻の歯車", type: "passive", effect: "active_duration_boost",
@@ -705,7 +712,8 @@ const ALL_TOKEN_BASES = [
     id: "desperate_stance", name: "背水の陣", type: "passive", effect: "desperate_stance",
     values: [4, 6, 8], rarity: 3, price: 12,
     desc: "操作時間が常に4秒固定。最終コンボ倍率x[4/6/8]倍。",
-    attributes: []
+    attributes: [],
+    canBeCurseReward: true
   },
   {
     id: "greed_power", name: "金満の暴力", type: "passive", effect: "greed_power",
@@ -774,13 +782,15 @@ const ALL_TOKEN_BASES = [
     id: "contract_of_void", name: "虚無の契約", type: "passive", effect: "contract_of_void",
     values: [3, 4, 5], rarity: 3, price: 12,
     desc: "全エンチャント効果が無効になる代わりに、コンボ倍率が常にx[3/4/5]倍になる。",
-    attributes: []
+    attributes: [],
+    canBeCurseReward: true
   },
   {
     id: "limit_breaker", name: "神ノ理", type: "passive", effect: "limit_break",
     values: [2, 5, Infinity], rarity: 3, price: 15,
     desc: "一部のパッシブ効果による「動的コンボ倍率の最大上限」をLvで上昇させる(Lv1:x2/Lv2:x5)。Lv3で上限が撤廃される。",
-    attributes: []
+    attributes: [],
+    canBeCurseReward: true
   },
   // ==========================================
   // ★ 呪い（Challenge選択時に付与）
@@ -863,6 +873,57 @@ const ALL_TOKEN_BASES = [
     conditionDesc: "トークンを累計5つ売却する",
     condition: "tokens_sold",
     targetValue: 5,
+    attributes: []
+  },
+  {
+    id: "curse_double_target",
+    name: "倍加の呪い",
+    type: "curse",
+    rarity: 0,
+    price: 0,
+    isLocked: true,
+    desc: "1サイクルの目標値が2倍になる。",
+    conditionDesc: "スキップを3回行う",
+    condition: "skips_performed",
+    targetValue: 3,
+    attributes: []
+  },
+
+  // ==========================================
+  // ★ アクティブ呪いトークン（スキルスロット枠の呪い）
+  // ==========================================
+  {
+    id: "curse_active_time",
+    name: "刹那の呪縛",
+    type: "skill",          // アクティブスロットに入るためskill型
+    isCurse: true,          // 呪いトークンフラグ
+    isLocked: true,         // 売却不可
+    action: "curse_op_time_fix", // 操作時間を1秒に固定する特殊アクション
+    cost: 4,                // チャージ4ターン必要
+    params: { duration: 2, timeMs: 1000 }, // 2ターン間、操作時間1000ms固定
+    rarity: 0,
+    price: 0,
+    desc: "2ターン間、操作時間が1秒固定になる。\nチャージ4ターン。",
+    conditionDesc: "このスキルを5回使用する",
+    condition: "skill_uses", // このスキル自身の使用回数
+    targetValue: 5,
+    attributes: []
+  },
+  {
+    id: "curse_active_passive_null",
+    name: "虚無の封印",
+    type: "skill",          // アクティブスロットに入るためskill型
+    isCurse: true,          // 呪いトークンフラグ
+    isLocked: true,         // 売却不可
+    action: "curse_passive_null", // 全パッシブ効果を無効にする特殊アクション
+    cost: 5,                // チャージ5ターン必要
+    params: { duration: 1 }, // 1ターン間、全パッシブ無効
+    rarity: 0,
+    price: 0,
+    desc: "1ターン間、全てのパッシブトークンの効果が発動しない。\nチャージ5ターン。",
+    conditionDesc: "このスキルを3回使用する",
+    condition: "skill_uses", // このスキル自身の使用回数
+    targetValue: 3,
     attributes: []
   },
 ];

@@ -9,7 +9,7 @@ import SettingsScreen from "./SettingsScreen";
 import StartOptionScreen from "./StartOptionScreen";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, getEnchantDescription, ENCHANTMENTS } from './constants/enchantments.js';
-import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS } from './constants/gameConstants.js';
+import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_GROWTH_FACTOR } from './constants/gameConstants.js';
 import { formatNum, getEffectiveCost, getTokenDescription, getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
 import { formatJapaneseNumber } from './utils/numberUtils.js';
 import { PuzzleEngine } from './engine/PuzzleEngine.js';
@@ -104,6 +104,7 @@ const App = () => {
     totalHeartsErased: 0,
     totalStarsEarned: 0,
     tokensSold: 0,
+    skipsPerformed: 0,
   };
   const [currentRunStats, setCurrentRunStats] = useState(initialCurrentRunStats);
   // const [isLuxury, setIsLuxury] = useState(false); // Unused
@@ -151,7 +152,8 @@ const App = () => {
   const comboRef = useRef(null);
 
   const getCurseProgress = (t) => {
-    if (!t || t.type !== 'curse') return null;
+    // type:'curse' もしくは isCurse:true のトークンが対象
+    if (!t || (t.type !== 'curse' && !t.isCurse)) return null;
     const cond = t.condition;
     const target = t.targetValue || 1;
     let current = 0;
@@ -162,6 +164,9 @@ const App = () => {
       case 'total_stars': current = currentRunStats.totalStarsEarned || 0; break;
       case 'max_combo': current = currentRunStats.maxCombo || 0; break;
       case 'tokens_sold': current = currentRunStats.tokensSold || 0; break;
+      case 'skips_performed': current = currentRunStats.skipsPerformed || 0; break;
+      // アクティブ呪いトークン用: このスキルの使用回数はトークン自身が持つ curseUses フィールドを参照
+      case 'skill_uses': current = t.curseUses || 0; break;
       default: break;
     }
     return { current, target, percent: Math.min(100, (current / target) * 100) };
@@ -173,8 +178,28 @@ const App = () => {
   const totalMoveTimeRef = useRef(0); // エンジン内での操作時間累積用
   const skipTurnProgressRef = useRef(false);
 
+  // --- 価格計算ヘルパー ---
+  const getTokenDynamicPrice = useCallback((baseToken, currentTokens) => {
+    if (!baseToken || baseToken.price === undefined) return 0;
+    
+    // 所持数のカウント (アクティブ: skill, curse / パッシブ: passive)
+    let possessionCount = 0;
+    if (baseToken.type === 'skill' || baseToken.type === 'curse' || baseToken.isCurse) {
+      possessionCount = currentTokens.filter(t => t && (t.type === 'skill' || t.type === 'curse' || t.isCurse)).length;
+    } else if (baseToken.type === 'passive') {
+      possessionCount = currentTokens.filter(t => t && t.type === 'passive').length;
+    }
+
+    // 指数関数的な上昇: basePrice * (growthFactor ^ count)
+    const dynamicPrice = Math.floor(baseToken.price * Math.pow(TOKEN_PRICE_GROWTH_FACTOR, possessionCount));
+    return Math.max(1, dynamicPrice); // 最低1
+  }, []);
+
   // Derived
   const hasGiantDomain = tokens.some((t) => t?.id === "giant" || t?.enchantments?.some(e => e.effect === "expand_board"));
+  const hasDoubleTargetCurse = tokens.some((t) => t?.id === "curse_double_target");
+  const effectiveTarget = hasDoubleTargetCurse ? target * 2 : target;
+
   // NOTE: Changing board size forces re-init.
   const rows = hasGiantDomain ? 6 : 5;
   const cols = hasGiantDomain ? 7 : 6;
@@ -361,6 +386,11 @@ const App = () => {
     const hasDesperateStance = tokens.some(t => t?.effect === "desperate_stance");
     if (hasDesperateStance) {
       return 4000;
+    }
+    // 刹那の呪縛バフ: 操作時間を指定ms（デフォルト1000ms）に固定
+    const curseTimeFixBuff = activeBuffs.find(b => b?.action === "curse_op_time_fix");
+    if (curseTimeFixBuff) {
+      return curseTimeFixBuff.params?.timeMs ?? 1000;
     }
     // 焦燥の刻印: 操作時間4秒固定
     if (tokens.some(t => t?.id === "curse_time")) {
@@ -679,6 +709,8 @@ const App = () => {
     });
 
     const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
+    // 虚無の封印バフ: 1ターン間、全パッシブ効果を無効にする
+    const isCursePassiveNull = activeBuffs.some(b => b?.action === "curse_passive_null");
     const animationMode = settings?.comboAnimationMode || 'instant';
     const isInstant = animationMode === 'instant';
 
@@ -731,6 +763,8 @@ const App = () => {
 
     effectiveTokens.forEach((t) => {
       if (!t) return;
+      // 虚無の封印が発動中の場合、パッシブトークンの効果を無効化
+      if (isCursePassiveNull && t.type === 'passive') return;
 
       const lv = t.level || 1;
       const enchList = isEnchantDisabled ? [] : (t.enchantments || []);
@@ -1544,7 +1578,7 @@ const App = () => {
 
     setCycleTotalCombo(prev => {
       const updated = prev + effectiveCombo;
-      if (updated >= target) {
+      if (updated >= effectiveTarget) {
         setGoalReached(prevGoalReached => {
           if (!prevGoalReached) {
             setShopRerollPrice(shopRerollBasePrice);
@@ -1596,39 +1630,14 @@ const App = () => {
       const nextHearts = (prev.totalHeartsErased || 0) + heartsErasedThisTurn;
       const nextStats = { ...prev, totalHeartsErased: nextHearts };
 
-      // 条件達成チェック
-      setTokens(currentTokens => {
-        let transformed = false;
-        const nextTokens = currentTokens.map(t => {
-          if (!t || t.type !== 'curse') return t;
+          // 条件達成チェック
+          setTokens(currentTokens => {
+            // 自動浄化は行わず、UIで解除可能であることを示すように変更
+            return currentTokens;
+          });
 
-          let satisfied = false;
-          if (t.condition === "clears" && nextStats.currentClears >= t.targetValue) satisfied = true;
-          if (t.condition === "heart_erase" && nextStats.totalHeartsErased >= t.targetValue) satisfied = true;
-          if (t.condition === "total_combo" && nextStats.currentTotalCombo >= t.targetValue) satisfied = true;
-          if (t.condition === "total_stars" && nextStats.totalStarsEarned >= t.targetValue) satisfied = true;
-          if (t.condition === "max_combo" && nextStats.maxCombo >= t.targetValue) satisfied = true;
-          if (t.condition === "tokens_sold" && nextStats.tokensSold >= t.targetValue) satisfied = true;
-
-          if (satisfied) {
-            transformed = true;
-            const star3Pool = ALL_TOKEN_BASES.filter(tok => tok.rarity === 3);
-            const randomStar3 = star3Pool[Math.floor(Math.random() * star3Pool.length)];
-            const newT = { ...randomStar3, instanceId: Date.now() + Math.random(), level: 1, charge: randomStar3.cost || 0 };
-            return newT;
-          }
-          return t;
+          return nextStats;
         });
-
-        if (transformed) {
-          setStars(s => s + 100);
-          notify("呪いが浄化され、新たな力が宿った！ (+100★)");
-        }
-        return nextTokens;
-      });
-
-      return nextStats;
-    });
 
     if (!skipTurnProgressRef.current) {
       setActiveBuffs((prev) =>
@@ -1792,6 +1801,7 @@ const App = () => {
     setStars((s) => s + bonus);
     notify(`SKIP BONUS: +${bonus} STARS!`);
     setSkippedTurnsBonus(prev => prev + remainingTurns);
+    setCurrentRunStats(prev => ({ ...prev, skipsPerformed: (prev.skipsPerformed || 0) + 1 }));
 
     // Force turn to end state to trigger Clear Overlay
     setTurn(maxTurns + 1);
@@ -1853,24 +1863,33 @@ const App = () => {
     setShowTitle(false);
 
     if (option === 'safety') {
-      // 安全: 操作時間3秒延長、星1トークン
+      // 安全: 操作時間3秒延長、初期候補(canBeInitial)から星1トークン
       setSandsOfTimeSeconds(3);
-      const star1Pool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type !== 'curse');
+      let star1Pool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.canBeInitial && t.type !== 'curse');
+      if (star1Pool.length === 0) star1Pool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type !== 'curse');
+      
       const randomToken = star1Pool[Math.floor(Math.random() * star1Pool.length)];
       setTokens([{ ...randomToken, instanceId: Date.now() + Math.random(), level: 1, charge: randomToken.cost || 0 }]);
       notify("「安全」スタイルで開始しました (+3s, 星1トークン)");
     } else if (option === 'solid') {
-      // 堅実: 星2パッシブ
-      const star2PassivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 2 && t.type === 'passive' && t.type !== 'curse');
+      // 堅実: 初期候補(canBeInitial)から星2パッシブ
+      let star2PassivePool = ALL_TOKEN_BASES.filter(t => (t.rarity === 2 || t.rarity === 1) && t.type === 'passive' && t.canBeInitial && t.type !== 'curse');
+      if (star2PassivePool.length === 0) star2PassivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 2 && t.type === 'passive' && t.type !== 'curse');
+      
       const randomToken = star2PassivePool[Math.floor(Math.random() * star2PassivePool.length)];
       setTokens([{ ...randomToken, instanceId: Date.now() + Math.random(), level: 1 }]);
       setStars(5);
       notify("「堅実」スタイルで開始しました (星2パッシブ)");
     } else if (option === 'challenge') {
       // 挑戦: 呪い、初期スター0
-      const cursePool = ALL_TOKEN_BASES.filter(t => t.type === 'curse');
+      // type:'curse' または isCurse:true のトークンをプールとして選ぶ
+      const cursePool = ALL_TOKEN_BASES.filter(t => t.type === 'curse' || t.isCurse === true);
       const randomCurse = cursePool[Math.floor(Math.random() * cursePool.length)];
-      setTokens([{ ...randomCurse, instanceId: Date.now() + Math.random() }]);
+      // isCurseトークン（スキル型呪い）はチャージ0で開始
+      const initCharge = randomCurse.isCurse ? 0 : (randomCurse.charge ?? undefined);
+      const initToken = { ...randomCurse, instanceId: Date.now() + Math.random() };
+      if (randomCurse.isCurse) initToken.charge = 0;
+      setTokens([initToken]);
       setStars(0);
       notify("「挑戦」スタイルで開始しました (呪い獲得, 0★)");
     }
@@ -1994,6 +2013,7 @@ const App = () => {
       const pool = pools[rarity];
       const base = pool[Math.floor(Math.random() * pool.length)];
       const item = { ...base, level: 1, charge: base.cost || 0 };
+      item.price = getTokenDynamicPrice(base, tokens); // 動的価格を適用
       item.desc = getTokenDescription(item, 1, currentRunStats, tokens, activeBuffs);
       // エンチャント付きでのトークン販売は廃止
       return item;
@@ -2444,14 +2464,50 @@ const App = () => {
         notify(`他スキルのエネルギー +${boostAmount}!`);
         return; // 共通のchargeリセット処理をスキップ
       }
+      // --- 刹那の呪縛: 操作時間を1秒固定にするバフを追加 ---
+      case "curse_op_time_fix": {
+        const finalDuration = (token.params?.duration || 2) + extraDuration;
+        const timeMs = token.params?.timeMs ?? 1000;
+        setActiveBuffs(prev => [
+          ...prev,
+          {
+            id: Date.now() + Math.random(),
+            action: "curse_op_time_fix",
+            params: { timeMs },
+            duration: finalDuration,
+            maxDuration: finalDuration,
+            tokenId: token.instanceId || token.id,
+            name: token.name,
+          },
+        ]);
+        notify(`${token.name} 発動！ 操作時間1秒固定 (${finalDuration}ターン)`);
+        break;
+      }
+      // --- 虚無の封印: 全パッシブ効果を無効にするバフを追加 ---
+      case "curse_passive_null": {
+        const finalDuration = (token.params?.duration || 1) + extraDuration;
+        setActiveBuffs(prev => [
+          ...prev,
+          {
+            id: Date.now() + Math.random(),
+            action: "curse_passive_null",
+            params: {},
+            duration: finalDuration,
+            maxDuration: finalDuration,
+            tokenId: token.instanceId || token.id,
+            name: token.name,
+          },
+        ]);
+        notify(`${token.name} 発動！ 全パッシブ効果無効 (${finalDuration}ターン)`);
+        break;
+      }
       default:
         break;
     }
 
     // --- 追加: Lv3以上なら基礎コンボ値プラス効果 (Next Turn Bonus) ---
-    // アクティブスキルをレベル3にすると基礎コンボ値プラスの効果がつく
-    // 値は「基礎コンボ値プラスはレベル１時点でのエネルギー数分増やす」
-    if ((token.level || 1) >= 3) {
+    // 呪いトークン (isCurse) にはLv3ボーナスは適用しない
+    if (!token.isCurse && (token.level || 1) >= 3) {
       const bonusValue = token.cost || 0; // レベル1時点でのエネルギー数 = 基本コスト
       if (bonusValue > 0) {
         setActiveBuffs((prev) => [
@@ -2468,15 +2524,20 @@ const App = () => {
       }
     }
 
-    // Consume Charge
+    // Consume Charge + アクティブ呪いトークンの使用回数インクリメント
     setTokens(prev => prev.map(t => {
-      if (t === token) {
-        return { ...t, charge: 0 };
+      if (t !== token) return t;
+      // チャージをリセット
+      let updated = { ...t, charge: 0 };
+      // isCurseトークン: curseUsesをインクリメント
+      if (t.isCurse) {
+        const newUses = (t.curseUses || 0) + 1;
+        updated = { ...updated, curseUses: newUses };
       }
-      return t;
+      return updated;
     }));
     /* setEnergy((prev) => prev - (token.cost || 0)); // REMOVED */
-    notify(`${token.name} 発動!`);
+    if (!token.isCurse) notify(`${token.name} 発動!`);
   };
 
   const sellToken = (token) => {
@@ -2528,7 +2589,8 @@ const App = () => {
       return [...withoutSelf, ...otherType];
     });
 
-    setSelectedTokenDetail(null);
+    // 移動後も詳細を表示し続けるために setSelectedTokenDetail(null) を削除
+    // setSelectedTokenDetail(null);
     notify(`${token.name} を ${targetPos} 番目に移動しました`);
   };
 
@@ -2740,7 +2802,7 @@ const App = () => {
                     ref={targetComboRef}
                     className={`text-xl font-mono font-bold text-white inline-block ${targetPulse ? 'animate-target-pulse' : ''}`}
                   >
-                    {cycleTotalCombo}<span className="text-slate-500 text-lg">/{target}</span>
+                    {cycleTotalCombo}<span className="text-slate-500 text-lg">/{effectiveTarget}</span>
                   </span>
                 </div>
               </div>
@@ -2976,8 +3038,12 @@ const App = () => {
                               animClass = 'animate-bounce';
                               triggeredShadow = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
                             }
-                            const readyBorder = t && t.rarity === 3 ? 'border-yellow-400/60 shadow-[0_0_10px_rgba(250,204,21,0.25)]' : t && t.rarity === 2 ? 'border-sky-400/60 shadow-[0_0_10px_rgba(56,189,248,0.25)]' : 'border-primary/50 shadow-[0_0_10px_rgba(91,19,236,0.25)]';
-                            const notReadyBorder = t && t.rarity === 3 ? 'border-yellow-400/30' : t && t.rarity === 2 ? 'border-sky-400/30' : 'border-white/10';
+                            const readyBorder = t?.isCurse
+                              ? 'border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.35)]'
+                              : (t && t.rarity === 3 ? 'border-yellow-400/60 shadow-[0_0_10px_rgba(250,204,21,0.25)]' : t && t.rarity === 2 ? 'border-sky-400/60 shadow-[0_0_10px_rgba(56,189,248,0.25)]' : 'border-primary/50 shadow-[0_0_10px_rgba(91,19,236,0.25)]');
+                            const notReadyBorder = t?.isCurse
+                              ? 'border-red-500/30'
+                              : (t && t.rarity === 3 ? 'border-yellow-400/30' : t && t.rarity === 2 ? 'border-sky-400/30' : 'border-white/10');
                             const buffBorder = stackCount > 1 ? 'border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)] animate-pulse' : stackCount === 1 ? 'border-cyan-500/80 shadow-[0_0_10px_rgba(6,182,212,0.4)]' : '';
                             let containerClasses = isLocked
                               ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed'
@@ -3011,10 +3077,13 @@ const App = () => {
                                   ) : t ? (
                                     <div className="absolute inset-0 flex items-center justify-center">
                                       <div className="absolute inset-0 bg-primary/10">
-                                        {isSkill && <div className="absolute bottom-0 left-0 right-0 bg-primary/20 transition-all duration-500" style={{ height: `${progress}%` }}></div>}
+                                        {isSkill && <div
+                                          className={`absolute bottom-0 left-0 right-0 transition-all duration-500 ${t?.isCurse ? 'bg-red-500/30' : 'bg-primary/20'}`}
+                                          style={{ height: `${progress}%` }}
+                                        />}
                                         {stackCount > 0 && activeBuff && <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cyan-500/60 to-blue-400/30 transition-all duration-500" style={{ height: `${buffProgress}%` }}></div>}
                                       </div>
-                                      <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : isReady ? 'text-primary' : 'text-slate-500'}`}>
+                                      <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : t?.isCurse ? (isReady ? 'text-red-400' : 'text-red-700') : (isReady ? 'text-primary' : 'text-slate-500')}`}>
                                         {getTokenIcon(t)}
                                       </span>
                                     </div>
@@ -3407,6 +3476,48 @@ const App = () => {
                     {/* 効果説明 */}
                     <div className="bg-slate-900/60 rounded-xl p-3 mb-3 border border-white/5">
                       <p className="text-xs text-slate-300 leading-relaxed">{getTokenDescription(t, lv, currentRunStats, tokens, activeBuffs)}</p>
+
+                      {/* コピー状態の表示 */}
+                      {t.effect === 'copy_left' && (() => {
+                        const currentIndex = tokens.findIndex(tok => tok?.instanceId === t.instanceId);
+                        const target = currentIndex > 0 ? tokens[currentIndex - 1] : null;
+                        if (target) {
+                          return (
+                            <div className="mt-3 pt-3 border-t border-white/10">
+                              <div className="flex items-center gap-2 mb-1.5 overflow-hidden">
+                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30">
+                                  <span className="material-icons-round text-[10px] text-indigo-400">content_copy</span>
+                                  <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-tight">コピー中</span>
+                                </div>
+                                <div className="h-[1px] flex-1 bg-gradient-to-r from-indigo-500/30 to-transparent" />
+                              </div>
+                              <div className="flex items-center gap-3 bg-slate-900/40 p-2 rounded-lg border border-white/5">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${target.type === 'skill' ? 'bg-blue-500/10' : 'bg-purple-500/10'}`}>
+                                  <span className={`material-icons-round text-lg ${target.type === 'skill' ? 'text-blue-400' : 'text-purple-400'}`}>
+                                    {getTokenIcon(target)}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-xs font-bold text-white truncate">{target.name}</p>
+                                    <span className="text-[9px] font-bold text-amber-400 ml-2 whitespace-nowrap">Lv.{target.level || 1}</span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 truncate opacity-80">{getTokenDescription(target, target.level || 1, currentRunStats, tokens, activeBuffs)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="mt-3 pt-3 border-t border-white/10">
+                              <div className="flex items-center gap-2 text-amber-500/60 bg-amber-500/5 p-2 rounded-lg border border-amber-500/10">
+                                <span className="material-icons-round text-sm">warning</span>
+                                <p className="text-[10px] font-medium leading-tight">左隣にトークンがありません。<br/>右側に配置することで効果をコピーします。</p>
+                              </div>
+                            </div>
+                          );
+                        }
+                      })()}
                     </div>
 
                     {/* スキルチャージ状態 */}
@@ -3504,7 +3615,7 @@ const App = () => {
                         </button>
                       )}
                       {/* 呪い解除条件の表示 */}
-                      {t.type === 'curse' && (() => {
+                      {(t.type === 'curse' || t.isCurse) && (() => {
                         const prog = getCurseProgress(t);
                         if (!prog) return null;
                         return (
@@ -3532,19 +3643,40 @@ const App = () => {
                         );
                       })()}
 
-                      <button
-                        onClick={() => sellToken(t)}
-                        className={`w-full text-center py-3 rounded-lg font-bold transition-all ${t.isLocked ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed border border-white/5' : 'bg-red-600/20 hover:bg-red-600/40 text-red-300'}`}
-                      >
-                        {t.isLocked ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <span className="material-icons-round text-sm">lock_person</span>
-                            <span>売却不可</span>
-                          </div>
-                        ) : (
-                          `売却 (+${Math.floor(t.price * (t.enchantments?.some(e => e.effect === "high_sell") ? 3.0 : 0.5))} ★)`
-                        )}
-                      </button>
+                      {(() => {
+                        const curseProg = (t.type === 'curse' || t.isCurse) ? getCurseProgress(t) : null;
+                        const isPurifiable = curseProg && curseProg.percent >= 100;
+
+                        if (isPurifiable) {
+                          return (
+                            <button
+                              onClick={() => purifyCurse(t)}
+                              className="w-full text-center py-3 rounded-lg font-bold transition-all bg-green-600 hover:bg-green-500 text-white shadow-[0_0_15px_rgba(22,163,74,0.4)] animate-pulse active:scale-95"
+                            >
+                              <div className="flex items-center justify-center gap-2">
+                                <span className="material-icons-round text-sm">auto_fix_high</span>
+                                <span>呪いを解除する</span>
+                              </div>
+                            </button>
+                          );
+                        }
+
+                        return (
+                          <button
+                            onClick={() => sellToken(t)}
+                            className={`w-full text-center py-3 rounded-lg font-bold transition-all ${t.isLocked ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed border border-white/5' : 'bg-red-600/20 hover:bg-red-600/40 text-red-300'}`}
+                          >
+                            {t.isLocked ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <span className="material-icons-round text-sm">lock_person</span>
+                                <span>売却不可</span>
+                              </div>
+                            ) : (
+                              `売却 (+${Math.floor(t.price * (t.enchantments?.some(e => e.effect === "high_sell") ? 3.0 : 0.5))} ★)`
+                            )}
+                          </button>
+                        );
+                      })()}
                       <button onClick={() => setSelectedTokenDetail(null)} className="text-slate-400 text-xs font-bold py-2">
                         閉じる
                       </button>

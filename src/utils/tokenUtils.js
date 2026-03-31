@@ -91,6 +91,9 @@ export const getAttributeBarStyles = (attributes) => {
 export const getTokenIcon = (token) => {
     if (!token) return 'help_outline';
 
+    // アクティブ呪いトークン (isCurse + type:'skill') は先に skull アイコンを返す
+    if (token.isCurse) return 'skull';
+
     if (token.type === 'curse') return 'skull';
 
     if (token.type === 'skill') {
@@ -109,6 +112,9 @@ export const getTokenIcon = (token) => {
         if (action === 'charge_boost') return 'battery_charging_full';
         if (action === 'forbidden_temp') return 'block';
         if (action === 'enhance_color') return 'auto_fix_high';
+        // アクティブ呪いスキル用（isCurse判定で上流に捕捉されるが念のため）
+        if (action === 'curse_op_time_fix') return 'timer';
+        if (action === 'curse_passive_null') return 'do_not_disturb_on';
         return 'bolt';
     }
 
