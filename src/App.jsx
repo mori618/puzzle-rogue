@@ -109,6 +109,11 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     totalStarsEarned: 0,
     tokensSold: 0,
     skipsPerformed: 0,
+    cycleTurnCount: 0,
+    cycleTotalCombo: 0,
+    cycleColorStats: { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 },
+    cycleShapeStats: { len4: 0, len5: 0, cross: 0, row: 0, l_shape: 0, square: 0 },
+    cycleSpecialStats: { bomb: 0, repeat: 0, star: 0 },
   };
   const [currentRunStats, setCurrentRunStats] = useState(initialCurrentRunStats);
   // const [isLuxury, setIsLuxury] = useState(false); // Unused
@@ -244,9 +249,9 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, 
       isEnchantShopUnlocked, showShop, showTitle, isLoaded, autoPlayActive, isGameOver, goalReached,
       hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest,
-      currentRunStats, target, turn, maxTurns, showGameClear, showStartOption
+      currentRunStats, target, turn, maxTurns, showGameClear, showStartOption, tokenSlotExpansionCount
     };
-  }, [stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, isEnchantShopUnlocked, showShop, showTitle, isLoaded, autoPlayActive, isGameOver, goalReached, hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest, currentRunStats, target, turn, maxTurns, showGameClear, showStartOption]);
+  }, [stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, isEnchantShopUnlocked, showShop, showTitle, isLoaded, autoPlayActive, isGameOver, goalReached, hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest, currentRunStats, target, turn, maxTurns, showGameClear, showStartOption, tokenSlotExpansionCount]);
 
   // --- Load Save Data ---
   useEffect(() => {
@@ -541,7 +546,9 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     const state = loopStateRef.current;
     if (!state) return;
 
-    const { testInstanceId, target, currentRunStats, tokens, activeBuffs } = state;
+    const { testInstanceId, target, currentRunStats, tokens, activeBuffs, stars } = state;
+    const cycleTurnCount = currentRunStats.cycleTurnCount || 1;
+    const avgCombo = (currentRunStats.cycleTotalCombo || 0) / cycleTurnCount;
 
     const report = {
       instanceId: testInstanceId || "Main",
@@ -549,17 +556,25 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       maxCombo: currentRunStats.maxCombo,
       maxComboMultiplier: currentRunStats.maxComboMultiplier,
       starsSpent: currentRunStats.currentStarsSpent,
+      stars: stars,
       tokens: tokens.map(t => t ? t.name : "Empty"), 
       tokenTypes: tokens.map(t => t ? t.type : "Empty"),
       tokenDetails: tokens.map(t => t ? `${t.name}(Lv${t.level||1})` : "Empty"),
       enchants: tokens.flatMap(t => t?.enchantments ? t.enchantments.map(e => e.name) : []),
-      buffs: activeBuffs.map(b => b.name)
+      buffs: activeBuffs.map(b => b.name),
+      cycleStats: {
+        turnCount: currentRunStats.cycleTurnCount || 0,
+        totalCombo: currentRunStats.cycleTotalCombo || 0,
+        avgCombo: avgCombo,
+        colorStats: currentRunStats.cycleColorStats || { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 },
+        shapeStats: currentRunStats.cycleShapeStats || { len4: 0, len5: 0, cross: 0, row: 0, l_shape: 0, square: 0 },
+        specialStats: currentRunStats.cycleSpecialStats || { bomb: 0, repeat: 0, star: 0 }
+      }
     };
     if (!window.AILogs) window.AILogs = [];
     window.AILogs.push(report);
     // Simple console table log for developers
-    console.log(`[AI Test Report #${report.instanceId}] Cycle: ${report.cycle} | MaxCombo: ${report.maxCombo}`);
-    console.table(report.tokens);
+    console.log(`[AI Test Report #${report.instanceId}] Cycle: ${report.cycle} | AvgCombo: ${avgCombo.toFixed(1)} | MaxCombo: ${report.maxCombo}`);
   }, []); // useCallback の依存関係を空にし、内部で ref を使用する
 
   useEffect(() => {
@@ -602,13 +617,21 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, 
         isEnchantShopUnlocked, showShop, showTitle, isGameOver, goalReached,
         hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest,
-        currentRunStats, turn, maxTurns, showGameClear, showStartOption
+        currentRunStats, turn, maxTurns, showGameClear, showStartOption, tokenSlotExpansionCount
       } = state;
+
+      if (aiTesterRef.current) {
+        aiTesterRef.current.isMultiTest = isMultiTest;
+      }
       
       try {
         if (showTitle) {
           const startBtnId = hasSaveData ? `ai-start-continue-${testInstanceId}` : `ai-start-initial-${testInstanceId}`;
           const clicked = aiTesterRef.current.clickUIElement(startBtnId);
+          if (!clicked && aiControlRef.current) {
+            if (hasSaveData) aiControlRef.current.onContinue();
+            else aiControlRef.current.onStart();
+          }
           if (isMultiTest) console.log(`[AI-${testInstanceId}] Title screen breakthrough: ${startBtnId}, success: ${clicked}`);
           // Reset tracking on title screen
           aiLoopTrackingRef.current = { lastLoggedCycle: -1, lastLoggedGameOver: false };
@@ -639,7 +662,10 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           });
           const enchantBuyable = shopItems.find(item => stars >= 5 && (item.type === 'enchant_grant' || item.type === 'enchant_random') && !item.isLocked);
           const awakeningBuyable = stars >= 5 && !isAwakeningLevelUpBought && tokens.some(t => (t?.level || 1) < 3);
-          const tokenSlotBuyable = stars >= (100 + tokenSlotExpansionCount * 50);
+          
+          const AWAKENING_TOKEN_SLOT_PRICES = [100, 500, 2000, 10000, 50000];
+          const slotPrice = AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpansionCount, 4)];
+          const tokenSlotBuyable = stars >= slotPrice && tokenSlotExpansionCount < 5;
 
           if (normalBuyable) {
             const tabId = `ai-shop-tab-normal-${testInstanceId}`;
@@ -690,7 +716,10 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           const options = ["safety", "solid", "challenge"];
           const choice = options[Math.floor(Math.random() * options.length)];
           const optionId = `ai-start-option-${choice}-${testInstanceId}`;
-          aiTesterRef.current.clickUIElement(optionId);
+          const clicked = aiTesterRef.current.clickUIElement(optionId);
+          if (!clicked && aiControlRef.current?.handleStartOptionSelection) {
+            aiControlRef.current.handleStartOptionSelection(choice);
+          }
         } else if (goalReached) {
           const currentCycle = currentRunStats.currentClears + 1;
           if (aiLoopTrackingRef.current.lastLoggedCycle < currentCycle) {
@@ -724,15 +753,15 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           if (engine?.processing) {
             if (lastProcessingTimeRef.current === 0) lastProcessingTimeRef.current = Date.now();
             const elapsed = Date.now() - lastProcessingTimeRef.current;
-            if (elapsed > 20000) { // 20 seconds timeout
-              console.error(`[AI-${testInstanceId}] Watchdog: Engine stuck in processing for >20s. Forcing reset.`);
+            if (elapsed > 60000) { // 60 seconds timeout
+              console.error(`[AI-${testInstanceId}] Watchdog: Engine stuck in processing for >60s. Forcing reset.`);
               if (isMultiTest) {
                 window.AIErrors = window.AIErrors || [];
                 window.AIErrors.push({
                   instanceId: testInstanceId,
                   type: "watchdog_timeout",
                   cycle: (currentRunStats?.currentClears || 0) + 1,
-                  message: "Engine processing timeout (>20s)",
+                  message: "Engine processing timeout (>60s)",
                   timestamp: Date.now()
                 });
               }
@@ -1965,7 +1994,36 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     const heartsErasedThisTurn = erasedColorCounts["heart"] || 0;
     setCurrentRunStats(prev => {
       const nextHearts = (prev.totalHeartsErased || 0) + heartsErasedThisTurn;
-      const nextStats = { ...prev, totalHeartsErased: nextHearts };
+      
+      const nextCycleColorStats = { ...(prev.cycleColorStats || { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }) };
+      if (erasedColorCounts) {
+        Object.keys(erasedColorCounts).forEach(color => {
+          nextCycleColorStats[color] = (nextCycleColorStats[color] || 0) + erasedColorCounts[color];
+        });
+      }
+
+      const nextCycleShapeStats = { ...(prev.cycleShapeStats || { len4: 0, len5: 0, cross: 0, row: 0, l_shape: 0, square: 0 }) };
+      if (shapes) {
+        shapes.forEach(shape => {
+          nextCycleShapeStats[shape] = (nextCycleShapeStats[shape] || 0) + 1;
+        });
+      }
+
+      const nextCycleSpecialStats = {
+        bomb: (prev.cycleSpecialStats?.bomb || 0) + erasedByBombTotal,
+        repeat: (prev.cycleSpecialStats?.repeat || 0) + erasedByRepeatTotal,
+        star: (prev.cycleSpecialStats?.star || 0) + erasedByStarTotal,
+      };
+
+      const nextStats = { 
+        ...prev, 
+        totalHeartsErased: nextHearts,
+        cycleTurnCount: (prev.cycleTurnCount || 0) + 1,
+        cycleTotalCombo: (prev.cycleTotalCombo || 0) + effectiveCombo,
+        cycleColorStats: nextCycleColorStats,
+        cycleShapeStats: nextCycleShapeStats,
+        cycleSpecialStats: nextCycleSpecialStats,
+      };
 
           // 条件達成チェック
           setTokens(currentTokens => {
@@ -2109,7 +2167,15 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           maxCycleAllTime: Math.max(prev.maxCycleAllTime || 0, nextCycle)
         };
       });
-      setCurrentRunStats(prev => ({ ...prev, currentClears: (prev.currentClears || 0) + 1 }));
+      setCurrentRunStats(prev => ({ 
+        ...prev, 
+        currentClears: (prev.currentClears || 0) + 1,
+        cycleTurnCount: 0,
+        cycleTotalCombo: 0,
+        cycleColorStats: { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 },
+        cycleShapeStats: { len4: 0, len5: 0, cross: 0, row: 0, l_shape: 0, square: 0 },
+        cycleSpecialStats: { bomb: 0, repeat: 0, star: 0 },
+      }));
     }
 
     notify("NEXT CYCLE STARTED!");
@@ -2249,6 +2315,18 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     setIsGameOver(false);
     resetGame();
     setShowStartOption(true);
+  };
+
+  const onStart = () => {
+    localStorage.removeItem(instanceSaveKey);
+    setHasSaveData(false);
+    resetGame();
+    setShowStartOption(true);
+    setShowTitle(false);
+  };
+
+  const onContinue = () => {
+    setShowTitle(false);
   };
 
   const notify = (text) => {
@@ -2989,7 +3067,10 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
 
   // Expose methods to AI Event listeners
   const aiControlRef = useRef({});
-  aiControlRef.current = { buyItem, refreshShop, openShop, startNextCycle, handleChoice, activateSkill, buyAwakeningItem, handleGiveUp };
+  aiControlRef.current = { 
+    buyItem, refreshShop, openShop, startNextCycle, handleChoice, activateSkill, 
+    buyAwakeningItem, handleGiveUp, onStart, onContinue, handleStartOptionSelection, setShowShop 
+  };
 
   // ロード中の画面
   if (!isLoaded) {
@@ -3038,17 +3119,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       <TitleScreen
         hasSaveData={hasSaveData}
         testInstanceId={testInstanceId}
-        onContinue={() => {
-          setShowTitle(false);
-          // if (engineRef.current && savedBoard) engineRef.current.init(savedBoard);
-        }}
-        onStart={() => {
-          localStorage.removeItem(instanceSaveKey);
-          setHasSaveData(false);
-          resetGame();
-          setShowStartOption(true);
-          setShowTitle(false);
-        }}
+        onContinue={onContinue}
+        onStart={onStart}
         onHelp={() => setShowHelp(true)}
         onStats={() => setShowStats(true)}
         onCredits={() => setShowCredits(true)}

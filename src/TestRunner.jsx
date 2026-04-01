@@ -45,6 +45,7 @@ const TestRunner = ({ onExit }) => {
   const instances = Array.from({ length: 10 }).map((_, i) => i);
   const [showReport, setShowReport] = React.useState(false);
   const [isInitialized, setIsInitialized] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
     // Clear all test-related localStorage on start
@@ -86,9 +87,26 @@ const TestRunner = ({ onExit }) => {
     logs.forEach(l => {
        // Inflation trend
        const cyc = l.cycle;
-       if (!cycleInflation[cyc]) cycleInflation[cyc] = { totalStars: 0, count: 0 };
+       if (!cycleInflation[cyc]) {
+           cycleInflation[cyc] = { 
+               totalStars: 0, count: 0, sumAvgCombo: 0, 
+               color: {fire:0,water:0,wood:0,light:0,dark:0,heart:0}, 
+               shape: {len4:0,len5:0,cross:0,row:0,l_shape:0,square:0}, 
+               special: {bomb:0,repeat:0,star:0} 
+           };
+       }
        cycleInflation[cyc].totalStars += (l.stars || 0);
        cycleInflation[cyc].count++;
+
+       // Cycle Stats extraction
+       if (l.cycleStats) {
+           const cStats = l.cycleStats;
+           cycleInflation[cyc].sumAvgCombo += (cStats.avgCombo || 0);
+
+           Object.entries(cStats.colorStats || {}).forEach(([k, v]) => cycleInflation[cyc].color[k] += v);
+           Object.entries(cStats.shapeStats || {}).forEach(([k, v]) => cycleInflation[cyc].shape[k] += v);
+           Object.entries(cStats.specialStats || {}).forEach(([k, v]) => cycleInflation[cyc].special[k] += v);
+       }
 
        // Tokens & Enchants
        const uniqueTokens = [...new Set(l.tokens.filter(t => t !== "Empty"))];
@@ -138,13 +156,34 @@ const TestRunner = ({ onExit }) => {
        .slice(0, 8)
        .map(x => `${x.pair}: 指数 x${x.index.toFixed(1)} (${x.count}回)`);
 
-    const inflationTrend = Object.entries(cycleInflation)
+    let totalColorStats = { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 };
+    let totalShapeStats = { len4: 0, len5: 0, cross: 0, row: 0, l_shape: 0, square: 0 };
+
+    const cycleTrend = Object.entries(cycleInflation)
        .sort((a, b) => Number(a[0]) - Number(b[0]))
-       .map(([cyc, data]) => `Cycle ${cyc}: 平均 ${(data.totalStars / data.count).toLocaleString()} ★`);
+       .map(([cyc, data]) => {
+           Object.entries(data.color).forEach(([k, v]) => totalColorStats[k] += v);
+           Object.entries(data.shape).forEach(([k, v]) => totalShapeStats[k] += v);
+           const avgStars = (data.totalStars / data.count).toLocaleString();
+           const avgCycCombo = data.sumAvgCombo > 0 ? (data.sumAvgCombo / data.count).toFixed(1) : "---";
+           return `Cycle ${cyc}: 平均所持 ${avgStars} ★ | 平均コンボ ${avgCycCombo}`;
+       });
+
+    const totalColors = Object.values(totalColorStats).reduce((a, b) => a + b, 0) || 1;
+    const colorDistribution = Object.entries(totalColorStats)
+       .sort((a, b) => b[1] - a[1])
+       .map(([c, v]) => `${c}: ${((v / totalColors) * 100).toFixed(1)}%`)
+       .join(' / ');
+
+    const shapeDistribution = Object.entries(totalShapeStats)
+       .filter(([_, v]) => v > 0)
+       .sort((a, b) => b[1] - a[1])
+       .map(([s, v]) => `${s}: ${v.toLocaleString()}回`)
+       .join(' / ') || "なし";
 
     // 最大コンボ
     const maxComboEver = logs.length > 0 ? Math.max(...logs.map(l => l.maxCombo)) : 0;
-    const avgCombo = logs.length > 0 ? (overallAvgCombo).toLocaleString() : 0;
+    const avgCombo = logs.length > 0 ? (overallAvgCombo).toLocaleString(undefined, { maximumFractionDigits: 1 }) : 0;
     const avgCycle = logs.length > 0 ? (logs.reduce((sum, l) => sum + (l.cycle || 1), 0) / logs.length).toFixed(1) : 0;
     const maxCycle = logs.length > 0 ? Math.max(...logs.map(l => l.cycle || 1)) : 0;
 
@@ -159,20 +198,24 @@ const TestRunner = ({ onExit }) => {
 
     return `【AI自動テスト 強度分析レポート V2】
 総ログ数: ${logs.length} (平均到達: ${avgCycle} | 最高: ${maxCycle})
-平均コンボ: ${avgCombo} | 歴代最大: ${maxComboEver.toLocaleString()}
+最高到達コンボ: ${avgCombo} | 歴代最大: ${maxComboEver.toLocaleString()}
 
 ■ インフレ貢献度 (Token Strength Index)
 ${strengthRanking.join('\n') || "データ不足"}
 
 ■ エンチャント貢献度 (Enchant Strength Index)
-※ 特定のエンチャントが装備されている時の平均コンボ倍率です。
+※ 特定のエンチャントが装備されている時の最高コンボ倍率です。
 ${enchantRanking.join('\n') || "データ不足"}
 
 ■ 最強シナジー (Combo Multiplier Index)
 ${synergyRanking.join('\n') || "データ不足"}
 
-■ インフレ曲線 (サイクル毎の平均所持金)
-${inflationTrend.join('\n') || "データ不足"}
+■ パズル統計 (Puzzle Statistics)
+消去色割合: ${colorDistribution}
+特殊消去数: ${shapeDistribution}
+
+■ サイクル推移 (Cycle Trends)
+${cycleTrend.join('\n') || "データ不足"}
 
 ■ エラーレポート (発生件数: ${errors.length}件)
 ${errorSummary}
@@ -232,8 +275,27 @@ ${JSON.stringify(logs.slice(-5), null, 2)}`;
         <div className="absolute inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-8">
             <div className="bg-slate-800 w-full max-w-3xl h-[80vh] rounded-xl flex flex-col overflow-hidden border border-slate-600 shadow-2xl">
                <div className="p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center">
-                  <h2 className="text-white font-bold">AI バランスレポート</h2>
-                  <button onClick={() => setShowReport(false)} className="text-red-400 font-bold hover:text-white">✕ 閉じる</button>
+                  <h2 className="text-white font-bold flex items-center gap-2">
+                    <span className="material-icons-round text-[#00f0ff] text-xl">analytics</span>
+                    <span>AI バランスレポート</span>
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(getReportStats());
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }} 
+                      className="text-[#00f0ff] hover:text-white font-bold transition-colors flex items-center gap-1 text-sm bg-[#00f0ff]/10 hover:bg-[#00f0ff]/30 px-3 py-1.5 rounded-lg border border-[#00f0ff]/30"
+                    >
+                      <span className="material-icons-round text-[16px]">{copied ? 'check' : 'content_copy'}</span>
+                      {copied ? 'コピー完了！' : 'クリップボードにコピー'}
+                    </button>
+                    <button onClick={() => setShowReport(false)} className="text-red-400 font-bold hover:text-white flex items-center gap-1 bg-red-500/10 hover:bg-red-500/30 px-3 py-1.5 rounded-lg border border-red-500/30">
+                      <span className="material-icons-round text-[16px]">close</span>
+                      閉じる
+                    </button>
+                  </div>
                </div>
                <div className="p-4 overflow-auto flex-1">
                   <pre className="text-emerald-400 text-xs whitespace-pre-wrap font-mono">

@@ -186,7 +186,8 @@ export class AITester {
 
     // N回ランダムウォークして一番スコアが高いものを採用
     // 試行回数と手数を増やし、より高度な経路を発見可能にする
-    const ITERATIONS = 1500;
+    // マルチテスト時はCPU負荷を抑えるために試行回数を大幅に削る
+    const ITERATIONS = this.isMultiTest ? 150 : 500;
     const MAX_STEPS = 70;     // 移動距離をさらに強化
 
     for (let i = 0; i < ITERATIONS; i++) {
@@ -238,29 +239,29 @@ export class AITester {
     if (!this.isPlaying || this._abort || !this.engine) return;
     if (this.engine.processing || this.isExecuting) return; // 処理中なら待つ
 
-    this.isExecuting = true;
-    
-    // AIの「優先属性」を更新
-    this.preferredColors = this.preferredColors || [];
-    if (this.engine.tokens) {
-      const newPref = [];
-      this.engine.tokens.forEach(t => {
-        if (!t) return;
-        const name = t.name || "";
-        const effect = t.effect || "";
-        const combined = (name + effect).toLowerCase();
-        
-        if (combined.includes("炎") || combined.includes("火") || combined.includes("fire") || combined.includes("赤")) newPref.push(0);
-        if (combined.includes("水") || combined.includes("青") || combined.includes("water") || combined.includes("ice")) newPref.push(1);
-        if (combined.includes("風") || combined.includes("緑") || combined.includes("wind") || combined.includes("green")) newPref.push(2);
-        if (combined.includes("光") || combined.includes("黄") || combined.includes("light") || combined.includes("yellow")) newPref.push(3);
-        if (combined.includes("闇") || combined.includes("紫") || combined.includes("dark") || combined.includes("shadow")) newPref.push(4);
-        if (combined.includes("命") || combined.includes("ハート") || combined.includes("heart") || combined.includes("heal")) newPref.push(5);
-      });
-      this.preferredColors = [...new Set(newPref)];
-    }
-
     try {
+        this.isExecuting = true;
+        
+        // AIの「優先属性」を更新
+        this.preferredColors = this.preferredColors || [];
+        if (this.engine.tokens) {
+          const newPref = [];
+          this.engine.tokens.forEach(t => {
+            if (!t) return;
+            const name = t.name || "";
+            const effect = t.effect || "";
+            const combined = (name + effect).toLowerCase();
+            
+            if (combined.includes("炎") || combined.includes("火") || combined.includes("fire") || combined.includes("赤")) newPref.push(0);
+            if (combined.includes("水") || combined.includes("青") || combined.includes("water") || combined.includes("ice")) newPref.push(1);
+            if (combined.includes("風") || combined.includes("緑") || combined.includes("wind") || combined.includes("green")) newPref.push(2);
+            if (combined.includes("光") || combined.includes("黄") || combined.includes("light") || combined.includes("yellow")) newPref.push(3);
+            if (combined.includes("闇") || combined.includes("紫") || combined.includes("dark") || combined.includes("shadow")) newPref.push(4);
+            if (combined.includes("命") || combined.includes("ハート") || combined.includes("heart") || combined.includes("heal")) newPref.push(5);
+          });
+          this.preferredColors = [...new Set(newPref)];
+        }
+
         const path = this.findBestPath();
         if (path.length === 0) return;
 
