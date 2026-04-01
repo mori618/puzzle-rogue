@@ -2774,6 +2774,13 @@ const App = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowPause(true)}
+                className="flex items-center justify-center bg-slate-800/50 hover:bg-slate-700/50 w-8 h-8 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-all text-white"
+                aria-label="Pause"
+              >
+                <span className="material-icons-round text-sm">pause</span>
+              </button>
               <div className="flex items-center gap-2 bg-slate-800/50 px-2 py-1 rounded-full border border-white/10">
                 <span className="material-icons-round text-yellow-400 text-sm">star</span>
                 <span className="font-bold text-sm tracking-wide">{formatJapaneseNumber(stars)}</span>

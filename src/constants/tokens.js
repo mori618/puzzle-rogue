@@ -143,7 +143,7 @@ const ALL_TOKEN_BASES = [
 
   // --- スキル: 虹ドロップ生成 ---
   { id: "gen_rainbow_rand", name: "虹の創造", type: "skill", cost: 2, costLevels: true, action: "spawn_rainbow", params: { count: 1 }, rarity: 1, price: 6, desc: "ランダムなドロップ1つをカウント3の虹ドロップにする。消費E:{cost}", attributes: ["fire", "water", "wood", "light", "dark"], canBeInitial: true },
-  { id: "rainbow_masterx", name: "虹の極致", type: "skill", cost: 5, costLevels: true, action: "rainbow_master", params: { count: 1, to: 5 }, rarity: 3, price: 12, desc: "ランダムに虹ドロップを1つ生成し、盤面の全ての虹ドロップ의カウントを5にする。消費E:{cost}", attributes: ["fire", "water", "wood", "light", "dark"], canBeCurseReward: true },
+  { id: "rainbow_masterx", name: "虹の極致", type: "skill", cost: 5, costLevels: true, action: "rainbow_master", params: { count: 1, to: 5 }, rarity: 3, price: 12, desc: "ランダムに虹ドロップを1つ生成し、盤面の全ての虹ドロップのカウントを5にする。消費E:{cost}", attributes: ["fire", "water", "wood", "light", "dark"], canBeCurseReward: true },
 
   // --- スキル: 特殊（時間・倍率・チャージ・再落下）---
   {

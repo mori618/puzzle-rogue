@@ -57,7 +57,7 @@ const NormalItemCard = ({ item, stars, onBuy }) => {
     return (
         <div className="bg-surface-dark border border-white/5 rounded-xl p-3 flex items-center">
             <div className={`w-14 h-14 rounded-tr-lg rounded-br-lg bg-gradient-to-br ${styles.bg} border ${styles.border} flex items-center justify-center flex-shrink-0 relative`}>
-                <div className="absolute inset-0 rounded-tr-lg rounded-br-lg overflow-hidden">
+                <div className="absolute inset-0 rounded-tr-lg rounded-br-lg overflow-hidden flex items-center justify-center">
                     {/* 属性バー */}
                     <div 
                         className="absolute left-0 top-0 bottom-0 w-1 z-30" 
