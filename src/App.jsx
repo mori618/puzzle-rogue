@@ -2522,23 +2522,23 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         if (isActive && activeCount >= maxSlots) return notify(`アクティブスキルは${maxSlots}個までです`);
         if (!isActive && passiveCount >= maxSlots) return notify(`パッシブアイテムは${maxSlots}個までです`);
 
-        const emptyIdx = tokens.findIndex(t => t === null);
-        if (emptyIdx !== -1) {
-          setTokens((prev) => {
-            const next = [...prev];
+        setTokens((prev) => {
+          const next = [...prev];
+          const emptyIdx = next.findIndex(t => t === null);
+          if (emptyIdx !== -1) {
             next[emptyIdx] = { ...item, instanceId: Date.now() + Math.random() };
             return next;
-          });
-          setStars((s) => s - cost);
-          setTotalPurchases((p) => p + 1);
-          setTotalStarsSpent((prev) => prev + cost);
-          setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + cost }));
-          setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + cost }));
-          setShopItems((prev) => prev.filter((i) => i !== item));
-          notify("購入完了!");
-        } else {
-          notify("空きスロットがありません");
-        }
+          } else {
+            return [...next, { ...item, instanceId: Date.now() + Math.random() }];
+          }
+        });
+        setStars((s) => s - cost);
+        setTotalPurchases((p) => p + 1);
+        setTotalStarsSpent((prev) => prev + cost);
+        setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + cost }));
+        setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + cost }));
+        setShopItems((prev) => prev.filter((i) => i !== item));
+        notify("購入完了!");
       }
     }
   };
