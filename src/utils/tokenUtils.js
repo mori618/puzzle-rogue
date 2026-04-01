@@ -64,3 +64,78 @@ const getTokenDescription = (item, level, currentRunStats = null, currentTokens 
 };
 
 export { formatNum, getEffectiveCost, getTokenDescription };
+
+/**
+ * 属性リストから属性バーのスタイル（背景色やグラデーション）を生成する
+ */
+export const getAttributeBarStyles = (attributes) => {
+  if (!attributes || attributes.length === 0) {
+    return { background: '#ffffff' };
+  }
+  if (attributes.length === 1) {
+    return { background: `var(--color-attr-${attributes[0]})` };
+  }
+  // 複数属性の場合のグラデーション生成 (等分)
+  const stops = attributes.map((attr, i) => {
+    const start = (i / attributes.length) * 100;
+    const end = ((i + 1) / attributes.length) * 100;
+    const color = `var(--color-attr-${attr})`;
+    return `${color} ${start}%, ${color} ${end}%`;
+  }).join(', ');
+  return { background: `linear-gradient(to bottom, ${stops})` };
+};
+
+/**
+ * トークンの効果や属性に基づいて適切なアイコン名を返す
+ */
+export const getTokenIcon = (token) => {
+    if (!token) return 'help_outline';
+
+    // アクティブ呪いトークン (isCurse + type:'skill') は先に skull アイコンを返す
+    if (token.isCurse) return 'skull';
+
+    if (token.type === 'curse') return 'skull';
+
+    if (token.type === 'skill') {
+        const action = token.action;
+        if (action === 'refresh' || action === 'force_refresh') return 'refresh';
+        if (action === 'skyfall' || action === 'skyfall_limit') return 'cloud_download';
+        if (action === 'convert' || action === 'convert_multi') return 'swap_horiz';
+        if (action === 'board_change') return 'grid_view';
+        if (action === 'row_fix') return 'view_stream';
+        if (action === 'col_fix') return 'view_column';
+        if (action === 'spawn_random' || action === 'spawn_rainbow') return 'flare';
+        if (action === 'spawn_star' || action === 'convert_star') return 'stars';
+        if (action === 'spawn_repeat' || action === 'convert_repeat' || action === 'spawn_bomb_random' || action === 'convert_bomb_targeted') return 'settings_backup_restore';
+        if (action === 'chronos_stop') return 'timer_off';
+        if (action === 'temp_mult' || action === 'active_mult_1' || action === 'active_mult_2' || action === 'seal_of_power') return 'trending_up';
+        if (action === 'charge_boost') return 'battery_charging_full';
+        if (action === 'forbidden_temp') return 'block';
+        if (action === 'enhance_color') return 'auto_fix_high';
+        // アクティブ呪いスキル用（isCurse判定で上流に捕捉されるが念のため）
+        if (action === 'curse_op_time_fix') return 'timer';
+        if (action === 'curse_passive_null') return 'do_not_disturb_on';
+        return 'bolt';
+    }
+
+    if (token.type === 'passive') {
+        const effect = token.effect || token.id;
+        if (effect === 'time' || effect === 'time_ext') return 'hourglass_empty';
+        if (effect === 'power_up' || effect === 'stat_time_move') return 'fitness_center';
+        if (effect === 'collector' || effect === 'star_earn_boost') return 'savings';
+        if (effect === 'forbidden' || effect === 'dangerous') return 'block';
+        if (effect === 'bargain' || effect === 'shop_expand') return 'shopping_cart';
+        if (effect === 'percent') return 'percent';
+        if (effect === 'skip_master') return 'fast_forward';
+        if (effect === 'color_multiplier' || effect === 'color_count_bonus' || effect === 'filter_vintage') return 'filter_vintage';
+        if (effect === 'shape_bonus' || effect === 'category') return 'category';
+        if (effect === 'expand_board') return 'aspect_ratio';
+        if (effect.startsWith('stat_')) return 'query_stats';
+        return 'auto_awesome';
+    }
+
+    if (token.type === 'enchant_grant' || token.type === 'enchant_random') return 'auto_fix_high';
+    if (token.type === 'upgrade_random') return 'arrow_upward';
+
+    return 'star';
+};

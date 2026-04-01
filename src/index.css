@@ -25,6 +25,38 @@
 
   --font-display: "Spline Sans", sans-serif;
   --shadow-glow: 0 0 15px -3px rgba(91, 19, 236, 0.5);
+
+  /* Attribute Colors */
+  --color-attr-fire: var(--color-puzzle-red);
+  --color-attr-water: var(--color-puzzle-blue);
+  --color-attr-wood: var(--color-puzzle-green);
+  --color-attr-light: var(--color-puzzle-yellow);
+  --color-attr-dark: var(--color-puzzle-purple);
+  --color-attr-heart: var(--color-puzzle-pink);
+}
+
+.bg-attr-fire {
+  background-color: var(--color-attr-fire);
+}
+
+.bg-attr-water {
+  background-color: var(--color-attr-water);
+}
+
+.bg-attr-wood {
+  background-color: var(--color-attr-wood);
+}
+
+.bg-attr-light {
+  background-color: var(--color-attr-light);
+}
+
+.bg-attr-dark {
+  background-color: var(--color-attr-dark);
+}
+
+.bg-attr-heart {
+  background-color: var(--color-attr-heart);
 }
 
 @variant dark (&:where(.dark, .dark *));
@@ -179,7 +211,7 @@ body {
 }
 
 .orb-shape-dark span {
-  transform: rotate(45deg);
+  transform: rotate(180deg);
 }
 
 /* 入れ替え時のスナップ感を出すための短いtransition */
@@ -299,16 +331,18 @@ body {
   text-align: center;
   font-family: "Orbitron", "Inter", sans-serif;
   pointer-events: none;
+  width: 100%;
+  max-width: 95vw;
 }
 
 /* コンボ数字（大きく表示） */
 .combo-number {
-  font-size: clamp(2.5rem, 12vw, 5rem);
+  font-size: clamp(2rem, 10vw, 4rem);
   font-weight: 900;
   color: white;
-  line-height: 1;
+  line-height: 1.1;
   letter-spacing: -2px;
-  white-space: nowrap;
+  word-break: break-all;
   text-shadow:
     -2px -2px 0 var(--color-outline-stylish),
     2px -2px 0 var(--color-outline-stylish),
@@ -320,7 +354,7 @@ body {
 
 /* 最終値確定時のグロー強化 */
 .combo-number-final {
-  font-size: clamp(3rem, 15vw, 6rem);
+  font-size: clamp(2.5rem, 12vw, 5rem);
   color: #fbbf24;
   text-shadow:
     -3px -3px 0 white,
@@ -349,10 +383,11 @@ body {
 
 /* ボーナス加算表示 (+N) */
 .combo-bonus-add {
-  font-size: clamp(1.5rem, 8vw, 2.8rem);
+  font-size: clamp(1.2rem, 6vw, 2.4rem);
   font-weight: 950;
   color: #fbbf24;
-  line-height: 1;
+  line-height: 1.1;
+  word-break: break-all;
   text-shadow:
     -2px -2px 0 white,
     2px -2px 0 white,
@@ -364,10 +399,11 @@ body {
 
 /* 倍率表示 (×N) */
 .combo-bonus-mult {
-  font-size: clamp(1.5rem, 8vw, 2.8rem);
+  font-size: clamp(1.2rem, 6vw, 2.4rem);
   font-weight: 950;
   color: #f472b6;
-  line-height: 1;
+  line-height: 1.1;
+  word-break: break-all;
   text-shadow:
     -2px -2px 0 var(--color-outline-stylish),
     2px -2px 0 var(--color-outline-stylish),
@@ -783,4 +819,180 @@ body {
 /* 発光演出（金色） */
 .drop-shadow-glow {
   filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.4)) drop-shadow(0 0 15px rgba(250, 204, 21, 0.2));
+}
+
+/* === 特殊消しエフェクト === */
+
+.shape-effect {
+  position: absolute;
+  pointer-events: none;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 4つ消し: 四角形の火花 */
+.effect-len4 {
+  width: 60px;
+  height: 60px;
+  border: 2px solid #fff;
+  animation: effect-len4-anim 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes effect-len4-anim {
+  0% {
+    transform: scale(0.5) rotate(0deg);
+    opacity: 1;
+    border-width: 8px;
+  }
+
+  100% {
+    transform: scale(2) rotate(90deg);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+/* 十字消し: 十字方向に走る光 */
+.effect-cross {
+  width: 100%;
+  height: 100%;
+}
+
+.effect-cross::before,
+.effect-cross::after {
+  content: '';
+  position: absolute;
+  background: white;
+  box-shadow: 0 0 15px #fff, 0 0 30px var(--color-primary);
+}
+
+.effect-cross::before {
+  width: 200%;
+  height: 2px;
+  animation: effect-cross-h 0.6s ease-out forwards;
+}
+
+.effect-cross::after {
+  width: 2px;
+  height: 200%;
+  animation: effect-cross-v 0.6s ease-out forwards;
+}
+
+@keyframes effect-cross-h {
+  0% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+@keyframes effect-cross-v {
+  0% {
+    transform: scaleY(0);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+
+/* L字消し: 角のフラッシュ */
+.effect-l-shape {
+  width: 80px;
+  height: 80px;
+  border-left: 4px solid #fff;
+  border-bottom: 4px solid #fff;
+  filter: drop-shadow(0 0 10px #fff);
+  animation: effect-l-anim 0.5s ease-out forwards;
+}
+
+@keyframes effect-l-anim {
+  0% {
+    transform: scale(0.8) translate(10px, -10px);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.5) translate(-10px, 10px);
+    opacity: 0;
+  }
+}
+
+/* 横一列: ホリゾンタルライン */
+.effect-row {
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #fff, transparent);
+  box-shadow: 0 0 20px #fff;
+  animation: effect-row-anim 0.6s ease-in-out forwards;
+}
+
+@keyframes effect-row-anim {
+  0% {
+    transform: scaleY(0);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scaleY(3);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+}
+
+/* 四角消し: 枠の輝き */
+.effect-square {
+  border: 4px solid #fff;
+  box-shadow: 0 0 20px #fff, inset 0 0 20px #fff;
+  animation: effect-square-anim 0.6s ease-out forwards;
+}
+
+@keyframes effect-square-anim {
+  0% {
+    transform: scale(0.9);
+    opacity: 1;
+    border-width: 10px;
+  }
+
+  100% {
+    transform: scale(1.1);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+/* 5個消し以上: 円形ショックウェーブ */
+.effect-len5 {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 30px #fff;
+  animation: effect-len5-anim 0.5s ease-out forwards;
+}
+
+@keyframes effect-len5-anim {
+  0% {
+    transform: scale(0.1);
+    opacity: 1;
+    border-width: 20px;
+  }
+
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+    border-width: 1px;
+  }
 }

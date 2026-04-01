@@ -1,29 +1,8 @@
 import React from 'react';
+import { formatJapaneseNumber } from './utils/numberUtils.js';
+import { getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
 
-// アイテムのアイコンを決定するヘルパー
-const getItemIcon = (item) => {
-    if (item.type === 'skill') {
-        if (item.action === 'refresh' || item.action === 'force_refresh') return 'refresh';
-        if (item.action === 'skyfall' || item.action === 'skyfall_limit') return 'auto_awesome';
-        if (item.action === 'convert' || item.action === 'convert_multi') return 'bolt';
-        if (item.action === 'board_change') return 'grid_view';
-        if (item.action === 'row_fix') return 'splitscreen';
-        if (item.action === 'forbidden_temp') return 'block';
-        return 'bolt';
-    }
-    if (item.type === 'passive') {
-        if (item.id === 'time_ext') return 'hourglass_top';
-        if (item.id === 'power_up') return 'fitness_center';
-        if (item.id === 'collector') return 'savings';
-        if (item.id === 'forbidden') return 'dangerous';
-        if (item.id === 'bargain') return 'percent';
-        if (item.id === 'skip_master') return 'fast_forward';
-        return 'auto_awesome';
-    }
-    if (item.type === 'enchant_grant' || item.type === 'enchant_random') return 'auto_fix_high';
-    if (item.type === 'upgrade_random') return 'arrow_upward';
-    return 'star';
-};
+// 通常アイテムの背景・ボーダー色を返すヘルパー
 
 // 通常アイテムの背景・ボーダー色を返すヘルパー
 const getItemColors = (item) => {
@@ -77,8 +56,16 @@ const NormalItemCard = ({ item, stars, onBuy, testInstanceId }) => {
     const isAffordable = stars >= item.price;
     return (
         <div className="bg-surface-dark border border-white/5 rounded-xl p-3 flex items-center">
-            <div className={`w-14 h-14 rounded-lg bg-gradient-to-br ${styles.bg} border ${styles.border} flex items-center justify-center flex-shrink-0 relative overflow-hidden`}>
-                <span className={`material-icons-round ${styles.iconColor} text-2xl relative z-10`}>{getItemIcon(item)}</span>
+            <div className={`w-14 h-14 rounded-tr-lg rounded-br-lg bg-gradient-to-br ${styles.bg} border ${styles.border} flex items-center justify-center flex-shrink-0 relative`}>
+                <div className="absolute inset-0 rounded-tr-lg rounded-br-lg overflow-hidden">
+                    {/* 属性バー */}
+                    <div 
+                        className="absolute left-0 top-0 bottom-0 w-1 z-30" 
+                        style={getAttributeBarStyles(item.attributes)}
+                    />
+                    <span className={`material-icons-round ${styles.iconColor} text-2xl relative z-10`}>{getTokenIcon(item)}</span>
+                    {/* 属性丸は削除 */}
+                </div>
             </div>
             <div className="ml-3 flex-1">
                 <div className="flex items-center space-x-2">
@@ -202,10 +189,11 @@ const ShopScreen = ({
     const [activeTab, setActiveTab] = React.useState('normal');
 
     // 覚醒ショップの価格計算
-    const AWAKENING_TOKEN_SLOT_BASE_PRICE = 100;
-    const AWAKENING_TOKEN_SLOT_PRICE_STEP = 50;
-    const tokenSlotExpandPrice = AWAKENING_TOKEN_SLOT_BASE_PRICE + (tokenSlotExpansionCount || 0) * AWAKENING_TOKEN_SLOT_PRICE_STEP;
-    const currentMaxSlots = 5 + (tokenSlotExpansionCount || 0);
+    const AWAKENING_TOKEN_SLOT_PRICES = [100, 500, 2000, 10000, 50000];
+    const tokenSlotExpCount = tokenSlotExpansionCount || 0;
+    const isTokenSlotMaxed = tokenSlotExpCount >= 5;
+    const tokenSlotExpandPrice = isTokenSlotMaxed ? 0 : (AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpCount, 4)] || 50000);
+    const currentMaxSlots = 5 + tokenSlotExpCount;
     const nextMaxSlots = currentMaxSlots + 1;
 
     // アイテムをカテゴリごとに分類
@@ -256,7 +244,7 @@ const ShopScreen = ({
                             <span className="material-icons-round">pause</span>
                         </button>
                         <span className="material-icons-round text-gold text-lg animate-pulse">star</span>
-                        <span className="text-lg font-bold tracking-wide">{stars.toLocaleString()}</span>
+                        <span className="text-lg font-bold tracking-wide">{formatJapaneseNumber(stars)}</span>
                     </div>
                 </div>
 
@@ -459,13 +447,14 @@ const ShopScreen = ({
                             id={`ai-shop-buy-${testInstanceId}-awakening-token-slot`}
                             icon="add_box"
                             title="トークン所持枠の拡張"
-                            desc={`トークンの最大所持枠を ${currentMaxSlots} → ${nextMaxSlots} に拡張します。購入するごとに価格が ${AWAKENING_TOKEN_SLOT_PRICE_STEP}★ 上昇します。`}
+                            desc={isTokenSlotMaxed ? `トークンの最大所持枠はこれ以上拡張できません。` : `トークンの最大所持枠を ${currentMaxSlots} → ${nextMaxSlots} に拡張します。購入するごとに価格が大幅に上昇します。`}
                             price={tokenSlotExpandPrice}
                             stars={stars}
                             onBuy={() => onAwakeningBuy('expand_token_slots')}
-                            disabled={false}
+                            disabled={isTokenSlotMaxed}
+                            disabledReason={isTokenSlotMaxed ? "最大拡張済み (上限10枠)" : null}
                             color="amber"
-                            badgeText={`現在 ${currentMaxSlots} 枠`}
+                            badgeText={isTokenSlotMaxed ? `最大拡張済 (10枠)` : `現在 ${currentMaxSlots} 枠`}
                         />
                     </div>
                 )}

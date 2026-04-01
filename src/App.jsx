@@ -1,7 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Star as StarIcon,
-} from "lucide-react";
 import ShopScreen from "./ShopScreen";
 import TitleScreen from "./TitleScreen";
 import PauseScreen from "./PauseScreen";
@@ -9,10 +6,12 @@ import HelpScreen from "./HelpScreen";
 import StatsScreen from "./StatsScreen";
 import CreditsScreen from "./CreditsScreen";
 import SettingsScreen from "./SettingsScreen";
+import StartOptionScreen from "./StartOptionScreen";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, getEnchantDescription, ENCHANTMENTS } from './constants/enchantments.js';
-import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS } from './constants/gameConstants.js';
-import { formatNum, getEffectiveCost, getTokenDescription } from './utils/tokenUtils.js';
+import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_GROWTH_FACTOR } from './constants/gameConstants.js';
+import { formatNum, getEffectiveCost, getTokenDescription, getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
+import { formatJapaneseNumber } from './utils/numberUtils.js';
 import { PuzzleEngine } from './engine/PuzzleEngine.js';
 import { AITester } from './utils/AITester.js';
 const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = false, onStartMultiTest = null }) => {
@@ -55,6 +54,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
   const [showShop, setShowShop] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
+  const [showStartOption, setShowStartOption] = useState(false);
   const [savedBoard, setSavedBoard] = useState(null);
 
   // --- ゲーム設定 ---
@@ -105,6 +105,10 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     currentShapeRow: 0,
     currentShapeLShape: 0,
     currentShapeSquare: 0,
+    totalHeartsErased: 0,
+    totalStarsEarned: 0,
+    tokensSold: 0,
+    skipsPerformed: 0,
   };
   const [currentRunStats, setCurrentRunStats] = useState(initialCurrentRunStats);
   // const [isLuxury, setIsLuxury] = useState(false); // Unused
@@ -147,6 +151,9 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
   const passiveSwipeRef = useRef(null);
   const activeSwipeRef = useRef(null);
 
+  // --- Drag and Drop State ---
+  const [draggedToken, setDraggedToken] = useState(null);
+
 
   const timerRef = useRef(null);
   
@@ -167,6 +174,27 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
 
   const loopStateRef = useRef({});
   const comboRef = useRef(null);
+
+  const getCurseProgress = (t) => {
+    // type:'curse' もしくは isCurse:true のトークンが対象
+    if (!t || (t.type !== 'curse' && !t.isCurse)) return null;
+    const cond = t.condition;
+    const target = t.targetValue || 1;
+    let current = 0;
+    switch (cond) {
+      case 'clears': current = currentRunStats.currentClears || 0; break;
+      case 'heart_erase': current = currentRunStats.totalHeartsErased || 0; break;
+      case 'total_combo': current = currentRunStats.currentTotalCombo || 0; break;
+      case 'total_stars': current = currentRunStats.totalStarsEarned || 0; break;
+      case 'max_combo': current = currentRunStats.maxCombo || 0; break;
+      case 'tokens_sold': current = currentRunStats.tokensSold || 0; break;
+      case 'skips_performed': current = currentRunStats.skipsPerformed || 0; break;
+      // アクティブ呪いトークン用: このスキルの使用回数はトークン自身が持つ curseUses フィールドを参照
+      case 'skill_uses': current = t.curseUses || 0; break;
+      default: break;
+    }
+    return { current, target, percent: Math.min(100, (current / target) * 100) };
+  };
   const engineRef = useRef(null);
   const handleTurnEndRef = useRef(null);
   const onPassiveTriggerRef = useRef(null);
@@ -175,8 +203,27 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
   const skipTurnProgressRef = useRef(false);
   const lastProcessingTimeRef = useRef(0);
 
+  // --- 価格計算ヘルパー ---
+  const getTokenDynamicPrice = useCallback((baseToken, currentTokens) => {
+    if (!baseToken || baseToken.price === undefined) return 0;
+    
+    // 所持数のカウント (アクティブ: skill, curse / パッシブ: passive)
+    let possessionCount = 0;
+    if (baseToken.type === 'skill' || baseToken.type === 'curse' || baseToken.isCurse) {
+      possessionCount = currentTokens.filter(t => t && (t.type === 'skill' || t.type === 'curse' || t.isCurse)).length;
+    } else if (baseToken.type === 'passive') {
+      possessionCount = currentTokens.filter(t => t && t.type === 'passive').length;
+    }
+
+    // 指数関数的な上昇: basePrice * (growthFactor ^ count)
+    const dynamicPrice = Math.floor(baseToken.price * Math.pow(TOKEN_PRICE_GROWTH_FACTOR, possessionCount));
+    return Math.max(1, dynamicPrice); // 最低1
+  }, []);
+
   // Derived
   const hasGiantDomain = tokens.some((t) => t?.id === "giant" || t?.enchantments?.some(e => e?.effect === "expand_board"));
+  const hasDoubleTargetCurse = tokens.some((t) => t?.id === "curse_double_target");
+  const effectiveTarget = hasDoubleTargetCurse ? target * 2 : target;
   // NOTE: Changing board size forces re-init.
   const rows = hasGiantDomain ? 6 : 5;
   const cols = hasGiantDomain ? 7 : 6;
@@ -187,6 +234,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       if (t?.effect === "picky_eater") return acc + (t.values[(t.level || 1) - 1] || 0);
       return acc;
     }, 0)
+    - (tokens.some(t => t?.id === "curse_turns") ? 1 : 0)
   );
 
   const minMatchLength = tokens.some(t => t?.effect === "min_match") ? 2 : 3;
@@ -196,9 +244,9 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, 
       isEnchantShopUnlocked, showShop, showTitle, isLoaded, autoPlayActive, isGameOver, goalReached,
       hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest,
-      currentRunStats, target, turn, maxTurns, showGameClear
+      currentRunStats, target, turn, maxTurns, showGameClear, showStartOption
     };
-  }, [stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, isEnchantShopUnlocked, showShop, showTitle, isLoaded, autoPlayActive, isGameOver, goalReached, hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest, currentRunStats, target, turn, maxTurns, showGameClear]);
+  }, [stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, isEnchantShopUnlocked, showShop, showTitle, isLoaded, autoPlayActive, isGameOver, goalReached, hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest, currentRunStats, target, turn, maxTurns, showGameClear, showStartOption]);
 
   // --- Load Save Data ---
   useEffect(() => {
@@ -231,6 +279,9 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         setIsEnchantShopUnlocked(parsed.isEnchantShopUnlocked || false);
         setTokenSlotExpansionCount(parsed.tokenSlotExpansionCount || 0);
         setIsAwakeningLevelUpBought(parsed.isAwakeningLevelUpBought || false);
+        if (parsed.currentRunStats) {
+          setCurrentRunStats(parsed.currentRunStats);
+        }
         if (parsed.shopItems) {
           setShopItems(parsed.shopItems);
         } else if (!parsed.isGameOver) {
@@ -314,13 +365,14 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       isEnchantShopUnlocked,
       tokenSlotExpansionCount,
       isAwakeningLevelUpBought,
+      currentRunStats,
       board: engineRef.current ? engineRef.current.getState() : (savedBoard || null)
     };
 
     localStorage.setItem(instanceSaveKey, JSON.stringify(saveObj));
     setHasSaveData(true);
 
-  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, isAwakeningLevelUpBought]);
+  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, isAwakeningLevelUpBought, currentRunStats]);
 
   // --- Auto Save Stats ---
   useEffect(() => {
@@ -377,6 +429,16 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     if (hasDesperateStance) {
       return 4000;
     }
+    // 刹那の呪縛バフ: 操作時間を指定ms（デフォルト1000ms）に固定
+    const curseTimeFixBuff = activeBuffs.find(b => b?.action === "curse_op_time_fix");
+    if (curseTimeFixBuff) {
+      return curseTimeFixBuff.params?.timeMs ?? 1000;
+    }
+    // 焦燥の刻印: 操作時間4秒固定
+    if (tokens.some(t => t?.id === "curse_time")) {
+      return 4000;
+    }
+
     let base = 5000 + (sandsOfTimeSeconds * 1000);
     tokens.forEach((t) => {
       if (t?.effect === "time") base += (t.values[(t.level || 1) - 1] * 1000);
@@ -540,7 +602,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         stars, shopItems, tokens, activeBuffs, isAwakeningLevelUpBought, 
         isEnchantShopUnlocked, showShop, showTitle, isGameOver, goalReached,
         hasSaveData, pendingShopItem, shopRerollPrice, testInstanceId, isMultiTest,
-        currentRunStats, turn, maxTurns, showGameClear
+        currentRunStats, turn, maxTurns, showGameClear, showStartOption
       } = state;
       
       try {
@@ -619,8 +681,16 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
             logAIRunData();
             aiLoopTrackingRef.current.lastLoggedGameOver = true;
           }
-          setShowTitle(true);
-          setIsGameOver(false);
+          const retryBtnId = `ai-gameover-retry-${testInstanceId}`;
+          const clicked = aiTesterRef.current.clickUIElement(retryBtnId);
+          if (!clicked && aiControlRef.current?.handleGiveUp) {
+            aiControlRef.current.handleGiveUp();
+          }
+        } else if (showStartOption) {
+          const options = ["safety", "solid", "challenge"];
+          const choice = options[Math.floor(Math.random() * options.length)];
+          const optionId = `ai-start-option-${choice}-${testInstanceId}`;
+          aiTesterRef.current.clickUIElement(optionId);
         } else if (goalReached) {
           const currentCycle = currentRunStats.currentClears + 1;
           if (aiLoopTrackingRef.current.lastLoggedCycle < currentCycle) {
@@ -749,6 +819,10 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         }
         return t;
       });
+
+      const hasForbiddenLiteral = effectiveTokens.some((t) => t?.id === "forbidden" || t?.effect === "forbidden");
+      const hasCurseSkyfall = effectiveTokens.some((t) => t?.id === "curse_skyfall" || t?.effect === "curse_skyfall");
+      engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall;
 
       const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
 
@@ -945,13 +1019,23 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
   // const [debugLog, setDebugLog] = useState(null);
 
   const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0, erasedByRepeatTotal = 0, erasedByStarTotal = 0, isAllClear = false) => {
-    const tc = Number(turnCombo) || 0;
+    let tc = Number(turnCombo) || 0;
+
+    // 絶望の癒し: ハートドロップを消してもコンボが増えなくなる
+    const isCurseHeartActive = tokens.some(t => t?.id === "curse_heart");
+    if (isCurseHeartActive) {
+      const heartMatches = colorComboCounts["heart"] || 0;
+      tc = Math.max(0, tc - heartMatches);
+    }
+
     setLastTurnCombo(tc);
     setLastErasedColorCounts(erasedColorCounts);
+
     let bonus = 0;
     let multiplier = 1;
     let timeMultiplier = 1; // 次手の操作時間倍率
     const matchedColorSet = new Set(Object.keys(colorComboCounts).filter(k => colorComboCounts[k] > 0));
+    if (isCurseHeartActive) matchedColorSet.delete("heart");
 
     const effectiveTokens = tokens.map((t, index) => {
       if (!t) return t;
@@ -962,8 +1046,36 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     });
 
     const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
+    // 虚無の封印バフ: 1ターン間、全パッシブ効果を無効にする
+    const isCursePassiveNull = activeBuffs.some(b => b?.action === "curse_passive_null");
     const animationMode = settings?.comboAnimationMode || 'instant';
     const isInstant = animationMode === 'instant';
+
+    // 限界突破（limit_breaker）の判定
+    let limitBreakerLevel = 0;
+    effectiveTokens.forEach(t => {
+      if (t && t.effect === "limit_break") {
+        const lv = t.level || 1;
+        if (lv > limitBreakerLevel) limitBreakerLevel = lv;
+      }
+    });
+
+    // 汎用: 上限キャップ適用関数
+    const applyMultiplierCap = (baseVal, token) => {
+      if (!token || !token.maxMultipliers) return baseVal;
+      const lv = token.level || 1;
+      let limit = token.maxMultipliers[lv - 1];
+      if (limit === undefined) return baseVal;
+
+      if (limitBreakerLevel === 1) limit *= 2;
+      else if (limitBreakerLevel === 2) limit *= 5;
+      else if (limitBreakerLevel >= 3) limit = Infinity;
+
+      if (baseVal > limit) {
+        return limit;
+      }
+      return baseVal;
+    };
 
     const logData = {
       tokens: effectiveTokens,
@@ -988,6 +1100,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
 
     effectiveTokens.forEach((t) => {
       if (!t) return;
+      // 虚無の封印が発動中の場合、パッシブトークンの効果を無効化
+      if (isCursePassiveNull && t.type === 'passive') return;
 
       const lv = t.level || 1;
       const enchList = isEnchantDisabled ? [] : (t?.enchantments || []);
@@ -1040,7 +1154,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           const count = shapes.filter(s => s === targetShape).length;
           if (count > 0) {
             // 個数分だけ倍率を乗算 (例: 1.2のcount乗)
-            const totalMult = Math.pow(val || 1.0, count);
+            let totalMult = Math.pow(val || 1.0, count);
+            totalMult = applyMultiplierCap(totalMult, t);
             multiplier *= totalMult;
             logData.multipliers.push(`${effect}:${val}^${count}=x${totalMult.toFixed(2)}`);
             logData.multiplierSteps.push({ label: tokenName || effect, value: totalMult, tokenId });
@@ -1110,7 +1225,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
               }
             }
             // 個数分だけ倍率を乗算 (例: 1.2のcount乗)
-            const totalMult = Math.pow(val || 1.0, count);
+            let totalMult = Math.pow(val || 1.0, count);
+            totalMult = applyMultiplierCap(totalMult, t);
             multiplier *= totalMult;
             logData.multipliers.push(`${effect}:${val}^${count}=x${totalMult.toFixed(2)}`);
             logData.multiplierSteps.push({ label: tokenName || effect, value: totalMult, tokenId });
@@ -1180,7 +1296,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       // --- 新規: 星3トークン数×コンボ倍率 ---
       if (t.effect === "star_count_combo_mult") {
         const rarity3Count = tokens.filter(tok => tok?.rarity === 3).length;
-        const v = Math.pow(t.values?.[lv - 1] || 1, rarity3Count);
+        let v = Math.pow(t.values?.[lv - 1] || 1, rarity3Count);
+        v = applyMultiplierCap(v, t);
         if (v > 1) {
           multiplier *= v;
           logData.multipliers.push(`star3_mult_boost:x${v.toFixed(2)}`);
@@ -1204,7 +1321,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       if (t.effect === "level3_count_combo_mult") {
         const level3Count = tokens.filter(tok => tok?.level === 3).length;
         const base = t.values?.[lv - 1] || 1;
-        const v = level3Count * base;
+        let v = level3Count * base;
+        v = applyMultiplierCap(v, t);
         if (v > 1) {
           if (isInstant) triggerPassive(tId);
           multiplier *= v;
@@ -1216,7 +1334,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       // --- 新規: スタードロップ消去数×倍率 (パッシブ) ---
       if (t.effect === "star_erase_mult" && erasedByStarTotal > 0) {
         const baseMult = t.values?.[lv - 1] || 1.0;
-        const multVal = erasedByStarTotal * baseMult;
+        let multVal = erasedByStarTotal * baseMult;
+        multVal = applyMultiplierCap(multVal, t);
         if (multVal > 1) {
           if (isInstant) triggerPassive(tId);
           multiplier *= multVal;
@@ -1234,7 +1353,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       // エンチャントによる倍率アップ（全トークンのエンチャント数をカウントして適用）
       if (t.effect === "enchant_count_combo_mult") {
         const enchantCount = isEnchantDisabled ? 0 : tokens.reduce((sum, tok) => sum + (tok?.enchantments?.length || 0), 0);
-        const v = Math.pow(t.values?.[lv - 1] || 1, enchantCount);
+        let v = Math.pow(t.values?.[lv - 1] || 1, enchantCount);
+        v = applyMultiplierCap(v, t);
         if (v > 1) {
           if (isInstant) triggerPassive(tId);
           multiplier *= v;
@@ -1246,7 +1366,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       // --- 新規: ボム消去数×倍率 (パッシブ) ---
       if (t.effect === "bomb_erase_mult" && erasedByBombTotal > 0) {
         const baseMult = t.values?.[lv - 1] || 1.2;
-        const v = erasedByBombTotal * baseMult;
+        let v = erasedByBombTotal * baseMult;
+        v = applyMultiplierCap(v, t);
         if (isInstant) triggerPassive(tId);
         multiplier *= v;
         logData.multipliers.push(`bomb_erase_mult:x${formatNum(v)}`);
@@ -1256,7 +1377,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       // --- 新規: リピートドロップ消去数×倍率 (パッシブ) ---
       if (t.effect === "repeat_combo_mult" && erasedByRepeatTotal > 0) {
         const baseMult = t.values?.[lv - 1] || 1.3;
-        const v = erasedByRepeatTotal * baseMult;
+        let v = erasedByRepeatTotal * baseMult;
+        v = applyMultiplierCap(v, t);
         if (isInstant) triggerPassive(tId);
         multiplier *= v;
         logData.multipliers.push(`repeat_combo_mult:x${formatNum(v)}`);
@@ -1309,7 +1431,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           }
           if (shape === "square") {
             // 四方の型: コンボ倍率
-            const totalMult = Math.pow(v, matchCount);
+            let totalMult = Math.pow(v, matchCount);
+            totalMult = applyMultiplierCap(totalMult, t);
             multiplier *= totalMult;
             logData.multipliers.push(`shape_square:mult_x${v}_count_${matchCount}`);
             logData.multiplierSteps.push({ label: t.name || '四方の型', value: totalMult, tokenId: tId });
@@ -1330,7 +1453,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       }
 
       // Multipliers
-      if (t.id === "forbidden") {
+      if (t.id === "forbidden" || t.effect === "forbidden") {
         const v = t.values?.[lv - 1] || 1;
         if (isInstant) triggerPassive(t.instanceId || t.id);
         multiplier *= v;
@@ -1432,7 +1555,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       // 金満の暴力: スター数に依存した倍率加算
       if (t.effect === "greed_power") {
         const threshold = t.values?.[lv - 1] || 10;
-        const greedBonus = Math.floor(stars / threshold);
+        let greedBonus = Math.floor(stars / threshold);
+        greedBonus = applyMultiplierCap(greedBonus, t);
         if (greedBonus > 0) {
           if (isInstant) triggerPassive(tId);
           multiplier += greedBonus;
@@ -1465,7 +1589,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         const v = t.values?.[lv - 1] || 0.1;
         const maxMult = currentRunStats.maxComboMultiplier || 1;
         if (maxMult > 1) {
-          const m = 1 + (maxMult * v);
+          let m = 1 + (maxMult * v);
+          m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
           logData.multipliers.push(`stat_mult_余韻:x${formatNum(m)}`);
@@ -1476,7 +1601,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         const v = t.values?.[lv - 1] || 1.1;
         const count = Math.floor((currentRunStats.currentTotalCombo || 0) / 100);
         if (count > 0) {
-          const m = Math.pow(v, count);
+          let m = Math.pow(v, count);
+          m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
           logData.multipliers.push(`stat_mult_千手:x${formatNum(m)}`);
@@ -1495,7 +1621,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         const rowCountInTurn = shapes.filter(s => s === "row").length;
         const count = Math.floor((currentRunStats.currentShapeRow || 0) / 5);
         if (count > 0 && rowCountInTurn > 0) {
-          const m = Math.pow(Math.pow(v, count), rowCountInTurn);
+          let m = Math.pow(Math.pow(v, count), rowCountInTurn);
+          m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
           logData.multipliers.push(`stat_shape_row:x${formatNum(m)}`);
@@ -1507,7 +1634,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         const squareCountInTurn = shapes.filter(s => s === "square").length;
         const count = Math.floor((currentRunStats.currentShapeSquare || 0) / 5);
         if (count > 0 && squareCountInTurn > 0) {
-          const m = Math.pow(Math.pow(v, count), squareCountInTurn);
+          let m = Math.pow(Math.pow(v, count), squareCountInTurn);
+          m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
           logData.multipliers.push(`stat_shape_square:x${formatNum(m)}`);
@@ -1518,7 +1646,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         const v = t.values?.[lv - 1] || 1.1;
         const count = Math.floor((currentRunStats.currentStarsSpent || 0) / 50);
         if (count > 0) {
-          const m = Math.pow(v, count);
+          let m = Math.pow(v, count);
+          m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
           logData.multipliers.push(`stat_spend_star:x${formatNum(m)}`);
@@ -1572,6 +1701,14 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     });
 
     logData.finalMultiplier = multiplier;
+
+    // 脆弱の断層: コンボ数が半分になる (倍率 0.5)
+    if (tokens.some(t => t?.id === "curse_half")) {
+      multiplier *= 0.5;
+      logData.multipliers.push("curse_half:x0.5");
+      logData.multiplierSteps.push({ label: '脆弱の断層', value: 0.5 });
+    }
+
     logData.finalBonus = bonus;
     // setDebugLog(logData);
 
@@ -1644,7 +1781,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           const sign = stepValue >= 0 ? '+' : '';
           const prevVal = Math.max(0, currentVal - stepValue);
           const safePrevVal = isNaN(prevVal) ? 0 : prevVal;
-          eEl.innerHTML = `<span class="combo-number">${safePrevVal.toLocaleString()}</span><span class="combo-bonus-add">${sign}${stepValue.toLocaleString()}<span class="combo-step-label"> ${step.label}</span></span>`;
+          eEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(safePrevVal)}</span><span class="combo-bonus-add">${sign}${formatJapaneseNumber(stepValue)}<span class="combo-step-label"> ${step.label}</span></span>`;
           eEl.classList.remove('animate-combo-pop');
           void eEl.offsetWidth;
           eEl.classList.add('animate-combo-pop');
@@ -1662,7 +1799,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           currentVal = Math.min(Math.floor(prevVal * safeStepValue), MAX_COMBO);
           const eEl = comboRef.current;
           const roundedV = formatNum(safeStepValue);
-          eEl.innerHTML = `<span class="combo-number">${prevVal.toLocaleString()}</span><span class="combo-bonus-mult">×${roundedV}<span class="combo-step-label"> ${step.label}</span></span>`;
+          eEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(prevVal)}</span><span class="combo-bonus-mult">×${roundedV}<span class="combo-step-label"> ${step.label}</span></span>`;
           eEl.classList.remove('animate-combo-pop');
           void eEl.offsetWidth;
           eEl.classList.add('animate-combo-pop');
@@ -1673,7 +1810,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         await new Promise(r => setTimeout(r, 300));
         if (comboRef.current) {
           const safeCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
-          comboRef.current.innerHTML = `<span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">COMBO</span>`;
+          comboRef.current.innerHTML = `<span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
           comboRef.current.classList.remove('animate-combo-pop');
           comboRef.current.classList.add('animate-combo-pulse');
           void comboRef.current.offsetWidth;
@@ -1753,17 +1890,19 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         extraStarsPerStarDropErase += t.values?.[(t.level || 1) - 1] || 0;
       }
     });
-    const starThreshold = Math.max(1, 5 - totalReduction);
+    const isCurseInitActive = tokens.some(t => t?.id === "curse_init");
+    const baseStarThreshold = Math.max(1, 5 - totalReduction);
+    const starThreshold = isCurseInitActive ? baseStarThreshold + 1 : baseStarThreshold;
 
-    // 累積方式に変更
     const currentProgress = starProgress + effectiveCombo;
-    let totalStarsEarned = starThreshold > 0 ? Math.floor(currentProgress / starThreshold) : 0;
+    const totalStarsEarned = starThreshold > 0 ? Math.floor(currentProgress / starThreshold) : 0;
     const nextProgress = starThreshold > 0 ? currentProgress % starThreshold : 0;
 
     setStarProgress(nextProgress);
 
     if (totalStarsEarned > 0) {
       setStars((s) => s + totalStarsEarned);
+      setCurrentRunStats(prev => ({ ...prev, totalStarsEarned: (prev.totalStarsEarned || 0) + totalStarsEarned }));
       notify(`+ ${totalStarsEarned} STARS!`);
 
       // 黄金の収集者を跳ねさせる
@@ -1776,7 +1915,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
 
     setCycleTotalCombo(prev => {
       const updated = prev + effectiveCombo;
-      if (updated >= target) {
+      if (updated >= effectiveTarget) {
         setGoalReached(prevGoalReached => {
           if (!prevGoalReached) {
             setShopRerollPrice(shopRerollBasePrice);
@@ -1822,6 +1961,21 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       });
     });
 
+    // --- 呪いの浄化判定 ---
+    const heartsErasedThisTurn = erasedColorCounts["heart"] || 0;
+    setCurrentRunStats(prev => {
+      const nextHearts = (prev.totalHeartsErased || 0) + heartsErasedThisTurn;
+      const nextStats = { ...prev, totalHeartsErased: nextHearts };
+
+          // 条件達成チェック
+          setTokens(currentTokens => {
+            // 自動浄化は行わず、UIで解除可能であることを示すように変更
+            return currentTokens;
+          });
+
+          return nextStats;
+        });
+
     if (!skipTurnProgressRef.current) {
       setActiveBuffs((prev) =>
         prev
@@ -1838,8 +1992,9 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
 
     // Reset or persist noSkyfall based on passive tokens
     if (engineRef.current) {
-      const hasForbiddenLiteral = tokens.some((t) => t?.id === "forbidden");
-      engineRef.current.noSkyfall = hasForbiddenLiteral;
+      const hasForbiddenLiteral = tokens.some((t) => t?.id === "forbidden" || t?.effect === "forbidden");
+      const hasCurseSkyfall = tokens.some((t) => t?.id === "curse_skyfall" || t?.effect === "curse_skyfall");
+      engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall;
     }
 
     skipTurnProgressRef.current = false;
@@ -1933,6 +2088,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     setTarget((t) => Math.min(Math.floor(t * 1.5) + 2, MAX_TARGET));
     setGoalReached(false);
     setSkippedTurnsBonus(0);
+    setCurrentRunStats(prev => ({ ...prev, currentClears: (prev.currentClears || 0) + 1 }));
     setStarProgress(0); // Reset progress if needed or keep it? Keeping it feels better but usually resets per cycle
 
     // Update shop reroll prices
@@ -1984,6 +2140,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     setStars((s) => s + bonus);
     notify(`SKIP BONUS: +${bonus} STARS!`);
     setSkippedTurnsBonus(prev => prev + remainingTurns);
+    setCurrentRunStats(prev => ({ ...prev, skipsPerformed: (prev.skipsPerformed || 0) + 1 }));
 
     // Force turn to end state to trigger Clear Overlay
     setTurn(maxTurns + 1);
@@ -2034,7 +2191,51 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     });
     setCurrentRunStats(initialCurrentRunStats);
     setCurrentRunStats(prev => ({ ...prev, currentPlays: 1 })); // Plays is always 1 for the current run
-    notify("NEW GAME STARTED!");
+
+    // 開始スタイルによって初期スターを調整
+    // 無の対価 の場合は0、それ以外は5
+  };
+
+  const handleStartOptionSelection = (option) => {
+    resetGame();
+    setShowStartOption(false);
+    setShowTitle(false);
+
+    if (option === 'safety') {
+      // 安全: 操作時間3秒延長、初期候補(canBeInitial)から星1トークン
+      setSandsOfTimeSeconds(3);
+      let star1Pool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.canBeInitial && t.type !== 'curse');
+      if (star1Pool.length === 0) star1Pool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type !== 'curse');
+      
+      const randomToken = star1Pool[Math.floor(Math.random() * star1Pool.length)];
+      setTokens([{ ...randomToken, instanceId: Date.now() + Math.random(), level: 1, charge: randomToken.cost || 0 }]);
+      notify("「安全」スタイルで開始しました (+3s, 星1トークン)");
+    } else if (option === 'solid') {
+      // 堅実: 初期候補(canBeInitial)から星2パッシブ
+      let star2PassivePool = ALL_TOKEN_BASES.filter(t => (t.rarity === 2 || t.rarity === 1) && t.type === 'passive' && t.canBeInitial && t.type !== 'curse');
+      if (star2PassivePool.length === 0) star2PassivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 2 && t.type === 'passive' && t.type !== 'curse');
+      
+      const randomToken = star2PassivePool[Math.floor(Math.random() * star2PassivePool.length)];
+      setTokens([{ ...randomToken, instanceId: Date.now() + Math.random(), level: 1 }]);
+      setStars(5);
+      notify("「堅実」スタイルで開始しました (星2パッシブ)");
+    } else if (option === 'challenge') {
+      // 挑戦: 呪い、初期スター0
+      // type:'curse' または isCurse:true のトークンをプールとして選ぶ
+      const cursePool = ALL_TOKEN_BASES.filter(t => t.type === 'curse' || t.isCurse === true);
+      const randomCurse = cursePool[Math.floor(Math.random() * cursePool.length)];
+      // isCurseトークン（スキル型呪い）はチャージ0で開始
+      const initCharge = randomCurse.isCurse ? 0 : (randomCurse.charge ?? undefined);
+      const initToken = { ...randomCurse, instanceId: Date.now() + Math.random() };
+      if (randomCurse.isCurse) initToken.charge = 0;
+      setTokens([initToken]);
+      setStars(0);
+      notify("「挑戦」スタイルで開始しました (呪い獲得, 0★)");
+    }
+
+    if (engineRef.current) {
+      engineRef.current.init(null);
+    }
   };
 
 
@@ -2047,6 +2248,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
   const handleGiveUp = () => {
     setIsGameOver(false);
     resetGame();
+    setShowStartOption(true);
   };
 
   const notify = (text) => {
@@ -2150,6 +2352,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       const pool = pools[rarity];
       const base = pool[Math.floor(Math.random() * pool.length)];
       const item = { ...base, level: 1, charge: base.cost || 0 };
+      item.price = getTokenDynamicPrice(base, tokens); // 動的価格を適用
       item.desc = getTokenDescription(item, 1, currentRunStats, tokens, activeBuffs);
       // エンチャント付きでのトークン販売は廃止
       return item;
@@ -2340,12 +2543,12 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     }
   };
 
-  // --- \u899a\u9192\u30b7\u30e7\u30c3\u30d7\u306e\u8cfc\u5165\u51e6\u7406 ---
-  const AWAKENING_TOKEN_SLOT_BASE_PRICE = 100; // \u30c8\u30fc\u30af\u30f3\u67a0\u62e1\u5f35\u306e\u521d\u671f\u4fa1\u683c
-  const AWAKENING_TOKEN_SLOT_PRICE_STEP = 50;  // \u8cfc\u5165\u3054\u3068\u306b\u4e0a\u6607\u3059\u308b\u91d1\u984d
+  // --- 覚醒ショップの購入処理 ---
+  const AWAKENING_TOKEN_SLOT_PRICES = [100, 500, 2000, 10000, 50000];
 
-  const getTokenSlotExpandPrice = () =>
-    AWAKENING_TOKEN_SLOT_BASE_PRICE + tokenSlotExpansionCount * AWAKENING_TOKEN_SLOT_PRICE_STEP;
+  const getTokenSlotExpandPrice = () => {
+    return AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpansionCount, 4)] || 50000;
+  };
 
   const buyAwakeningItem = (type) => {
     if (isMultiTest) {
@@ -2356,9 +2559,9 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     switch (type) {
       case 'random_levelup': {
         const price = 5;
-        if (stars < price) return notify('\u2605\u304c\u8db3\u308a\u307e\u305b\u3093');
+        if (stars < price) return notify('★が足りません');
         const upgradeableTokens = tokens.filter(t => (t?.level || 1) < 3);
-        if (upgradeableTokens.length === 0) return notify('\u5f37\u5316\u53ef\u80fd\u306a\u30c8\u30fc\u30af\u30f3\u304c\u3042\u308a\u307e\u305b\u3093 (Max Lv3)');
+        if (upgradeableTokens.length === 0) return notify('強化可能なトークンがありません (Max Lv3)');
         const targetToken = upgradeableTokens[Math.floor(Math.random() * upgradeableTokens.length)];
         const targetIdx = tokens.findIndex(t => t?.instanceId === targetToken.instanceId);
         setTokens(prev => {
@@ -2377,24 +2580,25 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + price }));
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + price }));
         setIsAwakeningLevelUpBought(true);
-        notify(`${targetToken.name} \u304c\u5f37\u5316\u3055\u308c\u307e\u3057\u305f! (Lv${(targetToken.level || 1) + 1})`);
+        notify(`${targetToken.name} が強化されました! (Lv${(targetToken.level || 1) + 1})`);
         break;
       }
       case 'unlock_enchant_shop': {
         const price = 10;
-        if (stars < price) return notify('\u2605\u304c\u8db3\u308a\u307e\u305b\u3093');
-        if (isEnchantShopUnlocked) return notify('\u30a8\u30f3\u30c1\u30e3\u30f3\u30c8\u30b7\u30e7\u30c3\u30d7\u306f\u3059\u3067\u306b\u89e3\u653e\u6e08\u307f\u3067\u3059');
+        if (stars < price) return notify('★が足りません');
+        if (isEnchantShopUnlocked) return notify('エンチャントショップはすでに解放済みです');
         setIsEnchantShopUnlocked(true);
         setStars(s => s - price);
-        notify('\u30a8\u30f3\u30c1\u30e3\u30f3\u30c8\u30b7\u30e7\u30c3\u30d7\u304c\u89e3\u653e\u3055\u308c\u307e\u3057\u305f!');
+        notify('エンチャントショップが解放されました!');
         break;
       }
       case 'expand_token_slots': {
+        if (tokenSlotExpansionCount >= 5) return notify('これ以上拡張できません (最大10枠)');
         const price = getTokenSlotExpandPrice();
-        if (stars < price) return notify('\u2605\u304c\u8db3\u308a\u307e\u305b\u3093');
+        if (stars < price) return notify('★が足りません');
         setTokenSlotExpansionCount(prev => prev + 1);
         setStars(s => s - price);
-        notify(`\u30c8\u30fc\u30af\u30f3\u67a0\u304c ${5 + tokenSlotExpansionCount + 1} / ${5 + tokenSlotExpansionCount + 1} \u306b\u62e1\u5f35\u3055\u308c\u307e\u3057\u305f!`);
+        notify(`トークン枠が ${5 + tokenSlotExpansionCount + 1} / ${5 + tokenSlotExpansionCount + 1} に拡張されました!`);
         break;
       }
       default:
@@ -2608,14 +2812,50 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
         notify(`他スキルのエネルギー +${boostAmount}!`);
         return; // 共通のchargeリセット処理をスキップ
       }
+      // --- 刹那の呪縛: 操作時間を1秒固定にするバフを追加 ---
+      case "curse_op_time_fix": {
+        const finalDuration = (token.params?.duration || 2) + extraDuration;
+        const timeMs = token.params?.timeMs ?? 1000;
+        setActiveBuffs(prev => [
+          ...prev,
+          {
+            id: Date.now() + Math.random(),
+            action: "curse_op_time_fix",
+            params: { timeMs },
+            duration: finalDuration,
+            maxDuration: finalDuration,
+            tokenId: token.instanceId || token.id,
+            name: token.name,
+          },
+        ]);
+        notify(`${token.name} 発動！ 操作時間1秒固定 (${finalDuration}ターン)`);
+        break;
+      }
+      // --- 虚無の封印: 全パッシブ効果を無効にするバフを追加 ---
+      case "curse_passive_null": {
+        const finalDuration = (token.params?.duration || 1) + extraDuration;
+        setActiveBuffs(prev => [
+          ...prev,
+          {
+            id: Date.now() + Math.random(),
+            action: "curse_passive_null",
+            params: {},
+            duration: finalDuration,
+            maxDuration: finalDuration,
+            tokenId: token.instanceId || token.id,
+            name: token.name,
+          },
+        ]);
+        notify(`${token.name} 発動！ 全パッシブ効果無効 (${finalDuration}ターン)`);
+        break;
+      }
       default:
         break;
     }
 
     // --- 追加: Lv3以上なら基礎コンボ値プラス効果 (Next Turn Bonus) ---
-    // アクティブスキルをレベル3にすると基礎コンボ値プラスの効果がつく
-    // 値は「基礎コンボ値プラスはレベル１時点でのエネルギー数分増やす」
-    if ((token.level || 1) >= 3) {
+    // 呪いトークン (isCurse) にはLv3ボーナスは適用しない
+    if (!token.isCurse && (token.level || 1) >= 3) {
       const bonusValue = token.cost || 0; // レベル1時点でのエネルギー数 = 基本コスト
       if (bonusValue > 0) {
         setActiveBuffs((prev) => [
@@ -2632,19 +2872,25 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       }
     }
 
-    // Consume Charge
+    // Consume Charge + アクティブ呪いトークンの使用回数インクリメント
     setTokens(prev => prev.map(t => {
-      if (t === token) {
-        return { ...t, charge: 0 };
+      if (t !== token) return t;
+      // チャージをリセット
+      let updated = { ...t, charge: 0 };
+      // isCurseトークン: curseUsesをインクリメント
+      if (t.isCurse) {
+        const newUses = (t.curseUses || 0) + 1;
+        updated = { ...updated, curseUses: newUses };
       }
-      return t;
+      return updated;
     }));
     /* setEnergy((prev) => prev - (token.cost || 0)); // REMOVED */
-    notify(`${token.name} 発動!`);
+    if (!token.isCurse) notify(`${token.name} 発動!`);
   };
 
   const sellToken = (token) => {
     if (!token) return;
+    if (token.isLocked) return notify("このトークンは売却できません");
 
     // --- 変更: 資産価値 (Investment) ---
     let sellRate = 0.5;
@@ -2663,6 +2909,11 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     setStars(s => s + sellPrice);
 
     setTokens(prev => prev.filter(t => t.instanceId !== token.instanceId));
+    setCurrentRunStats(prev => ({
+      ...prev,
+      tokensSold: (prev.tokensSold || 0) + 1,
+      totalStarsEarned: (prev.totalStarsEarned || 0) + sellPrice
+    }));
 
     setSelectedTokenDetail(null);
     notify(`${token.name} を売却しました (+${sellPrice} ★)`);
@@ -2686,8 +2937,36 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       return [...withoutSelf, ...otherType];
     });
 
-    setSelectedTokenDetail(null);
+    // 移動後も詳細を表示し続けるために setSelectedTokenDetail(null) を削除
+    // setSelectedTokenDetail(null);
     notify(`${token.name} を ${targetPos} 番目に移動しました`);
+  };
+
+  const handleDragStart = (e, token) => {
+    if (!token) return;
+    setDraggedToken(token);
+    e.dataTransfer.effectAllowed = 'move';
+    // Set a transparent image or just use default browser ghosting
+    // e.dataTransfer.setData('text/plain', token.instanceId);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, targetPos, isSkill) => {
+    e.preventDefault();
+    if (!draggedToken) return;
+
+    // Different types cannot be swapped in this implementation logic
+    if ((draggedToken.type === 'skill') !== isSkill) {
+      setDraggedToken(null);
+      return;
+    }
+
+    moveToken(draggedToken, targetPos);
+    setDraggedToken(null);
   };
 
   const openShop = () => {
@@ -2710,7 +2989,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
 
   // Expose methods to AI Event listeners
   const aiControlRef = useRef({});
-  aiControlRef.current = { buyItem, refreshShop, openShop, startNextCycle, handleChoice, activateSkill, buyAwakeningItem };
+  aiControlRef.current = { buyItem, refreshShop, openShop, startNextCycle, handleChoice, activateSkill, buyAwakeningItem, handleGiveUp };
 
   // ロード中の画面
   if (!isLoaded) {
@@ -2767,6 +3046,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
           localStorage.removeItem(instanceSaveKey);
           setHasSaveData(false);
           resetGame();
+          setShowStartOption(true);
           setShowTitle(false);
         }}
         onHelp={() => setShowHelp(true)}
@@ -2798,6 +3078,9 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
 
   return (
     <div className="bg-background-dark font-display text-slate-100 h-screen overflow-hidden flex justify-center w-full">
+      {showStartOption && (
+        <StartOptionScreen onSelect={handleStartOptionSelection} testInstanceId={testInstanceId} />
+      )}
       {/* Mobile Container */}
       <div className="w-full max-w-md h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden">
         {/* Abstract Background Pattern */}
@@ -2856,7 +3139,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 bg-slate-800/50 px-2 py-1 rounded-full border border-white/10">
                 <span className="material-icons-round text-yellow-400 text-sm">star</span>
-                <span className="font-bold text-sm tracking-wide">{stars.toLocaleString()}</span>
+                <span className="font-bold text-sm tracking-wide">{formatJapaneseNumber(stars)}</span>
               </div>
               <button
                 onClick={openShop}
@@ -2882,7 +3165,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                     ref={targetComboRef}
                     className={`text-xl font-mono font-bold text-white inline-block ${targetPulse ? 'animate-target-pulse' : ''}`}
                   >
-                    {cycleTotalCombo}<span className="text-slate-500 text-lg">/{target}</span>
+                    {cycleTotalCombo}<span className="text-slate-500 text-lg">/{effectiveTarget}</span>
                   </span>
                 </div>
               </div>
@@ -3000,24 +3283,41 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                               <div
                                 key={`passive-p${pageIdx}-${slotIdx}`}
                                 onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
-                                className={`aspect-square rounded-xl relative border transition-all duration-300 ${animClass} ${shadowClass} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
+                                draggable={!!t && !isLocked}
+                                onDragStart={(e) => handleDragStart(e, t)}
+                                onDragOver={handleDragOver}
+                                onDrop={(e) => handleDrop(e, globalSlot + 1, false)}
+                                onDragEnd={() => setDraggedToken(null)}
+                                className={`aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
                               >
-                                {isLocked ? (
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="material-icons-round text-slate-700 text-lg">lock</span>
-                                  </div>
-                                ) : t ? (
-                                  <>
-                                    <div className="absolute inset-0 rounded-xl overflow-hidden flex items-center justify-center">
+                                <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
+                                  {/* 属性バー */}
+                                  {t && (
+                                    <div
+                                      className="absolute left-0 top-0 bottom-0 w-1 z-30"
+                                      style={getAttributeBarStyles(t?.attributes)}
+                                    />
+                                  )}
+                                  {isLocked ? (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <span className="material-icons-round text-slate-700 text-lg">lock</span>
+                                    </div>
+                                  ) : t ? (
+                                    <div className="absolute inset-0 flex items-center justify-center">
                                       <span className={`material-icons-round text-2xl relative z-10 ${animClass ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-slate-400'}`}>
-                                        auto_awesome
+                                        {getTokenIcon(t)}
                                       </span>
                                     </div>
+                                  ) : null}
+                                </div>
+                                {t && !isLocked && (
+                                  <>
+                                    {/* 属性丸は削除 */}
                                     <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
                                       {t.level || 1}
                                     </div>
                                   </>
-                                ) : null}
+                                )}
                               </div>
                             );
                           })}
@@ -3101,8 +3401,12 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                               animClass = 'animate-bounce';
                               triggeredShadow = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
                             }
-                            const readyBorder = t && t.rarity === 3 ? 'border-yellow-400/60 shadow-[0_0_10px_rgba(250,204,21,0.25)]' : t && t.rarity === 2 ? 'border-sky-400/60 shadow-[0_0_10px_rgba(56,189,248,0.25)]' : 'border-primary/50 shadow-[0_0_10px_rgba(91,19,236,0.25)]';
-                            const notReadyBorder = t && t.rarity === 3 ? 'border-yellow-400/30' : t && t.rarity === 2 ? 'border-sky-400/30' : 'border-white/10';
+                            const readyBorder = t?.isCurse
+                              ? 'border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.35)]'
+                              : (t && t.rarity === 3 ? 'border-yellow-400/60 shadow-[0_0_10px_rgba(250,204,21,0.25)]' : t && t.rarity === 2 ? 'border-sky-400/60 shadow-[0_0_10px_rgba(56,189,248,0.25)]' : 'border-primary/50 shadow-[0_0_10px_rgba(91,19,236,0.25)]');
+                            const notReadyBorder = t?.isCurse
+                              ? 'border-red-500/30'
+                              : (t && t.rarity === 3 ? 'border-yellow-400/30' : t && t.rarity === 2 ? 'border-sky-400/30' : 'border-white/10');
                             const buffBorder = stackCount > 1 ? 'border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)] animate-pulse' : stackCount === 1 ? 'border-cyan-500/80 shadow-[0_0_10px_rgba(6,182,212,0.4)]' : '';
                             let containerClasses = isLocked
                               ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed'
@@ -3114,23 +3418,44 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                               <div
                                 key={`active-p${pageIdx}-${slotIdx}`}
                                 onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
-                                className={`aspect-square rounded-xl relative border transition-all duration-300 ${containerClasses}`}
+                                draggable={!!t && !isLocked}
+                                onDragStart={(e) => handleDragStart(e, t)}
+                                onDragOver={handleDragOver}
+                                onDrop={(e) => handleDrop(e, globalSlot + 1, true)}
+                                onDragEnd={() => setDraggedToken(null)}
+                                className={`aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${containerClasses}`}
                               >
-                                {isLocked ? (
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="material-icons-round text-slate-700 text-lg">lock</span>
-                                  </div>
-                                ) : t ? (
-                                  <>
-                                    <div className="absolute inset-0 rounded-xl overflow-hidden flex items-center justify-center">
+                                <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
+                                  {/* 属性バー */}
+                                  {t && (
+                                    <div
+                                      className="absolute left-0 top-0 bottom-0 w-1 z-30 transition-all"
+                                      style={getAttributeBarStyles(t?.attributes)}
+                                    />
+                                  )}
+                                  {isLocked ? (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <span className="material-icons-round text-slate-700 text-lg">lock</span>
+                                    </div>
+                                  ) : t ? (
+                                    <div className="absolute inset-0 flex items-center justify-center">
                                       <div className="absolute inset-0 bg-primary/10">
-                                        {isSkill && <div className="absolute bottom-0 left-0 right-0 bg-primary/20 transition-all duration-500" style={{ height: `${progress}%` }}></div>}
+                                        {isSkill && <div
+                                          className={`absolute bottom-0 left-0 right-0 transition-all duration-500 ${t?.isCurse ? 'bg-red-500/30' : 'bg-primary/20'}`}
+                                          style={{ height: `${progress}%` }}
+                                        />}
                                         {stackCount > 0 && activeBuff && <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cyan-500/60 to-blue-400/30 transition-all duration-500" style={{ height: `${buffProgress}%` }}></div>}
                                       </div>
-                                      <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : isReady ? 'text-primary' : 'text-slate-500'}`}>
-                                        sports_martial_arts
+                                      <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : t?.isCurse ? (isReady ? 'text-red-400' : 'text-red-700') : (isReady ? 'text-primary' : 'text-slate-500')}`}>
+                                        {getTokenIcon(t)}
                                       </span>
                                     </div>
+                                  ) : null}
+                                </div>
+
+                                {t && !isLocked && (
+                                  <>
+                                    {/* 属性丸は削除 */}
                                     <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
                                       {t.level || 1}
                                     </div>
@@ -3150,7 +3475,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                                       </div>
                                     )}
                                   </>
-                                ) : null}
+                                )}
                               </div>
                             );
                           })}
@@ -3264,7 +3589,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                         <span className="material-icons-round">all_inclusive</span>
                         エンドレスモードで継続
                       </button>
-                      <button onClick={handleGiveUp} className="bg-slate-800 text-slate-300 py-4 rounded-2xl font-bold text-sm active:scale-95 hover:bg-slate-700 transition-colors w-full border border-white/5">
+                      <button id={`ai-gameover-retry-${testInstanceId}`} onClick={handleGiveUp} className="bg-slate-800 text-slate-300 py-4 rounded-2xl font-bold text-sm active:scale-95 hover:bg-slate-700 transition-colors w-full border border-white/5">
                         リトライ
                       </button>
                     </div>
@@ -3370,11 +3695,11 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                 <div className="flex flex-col gap-4">
                   <div className="flex items-end justify-between border-b border-white/5 pb-4">
                     <span className="text-slate-500 text-xs font-bold">Total Combo Score</span>
-                    <span className="text-3xl text-white font-black font-mono tracking-tighter drop-shadow-sm">{cycleTotalCombo.toLocaleString()}</span>
+                    <span className="text-3xl text-white font-black font-mono tracking-tighter drop-shadow-sm">{formatJapaneseNumber(cycleTotalCombo)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500 text-xs font-bold">Target Reached</span>
-                    <span className="text-sm text-slate-300 font-mono font-bold">MAX ({MAX_TARGET.toLocaleString()})</span>
+                    <span className="text-sm text-slate-300 font-mono font-bold">MAX ({formatJapaneseNumber(MAX_TARGET)})</span>
                   </div>
                 </div>
               </div>
@@ -3393,10 +3718,11 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                   const isSkill = t.type === 'skill';
                   return (
                     <div key={idx} className="bg-slate-900/40 rounded-3xl p-4 border border-white/5 flex items-center gap-5 backdrop-blur-sm group hover:border-white/20 transition-all active:scale-[0.98]">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${isSkill ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20 group-hover:bg-blue-600/30' : 'bg-purple-600/20 text-purple-400 border border-purple-500/20 group-hover:bg-purple-600/30'}`}>
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg relative overflow-hidden ${isSkill ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20 group-hover:bg-blue-600/30' : 'bg-purple-600/20 text-purple-400 border border-purple-500/20 group-hover:bg-purple-600/30'}`}>
                         <span className="material-icons-round text-3xl">
-                          {isSkill ? 'sports_martial_arts' : 'auto_awesome'}
+                          {getTokenIcon(t)}
                         </span>
+                        {/* 属性丸は削除 */}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
@@ -3491,9 +3817,14 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                   <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border border-primary/30 shadow-[0_0_40px_rgba(91,19,236,0.15)]" onClick={e => e.stopPropagation()}>
                     {/* ヘッダー */}
                     <div className="flex items-center gap-3 mb-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSkill ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-purple-500/20 border border-purple-500/30'}`}>
+                      <div className={`w-12 h-12 rounded-tr-xl rounded-br-xl relative flex items-center justify-center overflow-hidden ${isSkill ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-purple-500/20 border border-purple-500/30'}`}>
+                        {/* 属性バー */}
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-1 z-30"
+                          style={getAttributeBarStyles(t?.attributes)}
+                        />
                         <span className={`material-icons-round text-2xl ${isSkill ? 'text-blue-400' : 'text-purple-400'}`}>
-                          {isSkill ? 'sports_martial_arts' : 'auto_awesome'}
+                          {getTokenIcon(t)}
                         </span>
                       </div>
                       <div className="flex-1">
@@ -3509,12 +3840,55 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                           </span>
                           <span className="text-[10px] font-bold text-amber-400">Lv.{lv}</span>
                         </div>
+                        {/* 属性丸は削除 */}
                       </div>
                     </div>
 
                     {/* 効果説明 */}
                     <div className="bg-slate-900/60 rounded-xl p-3 mb-3 border border-white/5">
-                      <p className="text-xs text-slate-300 leading-relaxed">{t ? getTokenDescription(t, lv, currentRunStats, tokens, activeBuffs) : ""}</p>
+                      <p className="text-xs text-slate-300 leading-relaxed">{getTokenDescription(t, lv, currentRunStats, tokens, activeBuffs)}</p>
+
+                      {/* コピー状態の表示 */}
+                      {t.effect === 'copy_left' && (() => {
+                        const currentIndex = tokens.findIndex(tok => tok?.instanceId === t.instanceId);
+                        const target = currentIndex > 0 ? tokens[currentIndex - 1] : null;
+                        if (target) {
+                          return (
+                            <div className="mt-3 pt-3 border-t border-white/10">
+                              <div className="flex items-center gap-2 mb-1.5 overflow-hidden">
+                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30">
+                                  <span className="material-icons-round text-[10px] text-indigo-400">content_copy</span>
+                                  <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-tight">コピー中</span>
+                                </div>
+                                <div className="h-[1px] flex-1 bg-gradient-to-r from-indigo-500/30 to-transparent" />
+                              </div>
+                              <div className="flex items-center gap-3 bg-slate-900/40 p-2 rounded-lg border border-white/5">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${target.type === 'skill' ? 'bg-blue-500/10' : 'bg-purple-500/10'}`}>
+                                  <span className={`material-icons-round text-lg ${target.type === 'skill' ? 'text-blue-400' : 'text-purple-400'}`}>
+                                    {getTokenIcon(target)}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-xs font-bold text-white truncate">{target.name}</p>
+                                    <span className="text-[9px] font-bold text-amber-400 ml-2 whitespace-nowrap">Lv.{target.level || 1}</span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 truncate opacity-80">{getTokenDescription(target, target.level || 1, currentRunStats, tokens, activeBuffs)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="mt-3 pt-3 border-t border-white/10">
+                              <div className="flex items-center gap-2 text-amber-500/60 bg-amber-500/5 p-2 rounded-lg border border-amber-500/10">
+                                <span className="material-icons-round text-sm">warning</span>
+                                <p className="text-[10px] font-medium leading-tight">左隣にトークンがありません。<br/>右側に配置することで効果をコピーします。</p>
+                              </div>
+                            </div>
+                          );
+                        }
+                      })()}
                     </div>
 
                     {/* スキルチャージ状態 */}
@@ -3611,12 +3985,69 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
                           {isReady ? 'スキル発動' : 'チャージ不足'}
                         </button>
                       )}
-                      <button
-                        onClick={() => sellToken(t)}
-                        className="w-full text-center bg-red-600/20 hover:bg-red-600/40 text-red-300 py-3 rounded-lg font-bold transition-colors"
-                      >
-                        売却 (+{Math.floor((t?.price || 0) * (t?.enchantments?.some(e => e.effect === "high_sell") ? 3.0 : 0.5))} ★)
-                      </button>
+                      {/* 呪い解除条件の表示 */}
+                      {(t.type === 'curse' || t.isCurse) && (() => {
+                        const prog = getCurseProgress(t);
+                        if (!prog) return null;
+                        return (
+                          <div className="bg-slate-900 border border-red-500/30 rounded-xl p-3 mb-2 flex flex-col gap-2 shadow-[inset_0_0_10px_rgba(239,68,68,0.1)] relative overflow-hidden">
+                            <div className="flex items-center justify-between">
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-1.5 text-red-400">
+                                  <span className="material-icons-round text-sm">lock</span>
+                                  <span className="text-[10px] font-bold uppercase tracking-wider">呪い解除条件</span>
+                                </div>
+                                <p className="text-[11px] text-red-200/80 font-bold ml-5">{t.conditionDesc}</p>
+                              </div>
+                              <span className="text-[10px] font-mono text-slate-400 self-start mt-0.5">{Math.floor(prog.current)} / {prog.target}</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5">
+                              <div
+                                className="h-full bg-gradient-to-r from-red-600 to-orange-500 transition-all duration-500"
+                                style={{ width: `${prog.percent}%` }}
+                              />
+                            </div>
+                            <p className="text-[10px] text-slate-500 italic text-center">条件達成で浄化され、星3の力に変わる...</p>
+                            {/* 装飾 */}
+                            <div className="absolute top-0 right-0 w-12 h-12 bg-red-500/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-lg" />
+                          </div>
+                        );
+                      })()}
+
+                      {(() => {
+                        const curseProg = (t.type === 'curse' || t.isCurse) ? getCurseProgress(t) : null;
+                        const isPurifiable = curseProg && curseProg.percent >= 100;
+
+                        if (isPurifiable) {
+                          return (
+                            <button
+                              onClick={() => purifyCurse(t)}
+                              className="w-full text-center py-3 rounded-lg font-bold transition-all bg-green-600 hover:bg-green-500 text-white shadow-[0_0_15px_rgba(22,163,74,0.4)] animate-pulse active:scale-95"
+                            >
+                              <div className="flex items-center justify-center gap-2">
+                                <span className="material-icons-round text-sm">auto_fix_high</span>
+                                <span>呪いを解除する</span>
+                              </div>
+                            </button>
+                          );
+                        }
+
+                        return (
+                          <button
+                            onClick={() => sellToken(t)}
+                            className={`w-full text-center py-3 rounded-lg font-bold transition-all ${t.isLocked ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed border border-white/5' : 'bg-red-600/20 hover:bg-red-600/40 text-red-300'}`}
+                          >
+                            {t.isLocked ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <span className="material-icons-round text-sm">lock_person</span>
+                                <span>売却不可</span>
+                              </div>
+                            ) : (
+                              `売却 (+${Math.floor((t.price || 0) * (t.enchantments?.some(e => e.effect === "high_sell") ? 3.0 : 0.5))} ★)`
+                            )}
+                          </button>
+                        );
+                      })()}
                       <button onClick={() => setSelectedTokenDetail(null)} className="text-slate-400 text-xs font-bold py-2">
                         閉じる
                       </button>

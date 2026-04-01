@@ -1,4 +1,6 @@
 import { MAX_COMBO, MAX_TARGET } from '../constants/gameConstants.js';
+import { ALL_TOKEN_BASES } from '../constants/tokens.js';
+import { formatJapaneseNumber } from '../utils/numberUtils.js';
 
 // --- Puzzle Engine (Imperative Logic) ---
 // --- Puzzle Engine (Imperative Logic) ---
@@ -23,11 +25,11 @@ class PuzzleEngine {
 
     this.types = ["fire", "water", "wood", "light", "dark", "heart"];
     this.icons = {
-      fire: "local_fire_department",
+      fire: "whatshot",
       water: "water_drop",
-      wood: "grass",
-      light: "light_mode",
-      dark: "dark_mode",
+      wood: "air",
+      light: "bolt",
+      dark: "nightlight_round",
       heart: "favorite",
     };
 
@@ -436,6 +438,14 @@ class PuzzleEngine {
   onStart(e, orbOrR, c) {
     if (this.processing) return;
 
+    // 操作開始前に、盤面の全ドロップの skyfall フラグをリセットする
+    // これにより、連鎖外の「もともと盤面に残っていたドロップ」が誤って落ちコンとして判定されるのを防ぎます。
+    this.state.forEach(row => {
+      row.forEach(orb => {
+        if (orb) orb.isSkyfall = false;
+      });
+    });
+
     let target;
     if (typeof orbOrR === 'object') {
       target = orbOrR;
@@ -679,7 +689,7 @@ class PuzzleEngine {
       this.onCombo(this.currentCombo);
       if (this.comboEl) {
         const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
-        this.comboEl.innerHTML = `<span class="combo-number">${safeCombo.toLocaleString()}</span><span class="combo-label">COMBO</span>`;
+        this.comboEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
         this.comboEl.classList.remove('animate-combo-pop');
         void this.comboEl.offsetWidth;
         this.comboEl.classList.add('animate-combo-pop');
@@ -825,6 +835,76 @@ class PuzzleEngine {
     el.appendChild(starSpan);
   }
 
+  /** 特殊消し形状に応じたエフェクトを生成 */
+  createShapeEffect(shape, group) {
+    if (!group || group.length === 0) return;
+
+    // 重心を計算 (現在のグリッド座標から算出)
+    let sumTop = 0;
+    let sumLeft = 0;
+    group.forEach(o => {
+      sumTop += o.r * (this.orbSize + this.gap);
+      sumLeft += o.c * (this.orbSize + this.gap);
+    });
+    const avgTop = sumTop / group.length;
+    const avgLeft = sumLeft / group.length;
+
+    const effectEl = document.createElement('div');
+    effectEl.className = `shape-effect effect-${shape.replace('_', '-')}`;
+
+    // 位置設定 (オーブの中央に合わせる)
+    const centerX = avgLeft + this.orbSize / 2;
+    const centerY = avgTop + this.orbSize / 2;
+
+    effectEl.style.left = `${centerX}px`;
+    effectEl.style.top = `${centerY}px`;
+
+    // Row（一列消し）の場合は行全体に広げるため位置調整
+    if (shape === 'row') {
+      effectEl.style.left = '0';
+      effectEl.style.width = '100%';
+      effectEl.style.top = `${avgTop + this.orbSize / 2}px`;
+    }
+
+    // Square の場合は範囲をカバーするようにサイズ調整
+    if (shape === 'square') {
+      const rows = new Set(group.map(o => o.r));
+      const cols = new Set(group.map(o => o.c));
+      const width = cols.size * (this.orbSize + this.gap) - this.gap;
+      const height = rows.size * (this.orbSize + this.gap) - this.gap;
+      effectEl.style.width = `${width}px`;
+      effectEl.style.height = `${height}px`;
+    }
+
+    this.container.appendChild(effectEl);
+
+    // アニメーション終了時に削除
+    effectEl.addEventListener('animationend', () => {
+      effectEl.remove();
+    }, { once: true });
+
+    // 安全策として1秒後に削除
+    setTimeout(() => {
+      if (effectEl.parentNode) effectEl.remove();
+    }, 1000);
+  }
+
+  /** 特殊ドロップ消滅時のエフェクト生成 (ボム、スター、虹用) */
+  createOrbEffect(type, r, c) {
+    const effectEl = document.createElement('div');
+    effectEl.className = `shape-effect effect-${type}`;
+
+    const top = r * (this.orbSize + this.gap) + this.orbSize / 2;
+    const left = c * (this.orbSize + this.gap) + this.orbSize / 2;
+
+    effectEl.style.top = `${top}px`;
+    effectEl.style.left = `${left}px`;
+
+    this.container.appendChild(effectEl);
+    effectEl.addEventListener('animationend', () => effectEl.remove(), { once: true });
+    setTimeout(() => { if (effectEl.parentNode) effectEl.remove(); }, 1000);
+  }
+
   async forceRefresh() {
     if (this.processing) return;
     this.processing = true;
@@ -944,6 +1024,9 @@ class PuzzleEngine {
 
             targetOrb.el.remove();
             this.state[targetOrb.r][targetOrb.c] = null;
+
+            // ボムによる消滅エフェクト (爆発風に)
+            this.createOrbEffect('len5', targetOrb.r, targetOrb.c);
 
             const type = targetOrb.type;
             if (colorComboCounts[type] !== undefined) {
@@ -1078,7 +1161,10 @@ class PuzzleEngine {
           }
 
           const shape = this.classifyShape(group);
-          if (shape && clearNum === 0) shapes.push(shape);
+          if (shape && clearNum === 0) {
+            shapes.push(shape);
+            this.createShapeEffect(shape, group);
+          }
 
           // --- 特殊消しリアルタイム加算 ---
           let addition = 1;
@@ -1224,6 +1310,14 @@ class PuzzleEngine {
       // Proceed with actual deletion
       for (const orb of orbsToEraseThisTurn) {
         if (orb.el) {
+          // スタードロップ消滅時の固有エフェクト
+          if (orb.isStar) {
+            this.createOrbEffect('len4', orb.r, orb.c); // len4エフェクトを流用
+          }
+          // 虹ドロップ消滅時の固有エフェクト
+          if (orb.isRainbow) {
+            this.createOrbEffect('len5', orb.r, orb.c); // len5エフェクトを流用
+          }
           orb.el.remove();
         }
         // Safeguard: only nullify if the reference is still matching, to avoid overlaps
@@ -1269,7 +1363,7 @@ class PuzzleEngine {
       this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
       if (this.comboEl) {
         const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
-        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ ALL CLEAR ✦</div><span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">×2</span>`;
+        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ ALL CLEAR ✦</div><span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">×2</span>`;
         this.comboEl.classList.remove('animate-combo-pop');
         void this.comboEl.offsetWidth;
         this.comboEl.classList.add('animate-combo-pop');
@@ -1289,7 +1383,7 @@ class PuzzleEngine {
       this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
       if (this.comboEl) {
         const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
-        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ PERFECT CLEAR ✦</div><span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">+10 & ×2</span>`;
+        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ PERFECT CLEAR ✦</div><span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">+10 & ×2</span>`;
         this.comboEl.classList.remove('animate-combo-pop');
         void this.comboEl.offsetWidth;
         this.comboEl.classList.add('animate-combo-pop');
@@ -1812,7 +1906,7 @@ class PuzzleEngine {
     this.currentCombo = Math.min(this.currentCombo + 20, MAX_COMBO);
     if (this.comboEl) {
       const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
-      this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ MONO CLEAR ✦</div><span class="combo-number combo-number-final">${safeCombo.toLocaleString()}</span><span class="combo-label">+20</span>`;
+      this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ MONO CLEAR ✦</div><span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">+20</span>`;
       this.comboEl.classList.remove('animate-combo-pop');
       void this.comboEl.offsetWidth;
       this.comboEl.classList.add('animate-combo-pop');
