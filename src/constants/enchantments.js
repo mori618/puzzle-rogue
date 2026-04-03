@@ -55,7 +55,10 @@ const ENCHANT_DESCRIPTIONS = {
   enc_bonus_heart: "ハートを消しているとコンボ倍率x1.5。",
   bomb_burst_combo: "ボムドロップが消えた時、追加で3コンボ加算する。",
   accum_technique: "「合計特殊消し回数(4個+1列+L字+十字+四角)」20回につき、コンボ加算+1。",
-  magic_resonance: "「スキル使用回数」10回につき、全アクティブスキルの消費エネルギー-1。"
+  magic_resonance: "「スキル使用回数」10回につき、全アクティブスキルの消費エネルギー-1。",
+  curse_catalyst: "所持している「呪いトークン」1つにつき、コンボ倍率x1.5。",
+  magic_echo: "アクティブスキル使用時、25%の確率でチャージを消費しない。",
+  compound_interest: "サイクルクリア時、現在の所持スターの5%を追加で獲得する。"
 };
 
 
@@ -155,6 +158,9 @@ const ENCHANTMENTS = [
   { id: "enc_bonus_heart", name: "癒の連舞", effect: "color_multiplier_enc", params: { color: "heart" }, value: 1.5, rarity: 3, price: 8 },
 
   // --- New Stat-Based Enchantments ---
+  { id: "magic_echo", name: "魔力反響", effect: "magic_echo", rarity: 3, price: 12 },
+  { id: "compound_interest", name: "複利の導き", effect: "compound_interest", rarity: 3, price: 10 },
+  { id: "curse_catalyst", name: "呪力変換", effect: "curse_catalyst", rarity: 3, price: 12 },
   { id: "bomb_burst_combo", name: "誘爆の雷管", effect: "bomb_burst_combo", rarity: 3, price: 9 },
   { id: "accum_technique", name: "技巧の蓄積", effect: "stat_shape_all", rarity: 3, price: 9 },
   { id: "magic_resonance", name: "魔力共鳴", effect: "stat_skill_use", rarity: 3, price: 10 }

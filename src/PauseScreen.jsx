@@ -1,4 +1,6 @@
 import React from 'react';
+import soundManager from './utils/SoundManager';
+import { SE_IDS } from './constants/sounds';
 
 const PauseScreen = ({ onResume, onTitle, onHelp, onStats, onCredits, onSettings }) => {
     return (
@@ -11,28 +13,40 @@ const PauseScreen = ({ onResume, onTitle, onHelp, onStats, onCredits, onSettings
 
                 <div className="w-full flex flex-col gap-3">
                     <button
-                        onClick={onResume}
+                        onClick={() => {
+                            onResume();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         className="w-full bg-primary hover:bg-primary-hover text-white py-3.5 rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-primary/30 flex justify-center items-center gap-2 text-lg"
                     >
                         <span className="material-icons-round text-xl">play_arrow</span>
                         続ける
                     </button>
                     <button
-                        onClick={onHelp}
+                        onClick={() => {
+                            onHelp();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-3.5 rounded-xl font-bold border border-white/10 transition-all active:scale-95 flex justify-center items-center gap-2"
                     >
                         <span className="material-icons-round text-xl">help_outline</span>
                         ヘルプ
                     </button>
                     <button
-                        onClick={onStats}
+                        onClick={() => {
+                            onStats();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         className="w-full bg-slate-800 hover:bg-slate-700 text-amber-200 py-3.5 rounded-xl font-bold border border-white/10 transition-all active:scale-95 flex justify-center items-center gap-2"
                     >
                         <span className="material-icons-round text-xl">emoji_events</span>
                         実績 (Stats)
                     </button>
                     <button
-                        onClick={onCredits}
+                        onClick={() => {
+                            onCredits();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-3.5 rounded-xl font-bold border border-white/10 transition-all active:scale-95 flex justify-center items-center gap-2"
                     >
                         <span className="material-icons-round text-xl">info</span>
@@ -40,7 +54,10 @@ const PauseScreen = ({ onResume, onTitle, onHelp, onStats, onCredits, onSettings
                     </button>
                     {/* 設定ボタン */}
                     <button
-                        onClick={onSettings}
+                        onClick={() => {
+                            onSettings();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-3.5 rounded-xl font-bold border border-white/10 transition-all active:scale-95 flex justify-center items-center gap-2"
                     >
                         <span className="material-icons-round text-xl">settings</span>
@@ -48,7 +65,10 @@ const PauseScreen = ({ onResume, onTitle, onHelp, onStats, onCredits, onSettings
                     </button>
                     <div className="my-2 border-b border-white/5 w-full"></div>
                     <button
-                        onClick={onTitle}
+                        onClick={() => {
+                            onTitle();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         className="w-full bg-slate-900/50 hover:bg-red-600/20 text-red-400 py-3.5 rounded-xl font-bold border border-red-500/20 transition-all active:scale-95 flex justify-center items-center gap-2 mt-2"
                     >
                         <span className="material-icons-round text-xl">home</span>

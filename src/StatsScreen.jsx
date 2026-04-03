@@ -13,29 +13,37 @@ const formatTime = (ms) => {
     return `${s}s`;
 };
 
-const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
-    const [activeTab, setActiveTab] = useState(isActiveGame ? "current" : "lifetime");
-
-    // タブに応じた表示用データをマッピング
+const StatsScreen = ({ currentRunStats, onClose }) => {
+    // 表示用データをマッピング
     const displayData = {
-        totalCombo: activeTab === "current" ? currentRunStats.currentTotalCombo : stats.lifetimeTotalCombo,
-        maxCombo: activeTab === "current" ? currentRunStats.maxCombo : stats.maxComboAllTime,
-        maxComboMultiplier: activeTab === "current" ? currentRunStats.maxComboMultiplier : stats.maxComboMultiplierAllTime,
-        maxEnchants: activeTab === "current" ? currentRunStats.maxEnchants : stats.maxEnchantsAllTime,
-        plays: activeTab === "current" ? currentRunStats.currentPlays : stats.lifetimePlays,
-        clears: activeTab === "current" ? currentRunStats.currentClears : stats.lifetimeClears,
-        starsSpent: activeTab === "current" ? currentRunStats.currentStarsSpent : stats.lifetimeStarsSpent,
-        skillsUsed: activeTab === "current" ? currentRunStats.currentSkillsUsed : stats.lifetimeSkillsUsed,
-        totalMoveTime: activeTab === "current" ? currentRunStats.currentTotalMoveTime : stats.lifetimeTotalMoveTime,
+        totalCombo: currentRunStats.currentTotalCombo || 0,
+        maxCombo: currentRunStats.maxCombo || 0,
+        maxComboMultiplier: currentRunStats.maxComboMultiplier || 1,
+        maxEnchants: currentRunStats.maxEnchants || 0,
+        clears: currentRunStats.currentClears || 0,
+        starsSpent: currentRunStats.currentStarsSpent || 0,
+        skillsUsed: currentRunStats.currentSkillsUsed || 0,
+        totalMoveTime: currentRunStats.currentTotalMoveTime || 0,
+        cursesRemoved: currentRunStats.currentCursesRemoved || 0,
+        dropsErased: currentRunStats.currentDropsErased || {},
+        skipsPerformed: currentRunStats.skipsPerformed || 0,
 
         // 特殊消し
-        shapeLen4: activeTab === "current" ? currentRunStats.currentShapeLen4 : stats.lifetimeShapeLen4,
-        shapeLen5: activeTab === "current" ? currentRunStats.currentShapeLen5 : stats.lifetimeShapeLen5,
-        shapeRow: activeTab === "current" ? currentRunStats.currentShapeRow : stats.lifetimeShapeRow,
-        shapeLShape: activeTab === "current" ? currentRunStats.currentShapeLShape : stats.lifetimeShapeLShape,
-        shapeCross: activeTab === "current" ? currentRunStats.currentShapeCross : stats.lifetimeShapeCross,
-        shapeSquare: activeTab === "current" ? currentRunStats.currentShapeSquare : stats.lifetimeShapeSquare,
-        maxCycle: stats.maxCycleAllTime,
+        shapeLen4: currentRunStats.currentShapeLen4 || 0,
+        shapeLen5: currentRunStats.currentShapeLen5 || 0,
+        shapeRow: currentRunStats.currentShapeRow || 0,
+        shapeLShape: currentRunStats.currentShapeLShape || 0,
+        shapeCross: currentRunStats.currentShapeCross || 0,
+        shapeSquare: currentRunStats.currentShapeSquare || 0,
+    };
+
+    const colorConfig = {
+        fire: { label: "炎", icon: "local_fire_department", color: "text-red-500" },
+        water: { label: "雨", icon: "water_drop", color: "text-blue-400" },
+        wood: { label: "風", icon: "forest", color: "text-emerald-500" },
+        light: { label: "雷", icon: "bolt", color: "text-yellow-400" },
+        dark: { label: "月", icon: "dark_mode", color: "text-purple-400" },
+        heart: { label: "心", icon: "favorite", color: "text-pink-400" },
     };
 
     return (
@@ -46,67 +54,42 @@ const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
                     STATS
                 </h2>
 
-                {/* Tabs */}
-                <div className="flex w-full mb-6 bg-slate-800 rounded-xl p-1 shrink-0">
-                    <button
-                        onClick={() => setActiveTab("current")}
-                        disabled={!isActiveGame}
-                        className={`flex-1 py-2 rounded-lg font-bold transition-all text-sm ${activeTab === "current"
-                            ? "bg-slate-600 text-white shadow-md"
-                            : "text-slate-400 hover:text-slate-300 disabled:opacity-30 disabled:hover:text-slate-400"
-                            }`}
-                    >
-                        現在のゲーム
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("lifetime")}
-                        className={`flex-1 py-2 rounded-lg font-bold transition-all text-sm ${activeTab === "lifetime"
-                            ? "bg-slate-600 text-white shadow-md"
-                            : "text-slate-400 hover:text-slate-300"
-                            }`}
-                    >
-                        累計記録
-                    </button>
-                </div>
-
                 <div className="flex flex-col gap-4 text-slate-300">
                     <div className="bg-slate-800/50 p-4 rounded-xl border border-white/5 flex flex-col gap-3">
                         <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">
-                            {activeTab === "current" ? "今回の記録" : "歴代記録"}
+                            今回のゲームの記録
                         </span>
 
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">コンボ数</span>
-                            <span className="font-black text-amber-500">{formatJapaneseNumber(displayData.totalCombo || 0)}</span>
+                            <span className="font-black text-amber-500">{formatJapaneseNumber(displayData.totalCombo)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="font-bold text-sm">プレイ回数</span>
-                            <span className="font-black text-amber-500">{formatJapaneseNumber(displayData.plays || 0)} 回</span>
+                            <span className="font-bold text-sm">サイクルクリア数</span>
+                            <span className="font-black text-amber-500">{formatJapaneseNumber(displayData.clears)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="font-bold text-sm">クリア回数</span>
-                            <span className="font-black text-amber-500">{formatJapaneseNumber(displayData.clears || 0)} 回</span>
+                            <span className="font-bold text-sm">スキップターン数</span>
+                            <span className="font-black text-amber-500">{formatJapaneseNumber(displayData.skipsPerformed)} 回</span>
                         </div>
-                        {activeTab === "lifetime" && (
-                            <div className="flex justify-between items-center">
-                                <span className="font-bold text-sm">最大到達サイクル</span>
-                                <span className="font-black text-amber-500">Cycle {displayData.maxCycle || 1}</span>
-                            </div>
-                        )}
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm">呪い解除数</span>
+                            <span className="font-black text-amber-500">{formatJapaneseNumber(displayData.cursesRemoved)} 回</span>
+                        </div>
 
                         <div className="border-t border-white/5 my-1"></div>
 
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">最大コンボ</span>
-                            <span className="font-black text-white">{formatJapaneseNumber(displayData.maxCombo || 0)}</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.maxCombo)}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">最大コンボ倍率</span>
-                            <span className="font-black text-white">x{Math.round((displayData.maxComboMultiplier || 1) * 100) / 100}</span>
+                            <span className="font-black text-white">x{Math.round((displayData.maxComboMultiplier) * 100) / 100}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">最大エンチャント数</span>
-                            <span className="font-black text-white">{displayData.maxEnchants || 0} 個</span>
+                            <span className="font-black text-white">{displayData.maxEnchants} 個</span>
                         </div>
 
                         <div className="border-t border-white/5 my-1"></div>
@@ -114,42 +97,57 @@ const StatsScreen = ({ stats, currentRunStats, isActiveGame, onClose }) => {
                         <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">特殊消し回数</span>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">4個消し</span>
-                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeLen4 || 0)} 回</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeLen4)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">5個異常消し</span>
-                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeLen5 || 0)} 回</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeLen5)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">1列消し</span>
-                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeRow || 0)} 回</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeRow)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">L字消し</span>
-                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeLShape || 0)} 回</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeLShape)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">十字消し</span>
-                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeCross || 0)} 回</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeCross)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm text-slate-400">四角消し(2x2)</span>
-                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeSquare || 0)} 回</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.shapeSquare)} 回</span>
                         </div>
 
                         <div className="border-t border-white/5 my-1"></div>
 
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">消費スター数</span>
-                            <span className="font-black text-yellow-400">{formatJapaneseNumber(displayData.starsSpent || 0)} ★</span>
+                            <span className="font-black text-yellow-400">{formatJapaneseNumber(displayData.starsSpent)} ★</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">スキル使用回数</span>
-                            <span className="font-black text-indigo-400">{formatJapaneseNumber(displayData.skillsUsed || 0)} 回</span>
+                            <span className="font-black text-indigo-400">{formatJapaneseNumber(displayData.skillsUsed)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">操作時間</span>
                             <span className="font-black text-amber-500">{formatTime(displayData.totalMoveTime)}</span>
+                        </div>
+
+                        <div className="border-t border-white/5 my-1"></div>
+
+                        <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">ドロップ消去数</span>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            {Object.entries(colorConfig).map(([color, config]) => (
+                                <div key={color} className="flex justify-between items-center py-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className={`material-icons-round text-lg ${config.color}`}>{config.icon}</span>
+                                        <span className="font-bold text-xs text-slate-400">{config.label}</span>
+                                    </div>
+                                    <span className="font-black text-sm text-white">{formatJapaneseNumber(displayData.dropsErased[color] || 0)}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

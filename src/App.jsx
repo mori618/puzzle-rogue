@@ -7,12 +7,15 @@ import StatsScreen from "./StatsScreen";
 import CreditsScreen from "./CreditsScreen";
 import SettingsScreen from "./SettingsScreen";
 import StartOptionScreen from "./StartOptionScreen";
+import TokenEncyclopediaScreen from "./TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, getEnchantDescription, ENCHANTMENTS } from './constants/enchantments.js';
-import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_GROWTH_FACTOR } from './constants/gameConstants.js';
+import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_GROWTH_FACTOR, SHOP_REROLL_GROWTH_FACTOR } from './constants/gameConstants.js';
 import { formatNum, getEffectiveCost, getTokenDescription, getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
 import { formatJapaneseNumber } from './utils/numberUtils.js';
 import { PuzzleEngine } from './engine/PuzzleEngine.js';
+import soundManager from './utils/SoundManager';
+import { BGM_IDS, SE_IDS } from './constants/sounds';
 
 const App = () => {
   // Game State
@@ -51,6 +54,7 @@ const App = () => {
   const [showStats, setShowStats] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
   const [showStartOption, setShowStartOption] = useState(false);
+  const [showEncyclopedia, setShowEncyclopedia] = useState(false);
   const [savedBoard, setSavedBoard] = useState(null);
 
   // --- ゲーム設定 ---
@@ -73,10 +77,7 @@ const App = () => {
     maxComboMultiplierAllTime: 1,
     maxEnchantsAllTime: 0,
     lifetimeTotalMoveTime: 0, // 累計操作時間(ms)
-    lifetimePlays: 0,         // 累計プレイ回数
     lifetimeClears: 0,        // 累計サイクルクリア回数
-    lifetimeStarsSpent: 0,    // 累計消費スター数
-    lifetimeSkillsUsed: 0,    // 累計スキル使用回数
     lifetimeShapeLen4: 0,     // 4個消し累計回数
     lifetimeShapeCross: 0,    // 十字消し累計回数
     lifetimeShapeRow: 0,      // 1列消し累計回数
@@ -84,6 +85,10 @@ const App = () => {
     lifetimeShapeSquare: 0,   // 四角消し(2x2)累計回数
     lifetimeShapesLen5: 0,     // 5個消し累計回数
     maxCycleAllTime: 0,       // 歴代最大到達サイクル
+    lifetimeStarsSpent: 0,    // 累計消費スター数
+    lifetimeSkillsUsed: 0,    // 累計スキル使用回数
+    lifetimeCursesRemoved: 0,  // 累計呪い解除数
+    lifetimeDropsErased: { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }, // 累計各ドロップ消去数
   });
   const initialCurrentRunStats = {
     currentTotalCombo: 0,
@@ -105,6 +110,8 @@ const App = () => {
     totalStarsEarned: 0,
     tokensSold: 0,
     skipsPerformed: 0,
+    currentCursesRemoved: 0,  // 今回の呪い解除数
+    currentDropsErased: { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }, // 今回の各ドロップ消去数
   };
   const [currentRunStats, setCurrentRunStats] = useState(initialCurrentRunStats);
   // const [isLuxury, setIsLuxury] = useState(false); // Unused
@@ -137,7 +144,8 @@ const App = () => {
   const [isEnchantShopUnlocked, setIsEnchantShopUnlocked] = useState(false); // エンチャントショップ解放フラグ
   const [tokenSlotExpansionCount, setTokenSlotExpansionCount] = useState(0);  // トークン枠拡張回数
   const [isAwakeningLevelUpBought, setIsAwakeningLevelUpBought] = useState(false); // 覚醒ショップ: ランダムレベルアップ購入済みフラグ
-  // トークンベルトのページネーション用 State
+  const [showMaxComboWarpDialog, setShowMaxComboWarpDialog] = useState(false);
+  const [isBeyondMode, setIsBeyondMode] = useState(false); // 彼岸モード: サイクル25クリア後の無限モード
   const [passiveTokenPage, setPassiveTokenPage] = useState(0);
   const [activeTokenPage, setActiveTokenPage] = useState(0);
   // スワイプ座標の管理（useRef でレンダー外管理）
@@ -149,26 +157,37 @@ const App = () => {
 
 
   const timerRef = useRef(null);
+  const timerTextRef = useRef(null);
   const comboRef = useRef(null);
+
+  const getStatByCondition = useCallback((cond) => {
+    switch (cond) {
+      case 'clears': return currentRunStats.currentClears || 0;
+      case 'heart_erase': return currentRunStats.totalHeartsErased || 0;
+      case 'total_combo': return currentRunStats.currentTotalCombo || 0;
+      case 'total_stars': return currentRunStats.totalStarsEarned || 0;
+      case 'max_combo': return currentRunStats.maxCombo || 0;
+      case 'tokens_sold': return currentRunStats.tokensSold || 0;
+      case 'skips_performed': return currentRunStats.skipsPerformed || 0;
+      default: return 0;
+    }
+  }, [currentRunStats]);
 
   const getCurseProgress = (t) => {
     // type:'curse' もしくは isCurse:true のトークンが対象
     if (!t || (t.type !== 'curse' && !t.isCurse)) return null;
     const cond = t.condition;
     const target = t.targetValue || 1;
+    
     let current = 0;
-    switch (cond) {
-      case 'clears': current = currentRunStats.currentClears || 0; break;
-      case 'heart_erase': current = currentRunStats.totalHeartsErased || 0; break;
-      case 'total_combo': current = currentRunStats.currentTotalCombo || 0; break;
-      case 'total_stars': current = currentRunStats.totalStarsEarned || 0; break;
-      case 'max_combo': current = currentRunStats.maxCombo || 0; break;
-      case 'tokens_sold': current = currentRunStats.tokensSold || 0; break;
-      case 'skips_performed': current = currentRunStats.skipsPerformed || 0; break;
-      // アクティブ呪いトークン用: このスキルの使用回数はトークン自身が持つ curseUses フィールドを参照
-      case 'skill_uses': current = t.curseUses || 0; break;
-      default: break;
+    if (cond === 'skill_uses') {
+      current = t.curseUses || 0;
+    } else {
+      const currentRaw = getStatByCondition(cond);
+      const startValue = t.startValue || 0;
+      current = Math.max(0, currentRaw - startValue);
     }
+    
     return { current, target, percent: Math.min(100, (current / target) * 100) };
   };
   const engineRef = useRef(null);
@@ -181,7 +200,7 @@ const App = () => {
   // --- 価格計算ヘルパー ---
   const getTokenDynamicPrice = useCallback((baseToken, currentTokens) => {
     if (!baseToken || baseToken.price === undefined) return 0;
-    
+
     // 所持数のカウント (アクティブ: skill, curse / パッシブ: passive)
     let possessionCount = 0;
     if (baseToken.type === 'skill' || baseToken.type === 'curse' || baseToken.isCurse) {
@@ -284,7 +303,9 @@ const App = () => {
     const savedSettings = localStorage.getItem(SETTINGS_KEY);
     if (savedSettings) {
       try {
-        setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }));
+        const parsed = JSON.parse(savedSettings);
+        setSettings(prev => ({ ...prev, ...parsed }));
+        soundManager.updateSettings(parsed);
       } catch (e) {
         console.error("Settings data corrupted:", e);
       }
@@ -292,6 +313,27 @@ const App = () => {
 
     setIsLoaded(true);
   }, []);
+
+  /** 音響設定の同期 */
+  useEffect(() => {
+    soundManager.updateSettings(settings);
+  }, [settings]);
+
+  /** 画面に応じたBGMの切り替え */
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (showTitle) {
+      soundManager.playBGM(BGM_IDS.TITLE);
+    } else if (isGameOver) {
+      soundManager.playBGM(BGM_IDS.GAMEOVER);
+    } else if (showShop) {
+      soundManager.playBGM(BGM_IDS.SHOP);
+    } else if (isBeyondMode) {
+      soundManager.playBGM(BGM_IDS.BEYOND);
+    } else {
+      soundManager.playBGM(BGM_IDS.GAME);
+    }
+  }, [isLoaded, showTitle, isGameOver, showShop, isBeyondMode]);
 
   // --- Auto Save ---
   useEffect(() => {
@@ -442,6 +484,7 @@ const App = () => {
         cols,
         timeLimit: getTimeLimit(),
         minMatchLength,
+        timerText: timerTextRef.current,
         onCombo: () => {
           // No-op for now to avoid re-renders
         },
@@ -956,6 +999,35 @@ const App = () => {
         }
       }
 
+      // --- 新規: 属性別トークン数×コンボ加算 ---
+      if (t.effect === "attribute_count_combo_add") {
+        const attr = t.params?.attribute;
+        const attrCount = tokens.filter(tok => tok?.attributes?.includes(attr)).length;
+        const v = (t.values?.[lv - 1] || 5) * attrCount;
+        if (v > 0) {
+          if (isInstant) triggerPassive(tId);
+          bonus += v;
+          logData.bonuses.push(`${t.id}:${v}`);
+          logData.bonusSteps.push({ label: t.name, value: v, tokenId: tId });
+        }
+      }
+
+      // --- 新規: 無属性トークンなし倍率 ---
+      if (t.effect === "no_attribute_multiplier") {
+        const colorlessTokens = tokens.filter(tok => tok && (!tok.attributes || tok.attributes.length === 0));
+        // 「時の砂」は換算しない
+        const otherColorless = colorlessTokens.filter(tok => tok.id !== "time_ext");
+
+        if (otherColorless.length === 0) {
+          let v = t.values?.[lv - 1] || 10;
+          v = applyMultiplierCap(v, t);
+          if (isInstant) triggerPassive(tId);
+          multiplier *= v;
+          logData.multipliers.push(`pure_power:x${v.toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name, value: v, tokenId: tId });
+        }
+      }
+
       // --- 新規: 星3トークン数×コンボ倍率 ---
       if (t.effect === "star_count_combo_mult") {
         const rarity3Count = tokens.filter(tok => tok?.rarity === 3).length;
@@ -1023,6 +1095,58 @@ const App = () => {
           multiplier *= v;
           logData.multipliers.push(`enchant_mult_boost:x${formatNum(v)}`);
           logData.multiplierSteps.push({ label: t.name || 'エンチャント数倍率', value: v, tokenId: tId });
+        }
+      }
+
+      // 呪い数による倍率アップ（全トークン内にある呪いの数をカウントして適用）
+      if (t.effect === "curse_count_combo_mult") {
+        const curseCount = tokens.filter(tok => tok?.type === 'curse' || tok?.isCurse).length;
+        let v = Math.pow(t.values?.[lv - 1] || 1, curseCount);
+        v = applyMultiplierCap(v, t);
+        if (v > 1) {
+          if (isInstant) triggerPassive(tId);
+          multiplier *= v;
+          logData.multipliers.push(`curse_mult_boost:x${formatNum(v)}`);
+          logData.multiplierSteps.push({ label: t.name || '呪い数倍率', value: v, tokenId: tId });
+        }
+      }
+      // --- 新規: 呪い解除数による倍率加算 (呪い喰い) ---
+      if (t.effect === "stat_curse_removed") {
+        const removedCount = currentRunStats.currentCursesRemoved || 0;
+        const v = (t.values?.[lv - 1] || 1) * removedCount;
+        if (v > 0) {
+          if (isInstant) triggerPassive(tId);
+          multiplier += v;
+          logData.multipliers.push(`curse_eater:+${v}(removed:${removedCount})`);
+          logData.multiplierSteps.push({ label: t.name || '呪い喰い', value: v, tokenId: tId });
+        }
+      }
+      // --- 新規: ハート消去数による倍率上昇 (生命の器) ---
+      if (t.effect === "stat_heart_chalice") {
+        const heartCount = currentRunStats.totalHeartsErased || 0;
+        const count = Math.floor(heartCount / 30);
+        const base = t.values?.[lv - 1] || 1.2;
+        if (count > 0) {
+          let v = Math.pow(base, count);
+          v = applyMultiplierCap(v, t);
+          if (isInstant) triggerPassive(tId);
+          multiplier *= v;
+          logData.multipliers.push(`heart_chalice:x${v.toFixed(2)}(hearts:${heartCount})`);
+          logData.multiplierSteps.push({ label: t.name || '生命の器', value: v, tokenId: tId });
+        }
+      }
+      // --- 新規: スキップ回数による倍率上昇 (早送りの極意) ---
+      if (t.effect === "stat_time_skipper") {
+        const skipCount = currentRunStats.skipsPerformed || 0;
+        const count = Math.floor(skipCount / 5);
+        const base = t.values?.[lv - 1] || 1.3;
+        if (count > 0) {
+          let v = Math.pow(base, count);
+          v = applyMultiplierCap(v, t);
+          if (isInstant) triggerPassive(tId);
+          multiplier *= v;
+          logData.multipliers.push(`time_skipper:x${v.toFixed(2)}(skips:${skipCount})`);
+          logData.multiplierSteps.push({ label: t.name || '早送りの極意', value: v, tokenId: tId });
         }
       }
 
@@ -1140,13 +1264,25 @@ const App = () => {
             (currentRunStats.currentShapeLShape || 0) +
             (currentRunStats.currentShapeCross || 0) +
             (currentRunStats.currentShapeSquare || 0) +
-            (currentRunStats.currentShapeLen5 || 0); // Include len5!
+            (currentRunStats.currentShapeLen5 || 0);
           const b = Math.floor(totalShape / 20) * 1;
           if (b > 0) {
             if (isInstant) triggerPassive(t.instanceId || t.id);
             bonus += b;
             logData.bonuses.push(`stat_shape_all(enc):+${b}`);
             logData.bonusSteps.push({ label: t.name || '万形の極意', value: b, tokenId: tId });
+          }
+        }
+        if (enc.effect === "magic_resonance") {
+          // 既存の魔力共鳴ロジックがあればここ（現在は説明文側で処理）
+        }
+        if (enc.effect === "curse_catalyst") {
+          const curseCount = tokens.filter(tok => tok != null && (tok.type === 'curse' || tok.isCurse)).length;
+          if (curseCount > 0) {
+            const v = Math.pow(1.5, curseCount);
+            multiplier *= v;
+            logData.multipliers.push(`curse_catalyst:x${v.toFixed(2)}`);
+            logData.multiplierSteps.push({ label: '呪力変換', value: v, tokenId: tId });
           }
         }
       });
@@ -1376,7 +1512,22 @@ const App = () => {
     // setDebugLog(logData);
 
     // turnCombo（盤面でのマッチ数）が0なら強制的に最終0コンボにする
-    const effectiveCombo = (tc > 0) ? Math.min(Math.floor((tc + Number(bonus || 0)) * Number(multiplier || 1)), MAX_COMBO) : 0;
+    // 彼岸モード時はコンボ上限を撤廃
+    let effectiveCombo;
+    if (isBeyondMode) {
+      effectiveCombo = (tc > 0) ? Math.floor((tc + Number(bonus || 0)) * Number(multiplier || 1)) : 0;
+    } else {
+      effectiveCombo = (tc > 0) ? Math.min(Math.floor((tc + Number(bonus || 0)) * Number(multiplier || 1)), MAX_COMBO) : 0;
+    }
+
+    if (effectiveCombo >= MAX_COMBO) {
+      setCurrentRunStats(prev => {
+        if (!prev.hasReachedMaxCombo) {
+          setShowMaxComboWarpDialog(true);
+        }
+        return { ...prev, hasReachedMaxCombo: true };
+      });
+    }
 
     // --- Update Stats ---
     setCurrentRunTotalCombo(prev => prev + effectiveCombo);
@@ -1418,6 +1569,7 @@ const App = () => {
       currentShapeRow: (prev.currentShapeRow || 0) + countRow,
       currentShapeLShape: (prev.currentShapeLShape || 0) + countLShape,
       currentShapeSquare: (prev.currentShapeSquare || 0) + countSquare,
+      totalHeartsErased: (prev.totalHeartsErased || 0) + (erasedColorCounts.heart || 0),
     }));
 
     // --- effectiveCombo の段階的演出 ---
@@ -1439,7 +1591,7 @@ const App = () => {
           // トークン跳ねるアニメーションをトリガー
           if (step.tokenId) triggerPassive(step.tokenId);
           const stepValue = isNaN(step.value) ? 0 : step.value;
-          currentVal = Math.min(currentVal + stepValue, MAX_COMBO);
+          currentVal = isBeyondMode ? (currentVal + stepValue) : Math.min(currentVal + stepValue, MAX_COMBO);
           const eEl = comboRef.current;
           const sign = stepValue >= 0 ? '+' : '';
           const prevVal = Math.max(0, currentVal - stepValue);
@@ -1459,7 +1611,7 @@ const App = () => {
           if (step.tokenId) triggerPassive(step.tokenId);
           const safeStepValue = isNaN(step.value) ? 1 : step.value;
           const prevVal = isNaN(currentVal) ? 0 : currentVal;
-          currentVal = Math.min(Math.floor(prevVal * safeStepValue), MAX_COMBO);
+          currentVal = isBeyondMode ? Math.floor(prevVal * safeStepValue) : Math.min(Math.floor(prevVal * safeStepValue), MAX_COMBO);
           const eEl = comboRef.current;
           const roundedV = formatNum(safeStepValue);
           eEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(prevVal)}</span><span class="combo-bonus-mult">×${roundedV}<span class="combo-step-label"> ${step.label}</span></span>`;
@@ -1567,6 +1719,7 @@ const App = () => {
       setStars((s) => s + totalStarsEarned);
       setCurrentRunStats(prev => ({ ...prev, totalStarsEarned: (prev.totalStarsEarned || 0) + totalStarsEarned }));
       notify(`+ ${totalStarsEarned} STARS!`);
+      soundManager.playSE(SE_IDS.MATCH_STAR);
 
       // 黄金の収集者を跳ねさせる
       tokens.forEach(t => {
@@ -1582,6 +1735,7 @@ const App = () => {
         setGoalReached(prevGoalReached => {
           if (!prevGoalReached) {
             setShopRerollPrice(shopRerollBasePrice);
+            soundManager.playSE(SE_IDS.GOAL_REACHED);
           }
           return true;
         });
@@ -1609,35 +1763,155 @@ const App = () => {
     }
 
     setTokens(prevTokens => {
-      return prevTokens.map(t => {
-        if (!t || t.type !== 'skill') return t;
-        const currentCharge = t.charge || 0;
-        const maxCharge = t.cost || 0;
-        // Increment charge by 1 per turn, up to max cost
+      let nextTokens = prevTokens.map(t => {
+        if (!t) return t;
+        let nt = { ...t };
+        
+        // --- アクティブスキルのチャージ ---
+        if (nt.type === 'skill') {
+          const currentCharge = nt.charge || 0;
+          const maxCharge = nt.cost || 0;
+          const chargeBoostCount = nt.enchantments?.filter(e => e.effect === "charge_boost_passive").length || 0;
+          const chargeAmount = 1 + chargeBoostCount + zeroComboBonusCharge;
+          nt.charge = Math.min(maxCharge, currentCharge + chargeAmount);
+          if (nt.charge === maxCharge && currentCharge < maxCharge) {
+            soundManager.playSE(SE_IDS.SKILL_READY);
+          }
+        }
 
-        // --- 変更: 急速チャージ (Quick Charge) ---
-        const chargeBoostCount = t.enchantments?.filter(e => e.effect === "charge_boost_passive").length || 0;
-        const chargeAmount = 1 + chargeBoostCount + zeroComboBonusCharge;
+        // --- 累積消去数パッシブのカウント ---
+        if (nt.isCountPassive) {
+          const attr = nt.attributes?.[0];
+          const erasedCount = erasedColorCounts[attr] || 0;
+          nt.charge = (nt.charge || 0) + erasedCount;
+        }
 
-        const nextCharge = Math.min(maxCharge, currentCharge + chargeAmount);
-        return { ...t, charge: nextCharge };
+        return nt;
       });
+
+      // --- 累積消去数パッシブの効果発動 ---
+      nextTokens.forEach(t => {
+        if (t && t.isCountPassive) {
+          const threshold = t.values?.[(t.level || 1) - 1] || 30;
+          if (t.charge >= threshold) {
+            const triggerCount = Math.floor(t.charge / threshold);
+            t.charge %= threshold;
+
+            for (let i = 0; i < triggerCount; i++) {
+            triggerPassive(t.instanceId || t.id);
+            soundManager.playSE(SE_IDS.SKILL_READY); // 仮で同じ音を鳴らす
+
+            switch (t.id) {
+              case "passive_fire_count": {
+                // 炎: ランダムトークン入手
+                const maxSlots = 5 + (tokenSlotExpansionCount || 0);
+                const currentCount = nextTokens.filter(tok => tok !== null).length;
+                if (currentCount < maxSlots) {
+                  const candidatePool = ALL_TOKEN_BASES.filter(b => b.type !== 'curse' && !b.isCurse && b.rarity <= 2 && b.id !== "passive_fire_count");
+                  const randomBase = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+                  const isSkill = randomBase.type === 'skill';
+                  const isCp = randomBase.isCountPassive;
+                  const newToken = { 
+                    ...randomBase, 
+                    instanceId: Date.now() + Math.random(), 
+                    level: 1, 
+                    charge: isSkill ? (randomBase.cost || 0) : 0,
+                    startValue: randomBase.condition ? getStatByCondition(randomBase.condition) : 0
+                  };
+                  // nullのスロットを探す
+                  const emptyIdx = nextTokens.findIndex(tok => tok === null);
+                  if (emptyIdx !== -1) {
+                    nextTokens[emptyIdx] = newToken;
+                  } else {
+                    nextTokens.push(newToken);
+                  }
+                  notify(`紅炎の供物: ${newToken.name} を入手した！`);
+                } else {
+                  notify("紅炎の供物: トークン枠がいっぱいです！");
+                }
+                break;
+              }
+              case "passive_water_count": {
+                // 雨: ランダムエンチャント付与
+                const targets = nextTokens.filter(tok => tok !== null && !tok.isCurse && tok.type !== 'curse');
+                if (targets.length > 0) {
+                  const target = targets[Math.floor(Math.random() * targets.length)];
+                  const randomEnc = ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
+                  target.enchantments = [...(target.enchantments || []), { ...randomEnc, instanceId: Date.now() + Math.random() }];
+                  notify(`蒼雨の供物: ${target.name} に ${randomEnc.name} を付与した！`);
+                }
+                break;
+              }
+              case "passive_wood_count": {
+                // 風: スター1.2倍
+                setStars(prevStars => {
+                  const nextStars = Math.floor(prevStars * 1.2);
+                  notify(`翠風の供物: スター所持数が ${formatJapaneseNumber(nextStars)} になった！`);
+                  return nextStars;
+                });
+                break;
+              }
+              case "passive_dark_count": {
+                // 月: ランダムレベルアップ
+                const upgradeable = nextTokens.filter(tok => tok !== null && (tok.level || 1) < 3 && !tok.isCurse && tok.type !== 'curse' && tok.id !== "passive_dark_count");
+                if (upgradeable.length > 0) {
+                  const target = upgradeable[Math.floor(Math.random() * upgradeable.length)];
+                  target.level = (target.level || 1) + 1;
+                  notify(`常月の供物: ${target.name} が Lv${target.level} に上がった！`);
+                }
+                break;
+              }
+              case "passive_light_count": {
+                // 雷: 全スキルチャージ+2
+                nextTokens.forEach(tok => {
+                  if (tok && tok.type === 'skill') {
+                    tok.charge = Math.min(tok.cost || 0, (tok.charge || 0) + 2);
+                  }
+                });
+                notify("閃雷の供物: 全スキルのチャージが貯まった！");
+                break;
+              }
+            }
+          }
+        }
+      }
+    });
+
+      return nextTokens;
     });
 
     // --- 呪いの浄化判定 ---
     const heartsErasedThisTurn = erasedColorCounts["heart"] || 0;
     setCurrentRunStats(prev => {
       const nextHearts = (prev.totalHeartsErased || 0) + heartsErasedThisTurn;
-      const nextStats = { ...prev, totalHeartsErased: nextHearts };
 
-          // 条件達成チェック
-          setTokens(currentTokens => {
-            // 自動浄化は行わず、UIで解除可能であることを示すように変更
-            return currentTokens;
-          });
+      // 各ドロップ消去数の加算処理
+      const nextDrops = { ...(prev.currentDropsErased || { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }) };
+      Object.keys(erasedColorCounts).forEach(color => {
+        if (nextDrops[color] !== undefined) {
+          nextDrops[color] += erasedColorCounts[color];
+        }
+      });
 
-          return nextStats;
-        });
+      const nextStats = {
+        ...prev,
+        totalHeartsErased: nextHearts,
+        currentDropsErased: nextDrops
+      };
+
+      return nextStats;
+    });
+
+    // 累計ドロップ消去数の更新 (stats)
+    setStats(prev => {
+      const nextLifetimeDrops = { ...(prev.lifetimeDropsErased || { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }) };
+      Object.keys(erasedColorCounts).forEach(color => {
+        if (nextLifetimeDrops[color] !== undefined) {
+          nextLifetimeDrops[color] += erasedColorCounts[color];
+        }
+      });
+      return { ...prev, lifetimeDropsErased: nextLifetimeDrops };
+    });
 
     if (!skipTurnProgressRef.current) {
       setActiveBuffs((prev) =>
@@ -1726,6 +2000,7 @@ const App = () => {
     if (isEndlessMode) return;
     if (turn > maxTurns && !goalReached && !isGameOver) {
       setIsGameOver(true);
+      soundManager.playSE(SE_IDS.GAME_OVER);
     }
   }, [turn, goalReached, maxTurns, isEndlessMode, isGameOver]);
 
@@ -1743,37 +2018,88 @@ const App = () => {
     if (currentPos > 0) setTokenMoveInput(String(currentPos));
   }, [selectedTokenDetail]);
 
-  const startNextCycle = () => {
+  const startNextCycle = (warpToCycle = null) => {
     setTurn(1);
     setCycleTotalCombo(0);
-    setTarget((t) => Math.min(Math.floor(t * 1.5) + 2, MAX_TARGET));
+
+    let baseClears = currentRunStats.currentClears || 0;
+    if (typeof warpToCycle === 'number') {
+      baseClears = warpToCycle - 2; // e.g. 25 -> 23 -> nextCycle = 25
+    }
+
+    const nextCycle = baseClears + 2;
+    let newTarget;
+
+    if (isBeyondMode) {
+      // 彼岸モード: 目標上限を撤廃し、5サイクルごとに3倍、それ以外は1.5倍
+      // beyondCycle = nextCycle - 25 (何サイクル目の彼岸か)
+      const beyondCycle = nextCycle - 25;
+      // まずcycle25の目標値 (MAX_TARGET) を基準とする
+      let base = MAX_TARGET;
+      for (let j = 1; j <= beyondCycle; j++) {
+        const isBeyondJump = j > 0 && j % 5 === 0;
+        base = Math.floor(base * (isBeyondJump ? 3.0 : 1.5));
+      }
+      newTarget = base;
+    } else {
+      // 通常モード: サイクル25でMAX_TARGET (4294967294) に到達するよう計算
+      newTarget = 8;
+      for (let i = 2; i <= nextCycle; i++) {
+        let mult = 1.5;
+        let add = 2;
+        if (i === 6) { mult = 3.0; add = 200; }
+        else if (i === 11) { mult = 4.0; add = 5000; }
+        else if (i === 16) { mult = 5.0; add = 200000; }
+        else if (i === 21) { mult = 6.0; add = 10000000; }
+        else if (i === 25) { mult = 10.0; add = 2000000000; }
+        else if (i > 25) { mult = 2.5; add = 0; }
+        else if (i > 21) { mult = 2.0; add = 0; }
+        else if (i > 16) { mult = 2.0; add = 0; }
+        else if (i > 11) { mult = 1.8; add = 0; }
+        else if (i > 6) { mult = 1.6; add = 0; }
+        newTarget = Math.floor(newTarget * mult) + add;
+      }
+      newTarget = Math.min(newTarget, MAX_TARGET);
+    }
+
+    setTarget(newTarget);
     setGoalReached(false);
     setSkippedTurnsBonus(0);
-    setCurrentRunStats(prev => ({ ...prev, currentClears: (prev.currentClears || 0) + 1 }));
-    setStarProgress(0); // Reset progress if needed or keep it? Keeping it feels better but usually resets per cycle
+    setCurrentRunStats(prev => ({ ...prev, currentClears: baseClears + 1 }));
+    setStarProgress(0);
 
     // Update shop reroll prices
-    const nextBase = Math.ceil(shopRerollBasePrice * 1.5);
+    const nextBase = Math.ceil(shopRerollBasePrice * SHOP_REROLL_GROWTH_FACTOR);
     setShopRerollBasePrice(nextBase);
     setShopRerollPrice(nextBase);
 
-    generateShop();
+    generateShop(nextCycle);
     setShowShop(false);
 
     // エンドレスモードでない場合のみ統計を更新
     if (!isEndlessMode) {
       setStats(prev => {
-        const nextCycle = Math.ceil(turn / maxTurns) + 1; // App.jsxでのCycle表示ロジックに合わせる
+        const nextCycleStats = baseClears + 2;
         return {
           ...prev,
           lifetimeClears: (prev.lifetimeClears || 0) + 1,
-          maxCycleAllTime: Math.max(prev.maxCycleAllTime || 0, nextCycle)
+          maxCycleAllTime: Math.max(prev.maxCycleAllTime || 0, nextCycleStats)
         };
       });
-      setCurrentRunStats(prev => ({ ...prev, currentClears: (prev.currentClears || 0) + 1 }));
+      // setCurrentRunStats was already called above, so it is removed here to avoid double-increment!
     }
 
     notify("NEXT CYCLE STARTED!");
+    // --- 複利の導き (Compound Interest) ---
+    const interestEnchants = tokens.flatMap(t => t?.enchantments || []).filter(e => e.effect === 'compound_interest');
+    if (interestEnchants.length > 0) {
+      const interestRate = 0.05 * interestEnchants.length;
+      const extraStars = Math.floor(stars * interestRate);
+      if (extraStars > 0) {
+        setStars(s => s + extraStars);
+        notify(`複利の導き: ★+${extraStars} (5%利子)`);
+      }
+    }
   };
 
   const skipTurns = () => {
@@ -1843,7 +2169,7 @@ const App = () => {
       engineRef.current.init(null);
     }
     setStats(prev => {
-      const nextStats = { ...prev, lifetimePlays: (prev.lifetimePlays || 0) + 1 };
+      const nextStats = { ...prev };
       // 新規ゲーム開始時、エンドレスでない場合は少なくともCycle 1を記録
       if (!isEndlessMode) {
         nextStats.maxCycleAllTime = Math.max(nextStats.maxCycleAllTime || 0, 1);
@@ -1851,7 +2177,6 @@ const App = () => {
       return nextStats;
     });
     setCurrentRunStats(initialCurrentRunStats);
-    setCurrentRunStats(prev => ({ ...prev, currentPlays: 1 })); // Plays is always 1 for the current run
 
     // 開始スタイルによって初期スターを調整
     // 無の対価 の場合は0、それ以外は5
@@ -1863,35 +2188,63 @@ const App = () => {
     setShowTitle(false);
 
     if (option === 'safety') {
-      // 安全: 操作時間3秒延長、初期候補(canBeInitial)から星1トークン
+      // 安全: 操作時間3秒延長、星1パッシブ1つ + 星1スキル1つ、初期スター10
       setSandsOfTimeSeconds(3);
-      let star1Pool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.canBeInitial && t.type !== 'curse');
-      if (star1Pool.length === 0) star1Pool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type !== 'curse');
+      setStars(10);
       
-      const randomToken = star1Pool[Math.floor(Math.random() * star1Pool.length)];
-      setTokens([{ ...randomToken, instanceId: Date.now() + Math.random(), level: 1, charge: randomToken.cost || 0 }]);
-      notify("「安全」スタイルで開始しました (+3s, 星1トークン)");
+      let star1PassivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type === 'passive' && t.canBeInitial && t.type !== 'curse');
+      if (star1PassivePool.length === 0) star1PassivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type === 'passive' && t.type !== 'curse');
+      const passiveToken = star1PassivePool[Math.floor(Math.random() * star1PassivePool.length)];
+
+      let star1ActivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type === 'skill' && t.canBeInitial && t.type !== 'curse');
+      if (star1ActivePool.length === 0) star1ActivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type === 'skill' && t.type !== 'curse');
+      const activeToken = star1ActivePool[Math.floor(Math.random() * star1ActivePool.length)];
+
+      setTokens([
+        { ...passiveToken, instanceId: Date.now() + Math.random(), level: 1 },
+        { ...activeToken, instanceId: Date.now() + Math.random() + 1, level: 1, charge: activeToken.cost || 0 }
+      ]);
+
+      notify("「安全」スタイルで開始しました (+3s, 星1P+星1A, 10★)");
     } else if (option === 'solid') {
-      // 堅実: 初期候補(canBeInitial)から星2パッシブ
-      let star2PassivePool = ALL_TOKEN_BASES.filter(t => (t.rarity === 2 || t.rarity === 1) && t.type === 'passive' && t.canBeInitial && t.type !== 'curse');
+      // 堅実: 星2パッシブ + 星1アクティブ、初期スター5
+      let star2PassivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 2 && t.type === 'passive' && t.canBeInitial && t.type !== 'curse');
       if (star2PassivePool.length === 0) star2PassivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 2 && t.type === 'passive' && t.type !== 'curse');
-      
-      const randomToken = star2PassivePool[Math.floor(Math.random() * star2PassivePool.length)];
-      setTokens([{ ...randomToken, instanceId: Date.now() + Math.random(), level: 1 }]);
+      const passiveToken = star2PassivePool[Math.floor(Math.random() * star2PassivePool.length)];
+
+      let star1ActivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type === 'skill' && t.canBeInitial && t.type !== 'curse');
+      if (star1ActivePool.length === 0) star1ActivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type === 'skill' && t.type !== 'curse');
+      const activeToken = star1ActivePool[Math.floor(Math.random() * star1ActivePool.length)];
+
+      setTokens([
+        { ...passiveToken, instanceId: Date.now() + Math.random(), level: 1 },
+        { ...activeToken, instanceId: Date.now() + Math.random() + 1, level: 1, charge: activeToken.cost || 0 }
+      ]);
       setStars(5);
-      notify("「堅実」スタイルで開始しました (星2パッシブ)");
+      notify("「堅実」スタイルで開始しました (星2パッシブ + 星1アクティブ, 5★)");
     } else if (option === 'challenge') {
-      // 挑戦: 呪い、初期スター0
-      // type:'curse' または isCurse:true のトークンをプールとして選ぶ
+      // 挑戦: 呪い、初期スター5 (curse_initの場合は0)
       const cursePool = ALL_TOKEN_BASES.filter(t => t.type === 'curse' || t.isCurse === true);
       const randomCurse = cursePool[Math.floor(Math.random() * cursePool.length)];
-      // isCurseトークン（スキル型呪い）はチャージ0で開始
-      const initCharge = randomCurse.isCurse ? 0 : (randomCurse.charge ?? undefined);
-      const initToken = { ...randomCurse, instanceId: Date.now() + Math.random() };
-      if (randomCurse.isCurse) initToken.charge = 0;
-      setTokens([initToken]);
-      setStars(0);
-      notify("「挑戦」スタイルで開始しました (呪い獲得, 0★)");
+      const initToken = { 
+        ...randomCurse, 
+        instanceId: Date.now() + Math.random(),
+        startValue: randomCurse.condition ? getStatByCondition(randomCurse.condition) : 0
+      };
+      // 増殖呪いの場合の初期設定
+      if (randomCurse.id === 'curse_multiply') {
+        initToken.charge = 0;
+        const passiveDummy = ALL_TOKEN_BASES.find(t => t.id === 'curse_multiplied_p');
+        const dummy = { ...passiveDummy, instanceId: Date.now() + Math.random(), parentId: initToken.instanceId, level: 1, charge: 0 };
+        setTokens([initToken, dummy]);
+      } else {
+        if (randomCurse.isCurse) initToken.charge = 0;
+        setTokens([initToken]);
+      }
+
+      const initialStars = randomCurse.id === 'curse_init' ? Math.floor(5 / 2) : 5;
+      setStars(initialStars);
+      notify(`「挑戦」スタイルで開始しました (呪い獲得, ${initialStars}★)`);
     }
 
     if (engineRef.current) {
@@ -1917,7 +2270,7 @@ const App = () => {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const generateShop = () => {
+  const generateShop = (overrideCycleCount = null) => {
     const isLuxury = totalPurchases >= 6;
 
     let saleBonus = 0;
@@ -1926,7 +2279,7 @@ const App = () => {
     tokens.forEach((t) => {
       if (t?.id === "bargain") {
         const value = t.values[(t.level || 1) - 1];
-        saleBonus += (value - 1);
+        saleBonus += value;
       }
       if (t?.effect === 'rainbow_combo_bonus') {
         // Already handled in PuzzleEngine
@@ -1961,7 +2314,7 @@ const App = () => {
       return { 1: 0.30, 2: 0.40, 3: 0.30 }; // cycle 10+
     };
 
-    const cycleCount = Math.ceil(turn / maxTurns);
+    const cycleCount = overrideCycleCount ?? ((currentRunStats?.currentClears || 0) + 1);
     let probs = getRarityProbabilities(cycleCount);
 
     let rarityUpCount = 0;
@@ -1993,17 +2346,17 @@ const App = () => {
 
     // Pool setup
     const passivesPools = {
-      1: ALL_TOKEN_BASES.filter(t => t.type === "passive" && (t.rarity || 1) === 1),
-      2: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 2),
-      3: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 3),
+      1: ALL_TOKEN_BASES.filter(t => t.type === "passive" && (t.rarity || 1) === 1 && !t.isCurse),
+      2: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 2 && !t.isCurse),
+      3: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 3 && !t.isCurse),
     };
     if (passivesPools[2].length === 0) passivesPools[2] = passivesPools[1];
     if (passivesPools[3].length === 0) passivesPools[3] = passivesPools[2];
 
     const activesPools = {
-      1: ALL_TOKEN_BASES.filter(t => t.type === "skill" && (t.rarity || 1) === 1),
-      2: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 2),
-      3: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 3),
+      1: ALL_TOKEN_BASES.filter(t => t.type === "skill" && (t.rarity || 1) === 1 && !t.isCurse),
+      2: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 2 && !t.isCurse),
+      3: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 3 && !t.isCurse),
     };
     if (activesPools[2].length === 0) activesPools[2] = activesPools[1];
     if (activesPools[3].length === 0) activesPools[3] = activesPools[2];
@@ -2073,12 +2426,27 @@ const App = () => {
     // Combine all in required order
     // Order: passive, enchant, active
     const finalItems = [...passiveItems, ...enchantItems, ...activeItems];
+
+    if (cycleCount >= 5 && Math.random() < 0.3) {
+      finalItems.push({
+        id: "grant_random_curse",
+        type: "grant_random_curse",
+        name: "呪いの契約",
+        desc: "ランダムな呪いを1つ獲得する。代償を払い、より高みへ至るための試練。",
+        price: 0,
+        rarity: 1
+      });
+    }
+
     setShopItems(finalItems);
     return finalItems;
   };
 
   const buyItem = (item) => {
-    if (stars < item.price) return notify("★が足りません");
+    if (stars < item.price) {
+      soundManager.playSE(SE_IDS.ERROR);
+      return notify("★が足りません");
+    }
 
     // 永続強化: 時の砂
     if (item.id === "time_ext") {
@@ -2089,7 +2457,45 @@ const App = () => {
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
+      soundManager.playSE(SE_IDS.BUY_STAR);
       return notify("操作時間が2秒延長されました！");
+    }
+
+    if (item.id === "exchange_star3") {
+      const targets = tokens.filter(t => t && t.type !== 'curse' && t.effect !== 'copy_left' && !t.isCurse && (t.rarity === 1 || t.rarity === 2 || !t.rarity));
+      if (targets.length === 0) return notify("交換可能な星1・星2トークンがありません");
+
+      const targetToLose = targets[Math.floor(Math.random() * targets.length)];
+      const loseIdx = tokens.findIndex(t => t.instanceId === targetToLose.instanceId);
+
+      const targetType = targetToLose.type === "skill" ? "skill" : "passive";
+      const star3Pool = ALL_TOKEN_BASES.filter(t => t.type === targetType && t.rarity === 3 && !t.isCurse);
+
+      if (star3Pool.length === 0) return notify("交換可能な星3が見つかりません");
+
+      const gainBase = star3Pool[Math.floor(Math.random() * star3Pool.length)];
+      const gainItem = {
+        ...gainBase,
+        level: 1,
+        charge: gainBase.cost || 0,
+        instanceId: Date.now() + Math.random(),
+        price: getTokenDynamicPrice(gainBase, tokens),
+        desc: getTokenDescription({ ...gainBase, level: 1 }, 1, currentRunStats, tokens, activeBuffs)
+      };
+
+      setTokens((prev) => {
+        const next = [...prev];
+        next[loseIdx] = gainItem;
+        return next;
+      });
+
+      setStars((s) => s - item.price);
+      setTotalPurchases((p) => p + 1);
+      setTotalStarsSpent((prev) => prev + item.price);
+      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
+      setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
+      setShopItems((prev) => prev.filter((i) => i !== item));
+      return notify(`「${targetToLose.name}」が「${gainItem.name}」に昇華した！`);
     }
 
     if (item.type === "upgrade_random") {
@@ -2167,6 +2573,46 @@ const App = () => {
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
       notify("購入完了!");
+    } else if (item.type === "grant_random_curse") {
+      const activeCount = tokens.filter(t => t?.type === 'skill' || t?.isCurse).length;
+      const passiveCount = tokens.filter(t => t && t?.type !== 'skill' && !t?.isCurse).length;
+      const maxSlots = 5 + tokenSlotExpansionCount;
+
+      const cursePool = ALL_TOKEN_BASES.filter(t => t.type === 'curse' || t.isCurse);
+      if (cursePool.length === 0) return notify("呪いが見つかりません");
+
+      const randomCurseBase = cursePool[Math.floor(Math.random() * cursePool.length)];
+      const isCurseActive = randomCurseBase.type === 'skill' || randomCurseBase.isCurse;
+
+      if (isCurseActive && activeCount >= maxSlots) return notify(`アクティブ枠がいっぱいで呪いを受け取れません`);
+      if (!isCurseActive && passiveCount >= maxSlots) return notify(`パッシブ枠がいっぱいで呪いを受け取れません`);
+
+      const curseItem = { 
+        ...randomCurseBase, 
+        level: 1, 
+        charge: 0, 
+        instanceId: Date.now() + Math.random(),
+        startValue: randomCurseBase.condition ? getStatByCondition(randomCurseBase.condition) : 0
+      };
+      if (isCurseActive && randomCurseBase.action && randomCurseBase.action.startsWith('curse_')) {
+        curseItem.curseUses = 0;
+      }
+
+      // 「増殖」の場合の初期デバフ生成
+      if (randomCurseBase.id === 'curse_multiply') {
+        const passiveDummy = ALL_TOKEN_BASES.find(t => t.id === 'curse_multiplied_p');
+        const dummy = { ...passiveDummy, instanceId: Date.now() + Math.random(), parentId: curseItem.instanceId, level: 1, charge: 0 };
+        setTokens(prev => [...prev, curseItem, dummy]);
+      } else {
+        setTokens(prev => [...prev, curseItem]);
+      }
+      setStars(s => {
+        const nextStars = s - item.price;
+        return randomCurseBase.id === 'curse_init' ? Math.floor(nextStars / 2) : nextStars;
+      });
+      setTotalPurchases(p => p + 1);
+      setShopItems(prev => prev.filter(i => i !== item));
+      notify(`呪い「${randomCurseBase.name}」を得た…！`);
     } else {
       // Normal Token Purchase
       const isActive = item.type === 'skill';
@@ -2187,7 +2633,11 @@ const App = () => {
       } else {
         setTokens((prev) => [
           ...prev,
-          { ...item, instanceId: Date.now() + Math.random() } // Add unique instance ID
+          { 
+            ...item, 
+            instanceId: Date.now() + Math.random(),
+            startValue: item.condition ? getStatByCondition(item.condition) : 0
+          } // Add unique instance ID
         ]);
         setStars((s) => s - item.price);
         setTotalPurchases((p) => p + 1);
@@ -2211,7 +2661,10 @@ const App = () => {
     switch (type) {
       case 'random_levelup': {
         const price = 5;
-        if (stars < price) return notify('★が足りません');
+        if (stars < price) {
+          soundManager.playSE(SE_IDS.ERROR);
+          return notify('★が足りません');
+        }
         const upgradeableTokens = tokens.filter(t => (t?.level || 1) < 3);
         if (upgradeableTokens.length === 0) return notify('強化可能なトークンがありません (Max Lv3)');
         const targetToken = upgradeableTokens[Math.floor(Math.random() * upgradeableTokens.length)];
@@ -2232,24 +2685,35 @@ const App = () => {
         setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + price }));
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + price }));
         setIsAwakeningLevelUpBought(true);
+        soundManager.playSE(SE_IDS.AWAKEN_BUY);
         notify(`${targetToken.name} が強化されました! (Lv${(targetToken.level || 1) + 1})`);
         break;
       }
       case 'unlock_enchant_shop': {
         const price = 10;
-        if (stars < price) return notify('★が足りません');
+        if (stars < price) {
+          soundManager.playSE(SE_IDS.ERROR);
+          return notify('★が足りません');
+        }
         if (isEnchantShopUnlocked) return notify('エンチャントショップはすでに解放済みです');
         setIsEnchantShopUnlocked(true);
         setStars(s => s - price);
+        soundManager.playSE(SE_IDS.AWAKEN_BUY);
         notify('エンチャントショップが解放されました!');
         break;
       }
       case 'expand_token_slots': {
-        if (tokenSlotExpansionCount >= 5) return notify('これ以上拡張できません (最大10枠)');
+        // 彼岸モード時は最大15枠、通常は最大10枠
+        const beyondSlotMax = isBeyondMode ? 10 : 5; // 拡張回数上限 (15-5=10 or 10-5=5)
+        if (tokenSlotExpansionCount >= beyondSlotMax) return notify(`これ以上拡張できません (最大${5 + beyondSlotMax}枠)`);
         const price = getTokenSlotExpandPrice();
-        if (stars < price) return notify('★が足りません');
+        if (stars < price) {
+          soundManager.playSE(SE_IDS.ERROR);
+          return notify('★が足りません');
+        }
         setTokenSlotExpansionCount(prev => prev + 1);
         setStars(s => s - price);
+        soundManager.playSE(SE_IDS.AWAKEN_BUY);
         notify(`トークン枠が ${5 + tokenSlotExpansionCount + 1} / ${5 + tokenSlotExpansionCount + 1} に拡張されました!`);
         break;
       }
@@ -2344,6 +2808,13 @@ const App = () => {
     setStats(prev => ({ ...prev, lifetimeSkillsUsed: (prev.lifetimeSkillsUsed || 0) + 1 }));
     setCurrentRunStats(prev => ({ ...prev, currentSkillsUsed: (prev.currentSkillsUsed || 0) + 1 }));
 
+    soundManager.playSE(SE_IDS.SKILL_USE);
+    if (token.effect === "convert_color" || token.effect === "convert_multi") {
+      soundManager.playSE(SE_IDS.CONVERT);
+    }
+    if (token.id === "curse_chronos") {
+      soundManager.playSE(SE_IDS.CHRONOS_STOP);
+    }
     console.log("Using skill:", token);
 
     // --- 効果時間延長パッシブの計算 ---
@@ -2501,6 +2972,124 @@ const App = () => {
         notify(`${token.name} 発動！ 全パッシブ効果無効 (${finalDuration}ターン)`);
         break;
       }
+      case "random_levelup": {
+        const upgradeable = tokens.filter(t => 
+          t && 
+          t.instanceId !== token.instanceId && 
+          (t.level || 1) < 3 && 
+          t.effect !== 'copy_left' && 
+          !t.isCurse && 
+          t.type !== 'curse'
+        );
+        
+        if (upgradeable.length > 0) {
+          const target = upgradeable[Math.floor(Math.random() * upgradeable.length)];
+          setTokens(prev => {
+            const next = [...prev];
+            const targetIdx = next.findIndex(t => t?.instanceId === target.instanceId);
+            if (targetIdx !== -1) {
+              const nextLevel = (next[targetIdx].level || 1) + 1;
+              const nextToken = {
+                ...next[targetIdx],
+                level: nextLevel
+              };
+              nextToken.desc = getTokenDescription(nextToken, nextLevel, currentRunStats, next, activeBuffs);
+              next[targetIdx] = nextToken;
+              notify(`${next[targetIdx].name} が Lv${nextLevel} に上がった！`);
+              soundManager.playSE(SE_IDS.EQUIP_TOKEN);
+            }
+            return next;
+          });
+        } else {
+          notify("強化可能なトークンがありません");
+        }
+        break;
+      }
+      case "spawn_token_s1":
+      case "spawn_token_s2":
+      case "spawn_token_s3": {
+        const activeCount = tokens.filter(t => t?.type === 'skill' || t?.isCurse).length;
+        const passiveCount = tokens.filter(t => t && t?.type !== 'skill' && !t?.isCurse).length;
+        const maxSlots = 5 + tokenSlotExpansionCount;
+
+        // 生成するレアリティと呪い判定
+        let targetRarity = 1;
+        if (token.action === "spawn_token_s2") targetRarity = 2;
+        if (token.action === "spawn_token_s3") targetRarity = 3;
+
+        let selectedBase = null;
+        const isCurseTriggered = (token.action === "spawn_token_s3" && Math.random() < 0.30);
+
+        if (isCurseTriggered) {
+          const cursePool = ALL_TOKEN_BASES.filter(b => b.type === 'curse' || b.isCurse);
+          selectedBase = cursePool[Math.floor(Math.random() * cursePool.length)];
+        } else {
+          // 「招来」系スキル自身を除外したプールから抽選
+          const pool = ALL_TOKEN_BASES.filter(b => 
+            b.rarity === targetRarity && 
+            b.type !== 'curse' && !b.isCurse &&
+            !["gen_token_s1", "gen_token_s2", "gen_token_s3"].includes(b.id)
+          );
+          selectedBase = pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        if (!selectedBase) break;
+
+        const isSkill = selectedBase.type === 'skill' || selectedBase.isCurse;
+        if (isSkill && activeCount >= maxSlots) {
+          notify(`アクティブ枠がいっぱいで ${selectedBase.name} を生成できませんでした`);
+          break;
+        }
+        if (!isSkill && passiveCount >= maxSlots) {
+          notify(`パッシブ枠がいっぱいで ${selectedBase.name} を生成できませんでした`);
+          break;
+        }
+
+        const newToken = {
+          ...selectedBase,
+          instanceId: Date.now() + Math.random(),
+          level: 1,
+          charge: isSkill ? (selectedBase.cost || 0) : 0,
+          startValue: selectedBase.condition ? getStatByCondition(selectedBase.condition) : 0
+        };
+
+        setTokens(prev => [...prev.filter(t => t !== null), newToken]);
+        notify(`${token.name}: ${selectedBase.name} を生成した！`);
+        break;
+      }
+      case "curse_multiply": {
+        const activeCount = tokens.filter(t => t?.type === 'skill').length;
+        const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
+        const maxSlots = 5 + tokenSlotExpansionCount;
+
+        // パッシブかアクティブかランダムに決定（空きがある方）
+        const canPassive = passiveCount < maxSlots;
+        const canActive = activeCount < maxSlots;
+
+        if (!canPassive && !canActive) {
+          notify("スロットがいっぱいで増殖できません！");
+          break;
+        }
+
+        let spawnType = 'passive';
+        if (canPassive && canActive) spawnType = Math.random() < 0.5 ? 'passive' : 'skill';
+        else if (canActive) spawnType = 'skill';
+
+        const dummyBase = ALL_TOKEN_BASES.find(t => t.id === (spawnType === 'passive' ? 'curse_multiplied_p' : 'curse_multiplied_a'));
+        if (dummyBase) {
+          const dummy = {
+            ...dummyBase,
+            instanceId: Date.now() + Math.random(),
+            parentId: token.instanceId,
+            level: 1,
+            charge: 0,
+            startValue: dummyBase.condition ? getStatByCondition(dummyBase.condition) : 0
+          };
+          setTokens(prev => [...prev, dummy]);
+          notify("呪いが増殖した…！");
+        }
+        break;
+      }
       default:
         break;
     }
@@ -2527,6 +3116,15 @@ const App = () => {
     // Consume Charge + アクティブ呪いトークンの使用回数インクリメント
     setTokens(prev => prev.map(t => {
       if (t !== token) return t;
+
+      // --- 魔力反響 (Magic Echo) ---
+      const hasMagicEcho = (t.enchantments || []).some(e => e.effect === 'magic_echo');
+      const skipConsume = hasMagicEcho && Math.random() < 0.25;
+      if (skipConsume) {
+        notify("魔力反響！エネルギーを消費しませんでした。");
+        return t; // 何も変更せずに返す（チャージ維持）
+      }
+
       // チャージをリセット
       let updated = { ...t, charge: 0 };
       // isCurseトークン: curseUsesをインクリメント
@@ -2538,6 +3136,33 @@ const App = () => {
     }));
     /* setEnergy((prev) => prev - (token.cost || 0)); // REMOVED */
     if (!token.isCurse) notify(`${token.name} 発動!`);
+  };
+
+  const purifyCurse = (token) => {
+    if (!token || (token.type !== 'curse' && !token.isCurse)) return;
+
+    // 解除報酬の星3トークンを抽選
+    const rewardPool = ALL_TOKEN_BASES.filter(t => t.rarity === 3 && t.canBeCurseReward);
+    const rewardBase = rewardPool[Math.floor(Math.random() * rewardPool.length)] || rewardPool[0];
+
+    const rewardToken = {
+      ...rewardBase,
+      instanceId: Date.now() + Math.random(),
+      level: 1,
+      charge: rewardBase.cost || 0
+    };
+
+    setTokens(prev => prev
+      .map(t => (t && t.instanceId === token.instanceId) ? rewardToken : t)
+      .filter(t => !t || t.parentId !== token.instanceId) // 親に紐付く増殖された呪いを削除
+    );
+
+    // カウントアップ
+    setCurrentRunStats(prev => ({ ...prev, currentCursesRemoved: (prev.currentCursesRemoved || 0) + 1 }));
+    setStats(prev => ({ ...prev, lifetimeCursesRemoved: (prev.lifetimeCursesRemoved || 0) + 1 }));
+
+    setSelectedTokenDetail(null);
+    notify(`呪いを解除！「${rewardToken.name}」を獲得しました。`);
   };
 
   const sellToken = (token) => {
@@ -2559,6 +3184,7 @@ const App = () => {
     }
 
     setStars(s => s + sellPrice);
+    soundManager.playSE(SE_IDS.SELL_STAR);
 
     setTokens(prev => prev.filter(t => t.instanceId !== token.instanceId));
     setCurrentRunStats(prev => ({
@@ -2591,6 +3217,7 @@ const App = () => {
 
     // 移動後も詳細を表示し続けるために setSelectedTokenDetail(null) を削除
     // setSelectedTokenDetail(null);
+    soundManager.playSE(SE_IDS.EQUIP_TOKEN);
     notify(`${token.name} を ${targetPos} 番目に移動しました`);
   };
 
@@ -2629,12 +3256,16 @@ const App = () => {
   };
 
   const refreshShop = () => {
-    if (stars < shopRerollPrice) return notify("★が足りません");
+    if (stars < shopRerollPrice) {
+      soundManager.playSE(SE_IDS.ERROR);
+      return notify("★が足りません");
+    }
     setStars(s => s - shopRerollPrice);
+    soundManager.playSE(SE_IDS.SHOP_REFRESH);
     setTotalStarsSpent((prev) => prev + shopRerollPrice);
     setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + shopRerollPrice }));
     setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + shopRerollPrice }));
-    setShopRerollPrice(prev => Math.ceil(prev * 1.5));
+    setShopRerollPrice(prev => Math.ceil(prev * SHOP_REROLL_GROWTH_FACTOR));
     generateShop();
     notify("商品を入荷しました");
   };
@@ -2673,11 +3304,15 @@ const App = () => {
   if (showStats) {
     return (
       <StatsScreen
-        stats={stats}
         currentRunStats={currentRunStats}
-        isActiveGame={!showTitle}
         onClose={() => setShowStats(false)}
       />
+    );
+  }
+
+  if (showEncyclopedia) {
+    return (
+      <TokenEncyclopediaScreen onClose={() => setShowEncyclopedia(false)} />
     );
   }
 
@@ -2700,6 +3335,7 @@ const App = () => {
         onStats={() => setShowStats(true)}
         onCredits={() => setShowCredits(true)}
         onSettings={() => setShowSettings(true)}
+        onEncyclopedia={() => setShowEncyclopedia(true)}
       />
     );
   }
@@ -2737,40 +3373,21 @@ const App = () => {
         {/* --- Top Area Swipe Handler --- */}
         <div
           className="flex-none flex flex-col relative z-30"
-          onTouchStart={(e) => {
-            // パズル盤面など必要な部分に影響しないように、画面上部のコンテナにのみ適用
-            timerRef.current && (timerRef.current._swipeStartX = e.touches[0].clientX);
-            timerRef.current && (timerRef.current._swipeStartY = e.touches[0].clientY);
-            timerRef.current && (timerRef.current._swipeStartTime = Date.now());
-          }}
-          onTouchEnd={(e) => {
-            if (!timerRef.current || !timerRef.current._swipeStartX) return;
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-            const dx = touchEndX - timerRef.current._swipeStartX;
-            const dy = touchEndY - timerRef.current._swipeStartY;
-            const dt = Date.now() - timerRef.current._swipeStartTime;
-
-            // X方向（右）への移動量が十分大きく、Y方向のズレが少なく、短時間でのフリック判定
-            // ※ shop画面を開くのは条件満たしている、かつ現在開いていない場合のみ（openShop内にロジックあり）
-            if (dx < -50 && Math.abs(dy) < 50 && dt < 300) { // 右から左（左フリック）で開く？いや、「右フリックでショップ画面に」
-              // ...要求は「画面上部を右フリックでショップ画面に」
-              // dx > 50 が右フリック
-            }
-            if (dx > 50 && Math.abs(dy) < 50 && dt < 300) {
-              openShop();
-            }
-            timerRef.current._swipeStartX = null;
-          }}
         >
           {/* Top Status Bar */}
-          <header className="relative z-10 px-4 pt-6 pb-2 flex justify-between items-center glass-panel border-b border-white/5">
+          <header className="relative z-10 px-4 pt-6 pb-2 flex justify-between items-center glass-panel border-b border-white/5 h-[76px] shrink-0">
             <div className="flex flex-col">
               <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-white">Cycle {Math.ceil(turn / maxTurns)}</span>
+                <span className="text-lg font-bold text-white whitespace-nowrap">
+                  <span className="text-[10px] uppercase text-slate-400 mr-1">Cycle</span>
+                  {(currentRunStats?.currentClears || 0) + 1}
+                </span>
                 <span className="text-primary font-bold">/</span>
-                <span className="text-lg font-bold text-white">Turn {turn}{isEndlessMode ? ' (∞)' : ''}</span>
+                <span className="text-lg font-bold text-white whitespace-nowrap">
+                  <span className="text-[10px] uppercase text-slate-400 mr-1">Turn</span>
+                  {turn}{isEndlessMode ? ' ∞' : ''}
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -2809,19 +3426,7 @@ const App = () => {
                     ref={targetComboRef}
                     className={`text-xl font-mono font-bold text-white inline-block ${targetPulse ? 'animate-target-pulse' : ''}`}
                   >
-                    {cycleTotalCombo}<span className="text-slate-500 text-lg">/{effectiveTarget}</span>
-                  </span>
-                </div>
-              </div>
-              {/* 操作時間テキスト */}
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary">
-                  <span className="material-icons-round text-xl">timer</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase text-slate-400 font-bold">Move Time</span>
-                  <span className="text-xl font-mono font-bold text-white">
-                    {Math.round((getTimeLimit() / 1000) * 100) / 100}<span className="text-xs text-slate-500 ml-0.5">s</span>
+                    {formatJapaneseNumber(cycleTotalCombo)}<span className={`text-lg ${isBeyondMode ? 'text-fuchsia-400' : 'text-slate-500'}`}>/{formatJapaneseNumber(isBeyondMode ? target : effectiveTarget)}</span>
                   </span>
                 </div>
               </div>
@@ -2948,7 +3553,15 @@ const App = () => {
                                     </div>
                                   ) : t ? (
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                      <span className={`material-icons-round text-2xl relative z-10 ${animClass ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-slate-400'}`}>
+                                      {t.isCountPassive && (
+                                        <div className="absolute inset-0 bg-primary/5">
+                                          <div
+                                            className="absolute bottom-0 left-0 right-0 bg-primary/20 transition-all duration-500"
+                                            style={{ height: `${Math.min(100, ((t.charge || 0) / (t.values?.[(t.level || 1) - 1] || 30)) * 100)}%` }}
+                                          />
+                                        </div>
+                                      )}
+                                      <span className={`material-icons-round text-2xl relative z-10 ${t?.type === 'curse' || t?.isCurse ? 'text-red-500' : animClass ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-slate-400'}`}>
                                         {getTokenIcon(t)}
                                       </span>
                                     </div>
@@ -3090,7 +3703,7 @@ const App = () => {
                                         />}
                                         {stackCount > 0 && activeBuff && <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cyan-500/60 to-blue-400/30 transition-all duration-500" style={{ height: `${buffProgress}%` }}></div>}
                                       </div>
-                                      <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : t?.isCurse ? (isReady ? 'text-red-400' : 'text-red-700') : (isReady ? 'text-primary' : 'text-slate-500')}`}>
+                                      <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : (t?.isCurse || t?.type === 'curse') ? (isReady ? 'text-red-400' : 'text-red-700') : (isReady ? 'text-primary' : 'text-slate-500')}`}>
                                         {getTokenIcon(t)}
                                       </span>
                                     </div>
@@ -3143,8 +3756,9 @@ const App = () => {
 
 
           {/* 操作時間ゲージ（トークンの下） */}
-          <div className="relative z-30 px-6 mb-2">
-            <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-white/5 relative shadow-inner">
+          <div className="relative z-30 px-6 mb-2 flex items-center gap-2">
+            <span ref={timerTextRef} className="text-sm font-mono font-bold text-slate-300 min-w-[3ch] text-right"></span>
+            <div className="flex-1 h-3 bg-slate-800 rounded-full overflow-hidden border border-white/5 relative shadow-inner">
               <div ref={timerRef} className="h-full bg-gradient-to-r from-green-400 to-emerald-600 w-full transition-all duration-0 ease-linear shadow-[0_0_10px_rgba(34,197,94,0.5)] rounded-full"></div>
             </div>
           </div>
@@ -3192,7 +3806,9 @@ const App = () => {
                 {/* Layer 2: Cycle Clear Overlay */}
                 {turn > maxTurns && goalReached && !isGameOver && (
                   <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in px-8 text-center">
-                    <h2 className="text-4xl text-yellow-400 font-black mb-2 tracking-widest font-display italic drop-shadow-glow w-full">CLEARED!</h2>
+                    <h2 className="text-4xl text-yellow-400 font-black mb-2 tracking-widest font-display italic drop-shadow-glow w-full">
+                      {isBeyondMode ? '∞ CLEARED!' : 'CLEARED!'}
+                    </h2>
                     <p className="text-slate-300 text-sm mb-8 font-bold leading-relaxed">
                       目標達成！<br />装備を整えて次のサイクルへ挑もう
                     </p>
@@ -3207,13 +3823,70 @@ const App = () => {
                         </div>
                         <span>ショップで強化</span>
                       </button>
+
+                      {currentRunStats?.hasReachedMaxCombo && ((currentRunStats?.currentClears || 0) + 1 < 25) && (
+                        <button
+                          onClick={() => startNextCycle(25)}
+                          className="bg-gradient-to-r from-red-600 to-purple-800 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full animate-pulse-slow"
+                        >
+                          <span className="material-icons-round">bolt</span>
+                          <span>ラストステージへ挑む</span>
+                        </button>
+                      )}
+
+                      {/* サイクル25クリア時に彼岸モードボタンを表示 */}
+                      {!isBeyondMode && (currentRunStats?.currentClears || 0) + 1 >= 25 && (
+                        <button
+                          onClick={() => {
+                            setIsBeyondMode(true);
+                            startNextCycle();
+                            notify('【彼岸】への扉が開かれた…');
+                          }}
+                          className="bg-gradient-to-r from-violet-900 via-fuchsia-700 to-violet-900 text-white py-4 rounded-2xl font-bold shadow-[0_0_30px_rgba(168,85,247,0.5)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full border border-fuchsia-400/30"
+                        >
+                          <span className="material-icons-round text-fuchsia-300">all_inclusive</span>
+                          <span className="text-fuchsia-200">彼岸へ至る</span>
+                        </button>
+                      )}
+
                       <button
-                        onClick={startNextCycle}
+                        onClick={() => startNextCycle()}
                         className="bg-gradient-to-r from-primary to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full animate-pulse-slow"
                       >
                         <span>次のエリアへ</span>
                         <span className="material-icons-round">arrow_forward</span>
                       </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Layer X: Max Combo Warp Dialog */}
+                {showMaxComboWarpDialog && (
+                  <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+                    <div className="bg-slate-900 border-2 border-primary/50 rounded-2xl p-6 text-center max-w-sm w-full shadow-[0_0_50px_rgba(var(--color-primary),0.3)]">
+                      <span className="material-icons-round text-5xl text-primary mb-4 block">bolt</span>
+                      <h2 className="text-2xl font-bold text-white mb-2 whitespace-pre-wrap">限界突破</h2>
+                      <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                        あなたは神の領域（コンボ限界）に到達しました。<br />
+                        全てを飛ばして、最終試練である「ラストステージ（サイクル25）」へ直行しますか？
+                      </p>
+                      <div className="flex flex-col gap-3">
+                        <button
+                          onClick={() => {
+                            setShowMaxComboWarpDialog(false);
+                            startNextCycle(25);
+                          }}
+                          className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-4 rounded-xl transition-all"
+                        >
+                          はい（ラストへ直行）
+                        </button>
+                        <button
+                          onClick={() => setShowMaxComboWarpDialog(false)}
+                          className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-3 px-4 rounded-xl transition-all"
+                        >
+                          いいえ（そのまま続ける）
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -3239,10 +3912,7 @@ const App = () => {
 
               </div>
 
-              {/* Touch Guide hint */}
-              <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none opacity-50">
-                <span className="text-[10px] text-white uppercase tracking-widest">Drag to connect</span>
-              </div>
+
             </div>
           </section>
 
@@ -3309,14 +3979,14 @@ const App = () => {
           }
 
           {/* Layer 0: Game Clear Screen (Full Overlay) */}
-          {(showGameClear || (turn > maxTurns && goalReached && target >= MAX_TARGET)) && (
+          {(showGameClear || (turn > maxTurns && goalReached && !isBeyondMode && (currentRunStats?.currentClears || 0) + 1 >= 25)) && (
             <div className="absolute inset-0 z-[1100] bg-slate-950/98 backdrop-blur-xl animate-fade-in flex flex-col items-center justify-start overflow-y-auto custom-scrollbar pt-12 pb-24 px-6 select-none shadow-2xl">
               <div className="flex flex-col items-center mb-10 mt-4 shrink-0">
                 <div className="w-24 h-24 bg-yellow-400/20 rounded-full flex items-center justify-center mb-6 border border-yellow-400/30 shadow-[0_0_50px_rgba(250,204,21,0.3)]">
                   <span className="material-icons-round text-6xl text-yellow-400 drop-shadow-glow animate-pulse-slow">emoji_events</span>
                 </div>
                 <h1 className="text-5xl text-yellow-400 font-black tracking-widest font-display italic drop-shadow-glow text-center">GAME CLEARED!</h1>
-                <p className="text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase mt-2">Max Target Reached</p>
+                <p className="text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase mt-2">Cycle 25 Complete</p>
                 <div className="h-1 w-32 bg-gradient-to-r from-transparent via-yellow-400 to-transparent mt-4 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.5)]"></div>
               </div>
 
@@ -3334,9 +4004,17 @@ const App = () => {
                     <span className="text-slate-500 text-xs font-bold">Total Combo Score</span>
                     <span className="text-3xl text-white font-black font-mono tracking-tighter drop-shadow-sm">{formatJapaneseNumber(cycleTotalCombo)}</span>
                   </div>
+                  <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                    <span className="text-slate-500 text-xs font-bold">Total Run Combo</span>
+                    <span className="text-sm text-slate-300 font-mono font-bold">{formatJapaneseNumber(currentRunTotalCombo)}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                    <span className="text-slate-500 text-xs font-bold">Cycles Cleared</span>
+                    <span className="text-sm text-slate-300 font-mono font-bold">{(currentRunStats?.currentClears || 0) + 1} / 25</span>
+                  </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500 text-xs font-bold">Target Reached</span>
-                    <span className="text-sm text-slate-300 font-mono font-bold">MAX ({formatJapaneseNumber(MAX_TARGET)})</span>
+                    <span className="text-slate-500 text-xs font-bold">Stars Spent</span>
+                    <span className="text-sm text-slate-300 font-mono font-bold">{currentRunStats?.currentStarsSpent || 0} ★</span>
                   </div>
                 </div>
               </div>
@@ -3355,7 +4033,7 @@ const App = () => {
                   const isSkill = t.type === 'skill';
                   return (
                     <div key={idx} className="bg-slate-900/40 rounded-3xl p-4 border border-white/5 flex items-center gap-5 backdrop-blur-sm group hover:border-white/20 transition-all active:scale-[0.98]">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg relative overflow-hidden ${isSkill ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20 group-hover:bg-blue-600/30' : 'bg-purple-600/20 text-purple-400 border border-purple-500/20 group-hover:bg-purple-600/30'}`}>
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg relative overflow-hidden ${(t.isCurse || t.type === 'curse') ? 'bg-red-600/20 text-red-400 border border-red-500/20 group-hover:bg-red-600/30' : isSkill ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20 group-hover:bg-blue-600/30' : 'bg-purple-600/20 text-purple-400 border border-purple-500/20 group-hover:bg-purple-600/30'}`}>
                         <span className="material-icons-round text-3xl">
                           {getTokenIcon(t)}
                         </span>
@@ -3384,16 +4062,21 @@ const App = () => {
 
               {/* Victory Actions */}
               <div className="flex flex-col gap-4 w-full max-w-sm mt-auto mb-10 shrink-0">
+                {/* 彼岸モードボタン (サイクル25クリア時のメインおすすめ) */}
                 <button
                   onClick={() => {
                     setShowGameClear(false);
+                    setIsBeyondMode(true);
                     startNextCycle();
+                    notify('【彼岸】への扉が開かれた…');
                   }}
-                  className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white py-5 rounded-3xl font-black shadow-[0_15px_30px_rgba(245,158,11,0.3)] hover:shadow-[0_20px_40px_rgba(245,158,11,0.4)] hover:scale-[1.03] active:scale-95 transition-all flex items-center justify-center gap-3 w-full"
+                  className="bg-gradient-to-r from-violet-900 via-fuchsia-700 to-violet-900 text-white py-5 rounded-3xl font-black shadow-[0_15px_30px_rgba(168,85,247,0.4)] hover:shadow-[0_20px_40px_rgba(168,85,247,0.5)] hover:scale-[1.03] active:scale-95 transition-all flex items-center justify-center gap-3 w-full border border-fuchsia-400/30"
                 >
-                  <span className="material-icons-round">all_inclusive</span>
-                  <span className="font-display italic tracking-widest text-lg">Continue Playing</span>
+                  <span className="material-icons-round text-fuchsia-300">all_inclusive</span>
+                  <span className="font-display italic tracking-widest text-lg text-fuchsia-200">彼岸へ至る</span>
                 </button>
+
+
                 <button
                   onClick={() => {
                     setShowGameClear(false);
@@ -3453,13 +4136,13 @@ const App = () => {
                   <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border border-primary/30 shadow-[0_0_40px_rgba(91,19,236,0.15)]" onClick={e => e.stopPropagation()}>
                     {/* ヘッダー */}
                     <div className="flex items-center gap-3 mb-4">
-                      <div className={`w-12 h-12 rounded-tr-xl rounded-br-xl relative flex items-center justify-center overflow-hidden ${isSkill ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-purple-500/20 border border-purple-500/30'}`}>
+                      <div className={`w-12 h-12 rounded-tr-xl rounded-br-xl relative flex items-center justify-center overflow-hidden ${(t.isCurse || t.type === 'curse') ? 'bg-red-500/20 border border-red-500/30' : isSkill ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-purple-500/20 border border-purple-500/30'}`}>
                         {/* 属性バー */}
                         <div
                           className="absolute left-0 top-0 bottom-0 w-1 z-30"
                           style={getAttributeBarStyles(t?.attributes)}
                         />
-                        <span className={`material-icons-round text-2xl ${isSkill ? 'text-blue-400' : 'text-purple-400'}`}>
+                        <span className={`material-icons-round text-2xl ${(t.isCurse || t.type === 'curse') ? 'text-red-400' : isSkill ? 'text-blue-400' : 'text-purple-400'}`}>
                           {getTokenIcon(t)}
                         </span>
                       </div>
@@ -3499,8 +4182,8 @@ const App = () => {
                                 <div className="h-[1px] flex-1 bg-gradient-to-r from-indigo-500/30 to-transparent" />
                               </div>
                               <div className="flex items-center gap-3 bg-slate-900/40 p-2 rounded-lg border border-white/5">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${target.type === 'skill' ? 'bg-blue-500/10' : 'bg-purple-500/10'}`}>
-                                  <span className={`material-icons-round text-lg ${target.type === 'skill' ? 'text-blue-400' : 'text-purple-400'}`}>
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${(target.isCurse || target.type === 'curse') ? 'bg-red-500/10' : target.type === 'skill' ? 'bg-blue-500/10' : 'bg-purple-500/10'}`}>
+                                  <span className={`material-icons-round text-lg ${(target.isCurse || target.type === 'curse') ? 'text-red-400' : target.type === 'skill' ? 'text-blue-400' : 'text-purple-400'}`}>
                                     {getTokenIcon(target)}
                                   </span>
                                 </div>
@@ -3519,7 +4202,7 @@ const App = () => {
                             <div className="mt-3 pt-3 border-t border-white/10">
                               <div className="flex items-center gap-2 text-amber-500/60 bg-amber-500/5 p-2 rounded-lg border border-amber-500/10">
                                 <span className="material-icons-round text-sm">warning</span>
-                                <p className="text-[10px] font-medium leading-tight">左隣にトークンがありません。<br/>右側に配置することで効果をコピーします。</p>
+                                <p className="text-[10px] font-medium leading-tight">左隣にトークンがありません。<br />右側に配置することで効果をコピーします。</p>
                               </div>
                             </div>
                           );

@@ -1,11 +1,16 @@
 import React from 'react';
-import { formatJapaneseNumber } from './utils/numberUtils.js';
 import { getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
+import soundManager from './utils/SoundManager';
+import { SE_IDS } from './constants/sounds';
+import { formatJapaneseNumber } from './utils/numberUtils';
 
 // 通常アイテムの背景・ボーダー色を返すヘルパー
 
 // 通常アイテムの背景・ボーダー色を返すヘルパー
 const getItemColors = (item) => {
+    if (item.type === 'curse' || item.isCurse) {
+        return { bg: 'from-red-500/20 to-red-900/20', border: 'border-red-500/30', iconColor: 'text-red-400' };
+    }
     if (item.type === 'upgrade_random') {
         return { bg: 'from-green-500/20 to-green-900/20', border: 'border-green-500/30', iconColor: 'text-green-400' };
     }
@@ -197,7 +202,7 @@ const ShopScreen = ({
     // アイテムをカテゴリごとに分類
     const enchantItems = items.filter(item => item.type === 'enchant_grant' || item.type === 'enchant_random');
     const normalItems = items.filter(item => item.type !== 'enchant_grant' && item.type !== 'enchant_random');
-    const passiveItems = normalItems.filter(item => item.type === 'passive' || item.type === 'collector' || item.type === 'upgrade_random');
+    const passiveItems = normalItems.filter(item => item.type === 'passive' || item.type === 'collector' || item.type === 'upgrade_random' || item.type === 'grant_random_curse');
     const activeItems = normalItems.filter(item => item.type === 'skill');
 
     // スワイプバックでショップを閉じる
@@ -226,10 +231,16 @@ const ShopScreen = ({
 
     return (
         <main
-            className="w-full h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden"
+            className="w-full h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden animate-fade-in"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
         >
+            {/* Background effects matching main screen */}
+            <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+                <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-primary/30 to-transparent"></div>
+                <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
+            </div>
+
             {/* ヘッダー */}
             <header className="flex-none px-6 py-4 z-20 relative bg-surface-dark/80 backdrop-blur-md border-b border-white/5">
                 <div className="flex items-center justify-between mb-4">
@@ -249,7 +260,10 @@ const ShopScreen = ({
                 {/* タブUI */}
                 <div className="flex space-x-1 p-1 bg-black/20 rounded-xl">
                     <button
-                        onClick={() => setActiveTab('normal')}
+                        onClick={() => {
+                            setActiveTab('normal');
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         style={{ touchAction: 'manipulation' }}
                         className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 ${activeTab === 'normal' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]' : 'text-slate-400'}`}
                     >
@@ -257,7 +271,12 @@ const ShopScreen = ({
                         <span>ノーマル</span>
                     </button>
                     <button
-                        onClick={() => isEnchantShopUnlocked && setActiveTab('enchant')}
+                        onClick={() => {
+                            if (isEnchantShopUnlocked) {
+                                setActiveTab('enchant');
+                                soundManager.playSE(SE_IDS.UI_CLICK);
+                            }
+                        }}
                         style={{ touchAction: 'manipulation' }}
                         className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 relative ${!isEnchantShopUnlocked
                             ? 'text-slate-600 cursor-not-allowed bg-black/10'
@@ -279,7 +298,10 @@ const ShopScreen = ({
                         )}
                     </button>
                     <button
-                        onClick={() => setActiveTab('awakening')}
+                        onClick={() => {
+                            setActiveTab('awakening');
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         style={{ touchAction: 'manipulation' }}
                         className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 ${activeTab === 'awakening' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40 scale-[1.02]' : 'text-slate-400'}`}
                     >
@@ -459,7 +481,7 @@ const ShopScreen = ({
                         <span className="material-icons-round text-xl mb-0.5 transition-transform duration-500">sync</span>
                         <div className="flex flex-col items-center leading-none">
                             <span className="flex items-center bg-slate-800/80 px-1.5 rounded-full border border-white/5">
-                                <span className="text-[10px] font-mono">{rerollPrice}</span>
+                            <span className="text-[10px] font-mono">{formatJapaneseNumber(rerollPrice)}</span>
                                 <span className="material-icons-round text-gold text-[8px] ml-0.5">star</span>
                             </span>
                         </div>

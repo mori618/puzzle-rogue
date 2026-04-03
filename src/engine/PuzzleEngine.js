@@ -1,6 +1,8 @@
 import { MAX_COMBO, MAX_TARGET } from '../constants/gameConstants.js';
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
+import soundManager from '../utils/SoundManager';
+import { SE_IDS } from '../constants/sounds';
 
 // --- Puzzle Engine (Imperative Logic) ---
 // --- Puzzle Engine (Imperative Logic) ---
@@ -18,6 +20,7 @@ class PuzzleEngine {
     this.onPassiveTrigger = options.onPassiveTrigger || null;
     this.onStarErase = options.onStarErase || null;
     this.totalMoveTimeRef = options.totalMoveTimeRef || { current: 0 }; // 操作時間加算用Ref
+    this.timerText = options.timerText || null; // 残り時間表示用要素
 
     // Will be calculated in init()
     this.orbSize = 0;
@@ -160,6 +163,9 @@ class PuzzleEngine {
       this.spawnInitialBoard();
     }
     this.render();
+
+    if (this.timerBar) this.timerBar.style.width = "100%";
+    this.updateTimerDisplay(this.timeLimit);
 
     // Resize listener with debounce
     if (!this.resizeListener) {
@@ -456,6 +462,7 @@ class PuzzleEngine {
 
     if (!target) return;
 
+    soundManager.playSE(SE_IDS.DRAG_START);
     this.dragging = target;
     this.dragging.el.classList.add("orb-grabbing");
     this.dragging.el.style.zIndex = "100";
@@ -532,6 +539,7 @@ class PuzzleEngine {
               if (target && target.el) target.el.classList.remove('orb-swapping');
             }, 160);
           }
+          soundManager.playSE(SE_IDS.DRAG_MOVE);
           this.render(); // Update positions
         }
       });
@@ -546,14 +554,40 @@ class PuzzleEngine {
     if (this.timerBar) {
       this.timerBar.style.width = `${this.timerProgress * 100}%`;
     }
-    if (remain <= 0) this.onEnd();
+    this.updateTimerDisplay(remain);
+    
+    // 残り3秒からカウントダウン音
+    if (remain > 0 && remain <= 3000 && Math.floor(remain / 1000) !== Math.floor((remain + 20) / 1000)) {
+      soundManager.playSE(SE_IDS.TIME_TICK);
+    }
+
+    if (remain <= 0) {
+      soundManager.playSE(SE_IDS.TIME_OVER);
+      this.onEnd();
+    }
+  }
+
+  updateTimerDisplay(remainMs) {
+    if (!this.timerText) return;
+    const seconds = remainMs / 1000;
+    // 操作中（remainMs < timeLimit かつ remainMs > 0）は小数点第1位まで表示
+    // それ以外（初期状態や終了時）は、端数がある場合のみ小数点表示
+    if (remainMs > 0 && remainMs < this.timeLimit) {
+      this.timerText.innerText = `${seconds.toFixed(1)}s`;
+    } else {
+      // 整数なら整数表示、そうでなければ小数点第1位
+      const displaySec = Math.round(seconds * 10) / 10;
+      this.timerText.innerText = `${displaySec}s`;
+    }
   }
 
   onEnd() {
     if (!this.dragging) return;
+    soundManager.playSE(SE_IDS.DRAG_END);
     clearInterval(this.timerId);
     this.timerProgress = 1; // Reset progress
     if (this.timerBar) this.timerBar.style.width = "100%";
+    this.updateTimerDisplay(this.timeLimit);
 
     // rAFをキャンセル
     if (this._rafId) {
@@ -602,7 +636,7 @@ class PuzzleEngine {
     if (this.processing) return;
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && orb.type === fromType) {
+        if (orb && orb.type === fromType && !orb.isRainbow) {
           orb.type = toType;
           // Update shape and color
           orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${toType}`;
@@ -618,7 +652,7 @@ class PuzzleEngine {
     if (this.processing) return;
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && types.includes(orb.type)) {
+        if (orb && types.includes(orb.type) && !orb.isRainbow) {
           orb.type = toType;
           orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${toType}`;
           orb.el.querySelector(".orb-inner").className = `orb-inner orb-${toType} shadow-lg`;
@@ -687,6 +721,12 @@ class PuzzleEngine {
       if (this.currentCombo >= MAX_COMBO) break;
       this.currentCombo = Math.min(this.currentCombo + 1, MAX_COMBO);
       this.onCombo(this.currentCombo);
+      
+      // コンボ音の再生（ピッチを段階的に上げる）
+      // 1.0 (1コンボ) 〜 2.0 (20コンボ以上) 程度に調整
+      const pitch = Math.min(2.0, 1.0 + (this.currentCombo * 0.05));
+      soundManager.playSE(SE_IDS.MATCH_NORMAL, pitch);
+
       if (this.comboEl) {
         const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
         this.comboEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
@@ -703,7 +743,7 @@ class PuzzleEngine {
     if (this.processing) return;
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb) {
+        if (orb && !orb.isRainbow) {
           const type = types[Math.floor(Math.random() * types.length)];
           orb.type = type;
           orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
@@ -728,7 +768,7 @@ class PuzzleEngine {
     if (targetRow < 0 || targetRow >= this.rows) return;
 
     this.state[targetRow].forEach((orb) => {
-      if (orb) {
+      if (orb && !orb.isRainbow) {
         orb.type = type;
         orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
         orb.el.querySelector(".orb-inner").className = `orb-inner orb-${type} shadow-lg`;
@@ -752,7 +792,7 @@ class PuzzleEngine {
 
     this.state.forEach(row => {
       const orb = row[targetCol];
-      if (orb) {
+      if (orb && !orb.isRainbow) {
         orb.type = type;
         orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
         orb.el.querySelector(".orb-inner").className = `orb-inner orb-${type} shadow-lg`;
@@ -839,41 +879,97 @@ class PuzzleEngine {
   createShapeEffect(shape, group) {
     if (!group || group.length === 0) return;
 
-    // 重心を計算 (現在のグリッド座標から算出)
-    let sumTop = 0;
-    let sumLeft = 0;
-    group.forEach(o => {
-      sumTop += o.r * (this.orbSize + this.gap);
-      sumLeft += o.c * (this.orbSize + this.gap);
-    });
-    const avgTop = sumTop / group.length;
-    const avgLeft = sumLeft / group.length;
+    const orbXs = group.map(o => o.c * (this.orbSize + this.gap));
+    const orbYs = group.map(o => o.r * (this.orbSize + this.gap));
+    const minX = Math.min(...orbXs);
+    const maxX = Math.max(...orbXs) + this.orbSize;
+    const minY = Math.min(...orbYs);
+    const maxY = Math.max(...orbYs) + this.orbSize;
+    const width = maxX - minX;
+    const height = maxY - minY;
+    const centerX = minX + width / 2;
+    const centerY = minY + height / 2;
 
     const effectEl = document.createElement('div');
     effectEl.className = `shape-effect effect-${shape.replace('_', '-')}`;
-
-    // 位置設定 (オーブの中央に合わせる)
-    const centerX = avgLeft + this.orbSize / 2;
-    const centerY = avgTop + this.orbSize / 2;
-
     effectEl.style.left = `${centerX}px`;
     effectEl.style.top = `${centerY}px`;
+    effectEl.style.width = `${width}px`;
+    effectEl.style.height = `${height}px`;
 
-    // Row（一列消し）の場合は行全体に広げるため位置調整
+    /** ライン生成ヘルパー */
+    const addLine = (type, x, y, size, isLightning = false) => {
+      const line = document.createElement('div');
+      line.className = `effect-line-${type} ${isLightning ? 'effect-len4-line' : ''}`;
+      if (type === 'h') {
+        line.style.width = `${size}px`;
+        line.style.left = `${x - centerX}px`;
+        line.style.top = `${y - centerY}px`;
+      } else {
+        line.style.height = `${size}px`;
+        line.style.left = `${x - centerX}px`;
+        line.style.top = `${y - centerY}px`;
+      }
+      effectEl.appendChild(line);
+    };
+
     if (shape === 'row') {
       effectEl.style.left = '0';
       effectEl.style.width = '100%';
-      effectEl.style.top = `${avgTop + this.orbSize / 2}px`;
-    }
-
-    // Square の場合は範囲をカバーするようにサイズ調整
-    if (shape === 'square') {
+      addLine('h', width / 2, centerY, this.container.offsetWidth);
+    } else if (shape === 'len4') {
       const rows = new Set(group.map(o => o.r));
       const cols = new Set(group.map(o => o.c));
-      const width = cols.size * (this.orbSize + this.gap) - this.gap;
-      const height = rows.size * (this.orbSize + this.gap) - this.gap;
-      effectEl.style.width = `${width}px`;
-      effectEl.style.height = `${height}px`;
+      const isHorizontal = rows.size === 1;
+      const isVertical = cols.size === 1;
+      if (isHorizontal) {
+        addLine('h', centerX, centerY, width, true);
+      } else if (isVertical) {
+        addLine('v', centerX, centerY, height, true);
+      } else {
+        // 塊の場合は中心に短い線を2本
+        addLine('h', centerX, centerY, width / 2, true);
+        addLine('v', centerX, centerY, height / 2, true);
+      }
+    } else if (shape === 'cross') {
+      addLine('h', centerX, centerY, width);
+      addLine('v', centerX, centerY, height);
+    } else if (shape === 'l_shape') {
+      // 隅を特定してラインを引く
+      const rows = Array.from(new Set(group.map(o => o.r))).sort((a, b) => a - b);
+      const cols = Array.from(new Set(group.map(o => o.c))).sort((a, b) => a - b);
+      // L字の角（接続点）を探す
+      const coordSet = new Set(group.map(o => `${o.r},${o.c}`));
+      let corner = null;
+      for (const r of rows) {
+        for (const c of cols) {
+          const hasH = (coordSet.has(`${r},${c-1}`) || coordSet.has(`${r},${c+1}`));
+          const hasV = (coordSet.has(`${r-1},${c}`) || coordSet.has(`${r+1},${c}`));
+          if (hasH && hasV && coordSet.has(`${r},${c}`)) {
+            corner = { r, c };
+            break;
+          }
+        }
+        if (corner) break;
+      }
+      if (corner) {
+        const cornerX = corner.c * (this.orbSize + this.gap) + this.orbSize / 2;
+        const cornerY = corner.r * (this.orbSize + this.gap) + this.orbSize / 2;
+        addLine('h', centerX, cornerY, width);
+        addLine('v', cornerX, centerY, height);
+      } else {
+        addLine('h', centerX, centerY, width);
+        addLine('v', centerX, centerY, height);
+      }
+    } else if (shape === 'square') {
+      // 外枠4本
+      addLine('h', centerX, minY + 2, width);
+      addLine('h', centerX, maxY - 2, width);
+      addLine('v', minX + 2, centerY, height);
+      addLine('v', maxX - 2, centerY, height);
+    } else if (shape === 'len5') {
+      addLine('h', centerX, centerY, width);
+      addLine('v', centerX, centerY, height);
     }
 
     this.container.appendChild(effectEl);
@@ -1027,6 +1123,7 @@ class PuzzleEngine {
 
             // ボムによる消滅エフェクト (爆発風に)
             this.createOrbEffect('len5', targetOrb.r, targetOrb.c);
+            soundManager.playSE(SE_IDS.BOMB_EXPLODE);
 
             const type = targetOrb.type;
             if (colorComboCounts[type] !== undefined) {
@@ -1099,6 +1196,7 @@ class PuzzleEngine {
           }
         }
         const totalClears = 1 + repeatCount + extraRepeat;
+        const shape = this.classifyShape(group);
 
         for (let clearNum = 0; clearNum < totalClears; clearNum++) {
           if (clearNum > 0) {
@@ -1128,6 +1226,7 @@ class PuzzleEngine {
               }
             });
             // 復活演出の表示時間
+            soundManager.playSE(SE_IDS.ORB_REVIVE);
             await this.sleep(220);
             if (this._isDestroyed) return;
             erasedByRepeatTotal += repeatCount; // 消えたリピートドロップ数を加算
@@ -1135,6 +1234,7 @@ class PuzzleEngine {
           const starsMatched = group.filter(o => o.isStar).length;
           erasedByStarTotal += starsMatched; // スタードロップ消去数を加算
           if (starsMatched > 0 && this.onStarErase) {
+            soundManager.playSE(SE_IDS.MATCH_STAR);
             this.onStarErase(starsMatched);
           }
 
@@ -1160,10 +1260,10 @@ class PuzzleEngine {
             clearedInitialOrbs += nonSkyfallCount;
           }
 
-          const shape = this.classifyShape(group);
           if (shape && clearNum === 0) {
             shapes.push(shape);
             this.createShapeEffect(shape, group);
+            soundManager.playSE(SE_IDS.SHAPE_BONUS);
           }
 
           // --- 特殊消しリアルタイム加算 ---
@@ -1182,6 +1282,7 @@ class PuzzleEngine {
           const enhancedBonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
           if (enhancedCount > 0 && this.realtimeBonuses?.enhancedOrbBonus > 0 && this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.enhancedOrbBonus) {
             this.realtimeBonuses.tokenIds.enhancedOrbBonus.forEach(id => this.onPassiveTrigger(id));
+            soundManager.playSE(SE_IDS.MATCH_PLUS);
           }
           addition += enhancedCount * enhancedBonusPerOrb;
 
@@ -1261,15 +1362,17 @@ class PuzzleEngine {
             if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.rainbow) {
               this.realtimeBonuses.tokenIds.rainbow.forEach(id => this.onPassiveTrigger(id));
             }
+            soundManager.playSE(SE_IDS.MATCH_RAINBOW);
           }
 
           group.forEach((o) => {
             if (o.el) {
               void o.el.offsetWidth; // force reflow
-              o.el.classList.add("orb-matching");
-            }
-            if (!o.isRainbow) {
-              orbsToEraseThisTurn.add(o); // Mark for deferred deletion
+              // 虹ドロップ以外のみ消滅アニメーションを適用（ガタつき防止）
+              if (!o.isRainbow) {
+                o.el.classList.add("orb-matching");
+                orbsToEraseThisTurn.add(o); // Mark for deferred deletion
+              }
             }
           });
 
@@ -1378,6 +1481,7 @@ class PuzzleEngine {
       row.every((orb) => orb === null),
     );
     if (isPerfect && this.currentCombo > 0) {
+      soundManager.playSE(SE_IDS.PERFECT_CLEAR);
       // 全消しボーナス: +10コンボ
       this.currentCombo = Math.min(this.currentCombo + 10, MAX_COMBO);
       this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
@@ -1575,7 +1679,8 @@ class PuzzleEngine {
       for (let c = 0; c < this.cols; c++) {
         // Exclude cells that are already of the target type
         // Also check if state exists (it should)
-        if (this.state[r][c]?.type && this.state[r][c].type !== type) {
+        const orb = this.state[r][c];
+        if (orb && orb.type !== type && !orb.isRainbow) {
           candidates.push({ r, c });
         }
       }
@@ -1645,6 +1750,10 @@ class PuzzleEngine {
       for (let c = 0; c < this.cols; c++) {
         const type = deck[idx++] || "heart"; // Fallback to heart if deck empty (shouldn't happen)
         const orb = this.state[r][c];
+        if (orb && orb.isRainbow) {
+          idx++;
+          continue;
+        }
         orb.type = type;
         orb.isBomb = false;
 
@@ -1674,7 +1783,7 @@ class PuzzleEngine {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
-        if (orb && !orb.isBomb) {
+        if (orb && !orb.isBomb && !orb.isRainbow) {
           candidates.push(orb);
         }
       }
@@ -1716,7 +1825,7 @@ class PuzzleEngine {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
-        if (orb && !orb.isBomb && (!targetType || orb.type === targetType)) {
+        if (orb && !orb.isBomb && !orb.isRainbow && (!targetType || orb.type === targetType)) {
           candidates.push(orb);
         }
       }
@@ -1743,7 +1852,7 @@ class PuzzleEngine {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
-        if (orb && !orb.isRepeat) {
+        if (orb && !orb.isRepeat && !orb.isRainbow) {
           candidates.push(orb);
         }
       }
@@ -1769,7 +1878,7 @@ class PuzzleEngine {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
-        if (orb && !orb.isRepeat && (!targetType || orb.type === targetType)) {
+        if (orb && !orb.isRepeat && !orb.isRainbow && (!targetType || orb.type === targetType)) {
           candidates.push(orb);
         }
       }

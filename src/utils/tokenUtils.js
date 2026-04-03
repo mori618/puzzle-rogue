@@ -91,10 +91,22 @@ export const getAttributeBarStyles = (attributes) => {
 export const getTokenIcon = (token) => {
     if (!token) return 'help_outline';
 
-    // アクティブ呪いトークン (isCurse + type:'skill') は先に skull アイコンを返す
-    if (token.isCurse) return 'skull';
+    // 呪いトークンの特定アイコン設定
+    const curseIcons = {
+        curse_turns: 'lock_clock',
+        curse_heart: 'heart_broken',
+        curse_time: 'hourglass_bottom',
+        curse_skyfall: 'cloud_off',
+        curse_half: 'trending_down',
+        curse_init: 'money_off',
+        curse_double_target: 'track_changes',
+        curse_active_time: 'timer',
+        curse_active_passive_null: 'do_not_disturb_on'
+    };
+    if (curseIcons[token.id]) return curseIcons[token.id];
 
-    if (token.type === 'curse') return 'skull';
+    // アクティブ呪いトークン (isCurse + type:'skill') / 呪いタイプ
+    if (token.isCurse || token.type === 'curse') return 'skull';
 
     if (token.type === 'skill') {
         const action = token.action;
@@ -112,9 +124,10 @@ export const getTokenIcon = (token) => {
         if (action === 'charge_boost') return 'battery_charging_full';
         if (action === 'forbidden_temp') return 'block';
         if (action === 'enhance_color') return 'auto_fix_high';
+        if (action === 'random_levelup') return 'upgrade';
         // アクティブ呪いスキル用（isCurse判定で上流に捕捉されるが念のため）
         if (action === 'curse_op_time_fix') return 'timer';
-        if (action === 'curse_passive_null') return 'do_not_disturb_on';
+        if (action === 'curse_multiply') return 'content_copy';
         return 'bolt';
     }
 
@@ -130,12 +143,26 @@ export const getTokenIcon = (token) => {
         if (effect === 'color_multiplier' || effect === 'color_count_bonus' || effect === 'filter_vintage') return 'filter_vintage';
         if (effect === 'shape_bonus' || effect === 'category') return 'category';
         if (effect === 'expand_board') return 'aspect_ratio';
+        if (effect === 'stat_curse_removed') return 'cleaning_services';
+        if (effect === 'stat_heart_chalice') return 'local_drink';
+        if (effect === 'stat_time_skipper') return 'shutter_speed';
         if (effect.startsWith('stat_')) return 'query_stats';
+
+        const countPassiveIcons = {
+            passive_fire_count: 'whatshot',
+            passive_water_count: 'water_drop',
+            passive_wood_count: 'eco',
+            passive_dark_count: 'brightness_2',
+            passive_light_count: 'bolt'
+        };
+        if (countPassiveIcons[token.id]) return countPassiveIcons[token.id];
+
         return 'auto_awesome';
     }
 
     if (token.type === 'enchant_grant' || token.type === 'enchant_random') return 'auto_fix_high';
     if (token.type === 'upgrade_random') return 'arrow_upward';
+    if (token.type === 'grant_random_curse') return 'skull';
 
     return 'star';
 };
