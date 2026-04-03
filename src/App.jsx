@@ -2307,6 +2307,15 @@ const App = () => {
 
     setIsAwakeningLevelUpBought(false);
 
+    // 属性の重み計算
+    const attrWeights = { fire: 1, water: 1, wood: 1, light: 1, dark: 1, heart: 1, none: 1 };
+    tokens.forEach(t => {
+      if (t && t.effect === 'shop_attribute_weight' && t.params?.attribute) {
+        const val = t.values[(t.level || 1) - 1] || 1;
+        attrWeights[t.params.attribute] *= val;
+      }
+    });
+
     // Define rarity probabilities based on cycleCount
     const getRarityProbabilities = (cycle) => {
       if (cycle <= 5) return { 1: 0.60, 2: 0.30, 3: 0.10 };
@@ -2364,9 +2373,33 @@ const App = () => {
     const createTokenItem = (pools) => {
       const rarity = getRarity();
       const pool = pools[rarity];
-      const base = pool[Math.floor(Math.random() * pool.length)];
-      const item = { ...base, level: 1, charge: base.cost || 0 };
-      item.price = getTokenDynamicPrice(base, tokens); // 動的価格を適用
+
+      // 重み付き選択
+      const weightedPool = pool.map(base => {
+        let weight = 1;
+        if (!base.attributes || base.attributes.length === 0) {
+          weight *= attrWeights.none;
+        } else {
+          base.attributes.forEach(a => {
+            if (attrWeights[a]) weight *= attrWeights[a];
+          });
+        }
+        return { base, weight };
+      });
+
+      const totalWeight = weightedPool.reduce((sum, entry) => sum + entry.weight, 0);
+      let r = Math.random() * totalWeight;
+      let selectedBase = pool[0];
+      for (const entry of weightedPool) {
+        r -= entry.weight;
+        if (r <= 0) {
+          selectedBase = entry.base;
+          break;
+        }
+      }
+
+      const item = { ...selectedBase, level: 1, charge: selectedBase.cost || 0 };
+      item.price = getTokenDynamicPrice(selectedBase, tokens); // 動的価格を適用
       item.desc = getTokenDescription(item, 1, currentRunStats, tokens, activeBuffs);
       // エンチャント付きでのトークン販売は廃止
       return item;

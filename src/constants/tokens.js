@@ -1154,6 +1154,99 @@ const ALL_TOKEN_BASES = [
     attributes: ["light"],
     canBeInitial: true
   },
+
+  // --- ショップ属性出現率アップ ---
+  {
+    id: "shop_attr_fire",
+    name: "炎の福音",
+    type: "passive",
+    effect: "shop_attribute_weight",
+    params: { attribute: "fire" },
+    values: [1.4, 1.8, 2.5],
+    rarity: 1,
+    price: 4,
+    desc: "ショップに炎属性のトークンが出現しやすくなる（×[1.4/1.8/2.5]倍）。",
+    attributes: ["fire"],
+    canBeInitial: true
+  },
+  {
+    id: "shop_attr_water",
+    name: "雨の福音",
+    type: "passive",
+    effect: "shop_attribute_weight",
+    params: { attribute: "water" },
+    values: [1.4, 1.8, 2.5],
+    rarity: 1,
+    price: 4,
+    desc: "ショップに雨属性のトークンが出現しやすくなる（×[1.4/1.8/2.5]倍）。",
+    attributes: ["water"],
+    canBeInitial: true
+  },
+  {
+    id: "shop_attr_wood",
+    name: "風の福音",
+    type: "passive",
+    effect: "shop_attribute_weight",
+    params: { attribute: "wood" },
+    values: [1.4, 1.8, 2.5],
+    rarity: 1,
+    price: 4,
+    desc: "ショップに風属性のトークンが出現しやすくなる（×[1.4/1.8/2.5]倍）。",
+    attributes: ["wood"],
+    canBeInitial: true
+  },
+  {
+    id: "shop_attr_light",
+    name: "雷の福音",
+    type: "passive",
+    effect: "shop_attribute_weight",
+    params: { attribute: "light" },
+    values: [1.4, 1.8, 2.5],
+    rarity: 1,
+    price: 4,
+    desc: "ショップに雷属性のトークンが出現しやすくなる（×[1.4/1.8/2.5]倍）。",
+    attributes: ["light"],
+    canBeInitial: true
+  },
+  {
+    id: "shop_attr_dark",
+    name: "月の福音",
+    type: "passive",
+    effect: "shop_attribute_weight",
+    params: { attribute: "dark" },
+    values: [1.4, 1.8, 2.5],
+    rarity: 1,
+    price: 4,
+    desc: "ショップに月属性のトークンが出現しやすくなる（×[1.4/1.8/2.5]倍）。",
+    attributes: ["dark"],
+    canBeInitial: true
+  },
+  {
+    id: "shop_attr_heart",
+    name: "癒の福音",
+    type: "passive",
+    effect: "shop_attribute_weight",
+    params: { attribute: "heart" },
+    values: [1.4, 1.8, 2.5],
+    rarity: 1,
+    price: 4,
+    desc: "ショップに心(癒)属性のトークンが出現しやすくなる（×[1.4/1.8/2.5]倍）。",
+    attributes: ["heart"],
+    canBeInitial: true
+  },
+  {
+    id: "shop_attr_none",
+    name: "無の福音",
+    type: "passive",
+    effect: "shop_attribute_weight",
+    params: { attribute: "none" },
+    values: [1.4, 1.8, 2.5],
+    rarity: 1,
+    price: 4,
+    desc: "ショップに無属性のトークンが出現しやすくなる（×[1.4/1.8/2.5]倍）。",
+    attributes: [],
+    canBeInitial: true
+  }
 ];
 
 export { ALL_TOKEN_BASES };

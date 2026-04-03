@@ -146,6 +146,7 @@ export const getTokenIcon = (token) => {
         if (effect === 'stat_curse_removed') return 'cleaning_services';
         if (effect === 'stat_heart_chalice') return 'local_drink';
         if (effect === 'stat_time_skipper') return 'shutter_speed';
+        if (effect === 'shop_attribute_weight') return 'storefront';
         if (effect.startsWith('stat_')) return 'query_stats';
 
         const countPassiveIcons = {
