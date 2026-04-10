@@ -109,6 +109,11 @@ class PuzzleEngine {
           isRainbow: !!orb.isRainbow,
           rainbowCount: orb.rainbowCount,
           isStar: !!orb.isStar,
+          isMoveDrop: !!orb.isMoveDrop,
+          moveTokenId: orb.moveTokenId,
+          moveCount: orb.moveCount,
+          moveSteps: orb.moveSteps,
+          moveRequired: orb.moveRequired,
         };
       })
     );
@@ -266,6 +271,23 @@ class PuzzleEngine {
     const inner = document.createElement("div");
     inner.className = `orb-inner orb-${type} shadow-lg`;
 
+    // ムーブドロップかどうか
+    let isMoveDrop = false;
+    let moveTokenId = null;
+    let moveCount = 0;
+    let moveSteps = 0;
+    let moveRequired = 5;
+
+    if (savedData && savedData.isMoveDrop) {
+      isMoveDrop = true;
+      moveTokenId = savedData.moveTokenId;
+      moveCount = savedData.moveCount || 0;
+      moveSteps = savedData.moveSteps || 0;
+      moveRequired = savedData.moveRequired || 5;
+      type = "move"; // 内部処理・描画上で独立させるため
+      inner.className = `orb-inner orb-move shadow-lg`;
+    }
+
     // 虹ドロップかどうか（スキル等で確定生成する場合はtypeが'rainbow'で来るか、isNewのパッシブ判定）
     let isRainbow = false;
     let rainbowCount = 3;
@@ -293,9 +315,14 @@ class PuzzleEngine {
 
     const iconSpan = document.createElement("span");
     iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
-    iconSpan.innerText = isRainbow ? "" : this.icons[type];
+    iconSpan.innerText = isRainbow || isMoveDrop ? "" : this.icons[type];
 
-    if (isRainbow) {
+    if (isMoveDrop) {
+      const countSpan = document.createElement("span");
+      countSpan.className = "move-count-text";
+      countSpan.innerText = moveCount;
+      inner.appendChild(countSpan);
+    } else if (isRainbow) {
       const countSpan = document.createElement("span");
       countSpan.className = "rainbow-count-text text-white font-bold text-xl drop-shadow-md select-none";
       countSpan.innerText = rainbowCount;
@@ -362,7 +389,7 @@ class PuzzleEngine {
     el.style.left = `${baseLeft}px`;
 
     const isEnhanced = savedData ? !!savedData.isEnhanced : false;
-    const orb = { type, el, r, c, isSkyfall: isNew, baseTop, baseLeft, isEnhanced, isBomb, isRepeat, isStar, isRainbow, rainbowCount };
+    const orb = { type, el, r, c, isSkyfall: isNew, baseTop, baseLeft, isEnhanced, isBomb, isRepeat, isStar, isRainbow, rainbowCount, isMoveDrop, moveTokenId, moveCount, moveSteps, moveRequired };
 
     if (isBomb) {
       this.addBombMark(el);
@@ -445,10 +472,18 @@ class PuzzleEngine {
     if (this.processing) return;
 
     // 操作開始前に、盤面の全ドロップの skyfall フラグをリセットする
-    // これにより、連鎖外の「もともと盤面に残っていたドロップ」が誤って落ちコンとして判定されるのを防ぎます。
+    // また、どのドロップを掴んで操作を始めても、盤面のすべてのムーブドロップのカウントを0にリセットする
     this.state.forEach(row => {
       row.forEach(orb => {
-        if (orb) orb.isSkyfall = false;
+        if (orb) {
+          orb.isSkyfall = false;
+          if (orb.isMoveDrop) {
+            orb.moveCount = 0;
+            orb.moveSteps = 0;
+            const textEl = orb.el.querySelector('.move-count-text');
+            if (textEl) textEl.innerText = orb.moveCount;
+          }
+        }
       });
     });
 
@@ -532,6 +567,9 @@ class PuzzleEngine {
           this.dragging.r = nr;
           this.dragging.c = nc;
 
+          this._incrementMoveDropCount(this.dragging);
+          if (target) this._incrementMoveDropCount(target);
+
           // 入れ替わるオーブにスワップアニメーションクラスを付与
           if (target && target.el) {
             target.el.classList.add('orb-swapping');
@@ -564,6 +602,24 @@ class PuzzleEngine {
     if (remain <= 0) {
       soundManager.playSE(SE_IDS.TIME_OVER);
       this.onEnd();
+    }
+  }
+
+  _incrementMoveDropCount(orb) {
+    if (!orb || !orb.isMoveDrop) return;
+    orb.moveSteps++;
+    const required = orb.moveRequired || 5;
+    if (orb.moveSteps >= required) {
+      const boost = this.realtimeBonuses?.moveDropBoost || 0;
+      orb.moveCount += (1 + boost);
+      orb.moveSteps = 0;
+      const textEl = orb.el.querySelector('.move-count-text');
+      if (textEl) {
+        textEl.innerText = orb.moveCount;
+        textEl.classList.remove('rainbow-hit-pulse');
+        void textEl.offsetWidth;
+        textEl.classList.add('rainbow-hit-pulse'); // ポップアニメーションを流用
+      }
     }
   }
 
@@ -636,7 +692,7 @@ class PuzzleEngine {
     if (this.processing) return;
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && orb.type === fromType && !orb.isRainbow) {
+        if (orb && orb.type === fromType && !orb.isRainbow && !orb.isMoveDrop) {
           orb.type = toType;
           // Update shape and color
           orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${toType}`;
@@ -652,7 +708,7 @@ class PuzzleEngine {
     if (this.processing) return;
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && types.includes(orb.type) && !orb.isRainbow) {
+        if (orb && types.includes(orb.type) && !orb.isRainbow && !orb.isMoveDrop) {
           orb.type = toType;
           orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${toType}`;
           orb.el.querySelector(".orb-inner").className = `orb-inner orb-${toType} shadow-lg`;
@@ -669,7 +725,7 @@ class PuzzleEngine {
     const normalOrbs = [];
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && !orb.isStar && !orb.isBomb && !orb.isRepeat && !orb.isRainbow) {
+        if (orb && !orb.isStar && !orb.isBomb && !orb.isRepeat && !orb.isRainbow && !orb.isMoveDrop) {
           normalOrbs.push(orb);
         }
       });
@@ -693,7 +749,7 @@ class PuzzleEngine {
     const targetOrbs = [];
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && orb.type === targetColor && !orb.isStar && !orb.isBomb && !orb.isRepeat && !orb.isRainbow) {
+        if (orb && orb.type === targetColor && !orb.isStar && !orb.isBomb && !orb.isRepeat && !orb.isRainbow && !orb.isMoveDrop) {
           targetOrbs.push(orb);
         }
       });
@@ -743,7 +799,7 @@ class PuzzleEngine {
     if (this.processing) return;
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && !orb.isRainbow) {
+        if (orb && !orb.isRainbow && !orb.isMoveDrop) {
           const type = types[Math.floor(Math.random() * types.length)];
           orb.type = type;
           orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
@@ -768,7 +824,7 @@ class PuzzleEngine {
     if (targetRow < 0 || targetRow >= this.rows) return;
 
     this.state[targetRow].forEach((orb) => {
-      if (orb && !orb.isRainbow) {
+      if (orb && !orb.isRainbow && !orb.isMoveDrop) {
         orb.type = type;
         orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
         orb.el.querySelector(".orb-inner").className = `orb-inner orb-${type} shadow-lg`;
@@ -792,7 +848,7 @@ class PuzzleEngine {
 
     this.state.forEach(row => {
       const orb = row[targetCol];
-      if (orb && !orb.isRainbow) {
+      if (orb && !orb.isRainbow && !orb.isMoveDrop) {
         orb.type = type;
         orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
         orb.el.querySelector(".orb-inner").className = `orb-inner orb-${type} shadow-lg`;
@@ -807,7 +863,7 @@ class PuzzleEngine {
     if (this.processing) return;
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && colors.includes(orb.type) && !orb.isEnhanced) {
+        if (orb && colors.includes(orb.type) && !orb.isEnhanced && !orb.isMoveDrop) {
           orb.isEnhanced = true;
           this.addPlusMark(orb.el);
         }
@@ -879,110 +935,13 @@ class PuzzleEngine {
   createShapeEffect(shape, group) {
     if (!group || group.length === 0) return;
 
-    const orbXs = group.map(o => o.c * (this.orbSize + this.gap));
-    const orbYs = group.map(o => o.r * (this.orbSize + this.gap));
-    const minX = Math.min(...orbXs);
-    const maxX = Math.max(...orbXs) + this.orbSize;
-    const minY = Math.min(...orbYs);
-    const maxY = Math.max(...orbYs) + this.orbSize;
-    const width = maxX - minX;
-    const height = maxY - minY;
-    const centerX = minX + width / 2;
-    const centerY = minY + height / 2;
-
-    const effectEl = document.createElement('div');
-    effectEl.className = `shape-effect effect-${shape.replace('_', '-')}`;
-    effectEl.style.left = `${centerX}px`;
-    effectEl.style.top = `${centerY}px`;
-    effectEl.style.width = `${width}px`;
-    effectEl.style.height = `${height}px`;
-
-    /** ライン生成ヘルパー */
-    const addLine = (type, x, y, size, isLightning = false) => {
-      const line = document.createElement('div');
-      line.className = `effect-line-${type} ${isLightning ? 'effect-len4-line' : ''}`;
-      if (type === 'h') {
-        line.style.width = `${size}px`;
-        line.style.left = `${x - centerX}px`;
-        line.style.top = `${y - centerY}px`;
-      } else {
-        line.style.height = `${size}px`;
-        line.style.left = `${x - centerX}px`;
-        line.style.top = `${y - centerY}px`;
+    // 各ドロップに形状別の消滅用クラスを付与
+    const animationClass = `orb-matching-${shape.replace('_', '-')}`;
+    group.forEach(orb => {
+      if (orb && orb.el) {
+        orb.el.classList.add(animationClass);
       }
-      effectEl.appendChild(line);
-    };
-
-    if (shape === 'row') {
-      effectEl.style.left = '0';
-      effectEl.style.width = '100%';
-      addLine('h', width / 2, centerY, this.container.offsetWidth);
-    } else if (shape === 'len4') {
-      const rows = new Set(group.map(o => o.r));
-      const cols = new Set(group.map(o => o.c));
-      const isHorizontal = rows.size === 1;
-      const isVertical = cols.size === 1;
-      if (isHorizontal) {
-        addLine('h', centerX, centerY, width, true);
-      } else if (isVertical) {
-        addLine('v', centerX, centerY, height, true);
-      } else {
-        // 塊の場合は中心に短い線を2本
-        addLine('h', centerX, centerY, width / 2, true);
-        addLine('v', centerX, centerY, height / 2, true);
-      }
-    } else if (shape === 'cross') {
-      addLine('h', centerX, centerY, width);
-      addLine('v', centerX, centerY, height);
-    } else if (shape === 'l_shape') {
-      // 隅を特定してラインを引く
-      const rows = Array.from(new Set(group.map(o => o.r))).sort((a, b) => a - b);
-      const cols = Array.from(new Set(group.map(o => o.c))).sort((a, b) => a - b);
-      // L字の角（接続点）を探す
-      const coordSet = new Set(group.map(o => `${o.r},${o.c}`));
-      let corner = null;
-      for (const r of rows) {
-        for (const c of cols) {
-          const hasH = (coordSet.has(`${r},${c-1}`) || coordSet.has(`${r},${c+1}`));
-          const hasV = (coordSet.has(`${r-1},${c}`) || coordSet.has(`${r+1},${c}`));
-          if (hasH && hasV && coordSet.has(`${r},${c}`)) {
-            corner = { r, c };
-            break;
-          }
-        }
-        if (corner) break;
-      }
-      if (corner) {
-        const cornerX = corner.c * (this.orbSize + this.gap) + this.orbSize / 2;
-        const cornerY = corner.r * (this.orbSize + this.gap) + this.orbSize / 2;
-        addLine('h', centerX, cornerY, width);
-        addLine('v', cornerX, centerY, height);
-      } else {
-        addLine('h', centerX, centerY, width);
-        addLine('v', centerX, centerY, height);
-      }
-    } else if (shape === 'square') {
-      // 外枠4本
-      addLine('h', centerX, minY + 2, width);
-      addLine('h', centerX, maxY - 2, width);
-      addLine('v', minX + 2, centerY, height);
-      addLine('v', maxX - 2, centerY, height);
-    } else if (shape === 'len5') {
-      addLine('h', centerX, centerY, width);
-      addLine('v', centerX, centerY, height);
-    }
-
-    this.container.appendChild(effectEl);
-
-    // アニメーション終了時に削除
-    effectEl.addEventListener('animationend', () => {
-      effectEl.remove();
-    }, { once: true });
-
-    // 安全策として1秒後に削除
-    setTimeout(() => {
-      if (effectEl.parentNode) effectEl.remove();
-    }, 1000);
+    });
   }
 
   /** 特殊ドロップ消滅時のエフェクト生成 (ボム、スター、虹用) */
@@ -1008,7 +967,7 @@ class PuzzleEngine {
     // 1. Clear all orbs with animation
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb) orb.el.classList.add("orb-matching");
+        if (orb && !orb.isMoveDrop) orb.el.classList.add("orb-matching");
       });
     });
 
@@ -1017,7 +976,7 @@ class PuzzleEngine {
 
     this.state.forEach((row, r) => {
       row.forEach((orb, c) => {
-        if (orb) {
+        if (orb && !orb.isMoveDrop) {
           orb.el.remove();
           this.state[r][c] = null;
         }
@@ -1067,6 +1026,12 @@ class PuzzleEngine {
     // --- スタードロップで消えた数のカウンター ---
     let erasedByStarTotal = 0;
 
+    // --- 特殊ドロップ自体の消滅数のカウンター ---
+    let bombSelfErased = 0;
+    let repeatSelfErased = 0;
+    let starSelfErased = 0;
+    let rainbowSelfErased = 0;
+
     let loopGuard = 0;
     const MAX_LOOP = 50; // 無限ループ防止（1色100%など極端な状況の安全弁）
     while (loopGuard++ < MAX_LOOP) {
@@ -1091,7 +1056,7 @@ class PuzzleEngine {
         const bombTargets = [];
         this.state.forEach(row => {
           row.forEach(orb => {
-            if (orb && targetColors.has(orb.type)) {
+            if (orb && targetColors.has(orb.type) && !orb.isMoveDrop) {
               bombTargets.push(orb);
             }
           });
@@ -1204,7 +1169,14 @@ class PuzzleEngine {
             group.forEach((o) => {
               o.isRepeat = false;
               if (o.el) {
-                o.el.classList.remove("orb-matching"); // 前回のアニメーションを解除
+                // すべての消滅アニメーション用クラスを削除
+                o.el.classList.remove("orb-matching");
+                o.el.classList.remove("orb-matching-len4");
+                o.el.classList.remove("orb-matching-row");
+                o.el.classList.remove("orb-matching-cross");
+                o.el.classList.remove("orb-matching-l-shape");
+                o.el.classList.remove("orb-matching-square");
+                o.el.classList.remove("orb-matching-len5");
                 const repeatMark = o.el.querySelector('.repeat-mark');
                 if (repeatMark) repeatMark.remove();
 
@@ -1412,6 +1384,11 @@ class PuzzleEngine {
 
       // Proceed with actual deletion
       for (const orb of orbsToEraseThisTurn) {
+        if (orb.isBomb) bombSelfErased++;
+        if (orb.isRepeat) repeatSelfErased++;
+        if (orb.isStar) starSelfErased++;
+        if (orb.isRainbow) rainbowSelfErased++;
+
         if (orb.el) {
           // スタードロップ消滅時の固有エフェクト
           if (orb.isStar) {
@@ -1497,7 +1474,7 @@ class PuzzleEngine {
     }
 
     if (this.onTurnEnd) {
-      await this.onTurnEnd(this.currentCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes, overLinkMultiplier, erasedByBombTotal, erasedByRepeatTotal, erasedByStarTotal, isPerfect || allInitialOrbsCleared);
+      await this.onTurnEnd(this.currentCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes, overLinkMultiplier, erasedByBombTotal, erasedByRepeatTotal, erasedByStarTotal, isPerfect || allInitialOrbsCleared, { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased });
     }
     this.processing = false;
   }
@@ -1680,7 +1657,7 @@ class PuzzleEngine {
         // Exclude cells that are already of the target type
         // Also check if state exists (it should)
         const orb = this.state[r][c];
-        if (orb && orb.type !== type && !orb.isRainbow) {
+        if (orb && orb.type !== type && !orb.isRainbow && !orb.isMoveDrop) {
           candidates.push({ r, c });
         }
       }
@@ -1904,7 +1881,7 @@ class PuzzleEngine {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
-        if (orb && !orb.isRainbow) {
+        if (orb && !orb.isRainbow && !orb.isMoveDrop) {
           candidates.push(orb);
         }
       }
@@ -2025,6 +2002,85 @@ class PuzzleEngine {
 
   sleep(ms) {
     return new Promise((res) => setTimeout(res, ms));
+  }
+
+  // --- ムーブドロップの同期処理 ---
+  syncMoveDrops(moveDropConfigs) {
+    if (this._isDestroyed || !this.state || this.state.length === 0) return;
+
+    const currentMoveDrops = [];
+    const normalOrbs = [];
+
+    // 現在の盤面を走査
+    this.state.forEach(row => {
+      row.forEach(orb => {
+        if (!orb) return;
+        if (orb.isMoveDrop) {
+          currentMoveDrops.push(orb);
+        } else if (!orb.isRainbow && !orb.isBomb && !orb.isRepeat && !orb.isStar) {
+          normalOrbs.push(orb);
+        }
+      });
+    });
+
+    // config に存在しないものを削除（通常のドロップに戻す）
+    const configIds = moveDropConfigs.map(c => c.tokenId);
+    currentMoveDrops.forEach(orb => {
+      if (!configIds.includes(orb.moveTokenId)) {
+        // 通常ドロップに書き換える
+        orb.isMoveDrop = false;
+        orb.moveTokenId = null;
+        orb.type = this.types[Math.floor(Math.random() * this.types.length)];
+        
+        orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${orb.type}`;
+        const inner = orb.el.querySelector('.orb-inner');
+        if (inner) {
+          inner.className = `orb-inner orb-${orb.type} shadow-lg`;
+          inner.innerHTML = ''; // span等をクリア
+          const iconSpan = document.createElement("span");
+          iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
+          iconSpan.innerText = this.icons[orb.type];
+          inner.appendChild(iconSpan);
+        }
+      }
+    });
+
+    // 新たに追加すべきものをさがす
+    const existingIds = currentMoveDrops.filter(o => o.isMoveDrop && configIds.includes(o.moveTokenId)).map(o => o.moveTokenId);
+    moveDropConfigs.forEach(config => {
+      if (!existingIds.includes(config.tokenId)) {
+        // 新規追加
+        if (normalOrbs.length > 0) {
+          // ランダムな位置の通常ドロップを選ぶ
+          const targetIdx = Math.floor(Math.random() * normalOrbs.length);
+          const orb = normalOrbs.splice(targetIdx, 1)[0];
+          
+          orb.isMoveDrop = true;
+          orb.moveTokenId = config.tokenId;
+          orb.moveCount = 0;
+          orb.moveSteps = 0;
+          orb.moveRequired = config.requiredWalks || 5;
+          orb.type = "move"; // 内部処理用
+          
+          orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-move`;
+          const inner = orb.el.querySelector('.orb-inner');
+          if (inner) {
+            inner.className = `orb-inner orb-move shadow-lg`;
+            inner.innerHTML = '';
+            const countSpan = document.createElement("span");
+            countSpan.className = "move-count-text";
+            countSpan.innerText = orb.moveCount;
+            inner.appendChild(countSpan);
+          }
+        }
+      } else {
+        // 既存のドロップの設定更新（レベルアップ等でrequiredWalksが変わった場合など）
+        const orb = currentMoveDrops.find(o => o.isMoveDrop && o.moveTokenId === config.tokenId);
+        if (orb) {
+          orb.moveRequired = config.requiredWalks || 5;
+        }
+      }
+    });
   }
 
   destroy() {

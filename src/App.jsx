@@ -11,7 +11,7 @@ import TokenEncyclopediaScreen from "./TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, getEnchantDescription, ENCHANTMENTS } from './constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_GROWTH_FACTOR, SHOP_REROLL_GROWTH_FACTOR } from './constants/gameConstants.js';
-import { formatNum, getEffectiveCost, getTokenDescription, getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
+import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
 import { formatJapaneseNumber } from './utils/numberUtils.js';
 import { PuzzleEngine } from './engine/PuzzleEngine.js';
 import soundManager from './utils/SoundManager';
@@ -89,6 +89,8 @@ const App = () => {
     lifetimeSkillsUsed: 0,    // 累計スキル使用回数
     lifetimeCursesRemoved: 0,  // 累計呪い解除数
     lifetimeDropsErased: { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }, // 累計各ドロップ消去数
+    maxBaseComboAllTime: 0,
+    maxBaseComboMultiplierAllTime: 1,
   });
   const initialCurrentRunStats = {
     currentTotalCombo: 0,
@@ -112,6 +114,8 @@ const App = () => {
     skipsPerformed: 0,
     currentCursesRemoved: 0,  // 今回の呪い解除数
     currentDropsErased: { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }, // 今回の各ドロップ消去数
+    maxBaseCombo: 0,
+    maxBaseComboMultiplier: 1,
   };
   const [currentRunStats, setCurrentRunStats] = useState(initialCurrentRunStats);
   // const [isLuxury, setIsLuxury] = useState(false); // Unused
@@ -466,6 +470,13 @@ const App = () => {
         if (count > 0) base += (v * 1000) * count;
       }
     });
+    // --- 追加: スキルによる操作時間延長バフ ---
+    activeBuffs.forEach(b => {
+      if (b.action === "op_time_boost") {
+        base += (b.params?.extraTime || 0);
+      }
+    });
+
     // 特殊消しボーナスによる操作時間延長（五星の印・十字の祈り）
     base *= nextTurnTimeMultiplier;
     return Math.max(1000, base); // 最低1秒
@@ -537,13 +548,13 @@ const App = () => {
       // Calculate realtime bonuses from tokens
       const bonuses = {
         len4: 0, row: 0, l_shape: 0, color_combo: {}, heart_combo: 0, enhancedOrbBonus: 0, overLink: null,
-        extra_repeat_activations: 0,
+        extra_repeat_activations: 0, moveDropBoost: 0,
         stat_shape_additions: { cross: 0, len4: 0 },
         skyfall: 0,
         rainbow: 0,
         tokenIds: {
           len4: [], row: [], l_shape: [], heart_combo: [], enhancedOrbBonus: [], overLink: [],
-          rainbow_combo_bonus: [], extra_repeat_activations: [], stat_shape_additions: { cross: [], len4: [] },
+          rainbow_combo_bonus: [], extra_repeat_activations: [], moveDropBoost: [], stat_shape_additions: { cross: [], len4: [] },
           skyfall: [], rainbow: []
         }
       };
@@ -589,6 +600,11 @@ const App = () => {
         if (t.effect === 'rainbow_combo_bonus') {
           bonuses.rainbow += (t.values[lv - 1] || 0);
           bonuses.tokenIds.rainbow.push(tId);
+        }
+
+        if (t.effect === 'move_drop_boost') {
+          bonuses.moveDropBoost += (t.values[lv - 1] || 0);
+          bonuses.tokenIds.moveDropBoost.push(tId);
         }
 
         if (t.effect === 'bonus_skyfall') {
@@ -714,6 +730,20 @@ const App = () => {
         }
       });
       engineRef.current.setRainbowRates(rainbowRate);
+
+      // ムーブドロップの情報を同期
+      const moveDropConfigs = [];
+      effectiveTokens.forEach(t => {
+        if (!t) return;
+        const lv = t.level || 1;
+        if (t.effect === 'move_drop') {
+          moveDropConfigs.push({
+            tokenId: t.instanceId || t.id,
+            requiredWalks: t.values[lv - 1] || 5
+          });
+        }
+      });
+      engineRef.current.syncMoveDrops(moveDropConfigs);
     }
   }, [tokens, getTimeLimit, minMatchLength, activeBuffs]);
 
@@ -724,7 +754,8 @@ const App = () => {
   // Debug State
   // const [debugLog, setDebugLog] = useState(null);
 
-  const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0, erasedByRepeatTotal = 0, erasedByStarTotal = 0, isAllClear = false) => {
+  const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0, erasedByRepeatTotal = 0, erasedByStarTotal = 0, isAllClear = false, extraStats = {}) => {
+    const { bombSelfErased = 0, repeatSelfErased = 0, starSelfErased = 0, rainbowSelfErased = 0 } = extraStats;
     let tc = Number(turnCombo) || 0;
 
     // 絶望の癒し: ハートドロップを消してもコンボが増えなくなる
@@ -739,9 +770,26 @@ const App = () => {
 
     let bonus = 0;
     let multiplier = 1;
+    let exponentialBonus = 0;
+    let exponentialMultiplier = 1;
     let timeMultiplier = 1; // 次手の操作時間倍率
     const matchedColorSet = new Set(Object.keys(colorComboCounts).filter(k => colorComboCounts[k] > 0));
     if (isCurseHeartActive) matchedColorSet.delete("heart");
+
+    let moveDropBonus = 0;
+    let maxMoveDropThisTurn = 0;
+    if (engineRef.current && engineRef.current.state) {
+      engineRef.current.state.forEach(row => {
+        row.forEach(orb => {
+          if (orb && orb.isMoveDrop) {
+            moveDropBonus += (orb.moveCount || 0);
+            if ((orb.moveCount || 0) > maxMoveDropThisTurn) {
+              maxMoveDropThisTurn = orb.moveCount || 0;
+            }
+          }
+        });
+      });
+    }
 
     const effectiveTokens = tokens.map((t, index) => {
       if (!t) return t;
@@ -802,6 +850,12 @@ const App = () => {
       multiplier *= 2;
       logData.multipliers.push(`all_clear_multiplier:x2`);
       logData.multiplierSteps.push({ label: '全消しボーナス', value: 2 });
+    }
+
+    if (moveDropBonus > 0) {
+      bonus += moveDropBonus;
+      logData.bonuses.push(`move_drop:+${moveDropBonus}`);
+      logData.bonusSteps.push({ label: 'ムーブドロップボーナス', value: moveDropBonus });
     }
 
     effectiveTokens.forEach((t) => {
@@ -1177,13 +1231,13 @@ const App = () => {
         logData.bonuses.push(`skyfall:(applied)`);
       }
 
-      // New: Exact Combo Bonus
-      if (t.effect === "combo_if_exact" && turnCombo === t.params?.combo) {
+      // New: Combo Threshold (LE) Bonus
+      if (t.effect === "combo_if_le" && turnCombo <= t.params?.combo) {
         const v = t.values?.[lv - 1] || 0;
         if (isInstant) triggerPassive(tId);
         bonus += v;
-        logData.bonuses.push(`combo_exact_${t.params.combo}:${v}`);
-        if (v > 0) logData.bonusSteps.push({ label: t.name || `丁度${t.params.combo}コンボ`, value: v, tokenId: tId });
+        logData.bonuses.push(`combo_le_${t.params.combo}:${v}`);
+        if (v > 0) logData.bonusSteps.push({ label: t.name || `${t.params.combo}コンボ以下`, value: v, tokenId: tId });
       }
 
       // New: Combo Threshold Multiplier
@@ -1376,22 +1430,26 @@ const App = () => {
       // --- 実績参照系パッシブ ---
       if (t.effect === "stat_combo_記憶") {
         const v = t.values?.[lv - 1] || 1;
-        const b = Math.floor((currentRunStats.maxCombo || 0) / 5) * v;
+        // 「記憶」はベース記録を参照
+        const b = Math.floor((currentRunStats.maxBaseCombo || 0) / 5) * v;
         if (b > 0) {
           if (isInstant) triggerPassive(t.instanceId || t.id);
           bonus += b;
+          exponentialBonus += b;
           logData.bonuses.push(`stat_combo_記憶:+${b}`);
           logData.bonusSteps.push({ label: t.name || '記憶', value: b, tokenId: tId });
         }
       }
       if (t.effect === "stat_mult_余韻") {
         const v = t.values?.[lv - 1] || 0.1;
+        // 「余韻」は最終倍率記録を参照（ループ抑制のため上限処理は必須）
         const maxMult = currentRunStats.maxComboMultiplier || 1;
         if (maxMult > 1) {
           let m = 1 + (maxMult * v);
           m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
+          exponentialMultiplier *= m;
           logData.multipliers.push(`stat_mult_余韻:x${formatNum(m)}`);
           logData.multiplierSteps.push({ label: t.name || '余韻', value: m, tokenId: tId });
         }
@@ -1404,6 +1462,7 @@ const App = () => {
           m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
           multiplier *= m;
+          exponentialMultiplier *= m;
           logData.multipliers.push(`stat_mult_千手:x${formatNum(m)}`);
           logData.multiplierSteps.push({ label: t.name || '千手', value: m, tokenId: tId });
         }
@@ -1511,6 +1570,9 @@ const App = () => {
     logData.finalBonus = bonus;
     // setDebugLog(logData);
 
+    const turnBaseCombo = (tc > 0) ? Math.floor(tc + Number(bonus - exponentialBonus)) : 0;
+    const turnBaseMultiplier = multiplier / exponentialMultiplier;
+
     // turnCombo（盤面でのマッチ数）が0なら強制的に最終0コンボにする
     // 彼岸モード時はコンボ上限を撤廃
     let effectiveCombo;
@@ -1548,6 +1610,8 @@ const App = () => {
         lifetimeTotalCombo: (prev.lifetimeTotalCombo || 0) + effectiveCombo,
         maxComboAllTime: Math.max(prev.maxComboAllTime || 0, effectiveCombo),
         maxComboMultiplierAllTime: Math.max(prev.maxComboMultiplierAllTime || 1, multiplier),
+        maxBaseComboAllTime: Math.max(prev.maxBaseComboAllTime || 0, turnBaseCombo),
+        maxBaseComboMultiplierAllTime: Math.max(prev.maxBaseComboMultiplierAllTime || 1, turnBaseMultiplier),
         maxEnchantsAllTime: Math.max(prev.maxEnchantsAllTime || 0, currentEnchantCount),
         lifetimeTotalMoveTime: (prev.lifetimeTotalMoveTime || 0) + measuredTime,
         lifetimeShapeLen4: (prev.lifetimeShapeLen4 || 0) + countLen4,
@@ -1555,6 +1619,13 @@ const App = () => {
         lifetimeShapeRow: (prev.lifetimeShapeRow || 0) + countRow,
         lifetimeShapeLShape: (prev.lifetimeShapeLShape || 0) + countLShape,
         lifetimeShapeSquare: (prev.lifetimeShapeSquare || 0) + countSquare,
+        maxMoveDropAllTime: Math.max(prev.maxMoveDropAllTime || 0, maxMoveDropThisTurn),
+        maxBombEraseOnceAllTime: Math.max(prev.maxBombEraseOnceAllTime || 0, erasedByBombTotal),
+        maxRepeatOnceAllTime: Math.max(prev.maxRepeatOnceAllTime || 0, erasedByRepeatTotal),
+        lifetimeBombsErased: (prev.lifetimeBombsErased || 0) + bombSelfErased,
+        lifetimeRepeatsErased: (prev.lifetimeRepeatsErased || 0) + repeatSelfErased,
+        lifetimeStarDropsErased: (prev.lifetimeStarDropsErased || 0) + starSelfErased,
+        lifetimeRainbowsErased: (prev.lifetimeRainbowsErased || 0) + rainbowSelfErased,
       };
     });
     setCurrentRunStats(prev => ({
@@ -1562,6 +1633,8 @@ const App = () => {
       currentTotalCombo: (prev.currentTotalCombo || 0) + effectiveCombo,
       maxCombo: Math.max(prev.maxCombo || 0, effectiveCombo),
       maxComboMultiplier: Math.max(prev.maxComboMultiplier || 1, multiplier),
+      maxBaseCombo: Math.max(prev.maxBaseCombo || 0, turnBaseCombo),
+      maxBaseComboMultiplier: Math.max(prev.maxBaseComboMultiplier || 1, turnBaseMultiplier),
       maxEnchants: Math.max(prev.maxEnchants || 0, currentEnchantCount),
       currentTotalMoveTime: (prev.currentTotalMoveTime || 0) + measuredTime,
       currentShapeLen4: (prev.currentShapeLen4 || 0) + countLen4,
@@ -1570,6 +1643,13 @@ const App = () => {
       currentShapeLShape: (prev.currentShapeLShape || 0) + countLShape,
       currentShapeSquare: (prev.currentShapeSquare || 0) + countSquare,
       totalHeartsErased: (prev.totalHeartsErased || 0) + (erasedColorCounts.heart || 0),
+      maxMoveDrop: Math.max(prev.maxMoveDrop || 0, maxMoveDropThisTurn),
+      maxBombEraseOnce: Math.max(prev.maxBombEraseOnce || 0, erasedByBombTotal),
+      maxRepeatOnce: Math.max(prev.maxRepeatOnce || 0, erasedByRepeatTotal),
+      totalBombsErased: (prev.totalBombsErased || 0) + bombSelfErased,
+      totalRepeatsErased: (prev.totalRepeatsErased || 0) + repeatSelfErased,
+      totalStarDropsErased: (prev.totalStarDropsErased || 0) + starSelfErased,
+      totalRainbowsErased: (prev.totalRainbowsErased || 0) + rainbowSelfErased,
     }));
 
     // --- effectiveCombo の段階的演出 ---
@@ -1746,6 +1826,46 @@ const App = () => {
     /* setEnergy((prev) => Math.min(maxEnergy, prev + 2)); // REMOVED */
 
     // --- Charge Skills ---
+    // 飛躍の号令等、盤面ムーブドロップのカウント倍数チェック (move_drop_lucky)
+    let moveDropLuckyTriggered = false;
+    let luckyTokenId = null;
+    let luckyTokenName = "";
+    tokens.forEach(t => {
+      if (!t) return;
+      const lv = t.level || 1;
+      if (t.effect === "move_drop_lucky") {
+        const validMultiples = [];
+        if (lv >= 1) validMultiples.push(7);
+        if (lv >= 2) validMultiples.push(5);
+        if (lv >= 3) validMultiples.push(9);
+
+        let match = false;
+        if (engineRef.current && engineRef.current.state) {
+          engineRef.current.state.forEach(row => {
+            row.forEach(orb => {
+              if (orb && orb.isMoveDrop && orb.moveCount > 0) {
+                if (validMultiples.some(m => orb.moveCount % m === 0)) {
+                  match = true;
+                }
+              }
+            });
+          });
+        }
+
+        if (match) {
+          moveDropLuckyTriggered = true;
+          luckyTokenId = t.instanceId || t.id;
+          luckyTokenName = t.name;
+        }
+      }
+    });
+
+    if (moveDropLuckyTriggered) {
+      logData.bonuses.push(`move_drop_lucky_max_charge`);
+      logData.bonusSteps.push({ label: luckyTokenName || '幸運の歩み', value: 0, tokenId: luckyTokenId });
+      setTimeout(() => soundManager.playSE(SE_IDS.SKILL_READY), 500); // すこし遅れて音を鳴らす
+    }
+
     // Zero Combo Charge check
     let zeroComboBonusCharge = 0;
     if (effectiveCombo === 0) {
@@ -1772,10 +1892,15 @@ const App = () => {
           const currentCharge = nt.charge || 0;
           const maxCharge = nt.cost || 0;
           const chargeBoostCount = nt.enchantments?.filter(e => e.effect === "charge_boost_passive").length || 0;
-          const chargeAmount = 1 + chargeBoostCount + zeroComboBonusCharge;
-          nt.charge = Math.min(maxCharge, currentCharge + chargeAmount);
-          if (nt.charge === maxCharge && currentCharge < maxCharge) {
-            soundManager.playSE(SE_IDS.SKILL_READY);
+          
+          if (moveDropLuckyTriggered) {
+            nt.charge = maxCharge;
+          } else {
+            const chargeAmount = 1 + chargeBoostCount + zeroComboBonusCharge;
+            nt.charge = Math.min(maxCharge, currentCharge + chargeAmount);
+            if (nt.charge === maxCharge && currentCharge < maxCharge) {
+              soundManager.playSE(SE_IDS.SKILL_READY);
+            }
           }
         }
 
@@ -1961,6 +2086,14 @@ const App = () => {
       const amount = (2 + extraStarsPerStarDropErase) * count;
       setStars((s) => s + amount);
       notify(`+ ${amount} STARS!`);
+      setCurrentRunStats(prev => ({
+        ...prev,
+        totalStarEarnedByDrops: (prev.totalStarEarnedByDrops || 0) + amount
+      }));
+      setStats(prev => ({
+        ...prev,
+        lifetimeStarEarnedByDrops: (prev.lifetimeStarEarnedByDrops || 0) + amount
+      }));
 
       // スターブースト効果を持つトークンを跳ねさせる
       effectiveTokens.forEach(t => {
@@ -2329,7 +2462,11 @@ const App = () => {
     let rarityUpCount = 0;
     let rarityDownCount = 0;
     tokens.forEach((t) => {
-      if (t?.enchantments) {
+      if (!t) return;
+      if (t.effect === "shop_rarity_weight") {
+        rarityUpCount += (t.values[(t.level || 1) - 1] || 0);
+      }
+      if (t.enchantments) {
         t.enchantments.forEach((enc) => {
           if (enc.effect === "rarity_up") rarityUpCount++;
           if (enc.effect === "rarity_down_combo") rarityDownCount++;
@@ -2528,7 +2665,9 @@ const App = () => {
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
-      return notify(`「${targetToLose.name}」が「${gainItem.name}」に昇華した！`);
+      notify(`「${targetToLose.name}」が「${gainItem.name}」に昇華した！`);
+      setSelectedTokenDetail({ token: gainItem, actionText: `「${gainItem.name}」に昇華しました！` });
+      return;
     }
 
     if (item.type === "upgrade_random") {
@@ -2559,7 +2698,11 @@ const App = () => {
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
-      notify(`${targetToken.name} が強化されました! (Lv${(targetToken.level || 1) + 1})`);
+      
+      const nextLevel = (targetToken.level || 1) + 1;
+      const updatedToken = { ...targetToken, level: nextLevel, desc: getTokenDescription(targetToken, nextLevel, currentRunStats, tokens, activeBuffs) };
+      notify(`${targetToken.name} が強化されました! (Lv${nextLevel})`);
+      setSelectedTokenDetail({ token: updatedToken, actionText: "ランダム強化されました！" });
 
     } else if (item.type === "enchant_random") {
       const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left');
@@ -2583,7 +2726,13 @@ const App = () => {
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
+      
+      const updatedToken = { 
+        ...targetToken, 
+        enchantments: [...(targetToken.enchantments || []), { id: item.id, effect: item.effect, name: item.originalName, params: item.params }] 
+      };
       notify(`${targetToken.name} に「${item.originalName}」を付与!`);
+      setSelectedTokenDetail({ token: updatedToken, actionText: `「${item.originalName}」をランダム付与しました！` });
 
     } else if (item.type === "enchant_grant") {
       const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left');
@@ -2605,7 +2754,13 @@ const App = () => {
       setTotalStarsSpent((prev) => prev + item.price);
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
+      
+      const updatedToken = { 
+        ...targetToken, 
+        enchantments: [...(targetToken.enchantments || []), { id: item.id, effect: item.effect, name: item.name, params: item.params }] 
+      };
       notify("購入完了!");
+      setSelectedTokenDetail({ token: updatedToken, actionText: `「${item.name}」を付与しました！` });
     } else if (item.type === "grant_random_curse") {
       const activeCount = tokens.filter(t => t?.type === 'skill' || t?.isCurse).length;
       const passiveCount = tokens.filter(t => t && t?.type !== 'skill' && !t?.isCurse).length;
@@ -2646,31 +2801,47 @@ const App = () => {
       setTotalPurchases(p => p + 1);
       setShopItems(prev => prev.filter(i => i !== item));
       notify(`呪い「${randomCurseBase.name}」を得た…！`);
+      setSelectedTokenDetail({ token: curseItem, actionText: `呪いを得た…！` });
     } else {
       // Normal Token Purchase
       const isActive = item.type === 'skill';
-      const activeCount = tokens.filter(t => t?.type === 'skill').length;
-      const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
       const maxSlots = 5 + tokenSlotExpansionCount;
-      if (isActive && activeCount >= maxSlots) return notify(`アクティブスキルは${maxSlots}個までです`);
-      if (!isActive && passiveCount >= maxSlots) return notify(`パッシブアイテムは${maxSlots}個までです`);
 
       const existingIdx = tokens.findIndex((t) => t?.id === item.id);
       if (existingIdx !== -1) {
-        // Double check if max level (Use values.length as reference, default to 3)
+        // 所持している場合：強化が可能か、あるいは2つ目が装備可能かチェック
         const maxLv = tokens[existingIdx].values?.length || 3;
-        if ((tokens[existingIdx].level || 1) >= maxLv) {
-          return notify(`これ以上強化できません (Max Lv${maxLv})`);
+        const currentLevel = tokens[existingIdx].level || 1;
+        const activeCount = tokens.filter(t => t?.type === 'skill').length;
+        const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
+
+        if (currentLevel < maxLv) {
+          // まだ強化可能なら、スロットが満杯でも進める（強化が選べるため）
+          setPendingShopItem(item);
+        } else {
+          // すでに最大Lvの場合、2つ目を装備できる空きがあるかチェック
+          if ((isActive && activeCount >= maxSlots) || (!isActive && passiveCount >= maxSlots)) {
+            return notify(`これ以上強化できません (Max Lv${maxLv})`);
+          }
+          // 空きがあれば2つ目装備のためにモーダルを出す
+          setPendingShopItem(item);
         }
-        setPendingShopItem(item);
       } else {
+        // 未所持の場合：スロットをチェック
+        const activeCount = tokens.filter(t => t?.type === 'skill').length;
+        const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
+        const maxSlotsCurrent = 5 + tokenSlotExpansionCount; 
+        if (isActive && activeCount >= maxSlotsCurrent) return notify(`アクティブスキルは${maxSlotsCurrent}個までです`);
+        if (!isActive && passiveCount >= maxSlotsCurrent) return notify(`パッシブアイテムは${maxSlotsCurrent}個までです`);
+
+        const obtainedToken = { 
+          ...item, 
+          instanceId: Date.now() + Math.random(),
+          startValue: item.condition ? getStatByCondition(item.condition) : 0
+        };
         setTokens((prev) => [
           ...prev,
-          { 
-            ...item, 
-            instanceId: Date.now() + Math.random(),
-            startValue: item.condition ? getStatByCondition(item.condition) : 0
-          } // Add unique instance ID
+          obtainedToken
         ]);
         setStars((s) => s - item.price);
         setTotalPurchases((p) => p + 1);
@@ -2679,6 +2850,7 @@ const App = () => {
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
         setShopItems((prev) => prev.filter((i) => i !== item));
         notify("購入完了!");
+        setSelectedTokenDetail({ token: obtainedToken, actionText: "取得しました！" });
       }
     }
   };
@@ -2719,7 +2891,11 @@ const App = () => {
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + price }));
         setIsAwakeningLevelUpBought(true);
         soundManager.playSE(SE_IDS.AWAKEN_BUY);
-        notify(`${targetToken.name} が強化されました! (Lv${(targetToken.level || 1) + 1})`);
+        
+        const nextLevel = (targetToken.level || 1) + 1;
+        const updatedToken = { ...targetToken, level: nextLevel, desc: getTokenDescription(targetToken, nextLevel, currentRunStats, tokens, activeBuffs) };
+        notify(`${targetToken.name} が強化されました! (Lv${nextLevel})`);
+        setSelectedTokenDetail({ token: updatedToken, actionText: "覚醒によりランダム強化されました！" });
         break;
       }
       case 'unlock_enchant_shop': {
@@ -2759,6 +2935,9 @@ const App = () => {
     if (!pendingShopItem) return;
     const item = pendingShopItem;
 
+    let updatedToken = null;
+    let actionText = "";
+
     if (choice === "upgrade") {
       setTokens((prev) => {
         const next = [...prev];
@@ -2775,6 +2954,8 @@ const App = () => {
             level: nextLevel,
             desc: getTokenDescription(next[idx], nextLevel, currentRunStats, next, activeBuffs)
           };
+          updatedToken = next[idx];
+          actionText = `強化されました！`;
         }
         return next;
       });
@@ -2786,8 +2967,9 @@ const App = () => {
       const activeCount = tokens.filter(t => t.type === 'skill').length;
       const passiveCount = tokens.filter(t => t.type !== 'skill').length;
 
-      if ((isActive && activeCount >= 5) || (!isActive && passiveCount >= 5)) {
-        notify("スロットがいっぱいです。代わりに強化します。");
+      const maxSlots = 5 + tokenSlotExpansionCount;
+      if ((isActive && activeCount >= maxSlots) || (!isActive && passiveCount >= maxSlots)) {
+        notify("スロットがいっぱいです。強制的に強化を適用します。");
         setTokens((prev) => {
           const next = [...prev];
           const idx = next.findIndex((t) => t?.id === item.id);
@@ -2798,14 +2980,19 @@ const App = () => {
               level: nextLevel,
               desc: getTokenDescription(next[idx], nextLevel, currentRunStats, next, activeBuffs)
             };
+            updatedToken = next[idx];
+            actionText = `スロット一杯のため自動強化されました！`;
           }
           return next;
         });
       } else {
+        const newToken = { ...item, instanceId: Date.now() + Math.random() };
         setTokens((prev) => [
           ...prev,
-          { ...item, instanceId: Date.now() + Math.random() }
+          newToken
         ]);
+        updatedToken = newToken;
+        actionText = `2つ目を装備しました！`;
         notify("2つ目のトークンを装備しました。");
       }
     }
@@ -2815,6 +3002,9 @@ const App = () => {
     setTotalStarsSpent((prev) => prev + item.price);
     setShopItems((prev) => prev.filter((i) => i !== item));
     setPendingShopItem(null);
+    if (updatedToken) {
+      setSelectedTokenDetail({ token: updatedToken, actionText });
+    }
   };
 
   const activateSkill = (token) => {
@@ -2874,6 +3064,25 @@ const App = () => {
         skipTurnProgressRef.current = true;
         engine.forceRefresh();
         break;
+      case "move_drop_add": {
+        const addArray = token.values || [20, 40, 60];
+        const addAmount = addArray[(token.level || 1) - 1] || 20;
+        engine.state.forEach(row => {
+          row.forEach(orb => {
+            if (orb && orb.isMoveDrop) {
+              orb.moveCount += addAmount;
+              const textEl = orb.el.querySelector('.move-count-text');
+              if (textEl) {
+                textEl.innerText = orb.moveCount;
+                textEl.classList.remove('rainbow-hit-pulse');
+                void textEl.offsetWidth;
+                textEl.classList.add('rainbow-hit-pulse'); 
+              }
+            }
+          });
+        });
+        break;
+      }
       case "convert":
         engine.convertColor(token.params.from, token.params.to);
         break;
@@ -2951,6 +3160,24 @@ const App = () => {
         const finalDuration = (token.params.duration || 1) + extraDuration;
         engine.activateChronosStop(finalDuration);
         notify(`${token.name} 発動！ (${finalDuration}手番)`);
+        break;
+      }
+      case "op_time_boost": {
+        const finalDuration = (token.params.duration || 1) + extraDuration;
+        const extraTime = token.params.extraTime || 5000;
+        setActiveBuffs((prev) => [
+          ...prev,
+          {
+            id: Date.now() + Math.random(),
+            action: "op_time_boost",
+            params: { extraTime },
+            duration: finalDuration,
+            maxDuration: finalDuration,
+            tokenId: token.instanceId || token.id,
+            name: token.name,
+          },
+        ]);
+        notify(`${token.name} 発動！ 操作時間+${extraTime / 1000}秒 (${finalDuration}ターン)`);
         break;
       }
       case "charge_boost": {
@@ -3446,24 +3673,40 @@ const App = () => {
           </header>
 
           {/* Main Stats Area */}
-          <section className="relative z-10 px-6 py-3 flex-none">
-            <div className="flex justify-between items-center">
-              {/* Target Combo テキスト表示 */}
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-primary">
-                  <span className="material-icons-round text-xl">whatshot</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase text-slate-400 font-bold">Target Combo</span>
-                  <span
-                    ref={targetComboRef}
-                    className={`text-xl font-mono font-bold text-white inline-block ${targetPulse ? 'animate-target-pulse' : ''}`}
-                  >
-                    {formatJapaneseNumber(cycleTotalCombo)}<span className={`text-lg ${isBeyondMode ? 'text-fuchsia-400' : 'text-slate-500'}`}>/{formatJapaneseNumber(isBeyondMode ? target : effectiveTarget)}</span>
-                  </span>
-                </div>
-              </div>
-            </div>
+          <section className="relative z-10 px-6 py-3 flex-none w-full">
+            <div className={`flex items-center w-full p-2.5 rounded-2xl border transition-all duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-950/40 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake-tension' : goalReached ? 'bg-green-950/20 border-green-500/30' : 'bg-slate-800/40 border-white/5 shadow-md'}`}>
+               {/* Target Combo テキスト表示 (左) */}
+               <div className="flex-1 flex items-center gap-2.5 min-w-0 pl-1 pr-2">
+                 <div className={`w-10 h-10 rounded-full flex items-center justify-center border shrink-0 shadow-inner transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-900 border-red-500/50 text-red-300' : goalReached ? 'bg-green-900/40 border-green-500/40 text-green-400' : 'bg-slate-800 border-white/10 text-primary'}`}>
+                   <span className="material-icons-round text-xl">flag</span>
+                 </div>
+                 <div className="flex flex-col min-w-0">
+                   <span className={`text-[10px] uppercase font-bold text-left tracking-wider transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'text-red-400' : goalReached ? 'text-green-400' : 'text-slate-400'}`}>Target Combo</span>
+                   <span className={`text-lg font-mono font-bold truncate text-left leading-tight transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'text-red-300 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]' : goalReached ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : isBeyondMode ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' : 'text-slate-300'}`}>
+                     {formatJapaneseNumber(isBeyondMode ? target : effectiveTarget)}
+                   </span>
+                 </div>
+               </div>
+ 
+               {/* 縦棒 (仕切り) 上下を少し開ける */}
+               <div className={`w-[1px] h-8 flex-shrink-0 mx-1 rounded-full transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-500/30' : goalReached ? 'bg-green-500/30' : 'bg-white/10'}`}></div>
+ 
+               {/* Current Combo テキスト表示 (右) */}
+               <div className="flex-1 flex items-center gap-2.5 min-w-0 pl-2 pr-1">
+                 <div className={`w-10 h-10 rounded-full flex items-center justify-center border shrink-0 shadow-inner transition-colors duration-300 ${goalReached ? 'bg-green-900/40 border-green-500/40 text-green-400' : 'bg-slate-800 border-white/10 text-orange-500'}`}>
+                   <span className="material-icons-round text-xl">whatshot</span>
+                 </div>
+                 <div className="flex flex-col min-w-0">
+                   <span className={`text-[10px] uppercase font-bold text-left tracking-wider transition-colors duration-300 ${goalReached ? 'text-green-400' : 'text-slate-400'}`}>Current Combo</span>
+                   <span
+                     ref={targetComboRef}
+                     className={`text-lg font-mono font-bold truncate text-left leading-tight transition-colors duration-300 drop-shadow-sm ${targetPulse ? 'animate-target-pulse text-yellow-300' : goalReached ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'text-white'}`}
+                   >
+                     {formatJapaneseNumber(cycleTotalCombo)}
+                   </span>
+                 </div>
+               </div>
+             </div>
           </section>
 
           {/* Token/Skill Belt */}
@@ -3550,8 +3793,8 @@ const App = () => {
                                 case 'combo_if_ge':
                                   conditionMet = lastTurnCombo >= (t.params?.combo || 0);
                                   break;
-                                case 'combo_if_exact':
-                                  conditionMet = lastTurnCombo === (t.params?.combo || 0);
+                                case 'combo_if_le':
+                                   conditionMet = lastTurnCombo <= (t.params?.combo || 0);
                                   break;
                                 default:
                                   break;
@@ -4138,9 +4381,19 @@ const App = () => {
                   <p className="text-sm text-slate-400 text-center mb-6">既に所持しています。</p>
 
                   <div className="flex flex-col gap-3">
-                    <button onClick={() => handleChoice("upgrade")} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg shadow-primary/25">
-                      強化 (Lv UP)
-                    </button>
+                    {(() => {
+                      const existingToken = tokens.find(t => t?.id === pendingShopItem.id);
+                      const isMaxLevel = existingToken && (existingToken.level || 1) >= (existingToken.values?.length || 3);
+                      return (
+                        <button 
+                          onClick={() => !isMaxLevel && handleChoice("upgrade")} 
+                          disabled={isMaxLevel}
+                          className={`py-3 rounded-xl font-bold active:scale-95 shadow-lg transition-opacity ${isMaxLevel ? 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-50' : 'bg-primary text-white shadow-primary/25'}`}
+                        >
+                          {isMaxLevel ? `最大Lv到達済み` : `強化 (Lv UP)`}
+                        </button>
+                      );
+                    })()}
                     <button onClick={() => handleChoice("new")} className="bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95">
                       2つ目を装備
                     </button>
@@ -4165,7 +4418,12 @@ const App = () => {
               const isReady = isSkill && charge >= cost;
               const enchList = t.enchantments || [];
               return (
-                <div className="fixed inset-0 z-[350] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setSelectedTokenDetail(null)}>
+                <div className="fixed inset-0 z-[450] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6" onClick={() => setSelectedTokenDetail(null)}>
+                  {selectedTokenDetail.actionText && (
+                    <div className="text-xl md:text-3xl font-bold text-white text-center mb-6 drop-shadow-[0_4px_12px_rgba(0,0,0,1)] px-4 py-2 bg-black/40 rounded-xl border border-white/10">
+                      {selectedTokenDetail.actionText}
+                    </div>
+                  )}
                   <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border border-primary/30 shadow-[0_0_40px_rgba(91,19,236,0.15)]" onClick={e => e.stopPropagation()}>
                     {/* ヘッダー */}
                     <div className="flex items-center gap-3 mb-4">
@@ -4200,6 +4458,28 @@ const App = () => {
                     <div className="bg-slate-900/60 rounded-xl p-3 mb-3 border border-white/5">
                       <p className="text-xs text-slate-300 leading-relaxed">{getTokenDescription(t, lv, currentRunStats, tokens, activeBuffs)}</p>
 
+                      {/* 動的情報の表示 (メイン) */}
+                      {(() => {
+                        const dynamicInfos = getTokenDynamicInfo(t, lv, currentRunStats, tokens, activeBuffs, { stars });
+                        if (dynamicInfos && dynamicInfos.length > 0) {
+                          return (
+                            <div className="mt-3 pt-3 border-t border-white/10 flex flex-col gap-1.5">
+                              {dynamicInfos.map((info, idx) => (
+                                <div key={`dyn-${idx}`} className="flex justify-between items-center text-[10px]">
+                                  <span className={`px-2 py-0.5 rounded-sm font-bold tracking-wider ${info.type === 'buff' ? 'bg-amber-500/20 text-amber-300' : 'bg-indigo-500/20 text-indigo-300'}`}>
+                                    {info.label}
+                                  </span>
+                                  <span className={`font-mono font-bold text-[11px] ${info.type === 'boost' ? 'text-green-400' : 'text-slate-200'}`}>
+                                    {info.value}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+
                       {/* コピー状態の表示 */}
                       {t.effect === 'copy_left' && (() => {
                         const currentIndex = tokens.findIndex(tok => tok?.instanceId === t.instanceId);
@@ -4226,6 +4506,27 @@ const App = () => {
                                     <span className="text-[9px] font-bold text-amber-400 ml-2 whitespace-nowrap">Lv.{target.level || 1}</span>
                                   </div>
                                   <p className="text-[10px] text-slate-400 truncate opacity-80">{getTokenDescription(target, target.level || 1, currentRunStats, tokens, activeBuffs)}</p>
+                                  {/* 動的情報の表示 (コピー対象) */}
+                                  {(() => {
+                                    const dynamicInfos = getTokenDynamicInfo(target, target.level || 1, currentRunStats, tokens, activeBuffs, { stars });
+                                    if (dynamicInfos && dynamicInfos.length > 0) {
+                                      return (
+                                        <div className="mt-1.5 pt-1.5 border-t border-white/5 flex flex-col gap-1">
+                                          {dynamicInfos.map((info, idx) => (
+                                            <div key={`copy-dyn-${idx}`} className="flex justify-between items-center text-[9px]">
+                                              <span className={`px-1.5 py-0.5 rounded-sm font-bold ${info.type === 'buff' ? 'bg-amber-500/10 text-amber-400/80' : 'bg-indigo-500/10 text-indigo-300/80'}`}>
+                                                {info.label}
+                                              </span>
+                                              <span className={`font-mono font-bold ${info.type === 'boost' ? 'text-green-400/90' : 'text-slate-300/90'}`}>
+                                                {info.value}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
                                 </div>
                               </div>
                             </div>

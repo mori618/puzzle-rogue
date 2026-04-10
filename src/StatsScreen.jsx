@@ -19,6 +19,8 @@ const StatsScreen = ({ currentRunStats, onClose }) => {
         totalCombo: currentRunStats.currentTotalCombo || 0,
         maxCombo: currentRunStats.maxCombo || 0,
         maxComboMultiplier: currentRunStats.maxComboMultiplier || 1,
+        maxBaseCombo: currentRunStats.maxBaseCombo || 0,
+        maxBaseComboMultiplier: currentRunStats.maxBaseComboMultiplier || 1,
         maxEnchants: currentRunStats.maxEnchants || 0,
         clears: currentRunStats.currentClears || 0,
         starsSpent: currentRunStats.currentStarsSpent || 0,
@@ -35,6 +37,16 @@ const StatsScreen = ({ currentRunStats, onClose }) => {
         shapeLShape: currentRunStats.currentShapeLShape || 0,
         shapeCross: currentRunStats.currentShapeCross || 0,
         shapeSquare: currentRunStats.currentShapeSquare || 0,
+
+        // 追加ギミック実績
+        maxMoveDrop: currentRunStats.maxMoveDrop || 0,
+        maxBombEraseOnce: currentRunStats.maxBombEraseOnce || 0,
+        maxRepeatOnce: currentRunStats.maxRepeatOnce || 0,
+        totalStarDropsErased: currentRunStats.totalStarDropsErased || 0,
+        totalBombsErased: currentRunStats.totalBombsErased || 0,
+        totalRepeatsErased: currentRunStats.totalRepeatsErased || 0,
+        totalRainbowsErased: currentRunStats.totalRainbowsErased || 0,
+        totalStarEarnedByDrops: currentRunStats.totalStarEarnedByDrops || 0,
     };
 
     const colorConfig = {
@@ -80,12 +92,12 @@ const StatsScreen = ({ currentRunStats, onClose }) => {
                         <div className="border-t border-white/5 my-1"></div>
 
                         <div className="flex justify-between items-center">
-                            <span className="font-bold text-sm">最大コンボ</span>
-                            <span className="font-black text-white">{formatJapaneseNumber(displayData.maxCombo)}</span>
+                            <span className="font-bold text-sm text-slate-400">ベース最大コンボ</span>
+                            <span className="font-black text-slate-400">{formatJapaneseNumber(displayData.maxBaseCombo)}</span>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="font-bold text-sm">最大コンボ倍率</span>
-                            <span className="font-black text-white">x{Math.round((displayData.maxComboMultiplier) * 100) / 100}</span>
+                        <div className="flex justify-between items-center text-slate-400">
+                            <span className="font-bold text-sm">ベース最大倍率</span>
+                            <span className="font-black">x{Math.round((displayData.maxBaseComboMultiplier) * 100) / 100}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">最大エンチャント数</span>
@@ -127,12 +139,48 @@ const StatsScreen = ({ currentRunStats, onClose }) => {
                             <span className="font-black text-yellow-400">{formatJapaneseNumber(displayData.starsSpent)} ★</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="font-bold text-sm">スキル使用回数</span>
+                            <span className="font-bold text-sm">アクティブスキル発動数</span>
                             <span className="font-black text-indigo-400">{formatJapaneseNumber(displayData.skillsUsed)} 回</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-sm">操作時間</span>
                             <span className="font-black text-amber-500">{formatTime(displayData.totalMoveTime)}</span>
+                        </div>
+
+                        <div className="border-t border-white/5 my-1"></div>
+
+                        <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">特殊ドロップ・ギミック記録</span>
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm text-slate-400">ムーブドロップ最高カウント</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.maxMoveDrop)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm text-slate-400">一度のボム最高消去数</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.maxBombEraseOnce)} 個</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm text-slate-400">一度のリピート最高回数</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.maxRepeatOnce)} 回</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm text-slate-400">スタードロップで得たスター</span>
+                            <span className="font-black text-yellow-400">{formatJapaneseNumber(displayData.totalStarEarnedByDrops)} ★</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm text-slate-400">虹ドロップ消去数</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.totalRainbowsErased)} 個</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm text-slate-400">ボムドロップ消去数</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.totalBombsErased)} 個</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm text-slate-400">リピートドロップ消去数</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.totalRepeatsErased)} 個</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm text-slate-400">スタードロップ消去数</span>
+                            <span className="font-black text-white">{formatJapaneseNumber(displayData.totalStarDropsErased)} 個</span>
                         </div>
 
                         <div className="border-t border-white/5 my-1"></div>

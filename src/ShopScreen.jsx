@@ -192,7 +192,7 @@ const ShopScreen = ({
     const [activeTab, setActiveTab] = React.useState('normal');
 
     // 覚醒ショップの価格計算
-    const AWAKENING_TOKEN_SLOT_PRICES = [100, 500, 2000, 10000, 50000];
+    const AWAKENING_TOKEN_SLOT_PRICES = [50, 200, 800, 3000, 10000];
     const tokenSlotExpCount = tokenSlotExpansionCount || 0;
     const isTokenSlotMaxed = tokenSlotExpCount >= 5;
     const tokenSlotExpandPrice = isTokenSlotMaxed ? 0 : (AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpCount, 4)] || 50000);
