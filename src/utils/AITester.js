@@ -46,105 +46,121 @@ export class AITester {
   // 仮想盤面内のコンボ数を計算する
   evaluateBoard(state, minMatchLength, cols, rows) {
     const basicTypes = ["fire", "water", "wood", "light", "dark", "heart"];
-    const matched = Array.from({ length: rows }, () => Array(cols).fill(false));
     const prefColorTypes = (this.preferredColors || []).map(idx => basicTypes[idx]);
-
-    // 1. マッチ判定 (水平・垂直)
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c <= cols - minMatchLength; c++) {
-        const orb = state[r][c];
-        if (!orb || (basicTypes.indexOf(orb.type) === -1 && !orb.isRainbow)) continue;
-        const color = orb.isRainbow ? "rainbow" : orb.type;
-        let matchLen = 1;
-        for (let k = 1; c + k < cols; k++) {
-          const nextOrb = state[r][c + k];
-          if (!nextOrb) break;
-          const nextColor = nextOrb.isRainbow ? "rainbow" : nextOrb.type;
-          if (color !== "rainbow" && nextColor !== "rainbow" && nextColor !== color) break;
-          matchLen++;
-        }
-        if (matchLen >= minMatchLength) {
-          for (let k = 0; k < matchLen; k++) matched[r][c + k] = true;
-        }
-      }
-    }
-    for (let c = 0; c < cols; c++) {
-      for (let r = 0; r <= rows - minMatchLength; r++) {
-        const orb = state[r][c];
-        if (!orb || (basicTypes.indexOf(orb.type) === -1 && !orb.isRainbow)) continue;
-        const color = orb.isRainbow ? "rainbow" : orb.type;
-        let matchLen = 1;
-        for (let k = 1; r + k < rows; k++) {
-          const nextOrb = state[r + k][c];
-          if (!nextOrb) break;
-          const nextColor = nextOrb.isRainbow ? "rainbow" : nextOrb.type;
-          if (color !== "rainbow" && nextColor !== "rainbow" && nextColor !== color) break;
-          matchLen++;
-        }
-        if (matchLen >= minMatchLength) {
-          for (let k = 0; k < matchLen; k++) matched[r + k][c] = true;
-        }
-      }
-    }
-
-    // 2. 連結成分の抽出 (実際のコンボ数カウント)
     let comboCount = 0;
     let totalMatchedOrbs = 0;
-    const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
     let prefBonus = 0;
 
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        if (matched[r][c] && !visited[r][c]) {
-          comboCount++;
-          // BFSで連結成分を特定
-          const q = [{ r, c }];
-          visited[r][c] = true;
-          let hasBomb = false;
-          let groupColor = null;
-          
-          while (q.length > 0) {
-            const curr = q.shift();
-            totalMatchedOrbs++;
-            
-            const orb = state[curr.r][curr.c];
-            if (orb.isBomb) {
-              hasBomb = true;
-              groupColor = orb.type;
-            }
-            if (orb.isStar) prefBonus += 50; // スタードロップは優先的に消す
+    // 各属性（色）ごとに独立してマッチ判定と連結抽出を行う
+    for (const color of basicTypes) {
+      const matched = Array.from({ length: rows }, () => Array(cols).fill(false));
 
-            const type = orb.isRainbow ? "rainbow" : orb.type;
-            if (prefColorTypes.includes(type) || type === "rainbow") prefBonus += 2;
+      // 1. マッチ判定 (水平)
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c <= cols - minMatchLength; c++) {
+          const orb = state[r][c];
+          if (!orb || (orb.type !== color && !orb.isRainbow)) continue;
 
-            const neighbors = [[0, 1], [1, 0], [0, -1], [-1, 0]];
-            for (const [dr, dc] of neighbors) {
-              const nr = curr.r + dr, nc = curr.c + dc;
-              if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && matched[nr][nc] && !visited[nr][nc]) {
-                visited[nr][nc] = true;
-                q.push({ r: nr, c: nc });
-              }
+          let isMatch = true;
+          for (let k = 1; k < minMatchLength; k++) {
+            const nextOrb = state[r][c + k];
+            if (!nextOrb || (nextOrb.type !== color && !nextOrb.isRainbow)) {
+              isMatch = false;
+              break;
             }
           }
+          if (isMatch) {
+            for (let k = 0; k < minMatchLength; k++) matched[r][c + k] = true;
+            let k = c + minMatchLength;
+            while (k < cols && state[r][k] && (state[r][k].type === color || state[r][k].isRainbow)) {
+              matched[r][k++] = true;
+            }
+          }
+        }
+      }
 
-          // ボムが含まれる場合、同色の他ドロップもスコアに加重
-          if (hasBomb && groupColor) {
-            for (let br = 0; br < rows; br++) {
-              for (let bc = 0; bc < cols; bc++) {
-                const bOrb = state[br][bc];
-                if (bOrb && bOrb.type === groupColor && !matched[br][bc]) {
-                  totalMatchedOrbs += 0.8; // 同色全消しの擬似評価
+      // 2. マッチ判定 (垂直)
+      for (let c = 0; c < cols; c++) {
+        for (let r = 0; r <= rows - minMatchLength; r++) {
+          const orb = state[r][c];
+          if (!orb || (orb.type !== color && !orb.isRainbow)) continue;
+
+          let isMatch = true;
+          for (let k = 1; k < minMatchLength; k++) {
+            const nextOrb = state[r + k][c];
+            if (!nextOrb || (nextOrb.type !== color && !nextOrb.isRainbow)) {
+              isMatch = false;
+              break;
+            }
+          }
+          if (isMatch) {
+            for (let k = 0; k < minMatchLength; k++) matched[r + k][c] = true;
+            let k = r + minMatchLength;
+            while (k < rows && state[k][c] && (state[k][c].type === color || state[k][c].isRainbow)) {
+              matched[k++][c] = true;
+            }
+          }
+        }
+      }
+
+      // 3. 連結成分の抽出 (実際のコンボ数カウント)
+      const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (matched[r][c] && !visited[r][c]) {
+            comboCount++;
+            
+            // BFSで連結成分を特定
+            const q = [{ r, c }];
+            visited[r][c] = true;
+            let hasBomb = false;
+            let groupColor = null;
+
+            while (q.length > 0) {
+              const curr = q.shift();
+              totalMatchedOrbs++;
+
+              const orb = state[curr.r][curr.c];
+              if (orb.isBomb) {
+                hasBomb = true;
+                groupColor = orb.type;
+              }
+              if (orb.isStar) prefBonus += 50; // スタードロップは優先的に消す
+
+              const type = orb.isRainbow ? "rainbow" : orb.type;
+              if (prefColorTypes.includes(type) || type === "rainbow") prefBonus += 2;
+
+              const neighbors = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+              for (const [dr, dc] of neighbors) {
+                const nr = curr.r + dr, nc = curr.c + dc;
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && matched[nr][nc] && !visited[nr][nc]) {
+                  // 同色または虹色の場合のみ同じグループとして繋げる
+                  if (state[nr][nc].type === color || state[nr][nc].isRainbow) {
+                    visited[nr][nc] = true;
+                    q.push({ r: nr, c: nc });
+                  }
                 }
               }
             }
-            prefBonus += 30; // ボム起爆自体のボーナス
+
+            // ボムが含まれる場合、同色の他ドロップもスコアに加重
+            if (hasBomb && groupColor) {
+              for (let br = 0; br < rows; br++) {
+                for (let bc = 0; bc < cols; bc++) {
+                  const bOrb = state[br][bc];
+                  if (bOrb && bOrb.type === groupColor && !matched[br][bc]) {
+                    totalMatchedOrbs += 0.8; // 同色全消しの擬似評価
+                  }
+                }
+              }
+              prefBonus += 30; // ボム起爆自体のボーナス
+            }
           }
         }
       }
     }
 
-    // 3. 隣接ボーナス (コンボになっていなくても、同じ色が隣り合っている状態をわずかに評価する)
-    // これにより、ランダムウォークが「コンボの種」を作る方向に誘導される
+    // 4. 隣接ボーナス (コンボになっていなくても、同じ色が隣り合っている状態をわずかに評価する)
     let adjacencyBonus = 0;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols - 1; c++) {
@@ -166,68 +182,139 @@ export class AITester {
     }
 
     if (comboCount === 0) return adjacencyBonus;
-    
+
     // スコア計算: (コンボ数 ^ 1.8) * 20 + 消去数 + 優先属性ボーナス + 隣接ボーナス
     return Math.pow(comboCount, 1.8) * 20 + totalMatchedOrbs + prefBonus + adjacencyBonus;
   }
 
-  // 最適な経路を見つける
+  // 最適な経路を見つける (ビームサーチ版)
   findBestPath() {
     if (!this.engine || !this.engine.state || this.engine.state.length === 0) return [];
     
     const rows = this.engine.rows;
     const cols = this.engine.cols;
     const minMatchLength = this.engine.minMatchLength || 3;
-    const state = this.engine.state;
-    if (!state[0]) return []; // Check for first row existence
+    const initialState = this.engine.state;
+    if (!initialState[0]) return []; // 最初の行が存在するかチェック
     
-    let bestScore = -1;
-    let bestPath = [];
-
-    // N回ランダムウォークして一番スコアが高いものを採用
-    // 試行回数と手数を増やし、より高度な経路を発見可能にする
-    // マルチテスト時はCPU負荷を抑えるために試行回数を大幅に削る
-    const ITERATIONS = this.isMultiTest ? 150 : 500;
-    const MAX_STEPS = 70;     // 移動距離をさらに強化
-
-    for (let i = 0; i < ITERATIONS; i++) {
-        const sr = Math.floor(Math.random() * rows);
-        const sc = Math.floor(Math.random() * cols);
-        const path = [{ r: sr, c: sc }];
-        
-        // Random walk
-        for (let step = 0; step < MAX_STEPS; step++) {
-            const curr = path[path.length - 1];
-            const dirs = [[0,1], [1,0], [0,-1], [-1,0]];
-            // Filter valid moves
-            const validDirs = dirs.filter(([dr, dc]) => {
-                const nr = curr.r + dr;
-                const nc = curr.c + dc;
-                return nr >= 0 && nr < rows && nc >= 0 && nc < cols;
-            });
-            if (validDirs.length === 0) break;
-            const [dr, dc] = validDirs[Math.floor(Math.random() * validDirs.length)];
-            path.push({ r: curr.r + dr, c: curr.c + dc });
+    const isMulti = this.isMultiTest;
+    // マルチテスト時と通常プレイ時で探索パラメータを動的に調整
+    const BEAM_WIDTH = isMulti ? 15 : 40;
+    const MAX_STEPS = isMulti ? 25 : 35;
+    
+    // 開始点の決定
+    const startPoints = [];
+    if (isMulti) {
+      // 10分割テスト時はCPU負荷を抑えるためにランダムに8箇所選ぶ
+      const count = 8;
+      const allCoords = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          allCoords.push({ r, c });
         }
-
-        const newState = this.applyPath(state, path);
-        let score = this.evaluateBoard(newState, minMatchLength, cols, rows);
-        
-        // 移動距離ペナルティを軽減（長い方がコンボは組みやすいため）
-        score -= path.length * 0.05;
-
-        if (score > bestScore) {
-            bestScore = score;
-            bestPath = path;
+      }
+      // シャッフルして8点抽出
+      for (let i = allCoords.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = allCoords[i];
+        allCoords[i] = allCoords[j];
+        allCoords[j] = temp;
+      }
+      for (let i = 0; i < Math.min(count, allCoords.length); i++) {
+        startPoints.push(allCoords[i]);
+      }
+    } else {
+      // 通常プレイ時は全マスを開始点とする
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          startPoints.push({ r, c });
         }
+      }
     }
 
-    // fallback if no good path
-    if (bestPath.length === 0) {
-        bestPath = [{r: 0, c: 0}, {r: 0, c: 1}]; // just move one
+    // ビームサーチのデータ構造:
+    // {
+    //   path: [{r, c}, ...],
+    //   board: state, // このパス適用後の盤面状態 (キャッシュ)
+    //   score: number
+    // }
+    let beams = startPoints.map(pt => {
+      const path = [pt];
+      const board = this.cloneState(initialState);
+      const score = this.evaluateBoard(board, minMatchLength, cols, rows);
+      return { path, board, score };
+    });
+
+    const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+
+    // 各ステップでビームを伸ばしていく
+    for (let step = 0; step < MAX_STEPS; step++) {
+      const nextCandidates = [];
+
+      for (const beam of beams) {
+        const curr = beam.path[beam.path.length - 1];
+        const prev = beam.path.length > 1 ? beam.path[beam.path.length - 2] : null;
+
+        for (const [dr, dc] of dirs) {
+          const nr = curr.r + dr;
+          const nc = curr.c + dc;
+
+          // 境界内チェック
+          if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+          // 直前のマスに戻るUターンはスキップ
+          if (prev && prev.r === nr && prev.c === nc) continue;
+
+          // パスのコピーと拡張
+          const newPath = [...beam.path, { r: nr, c: nc }];
+
+          // 親の盤面状態をクローンし、最後の1マスだけスワップを適用 (O(1)スワップで高速化)
+          const newBoard = this.cloneState(beam.board);
+          const temp = newBoard[curr.r][curr.c];
+          newBoard[curr.r][curr.c] = newBoard[nr][nc];
+          newBoard[nr][nc] = temp;
+
+          // 盤面の評価
+          let score = this.evaluateBoard(newBoard, minMatchLength, cols, rows);
+
+          // 移動距離に対するわずかなペナルティ (無駄な動きを抑制)
+          score -= newPath.length * 0.05;
+
+          nextCandidates.push({
+            path: newPath,
+            board: newBoard,
+            score: score
+          });
+        }
+      }
+
+      if (nextCandidates.length === 0) break;
+
+      // 重複排除 (同じ末尾位置で同じ評価スコアの候補を刈り取り、ビーム内の多様性を維持)
+      const seen = new Set();
+      const uniqueCandidates = [];
+      for (const cand of nextCandidates) {
+        const last = cand.path[cand.path.length - 1];
+        const key = `${last.r},${last.c},${cand.score.toFixed(2)}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueCandidates.push(cand);
+        }
+      }
+
+      // スコアの高い順にソート
+      uniqueCandidates.sort((a, b) => b.score - a.score);
+
+      // 上位 K 個を次のビーム候補とする
+      beams = uniqueCandidates.slice(0, BEAM_WIDTH);
     }
-    
-    return bestPath;
+
+    if (beams.length === 0) {
+      return [{ r: 0, c: 0 }, { r: 0, c: 1 }]; // フォールバック
+    }
+
+    // 最もスコアの高い経路を返す
+    beams.sort((a, b) => b.score - a.score);
+    return beams[0].path;
   }
 
   async sleep(ms) {
