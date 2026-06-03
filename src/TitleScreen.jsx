@@ -1,6 +1,9 @@
 import React from 'react';
+import soundManager from './utils/SoundManager';
+import { SE_IDS } from './constants/sounds';
 
-const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCredits, onSettings, onStartMultiTest, testInstanceId }) => {
+// testブランチ: AIテスト用id属性・テストボタン ＋ mainのサウンド・新ボタンを統合
+const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCredits, onSettings, onEncyclopedia, onPractice, onStartMultiTest, testInstanceId }) => {
     return (
         <div className="w-full h-screen bg-background-dark flex flex-col items-center justify-center relative overflow-hidden font-display">
             {/* Background effects */}
@@ -23,7 +26,10 @@ const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCred
                         <>
                             <button
                                 id={`ai-start-continue-${testInstanceId}`}
-                                onClick={onContinue}
+                                onClick={() => {
+                                    onContinue();
+                                    soundManager.playSE(SE_IDS.UI_CLICK);
+                                }}
                                 className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] transform transition-all active:scale-95 flex items-center justify-center gap-2 text-lg"
                             >
                                 <span className="material-icons-round text-xl">play_circle</span>
@@ -31,7 +37,10 @@ const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCred
                             </button>
                             <button
                                 id={`ai-start-new-${testInstanceId}`}
-                                onClick={onStart}
+                                onClick={() => {
+                                    onStart();
+                                    soundManager.playSE(SE_IDS.UI_CLICK);
+                                }}
                                 className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-4 rounded-xl border border-white/10 transform transition-all active:scale-95 flex items-center justify-center gap-2"
                             >
                                 <span className="material-icons-round text-xl">refresh</span>
@@ -41,43 +50,81 @@ const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCred
                     ) : (
                         <button
                             id={`ai-start-initial-${testInstanceId}`}
-                            onClick={onStart}
+                            onClick={() => {
+                                onStart();
+                                soundManager.playSE(SE_IDS.UI_CLICK);
+                            }}
                             className="w-full bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(91,19,236,0.4)] transform transition-all active:scale-95 flex items-center justify-center gap-2 text-lg"
                         >
                             <span className="material-icons-round text-xl">play_arrow</span>
                             始める
                         </button>
                     )}
+                    {/* AIテストボタン（testブランチ専用） */}
+                    {onStartMultiTest && (
+                        <button
+                            onClick={onStartMultiTest}
+                            className="w-full bg-slate-900 hover:bg-slate-800 text-yellow-400 font-bold py-4 rounded-xl border border-yellow-400/30 shadow-[0_0_10px_rgba(250,204,21,0.2)] transform transition-all active:scale-95 flex items-center justify-center gap-2 mt-4"
+                        >
+                            <span className="material-icons-round text-xl">bug_report</span>
+                            10分割 AI自動テスト実行
+                        </button>
+                    )}
                     <button
-                        onClick={onStartMultiTest}
-                        className="w-full bg-slate-900 hover:bg-slate-800 text-yellow-400 font-bold py-4 rounded-xl border border-yellow-400/30 shadow-[0_0_10px_rgba(250,204,21,0.2)] transform transition-all active:scale-95 flex items-center justify-center gap-2 mt-4"
-                    >
-                        <span className="material-icons-round text-xl">bug_report</span>
-                        10分割 AI自動テスト実行
-                    </button>
-                    <button
-                        onClick={onHelp}
+                        onClick={() => {
+                            onHelp();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl border border-white/10 transform transition-all active:scale-95 flex items-center justify-center gap-2"
                     >
                         <span className="material-icons-round text-xl">help_outline</span>
                         ヘルプ画面
                     </button>
                     <button
-                        onClick={onStats}
+                        onClick={() => {
+                            onStats();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl border border-white/10 transform transition-all active:scale-95 flex items-center justify-center gap-2 mt-2"
                     >
                         <span className="material-icons-round text-xl">emoji_events</span>
                         実績画面
                     </button>
                     <button
-                        onClick={onSettings}
+                        onClick={() => {
+                            onEncyclopedia && onEncyclopedia();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
+                        className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl border border-white/10 transform transition-all active:scale-95 flex items-center justify-center gap-2 mt-2 font-japanese"
+                    >
+                        <span className="material-icons-round text-xl">menu_book</span>
+                        トークン図鑑
+                    </button>
+                    <button
+                        onClick={() => {
+                            onSettings();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl border border-white/10 transform transition-all active:scale-95 flex items-center justify-center gap-2 mt-2"
                     >
                         <span className="material-icons-round text-xl">settings</span>
                         設定
                     </button>
                     <button
-                        onClick={onCredits}
+                        onClick={() => {
+                            onPractice && onPractice();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
+                        className="w-full bg-indigo-900/40 hover:bg-indigo-800/60 text-indigo-200 font-bold py-4 rounded-xl border border-indigo-500/30 transform transition-all active:scale-95 flex items-center justify-center gap-2 mt-2"
+                    >
+                        <span className="material-icons-round text-xl">extension</span>
+                        パズル練習
+                    </button>
+                    <button
+                        onClick={() => {
+                            onCredits();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         className="w-full bg-slate-900/50 hover:bg-slate-800 text-slate-400 font-bold py-4 rounded-xl border border-white/5 transform transition-all active:scale-95 flex justify-center items-center gap-2 mt-2"
                     >
                         <span className="material-icons-round text-xl">info</span>

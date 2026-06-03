@@ -1,11 +1,16 @@
 import React from 'react';
-import { formatJapaneseNumber } from './utils/numberUtils.js';
 import { getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
+import soundManager from './utils/SoundManager';
+import { SE_IDS } from './constants/sounds';
+import { formatJapaneseNumber } from './utils/numberUtils';
 
 // 通常アイテムの背景・ボーダー色を返すヘルパー
 
 // 通常アイテムの背景・ボーダー色を返すヘルパー
 const getItemColors = (item) => {
+    if (item.type === 'curse' || item.isCurse) {
+        return { bg: 'from-red-500/20 to-red-900/20', border: 'border-red-500/30', iconColor: 'text-red-400' };
+    }
     if (item.type === 'upgrade_random') {
         return { bg: 'from-green-500/20 to-green-900/20', border: 'border-green-500/30', iconColor: 'text-green-400' };
     }
@@ -50,14 +55,20 @@ const getEnchantRarityStyle = (rarity) => {
     };
 };
 
-// 通常アイテムのカードを描画するコンポーネント
-const NormalItemCard = ({ item, stars, onBuy, testInstanceId }) => {
+// 通常アイテムのカードを描画するコンポーネント（トップレベルで定義することでスマホの2タップ問題を解消）
+// testブランチ: testInstanceId追加（AIテスト用id属性）
+const NormalItemCard = ({ item, stars, onBuy, isBought, testInstanceId }) => {
     const styles = getItemColors(item);
     const isAffordable = stars >= item.price;
+    const handleBuyClick = (e) => {
+        if (!isAffordable) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        onBuy(item, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+    };
     return (
-        <div className="bg-surface-dark border border-white/5 rounded-xl p-3 flex items-center">
+        <div className={`bg-surface-dark border border-white/5 rounded-xl p-3 flex items-center transition-all ${isBought ? 'animate-purchase-success z-50' : ''}`}>
             <div className={`w-14 h-14 rounded-tr-lg rounded-br-lg bg-gradient-to-br ${styles.bg} border ${styles.border} flex items-center justify-center flex-shrink-0 relative`}>
-                <div className="absolute inset-0 rounded-tr-lg rounded-br-lg overflow-hidden">
+                <div className="absolute inset-0 rounded-tr-lg rounded-br-lg overflow-hidden flex items-center justify-center">
                     {/* 属性バー */}
                     <div 
                         className="absolute left-0 top-0 bottom-0 w-1 z-30" 
@@ -82,8 +93,8 @@ const NormalItemCard = ({ item, stars, onBuy, testInstanceId }) => {
                 <p className="text-xs text-slate-400 mt-0.5 leading-tight">{item.desc}</p>
             </div>
             <button
-                id={`ai-shop-buy-${testInstanceId}-${item.id}`}
-                onClick={() => onBuy(item)}
+                id={testInstanceId ? `ai-shop-buy-${testInstanceId}-${item.id}` : undefined}
+                onClick={handleBuyClick}
                 disabled={!isAffordable}
                 style={{ touchAction: 'manipulation' }}
                 className={`text-white px-3 py-2 rounded-lg flex flex-col items-center justify-center min-w-[70px] active:scale-95 transition-transform ${isAffordable ? 'bg-primary' : 'bg-surface-dark border border-white/10 opacity-50 cursor-not-allowed'}`}
@@ -97,8 +108,10 @@ const NormalItemCard = ({ item, stars, onBuy, testInstanceId }) => {
     );
 };
 
-// 覚醒ショップのカードを描画するコンポーネント
-const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disabled, disabledReason, badgeText, color, id }) => {
+
+// 覚醒ショップのカードを描画するコンポーネント（トップレベルで定義することでスマホの2タップ問題を解消）
+// testブランチ: buttonId追加（AIテスト用id属性）
+const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disabled, disabledReason, badgeText, color, type, isBought, buttonId }) => {
     const isAffordable = stars >= price && !disabled;
     const colorMap = {
         green: {
@@ -127,8 +140,13 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
         },
     };
     const c = colorMap[color] || colorMap.green;
+    const handleBuyClick = (e) => {
+        if (!isAffordable) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        onCardBuy(type, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+    };
     return (
-        <div className={`rounded-2xl bg-gradient-to-br ${c.cardBg} border ${c.border} overflow-hidden ${disabled ? 'opacity-60' : ''}`}>
+        <div className={`rounded-2xl bg-gradient-to-br ${c.cardBg} border ${c.border} overflow-hidden transition-all ${disabled ? 'opacity-60' : ''} ${isBought ? 'animate-purchase-success z-50' : ''}`}>
             <div className="px-4 pt-4 pb-3 flex items-center space-x-3">
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${c.iconBg} border ${c.iconBorder} flex items-center justify-center flex-shrink-0`}>
                     <span className={`material-icons-round ${c.iconColor} text-2xl`}>{icon}</span>
@@ -157,8 +175,8 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
             {/* 購入ボタン */}
             <div className="px-4 pb-4">
                 <button
-                    id={id}
-                    onClick={onCardBuy}
+                    id={buttonId}
+                    onClick={handleBuyClick}
                     disabled={!isAffordable}
                     style={{ touchAction: 'manipulation' }}
                     className={`w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 active:scale-95 transition-transform ${isAffordable
@@ -181,15 +199,30 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
     );
 };
 
+
 const ShopScreen = ({
     items, stars, onBuy, onClose, onRefresh, rerollPrice, onPause,
     isEnchantShopUnlocked, tokenSlotExpansionCount, onAwakeningBuy,
-    isAwakeningLevelUpBought, testInstanceId
+    isAwakeningLevelUpBought, testInstanceId,
 }) => {
     const [activeTab, setActiveTab] = React.useState('normal');
+    const [boughtItemId, setBoughtItemId] = React.useState(null);
+
+    const handleBuy = (item, clickPos) => {
+        setBoughtItemId(item.id || item.instanceId);
+        onBuy(item, clickPos);
+        setTimeout(() => setBoughtItemId(null), 600);
+    };
+
+    const handleAwakeningBuy = (type, clickPos) => {
+        setBoughtItemId(type);
+        onAwakeningBuy(type, clickPos);
+        setTimeout(() => setBoughtItemId(null), 600);
+    };
+
 
     // 覚醒ショップの価格計算
-    const AWAKENING_TOKEN_SLOT_PRICES = [100, 500, 2000, 10000, 50000];
+    const AWAKENING_TOKEN_SLOT_PRICES = [50, 200, 800, 3000, 10000];
     const tokenSlotExpCount = tokenSlotExpansionCount || 0;
     const isTokenSlotMaxed = tokenSlotExpCount >= 5;
     const tokenSlotExpandPrice = isTokenSlotMaxed ? 0 : (AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpCount, 4)] || 50000);
@@ -199,7 +232,7 @@ const ShopScreen = ({
     // アイテムをカテゴリごとに分類
     const enchantItems = items.filter(item => item.type === 'enchant_grant' || item.type === 'enchant_random');
     const normalItems = items.filter(item => item.type !== 'enchant_grant' && item.type !== 'enchant_random');
-    const passiveItems = normalItems.filter(item => item.type === 'passive' || item.type === 'collector' || item.type === 'upgrade_random');
+    const passiveItems = normalItems.filter(item => item.type === 'passive' || item.type === 'collector' || item.type === 'upgrade_random' || item.type === 'grant_random_curse');
     const activeItems = normalItems.filter(item => item.type === 'skill');
 
     // スワイプバックでショップを閉じる
@@ -228,10 +261,16 @@ const ShopScreen = ({
 
     return (
         <main
-            className="w-full h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden"
+            className="w-full h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden animate-fade-in"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
         >
+            {/* Background effects matching main screen */}
+            <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+                <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-primary/30 to-transparent"></div>
+                <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
+            </div>
+
             {/* ヘッダー */}
             <header className="flex-none px-6 py-4 z-20 relative bg-surface-dark/80 backdrop-blur-md border-b border-white/5">
                 <div className="flex items-center justify-between mb-4">
@@ -251,9 +290,12 @@ const ShopScreen = ({
                 {/* タブUI */}
                 <div className="flex space-x-1 p-1 bg-black/20 rounded-xl">
                     <button
-                        id={`ai-shop-tab-normal-${testInstanceId}`}
+                        id={testInstanceId ? `ai-shop-tab-normal-${testInstanceId}` : undefined}
                         data-active={activeTab === 'normal'}
-                        onClick={() => setActiveTab('normal')}
+                        onClick={() => {
+                            setActiveTab('normal');
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         style={{ touchAction: 'manipulation' }}
                         className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 ${activeTab === 'normal' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]' : 'text-slate-400'}`}
                     >
@@ -261,9 +303,14 @@ const ShopScreen = ({
                         <span>ノーマル</span>
                     </button>
                     <button
-                        id={`ai-shop-tab-enchant-${testInstanceId}`}
+                        id={testInstanceId ? `ai-shop-tab-enchant-${testInstanceId}` : undefined}
                         data-active={activeTab === 'enchant'}
-                        onClick={() => isEnchantShopUnlocked && setActiveTab('enchant')}
+                        onClick={() => {
+                            if (isEnchantShopUnlocked) {
+                                setActiveTab('enchant');
+                                soundManager.playSE(SE_IDS.UI_CLICK);
+                            }
+                        }}
                         style={{ touchAction: 'manipulation' }}
                         className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 relative ${!isEnchantShopUnlocked
                             ? 'text-slate-600 cursor-not-allowed bg-black/10'
@@ -285,9 +332,12 @@ const ShopScreen = ({
                         )}
                     </button>
                     <button
-                        id={`ai-shop-tab-awakening-${testInstanceId}`}
+                        id={testInstanceId ? `ai-shop-tab-awakening-${testInstanceId}` : undefined}
                         data-active={activeTab === 'awakening'}
-                        onClick={() => setActiveTab('awakening')}
+                        onClick={() => {
+                            setActiveTab('awakening');
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
                         style={{ touchAction: 'manipulation' }}
                         className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 ${activeTab === 'awakening' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40 scale-[1.02]' : 'text-slate-400'}`}
                     >
@@ -310,7 +360,7 @@ const ShopScreen = ({
                                     <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Passive Artifacts</h2>
                                 </div>
                                 <div className="space-y-3">
-                                    {passiveItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} onBuy={onBuy} testInstanceId={testInstanceId} />)}
+                                    {passiveItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} onBuy={handleBuy} isBought={boughtItemId === (item.id || item.instanceId)} testInstanceId={testInstanceId} />)}
                                 </div>
                             </div>
                         )}
@@ -321,8 +371,9 @@ const ShopScreen = ({
                                     <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Active Spells</h2>
                                 </div>
                                 <div className="space-y-3">
-                                    {activeItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} onBuy={onBuy} testInstanceId={testInstanceId} />)}
+                                    {activeItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} onBuy={handleBuy} isBought={boughtItemId === (item.id || item.instanceId)} testInstanceId={testInstanceId} />)}
                                 </div>
+
                             </div>
                         )}
                         {passiveItems.length === 0 && activeItems.length === 0 && (
@@ -377,12 +428,16 @@ const ShopScreen = ({
                                             </div>
                                             <div className="px-4 pb-4">
                                                 <button
-                                                    id={`ai-shop-buy-${testInstanceId}-enchant-${item.id}`}
-                                                    onClick={() => onBuy(item)}
+                                                    id={testInstanceId ? `ai-shop-buy-${testInstanceId}-enchant-${item.id}` : undefined}
+                                                    onClick={(e) => {
+                                                        const rect = e.currentTarget.getBoundingClientRect();
+                                                        handleBuy(item, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+                                                    }}
                                                     disabled={!isAffordable}
                                                     style={{ touchAction: 'manipulation' }}
                                                     className={`w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 active:scale-95 transition-transform ${isAffordable ? 'bg-purple-600 text-white shadow-md shadow-purple-900/50' : 'bg-surface-dark border border-white/10 text-slate-500 cursor-not-allowed'}`}
                                                 >
+
                                                     <span className="material-icons-round text-gold text-sm">star</span>
                                                     <span>{item.price} で購入</span>
                                                     {!isAffordable && <span className="text-[10px] opacity-70 ml-1">(★不足)</span>}
@@ -409,53 +464,60 @@ const ShopScreen = ({
                         <div className="flex items-start space-x-2 bg-amber-900/20 border border-amber-500/30 rounded-xl px-4 py-3">
                             <span className="material-icons-round text-amber-400 text-base flex-shrink-0 mt-0.5">egg_alt</span>
                             <p className="text-amber-200 text-xs font-semibold leading-relaxed">
-                                スターを消費して永続的な強化を解放します。覚醒効果はゲーム全体を通じて有効です。
+                                スターを消費して現在のプレイを強力にサポートする強化を解放します。覚醒効果はこのプレイ中ずっと有効です。
                             </p>
                         </div>
 
                         {/* 1. ランダムなトークンをレベルアップ */}
-                        <AwakeningCard
-                            id={`ai-shop-buy-${testInstanceId}-awakening-levelup`}
-                            icon="trending_up"
-                            title="ランダムレベルアップ"
-                            desc="所持しているトークンの中からランダムに1つを選び、レベルアップさせます（最大Lv3）。"
-                            price={5}
-                            stars={stars}
-                            onBuy={() => onAwakeningBuy('random_levelup')}
-                            disabled={isAwakeningLevelUpBought}
-                            disabledReason={isAwakeningLevelUpBought ? "このラインナップでは購入済みです" : null}
-                            color="green"
-                            badgeText="毎回購入可"
-                        />
+                                <AwakeningCard
+                                    buttonId={testInstanceId ? `ai-shop-buy-${testInstanceId}-awakening-levelup` : undefined}
+                                    icon="trending_up"
+                                    title="ランダムレベルアップ"
+                                    desc="所持しているトークンの中からランダムに1つを選び、レベルアップさせます（最大Lv3）。"
+                                    price={5}
+                                    stars={stars}
+                                    onBuy={handleAwakeningBuy}
+                                    disabled={isAwakeningLevelUpBought}
+                                    disabledReason={isAwakeningLevelUpBought ? "このラインナップでは購入済みです" : null}
+                                    color="green"
+                                    badgeText="毎回購入可"
+                                    type="random_levelup"
+                                    isBought={boughtItemId === 'random_levelup'}
+                                />
+    
+                                {/* 2. エンチャントショップの解放 */}
+                                <AwakeningCard
+                                    buttonId={testInstanceId ? `ai-shop-buy-${testInstanceId}-awakening-unlock-enchant` : undefined}
+                                    icon="auto_fix_high"
+                                    title="エンチャントショップ解放"
+                                    desc="「エンチャント」タブを解放し、エンチャントを購入してトークンに付与できるようになります。一度購入すれば現在のプレイ中はずっと有効です。"
+                                    price={10}
+                                    stars={stars}
+                                    onBuy={handleAwakeningBuy}
+                                    disabled={isEnchantShopUnlocked}
+                                    color="indigo"
+                                    badgeText="1回限り"
+                                    type="unlock_enchant_shop"
+                                    isBought={boughtItemId === 'unlock_enchant_shop'}
+                                />
+    
+                                {/* 3. トークン所持枠の解放 */}
+                                <AwakeningCard
+                                    buttonId={testInstanceId ? `ai-shop-buy-${testInstanceId}-awakening-token-slot` : undefined}
+                                    icon="add_box"
+                                    title="トークン所持枠の拡張"
+                                    desc={isTokenSlotMaxed ? `トークンの最大所持枠はこれ以上拡張できません。` : `トークンの最大所持枠を ${currentMaxSlots} → ${nextMaxSlots} に拡張します。購入するごとに価格が大幅に上昇します。`}
+                                    price={tokenSlotExpandPrice}
+                                    stars={stars}
+                                    onBuy={handleAwakeningBuy}
+                                    disabled={isTokenSlotMaxed}
+                                    disabledReason={isTokenSlotMaxed ? "最大拡張済み (上限10枠)" : null}
+                                    color="amber"
+                                    badgeText={isTokenSlotMaxed ? `最大拡張済 (10枠)` : `現在 ${currentMaxSlots} 枠`}
+                                    type="expand_token_slots"
+                                    isBought={boughtItemId === 'expand_token_slots'}
+                                />
 
-                        {/* 2. エンチャントショップの解放 */}
-                        <AwakeningCard
-                            id={`ai-shop-buy-${testInstanceId}-awakening-unlock-enchant`}
-                            icon="auto_fix_high"
-                            title="エンチャントショップ解放"
-                            desc="「エンチャント」タブを解放し、エンチャントを購入してトークンに付与できるようになります。一度購入すれば永続です。"
-                            price={10}
-                            stars={stars}
-                            onBuy={() => onAwakeningBuy('unlock_enchant_shop')}
-                            disabled={isEnchantShopUnlocked}
-                            color="indigo"
-                            badgeText="1回限り"
-                        />
-
-                        {/* 3. トークン所持枠の解放 */}
-                        <AwakeningCard
-                            id={`ai-shop-buy-${testInstanceId}-awakening-token-slot`}
-                            icon="add_box"
-                            title="トークン所持枠の拡張"
-                            desc={isTokenSlotMaxed ? `トークンの最大所持枠はこれ以上拡張できません。` : `トークンの最大所持枠を ${currentMaxSlots} → ${nextMaxSlots} に拡張します。購入するごとに価格が大幅に上昇します。`}
-                            price={tokenSlotExpandPrice}
-                            stars={stars}
-                            onBuy={() => onAwakeningBuy('expand_token_slots')}
-                            disabled={isTokenSlotMaxed}
-                            disabledReason={isTokenSlotMaxed ? "最大拡張済み (上限10枠)" : null}
-                            color="amber"
-                            badgeText={isTokenSlotMaxed ? `最大拡張済 (10枠)` : `現在 ${currentMaxSlots} 枠`}
-                        />
                     </div>
                 )}
             </div>
@@ -464,21 +526,25 @@ const ShopScreen = ({
             <footer className="absolute bottom-0 left-0 w-full p-6 glass-panel border-t border-white/10 z-30">
                 <div className="flex space-x-3 h-14">
                     <button
-                        id={`ai-shop-refresh-${testInstanceId}`}
-                        onClick={onRefresh}
+                        id={testInstanceId ? `ai-shop-refresh-${testInstanceId}` : undefined}
+                        onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            onRefresh({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+                        }}
                         style={{ touchAction: 'manipulation' }}
                         className="h-full aspect-square flex flex-col items-center justify-center bg-surface-dark border border-white/10 rounded-xl text-slate-400 transition-colors active:scale-95 relative"
                     >
+
                         <span className="material-icons-round text-xl mb-0.5 transition-transform duration-500">sync</span>
                         <div className="flex flex-col items-center leading-none">
                             <span className="flex items-center bg-slate-800/80 px-1.5 rounded-full border border-white/5">
-                                <span className="text-[10px] font-mono">{rerollPrice}</span>
+                            <span className="text-[10px] font-mono">{formatJapaneseNumber(rerollPrice)}</span>
                                 <span className="material-icons-round text-gold text-[8px] ml-0.5">star</span>
                             </span>
                         </div>
                     </button>
                     <button
-                        id={`ai-shop-close-${testInstanceId}`}
+                        id={testInstanceId ? `ai-shop-close-${testInstanceId}` : undefined}
                         onClick={onClose}
                         style={{ touchAction: 'manipulation' }}
                         className="h-full flex-1 bg-gradient-to-r from-primary to-indigo-600 active:scale-[0.98] transition-all rounded-xl shadow-glow flex items-center justify-center space-x-2 text-white relative overflow-hidden"

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PuzzleEngine, ALL_TOKEN_BASES } from './App';
+import { PuzzleEngine } from './engine/PuzzleEngine.js';
+import { ALL_TOKEN_BASES } from './constants/tokens.js';
 
 describe('PuzzleEngine Headless Tests', () => {
     let container;
@@ -38,6 +39,22 @@ describe('PuzzleEngine Headless Tests', () => {
         expect(engine.state.length).toBe(5);
         expect(engine.state[0].length).toBe(6);
         expect(engine.state[0][0]).not.toBeNull();
+    });
+
+    it('adds special matching classes to orb elements', async () => {
+        // Arrange: Prepare a 4-orb match in the first row
+        for(let i=0; i<4; i++) {
+            engine.state[0][i].type = 'fire';
+        }
+        engine.state[0][4].type = 'water';
+
+        // Act: Manually call createShapeEffect or trigger process
+        const group = [engine.state[0][0], engine.state[0][1], engine.state[0][2], engine.state[0][3]];
+        engine.createShapeEffect('len4', group);
+
+        // Assert: Elements should have the special class
+        expect(group[0].el.classList.contains('orb-matching-len4')).toBe(true);
+        expect(group[1].el.classList.contains('orb-matching-len4')).toBe(true);
     });
 
     it('can drag and drop an orb without throwing', async () => {
@@ -95,8 +112,6 @@ describe('PuzzleEngine Headless Tests', () => {
         });
 
         it('executes board_balance action safely', () => {
-            // Manually mimic board balance logic since it resides in App.jsx usually, 
-            // but let's just make sure we don't crash by calling forceRefresh-like logic.
             expect(() => {
                 engine.forceRefresh();
             }).not.toThrow();
@@ -128,7 +143,6 @@ describe('PuzzleEngine Headless Tests', () => {
         it('can set and trigger skyfall limits and weights', () => {
             engine.setSpawnWeights({ fire: 0, water: 0, wood: 10, light: 0, dark: 0, heart: 0 });
             engine.spawnOrb(0, 0, true, 0);
-            // It spawns wood since probability of wood is 100%
             expect(engine.state[0][0].type).toBe('wood');
         });
 
@@ -147,9 +161,7 @@ describe('PuzzleEngine Headless Tests', () => {
             engine.state[0][2].type = 'fire';
 
             engine.process();
-            // Fast forward until animations complete
             await vi.advanceTimersByTimeAsync(3000);
-            // It should run without error. Depending on the test setup and skyfall timing, it may be null or a regular orb.
             expect(true).toBe(true);
         });
 
@@ -176,3 +188,4 @@ describe('PuzzleEngine Headless Tests', () => {
         });
     });
 });
+

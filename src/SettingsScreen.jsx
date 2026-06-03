@@ -13,8 +13,14 @@ const SettingsScreen = ({ settings, onSettingsChange, onClose }) => {
     const { comboAnimationMode = 'instant' } = settings || {};
 
     return (
-        <div className="w-full h-full bg-background-dark flex flex-col items-center justify-center p-6 animate-fade-in font-display">
-            <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-xs shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative p-6">
+        <div 
+            className="w-full h-full bg-background-dark flex flex-col items-center justify-center p-6 animate-fade-in font-display"
+            onClick={onClose}
+        >
+            <div 
+                className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-xs shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative p-6"
+                onClick={(e) => e.stopPropagation()}
+            >
 
                 {/* ヘッダー */}
                 <h2 className="text-3xl font-black text-white mb-8 text-center tracking-widest flex items-center justify-center gap-2">
@@ -73,6 +79,52 @@ const SettingsScreen = ({ settings, onSettingsChange, onClose }) => {
                                 <span className="material-icons-round text-white ml-auto text-base">check_circle</span>
                             )}
                         </button>
+                    </div>
+
+                    {/* BGM音量 */}
+                    <div className="bg-slate-800/60 rounded-xl p-4 border border-white/5">
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-slate-300 text-sm font-bold flex items-center gap-1.5">
+                                <span className="material-icons-round text-base text-primary">music_note</span>
+                                BGM音量
+                            </p>
+                            <button 
+                                onClick={() => onSettingsChange('bgmMuted', !settings.bgmMuted)}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${settings.bgmMuted ? 'bg-red-500/20 text-red-400' : 'bg-primary/20 text-primary'}`}
+                            >
+                                <span className="material-icons-round text-lg">{settings.bgmMuted ? 'volume_off' : 'volume_up'}</span>
+                            </button>
+                        </div>
+                        <input 
+                            type="range" min="0" max="1" step="0.05"
+                            value={settings.bgmMuted ? 0 : settings.bgmVolume}
+                            onChange={(e) => onSettingsChange('bgmVolume', parseFloat(e.target.value))}
+                            disabled={settings.bgmMuted}
+                            className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-30"
+                        />
+                    </div>
+
+                    {/* SE音量 */}
+                    <div className="bg-slate-800/60 rounded-xl p-4 border border-white/5">
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-slate-300 text-sm font-bold flex items-center gap-1.5">
+                                <span className="material-icons-round text-base text-primary">volume_up</span>
+                                効果音音量
+                            </p>
+                            <button 
+                                onClick={() => onSettingsChange('seMuted', !settings.seMuted)}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${settings.seMuted ? 'bg-red-500/20 text-red-400' : 'bg-primary/20 text-primary'}`}
+                            >
+                                <span className="material-icons-round text-lg">{settings.seMuted ? 'volume_off' : 'volume_up'}</span>
+                            </button>
+                        </div>
+                        <input 
+                            type="range" min="0" max="1" step="0.05"
+                            value={settings.seMuted ? 0 : settings.seVolume}
+                            onChange={(e) => onSettingsChange('seVolume', parseFloat(e.target.value))}
+                            disabled={settings.seMuted}
+                            className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-30"
+                        />
                     </div>
 
                     <div className="my-1 border-b border-white/5 w-full"></div>

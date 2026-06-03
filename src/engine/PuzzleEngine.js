@@ -1,6 +1,8 @@
 import { MAX_COMBO, MAX_TARGET } from '../constants/gameConstants.js';
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
+import soundManager from '../utils/SoundManager';
+import { SE_IDS } from '../constants/sounds';
 
 // --- Puzzle Engine (Imperative Logic) ---
 // --- Puzzle Engine (Imperative Logic) ---
@@ -18,6 +20,9 @@ class PuzzleEngine {
     this.onPassiveTrigger = options.onPassiveTrigger || null;
     this.onStarErase = options.onStarErase || null;
     this.totalMoveTimeRef = options.totalMoveTimeRef || { current: 0 }; // 操作時間加算用Ref
+    this.timerText = options.timerText || null; // 残り時間表示用要素
+    this.pureMode = options.pureMode || false; // 特殊消しボーナス無効モード
+    this.vacationMode = false;
 
     // Will be calculated in init()
     this.orbSize = 0;
@@ -73,6 +78,14 @@ class PuzzleEngine {
     this.realtimeBonuses = { len4: 0, row: 0, l_shape: 0, ...bonuses };
   }
 
+  getAvailableTypes(includeHeart = true) {
+    let types = this.types.filter(t => includeHeart || t !== "heart");
+    if (this.vacationMode) {
+      types = types.filter(t => t !== "light" && t !== "dark");
+    }
+    return types;
+  }
+
   setEnhanceRates(rates) {
     this.enhanceRates = rates;
   }
@@ -106,6 +119,11 @@ class PuzzleEngine {
           isRainbow: !!orb.isRainbow,
           rainbowCount: orb.rainbowCount,
           isStar: !!orb.isStar,
+          isMoveDrop: !!orb.isMoveDrop,
+          moveTokenId: orb.moveTokenId,
+          moveCount: orb.moveCount,
+          moveSteps: orb.moveSteps,
+          moveRequired: orb.moveRequired,
         };
       })
     );
@@ -161,6 +179,9 @@ class PuzzleEngine {
     }
     this.render();
 
+    if (this.timerBar) this.timerBar.style.width = "100%";
+    this.updateTimerDisplay(this.timeLimit);
+
     // Resize listener with debounce
     if (!this.resizeListener) {
       this.resizeListener = this.handleResize.bind(this);
@@ -207,7 +228,7 @@ class PuzzleEngine {
     if (savedData) {
       type = savedData.type;
     } else if (!isNew) {
-      let availableTypes = [...this.types];
+      let availableTypes = this.getAvailableTypes(true);
       while (availableTypes.length > 0) {
         const idx = Math.floor(Math.random() * availableTypes.length);
         type = availableTypes[idx];
@@ -234,24 +255,27 @@ class PuzzleEngine {
         if (!matchHorizontal && !matchVertical) break;
         else availableTypes.splice(idx, 1);
       }
-      if (!type)
-        type = this.types[Math.floor(Math.random() * this.types.length)]; // Fallback
+      if (!type) {
+        const aTypes = this.getAvailableTypes(true);
+        type = aTypes[Math.floor(Math.random() * aTypes.length)]; // Fallback
+      }
     } else {
       // Weighted Random
+      const aTypes = this.getAvailableTypes(true);
       const weights = this.spawnWeights || {};
-      const totalWeight = this.types.reduce(
+      const totalWeight = aTypes.reduce(
         (acc, t) => acc + (weights[t] || 0),
         0,
       );
       let rVal = Math.random() * totalWeight;
-      for (const t of this.types) {
+      for (const t of aTypes) {
         rVal -= weights[t] || 0;
         if (rVal <= 0) {
           type = t;
           break;
         }
       }
-      if (!type) type = this.types[0];
+      if (!type) type = aTypes[0];
     }
 
     const el = document.createElement("div");
@@ -259,6 +283,23 @@ class PuzzleEngine {
 
     const inner = document.createElement("div");
     inner.className = `orb-inner orb-${type} shadow-lg`;
+
+    // ムーブドロップかどうか
+    let isMoveDrop = false;
+    let moveTokenId = null;
+    let moveCount = 0;
+    let moveSteps = 0;
+    let moveRequired = 5;
+
+    if (savedData && savedData.isMoveDrop) {
+      isMoveDrop = true;
+      moveTokenId = savedData.moveTokenId;
+      moveCount = savedData.moveCount || 0;
+      moveSteps = savedData.moveSteps || 0;
+      moveRequired = savedData.moveRequired || 5;
+      type = "move"; // 内部処理・描画上で独立させるため
+      inner.className = `orb-inner orb-move shadow-lg`;
+    }
 
     // 虹ドロップかどうか（スキル等で確定生成する場合はtypeが'rainbow'で来るか、isNewのパッシブ判定）
     let isRainbow = false;
@@ -287,9 +328,14 @@ class PuzzleEngine {
 
     const iconSpan = document.createElement("span");
     iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
-    iconSpan.innerText = isRainbow ? "" : this.icons[type];
+    iconSpan.innerText = isRainbow || isMoveDrop ? "" : this.icons[type];
 
-    if (isRainbow) {
+    if (isMoveDrop) {
+      const countSpan = document.createElement("span");
+      countSpan.className = "move-count-text";
+      countSpan.innerText = moveCount;
+      inner.appendChild(countSpan);
+    } else if (isRainbow) {
       const countSpan = document.createElement("span");
       countSpan.className = "rainbow-count-text text-white font-bold text-xl drop-shadow-md select-none";
       countSpan.innerText = rainbowCount;
@@ -335,7 +381,8 @@ class PuzzleEngine {
       isStar = true;
     } else if (type === "star") {
       isStar = true;
-      type = this.types[Math.floor(Math.random() * this.types.length)]; // ランダムな色にする
+      const aTypes = this.getAvailableTypes(true);
+      type = aTypes[Math.floor(Math.random() * aTypes.length)]; // ランダムな色にする
     } else if (isNew && this.starRates && this.starRates.colors && this.starRates.colors[type]) {
       const rates = this.starRates.colors[type];
       for (const tokenRate of rates) {
@@ -356,7 +403,7 @@ class PuzzleEngine {
     el.style.left = `${baseLeft}px`;
 
     const isEnhanced = savedData ? !!savedData.isEnhanced : false;
-    const orb = { type, el, r, c, isSkyfall: isNew, baseTop, baseLeft, isEnhanced, isBomb, isRepeat, isStar, isRainbow, rainbowCount };
+    const orb = { type, el, r, c, isSkyfall: isNew, baseTop, baseLeft, isEnhanced, isBomb, isRepeat, isStar, isRainbow, rainbowCount, isMoveDrop, moveTokenId, moveCount, moveSteps, moveRequired };
 
     if (isBomb) {
       this.addBombMark(el);
@@ -439,10 +486,18 @@ class PuzzleEngine {
     if (this.processing) return;
 
     // 操作開始前に、盤面の全ドロップの skyfall フラグをリセットする
-    // これにより、連鎖外の「もともと盤面に残っていたドロップ」が誤って落ちコンとして判定されるのを防ぎます。
+    // また、どのドロップを掴んで操作を始めても、盤面のすべてのムーブドロップのカウントを0にリセットする
     this.state.forEach(row => {
       row.forEach(orb => {
-        if (orb) orb.isSkyfall = false;
+        if (orb) {
+          orb.isSkyfall = false;
+          if (orb.isMoveDrop) {
+            orb.moveCount = 0;
+            orb.moveSteps = 0;
+            const textEl = orb.el.querySelector('.move-count-text');
+            if (textEl) textEl.innerText = orb.moveCount;
+          }
+        }
       });
     });
 
@@ -456,6 +511,7 @@ class PuzzleEngine {
 
     if (!target) return;
 
+    soundManager.playSE(SE_IDS.DRAG_START);
     this.dragging = target;
     this.dragging.el.classList.add("orb-grabbing");
     this.dragging.el.style.zIndex = "100";
@@ -525,6 +581,9 @@ class PuzzleEngine {
           this.dragging.r = nr;
           this.dragging.c = nc;
 
+          this._incrementMoveDropCount(this.dragging);
+          if (target) this._incrementMoveDropCount(target);
+
           // 入れ替わるオーブにスワップアニメーションクラスを付与
           if (target && target.el) {
             target.el.classList.add('orb-swapping');
@@ -532,6 +591,7 @@ class PuzzleEngine {
               if (target && target.el) target.el.classList.remove('orb-swapping');
             }, 160);
           }
+          soundManager.playSE(SE_IDS.DRAG_MOVE);
           this.render(); // Update positions
         }
       });
@@ -546,14 +606,58 @@ class PuzzleEngine {
     if (this.timerBar) {
       this.timerBar.style.width = `${this.timerProgress * 100}%`;
     }
-    if (remain <= 0) this.onEnd();
+    this.updateTimerDisplay(remain);
+    
+    // 残り3秒からカウントダウン音
+    if (remain > 0 && remain <= 3000 && Math.floor(remain / 1000) !== Math.floor((remain + 20) / 1000)) {
+      soundManager.playSE(SE_IDS.TIME_TICK);
+    }
+
+    if (remain <= 0) {
+      soundManager.playSE(SE_IDS.TIME_OVER);
+      this.onEnd();
+    }
+  }
+
+  _incrementMoveDropCount(orb) {
+    if (!orb || !orb.isMoveDrop) return;
+    orb.moveSteps++;
+    const required = orb.moveRequired || 5;
+    if (orb.moveSteps >= required) {
+      const boost = this.realtimeBonuses?.moveDropBoost || 0;
+      orb.moveCount += (1 + boost);
+      orb.moveSteps = 0;
+      const textEl = orb.el.querySelector('.move-count-text');
+      if (textEl) {
+        textEl.innerText = orb.moveCount;
+        textEl.classList.remove('rainbow-hit-pulse');
+        void textEl.offsetWidth;
+        textEl.classList.add('rainbow-hit-pulse'); // ポップアニメーションを流用
+      }
+    }
+  }
+
+  updateTimerDisplay(remainMs) {
+    if (!this.timerText) return;
+    const seconds = remainMs / 1000;
+    // 操作中（remainMs < timeLimit かつ remainMs > 0）は小数点第1位まで表示
+    // それ以外（初期状態や終了時）は、端数がある場合のみ小数点表示
+    if (remainMs > 0 && remainMs < this.timeLimit) {
+      this.timerText.innerText = `${seconds.toFixed(1)}s`;
+    } else {
+      // 整数なら整数表示、そうでなければ小数点第1位
+      const displaySec = Math.round(seconds * 10) / 10;
+      this.timerText.innerText = `${displaySec}s`;
+    }
   }
 
   onEnd() {
     if (!this.dragging) return;
+    soundManager.playSE(SE_IDS.DRAG_END);
     clearInterval(this.timerId);
     this.timerProgress = 1; // Reset progress
     if (this.timerBar) this.timerBar.style.width = "100%";
+    this.updateTimerDisplay(this.timeLimit);
 
     // rAFをキャンセル
     if (this._rafId) {
@@ -602,7 +706,7 @@ class PuzzleEngine {
     if (this.processing) return;
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && orb.type === fromType) {
+        if (orb && orb.type === fromType && !orb.isRainbow && !orb.isMoveDrop) {
           orb.type = toType;
           // Update shape and color
           orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${toType}`;
@@ -618,7 +722,7 @@ class PuzzleEngine {
     if (this.processing) return;
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && types.includes(orb.type)) {
+        if (orb && types.includes(orb.type) && !orb.isRainbow && !orb.isMoveDrop) {
           orb.type = toType;
           orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${toType}`;
           orb.el.querySelector(".orb-inner").className = `orb-inner orb-${toType} shadow-lg`;
@@ -635,7 +739,7 @@ class PuzzleEngine {
     const normalOrbs = [];
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && !orb.isStar && !orb.isBomb && !orb.isRepeat && !orb.isRainbow) {
+        if (orb && !orb.isStar && !orb.isBomb && !orb.isRepeat && !orb.isRainbow && !orb.isMoveDrop) {
           normalOrbs.push(orb);
         }
       });
@@ -659,7 +763,7 @@ class PuzzleEngine {
     const targetOrbs = [];
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && orb.type === targetColor && !orb.isStar && !orb.isBomb && !orb.isRepeat && !orb.isRainbow) {
+        if (orb && orb.type === targetColor && !orb.isStar && !orb.isBomb && !orb.isRepeat && !orb.isRainbow && !orb.isMoveDrop) {
           targetOrbs.push(orb);
         }
       });
@@ -687,6 +791,12 @@ class PuzzleEngine {
       if (this.currentCombo >= MAX_COMBO) break;
       this.currentCombo = Math.min(this.currentCombo + 1, MAX_COMBO);
       this.onCombo(this.currentCombo);
+      
+      // コンボ音の再生（ピッチを段階的に上げる）
+      // 1.0 (1コンボ) 〜 2.0 (20コンボ以上) 程度に調整
+      const pitch = Math.min(2.0, 1.0 + (this.currentCombo * 0.05));
+      soundManager.playSE(SE_IDS.MATCH_NORMAL, pitch);
+
       if (this.comboEl) {
         const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
         this.comboEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
@@ -703,7 +813,7 @@ class PuzzleEngine {
     if (this.processing) return;
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb) {
+        if (orb && !orb.isRainbow && !orb.isMoveDrop) {
           const type = types[Math.floor(Math.random() * types.length)];
           orb.type = type;
           orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
@@ -728,7 +838,7 @@ class PuzzleEngine {
     if (targetRow < 0 || targetRow >= this.rows) return;
 
     this.state[targetRow].forEach((orb) => {
-      if (orb) {
+      if (orb && !orb.isRainbow && !orb.isMoveDrop) {
         orb.type = type;
         orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
         orb.el.querySelector(".orb-inner").className = `orb-inner orb-${type} shadow-lg`;
@@ -752,7 +862,7 @@ class PuzzleEngine {
 
     this.state.forEach(row => {
       const orb = row[targetCol];
-      if (orb) {
+      if (orb && !orb.isRainbow && !orb.isMoveDrop) {
         orb.type = type;
         orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
         orb.el.querySelector(".orb-inner").className = `orb-inner orb-${type} shadow-lg`;
@@ -767,7 +877,7 @@ class PuzzleEngine {
     if (this.processing) return;
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && colors.includes(orb.type) && !orb.isEnhanced) {
+        if (orb && colors.includes(orb.type) && !orb.isEnhanced && !orb.isMoveDrop) {
           orb.isEnhanced = true;
           this.addPlusMark(orb.el);
         }
@@ -839,54 +949,13 @@ class PuzzleEngine {
   createShapeEffect(shape, group) {
     if (!group || group.length === 0) return;
 
-    // 重心を計算 (現在のグリッド座標から算出)
-    let sumTop = 0;
-    let sumLeft = 0;
-    group.forEach(o => {
-      sumTop += o.r * (this.orbSize + this.gap);
-      sumLeft += o.c * (this.orbSize + this.gap);
+    // 各ドロップに形状別の消滅用クラスを付与
+    const animationClass = `orb-matching-${shape.replace('_', '-')}`;
+    group.forEach(orb => {
+      if (orb && orb.el) {
+        orb.el.classList.add(animationClass);
+      }
     });
-    const avgTop = sumTop / group.length;
-    const avgLeft = sumLeft / group.length;
-
-    const effectEl = document.createElement('div');
-    effectEl.className = `shape-effect effect-${shape.replace('_', '-')}`;
-
-    // 位置設定 (オーブの中央に合わせる)
-    const centerX = avgLeft + this.orbSize / 2;
-    const centerY = avgTop + this.orbSize / 2;
-
-    effectEl.style.left = `${centerX}px`;
-    effectEl.style.top = `${centerY}px`;
-
-    // Row（一列消し）の場合は行全体に広げるため位置調整
-    if (shape === 'row') {
-      effectEl.style.left = '0';
-      effectEl.style.width = '100%';
-      effectEl.style.top = `${avgTop + this.orbSize / 2}px`;
-    }
-
-    // Square の場合は範囲をカバーするようにサイズ調整
-    if (shape === 'square') {
-      const rows = new Set(group.map(o => o.r));
-      const cols = new Set(group.map(o => o.c));
-      const width = cols.size * (this.orbSize + this.gap) - this.gap;
-      const height = rows.size * (this.orbSize + this.gap) - this.gap;
-      effectEl.style.width = `${width}px`;
-      effectEl.style.height = `${height}px`;
-    }
-
-    this.container.appendChild(effectEl);
-
-    // アニメーション終了時に削除
-    effectEl.addEventListener('animationend', () => {
-      effectEl.remove();
-    }, { once: true });
-
-    // 安全策として1秒後に削除
-    setTimeout(() => {
-      if (effectEl.parentNode) effectEl.remove();
-    }, 1000);
   }
 
   /** 特殊ドロップ消滅時のエフェクト生成 (ボム、スター、虹用) */
@@ -906,274 +975,287 @@ class PuzzleEngine {
   }
 
   async forceRefresh() {
-    try {
-      if (this.processing) return;
-      this.processing = true;
+    if (this.processing) return;
+    this.processing = true;
 
-      // 1. Clear all orbs with animation
-      this.state.forEach((row) => {
-        row.forEach((orb) => {
-          if (orb) orb.el.classList.add("orb-matching");
-        });
+    // 1. Clear all orbs with animation
+    this.state.forEach((row) => {
+      row.forEach((orb) => {
+        if (orb && !orb.isMoveDrop) orb.el.classList.add("orb-matching");
       });
+    });
 
-      await this.sleep(300);
-      if (this._isDestroyed) return;
+    await this.sleep(300);
+    if (this._isDestroyed) return;
 
-      this.state.forEach((row, r) => {
-        row.forEach((orb, c) => {
-          if (orb) {
-            orb.el.remove();
-            this.state[r][c] = null;
-          }
-        });
+    this.state.forEach((row, r) => {
+      row.forEach((orb, c) => {
+        if (orb && !orb.isMoveDrop) {
+          orb.el.remove();
+          this.state[r][c] = null;
+        }
       });
+    });
 
-      await this.sleep(100);
-      if (this._isDestroyed) return;
+    await this.sleep(100);
+    if (this._isDestroyed) return;
 
-      // 2. Gravity naturally spawns new orbs
-      await this.simultaneousGravity();
-      if (this._isDestroyed) return;
-      await this.sleep(450);
-      if (this._isDestroyed) return;
+    // 2. Gravity naturally spawns new orbs
+    await this.simultaneousGravity();
+    if (this._isDestroyed) return;
+    await this.sleep(450);
+    if (this._isDestroyed) return;
 
-      // this.processing = false; // process() にロック管理を委ねる
-      await this.process(); // Start natural combo sequence
-    } finally {
-      this.processing = false;
-    }
+    // this.processing = false; // process() にロック管理を委ねる
+    this.process(); // Start natural combo sequence
   }
 
   async process() {
-    try {
-      this.processing = true;
-      this.currentCombo = 0;
-      if (this.comboEl) {
-        this.comboEl.innerText = "";
-        this.comboEl.style.display = "block";
-      }
-      const colorComboCounts = {};
-      const erasedColorCounts = {};
-      this.types.forEach(t => {
-        colorComboCounts[t] = 0;
-        erasedColorCounts[t] = 0;
-      });
-      let hasSkyfallCombo = false;
-      const shapes = []; // 特殊消し形状判定結果を蓄積
-      let overLinkMultiplier = 1; // 過剰結合倍率
+    this.processing = true;
+    this.currentCombo = 0;
+    if (this.comboEl) {
+      this.comboEl.innerText = "";
+      this.comboEl.style.display = "block";
+    }
+    const colorComboCounts = {};
+    const erasedColorCounts = {};
+    this.types.forEach(t => {
+      colorComboCounts[t] = 0;
+      erasedColorCounts[t] = 0;
+    });
+    let hasSkyfallCombo = false;
+    const shapes = []; // 特殊消し形状判定結果を蓄積
+    let overLinkMultiplier = 1; // 過剰結合倍率
 
-      // --- 全消し判定用のカウンター ---
-      const initialOrbCount = this.state.flat().filter(orb => orb !== null).length;
-      let clearedInitialOrbs = 0;
+    // --- 全消し判定用のカウンター ---
+    const initialOrbCount = this.state.flat().filter(orb => orb !== null).length;
+    let clearedInitialOrbs = 0;
 
-      // --- ボムで消えたドロップ数のカウンター ---
-      let erasedByBombTotal = 0;
+    // --- ボムで消えたドロップ数のカウンター ---
+    let erasedByBombTotal = 0;
 
-      // --- リピートドロップで消えた回数のカウンター ---
-      let erasedByRepeatTotal = 0;
+    // --- リピートドロップで消えた回数のカウンター ---
+    let erasedByRepeatTotal = 0;
 
-      // --- スタードロップで消えた数のカウンター ---
-      let erasedByStarTotal = 0;
+    // --- スタードロップで消えた数のカウンター ---
+    let erasedByStarTotal = 0;
 
-      let loopGuard = 0;
-      const MAX_LOOP = 50; // 無限ループ防止（1色100%など極端な状況の安全弁）
-      while (loopGuard++ < MAX_LOOP) {
-        const iterationErasedColors = new Set(); // このイテレーションで消えた色を追跡
-        const groups = this.findCombos();
-        if (groups.length === 0) break;
+    // --- 特殊ドロップ自体の消滅数のカウンター ---
+    let bombSelfErased = 0;
+    let repeatSelfErased = 0;
+    let starSelfErased = 0;
+    let rainbowSelfErased = 0;
 
-        // --- ボム処理を一番初めに行う ---
-        const bombGroups = groups.filter(g => g.some(o => o.isBomb));
-        if (bombGroups.length > 0) {
-          // ボムの起爆色をすべて収集
-          const targetColors = new Set();
-          bombGroups.forEach(g => {
-            if (g.length > 0 && g.groupType) { // Access virt type for bombs
-              targetColors.add(g.groupType);
-            } else if (g.length > 0) {
-              targetColors.add(g[0].type); // Fallback
+    let loopGuard = 0;
+    const MAX_LOOP = 50; // 無限ループ防止（1色100%など極端な状況の安全弁）
+    while (loopGuard++ < MAX_LOOP) {
+      const iterationErasedColors = new Set(); // このイテレーションで消えた色を追跡
+      const groups = this.findCombos();
+      if (groups.length === 0) break;
+
+      // --- ボム処理を一番初めに行う ---
+      const bombGroups = groups.filter(g => g.some(o => o.isBomb));
+      if (bombGroups.length > 0) {
+        // ボムの起爆色をすべて収集
+        const targetColors = new Set();
+        bombGroups.forEach(g => {
+          if (g.length > 0 && g.groupType) { // Access virt type for bombs
+            targetColors.add(g.groupType);
+          } else if (g.length > 0) {
+            targetColors.add(g[0].type); // Fallback
+          }
+        });
+
+        // 盤面から起爆色のドロップをすべて収集
+        const bombTargets = [];
+        this.state.forEach(row => {
+          row.forEach(orb => {
+            if (orb && targetColors.has(orb.type) && !orb.isMoveDrop) {
+              bombTargets.push(orb);
             }
           });
+        });
 
-          // 盤面から起爆色のドロップをすべて収集
-          const bombTargets = [];
-          this.state.forEach(row => {
-            row.forEach(orb => {
-              if (orb && targetColors.has(orb.type)) {
-                bombTargets.push(orb);
-              }
-            });
-          });
+        if (bombTargets.length > 0) {
+          erasedByBombTotal += bombTargets.length;
+          erasedByStarTotal += bombTargets.filter(o => o.isStar).length;
 
-          if (bombTargets.length > 0) {
-            erasedByBombTotal += bombTargets.length;
-            erasedByStarTotal += bombTargets.filter(o => o.isStar).length;
+          const enhancedBonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
 
-            const enhancedBonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
-
-            for (const targetOrb of bombTargets) {
-              targetOrb.el.classList.add("orb-matching");
-              await this.sleep(100);
-              if (this._isDestroyed) return;
-
-              let addition = 1;
-              // プラスドロップ効果は発動する（特殊消し効果は乗らない）
-              if (targetOrb.isEnhanced) {
-                addition += enhancedBonusPerOrb;
-              }
-              await this.animateComboAdd(addition);
-
-              await this.sleep(200);
-              if (this._isDestroyed) return;
-
-              targetOrb.el.remove();
-              this.state[targetOrb.r][targetOrb.c] = null;
-
-              // ボムによる消滅エフェクト (爆発風に)
-              this.createOrbEffect('len5', targetOrb.r, targetOrb.c);
-
-              const type = targetOrb.type;
-              if (colorComboCounts[type] !== undefined) {
-                colorComboCounts[type]++;
-                erasedColorCounts[type]++; // NOTE: This adds +1 per orb, not per group. Compatible with color combo.
-                iterationErasedColors.add(type);
-              }
-              if (!targetOrb.isSkyfall) clearedInitialOrbs++;
-            }
-            await this.sleep(50);
+          for (const targetOrb of bombTargets) {
+            targetOrb.el.classList.add("orb-matching");
+            await this.sleep(100);
             if (this._isDestroyed) return;
 
-            // --- ボム消去ボーナス (エンチャント) ---
-            const destroyedBombsCount = bombTargets.filter(o => o.isBomb).length;
-            const bombBurstCombo = this.realtimeBonuses?.bomb_burst_combo || 0;
-            if (destroyedBombsCount > 0 && bombBurstCombo > 0) {
-              await this.animateComboAdd(destroyedBombsCount * bombBurstCombo);
+            let addition = 1;
+            // プラスドロップ効果は発動する（特殊消し効果は乗らない）
+            if (targetOrb.isEnhanced) {
+              addition += enhancedBonusPerOrb;
             }
+            await this.animateComboAdd(addition);
 
-            // ボム処理後の落下処理
-            // --- 単色全消しチェック（ボムパス）---
-            await this._checkMonoClear(iterationErasedColors);
+            await this.sleep(200);
             if (this._isDestroyed) return;
-            if (this.noSkyfall) {
-              await this.gravityOnly();
-              if (this._isDestroyed) return;
-              await this.sleep(450);
-              if (this._isDestroyed) return;
-            } else {
-              await this.simultaneousGravity();
-              if (this._isDestroyed) return;
-              await this.sleep(450);
-              if (this._isDestroyed) return;
+
+            targetOrb.el.remove();
+            this.state[targetOrb.r][targetOrb.c] = null;
+
+            // ボムによる消滅エフェクト (爆発風に)
+            this.createOrbEffect('len5', targetOrb.r, targetOrb.c);
+            soundManager.playSE(SE_IDS.BOMB_EXPLODE);
+
+            const type = targetOrb.type;
+            if (colorComboCounts[type] !== undefined) {
+              colorComboCounts[type]++;
+              erasedColorCounts[type]++; // NOTE: This adds +1 per orb, not per group. Compatible with color combo.
+              iterationErasedColors.add(type);
             }
+            if (!targetOrb.isSkyfall) clearedInitialOrbs++;
+          }
+          await this.sleep(50);
+          if (this._isDestroyed) return;
+
+          // --- ボム消去ボーナス (エンチャント) ---
+          const destroyedBombsCount = bombTargets.filter(o => o.isBomb).length;
+          const bombBurstCombo = this.realtimeBonuses?.bomb_burst_combo || 0;
+          if (destroyedBombsCount > 0 && bombBurstCombo > 0) {
+            await this.animateComboAdd(destroyedBombsCount * bombBurstCombo);
           }
 
-          // ボム処理を行った場合、盤面が変わったので最初からコンボ判定をやり直す
-          continue;
+          // ボム処理後の落下処理
+          // --- 単色全消しチェック（ボムパス）---
+          await this._checkMonoClear(iterationErasedColors);
+          if (this._isDestroyed) return;
+          if (this.noSkyfall) {
+            await this.gravityOnly();
+            if (this._isDestroyed) return;
+            await this.sleep(450);
+            if (this._isDestroyed) return;
+          } else {
+            await this.simultaneousGravity();
+            if (this._isDestroyed) return;
+            await this.sleep(450);
+            if (this._isDestroyed) return;
+          }
         }
 
-        // To handle Rainbow drops being matched in multiple color combos at the same time,
-        // we need to gather all drops scheduled for matching in this turn, reduce their counts,
-        // and defer actual deletion from the DOM/state until all combos for this turn are processed.
-        const orbsToEraseThisTurn = new Set();
-        const rainbowOrbsToUpdate = new Set();
-        const groupComboPromises = [];
+        // ボム処理を行った場合、盤面が変わったので最初からコンボ判定をやり直す
+        continue;
+      }
 
-        for (const group of groups) {
-          // Find if this group has a meaningful property
-          const hasRainbow = group.some(o => o.isRainbow);
+      // To handle Rainbow drops being matched in multiple color combos at the same time,
+      // we need to gather all drops scheduled for matching in this turn, reduce their counts,
+      // and defer actual deletion from the DOM/state until all combos for this turn are processed.
+      const orbsToEraseThisTurn = new Set();
+      const rainbowOrbsToUpdate = new Set();
+      const groupComboPromises = [];
 
-          // Calculate count decrement rules.
-          // We do this per group. So one group = one "hit".
-          if (hasRainbow) {
-            group.filter(o => o.isRainbow).forEach(o => {
-              // Mark for decrement
-              o._pendingRainbowHits = (o._pendingRainbowHits || 0) + 1;
-              rainbowOrbsToUpdate.add(o);
-            });
+      for (const group of groups) {
+        // Find if this group has a meaningful property
+        const hasRainbow = group.some(o => o.isRainbow);
+
+        // Calculate count decrement rules.
+        // We do this per group. So one group = one "hit".
+        if (hasRainbow) {
+          group.filter(o => o.isRainbow).forEach(o => {
+            // Mark for decrement
+            o._pendingRainbowHits = (o._pendingRainbowHits || 0) + 1;
+            rainbowOrbsToUpdate.add(o);
+          });
+        }
+
+        // グループ内のリピートドロップ数をカウント
+        const repeatCount = group.filter(o => o.isRepeat).length;
+        // リピート回数は最低1回（通常の消去）＋リピートドロップ数
+        let extraRepeat = 0;
+        if (repeatCount > 0 && this.realtimeBonuses?.extra_repeat_activations) {
+          extraRepeat = this.realtimeBonuses.extra_repeat_activations;
+          if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.extra_repeat_activations) {
+            this.realtimeBonuses.tokenIds.extra_repeat_activations.forEach(id => this.onPassiveTrigger(id));
           }
+        }
+        const totalClears = 1 + repeatCount + extraRepeat;
+        const shape = this.classifyShape(group);
 
-          // グループ内のリピートドロップ数をカウント
-          const repeatCount = group.filter(o => o.isRepeat).length;
-          // リピート回数は最低1回（通常の消去）＋リピートドロップ数
-          let extraRepeat = 0;
-          if (repeatCount > 0 && this.realtimeBonuses?.extra_repeat_activations) {
-            extraRepeat = this.realtimeBonuses.extra_repeat_activations;
-            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.extra_repeat_activations) {
-              this.realtimeBonuses.tokenIds.extra_repeat_activations.forEach(id => this.onPassiveTrigger(id));
-            }
-          }
-          const totalClears = 1 + repeatCount + extraRepeat;
+        for (let clearNum = 0; clearNum < totalClears; clearNum++) {
+          if (clearNum > 0) {
+            // 2回目以降の消去時：復活アニメーション（アイコンを消して再度準備）
+            group.forEach((o) => {
+              o.isRepeat = false;
+              if (o.el) {
+                // すべての消滅アニメーション用クラスを削除
+                o.el.classList.remove("orb-matching");
+                o.el.classList.remove("orb-matching-len4");
+                o.el.classList.remove("orb-matching-row");
+                o.el.classList.remove("orb-matching-cross");
+                o.el.classList.remove("orb-matching-l-shape");
+                o.el.classList.remove("orb-matching-square");
+                o.el.classList.remove("orb-matching-len5");
+                const repeatMark = o.el.querySelector('.repeat-mark');
+                if (repeatMark) repeatMark.remove();
 
-          for (let clearNum = 0; clearNum < totalClears; clearNum++) {
-            if (clearNum > 0) {
-              // 2回目以降の消去時：復活アニメーション（アイコンを消して再度準備）
-              group.forEach((o) => {
-                o.isRepeat = false;
-                if (o.el) {
-                  o.el.classList.remove("orb-matching"); // 前回のアニメーションを解除
-                  const repeatMark = o.el.querySelector('.repeat-mark');
-                  if (repeatMark) repeatMark.remove();
+                // --- 復活演出 ---
+                // 光のリングを追加（アニメーション後に自動削除）
+                const ring = document.createElement('div');
+                ring.className = 'orb-revive-ring';
+                o.el.appendChild(ring);
+                ring.addEventListener('animationend', () => ring.remove(), { once: true });
 
-                  // --- 復活演出 ---
-                  // 光のリングを追加（アニメーション後に自動削除）
-                  const ring = document.createElement('div');
-                  ring.className = 'orb-revive-ring';
-                  o.el.appendChild(ring);
-                  ring.addEventListener('animationend', () => ring.remove(), { once: true });
-
-                  // オーブ本体をバウンス＋グローさせる
-                  o.el.classList.add('orb-reviving');
-                  const innerEl = o.el.querySelector('.orb-inner');
-                  if (innerEl) {
-                    innerEl.addEventListener('animationend', () => {
-                      if (o.el) o.el.classList.remove('orb-reviving');
-                    }, { once: true });
-                  }
+                // オーブ本体をバウンス＋グローさせる
+                o.el.classList.add('orb-reviving');
+                const innerEl = o.el.querySelector('.orb-inner');
+                if (innerEl) {
+                  innerEl.addEventListener('animationend', () => {
+                    if (o.el) o.el.classList.remove('orb-reviving');
+                  }, { once: true });
                 }
-              });
-              // 復活演出の表示時間
-              await this.sleep(220);
-              if (this._isDestroyed) return;
-              erasedByRepeatTotal += repeatCount; // 消えたリピートドロップ数を加算
-            }
-            const starsMatched = group.filter(o => o.isStar).length;
-            erasedByStarTotal += starsMatched; // スタードロップ消去数を加算
-            if (starsMatched > 0 && this.onStarErase) {
-              this.onStarErase(starsMatched);
-            }
-
-            // 消した色とコンボ数を記録
-            const type = group.groupType || (group.length > 0 ? group[0].type : null);
-            if (type) {
-              if (colorComboCounts[type] !== undefined) {
-                colorComboCounts[type]++;
-                erasedColorCounts[type] += group.length;
-                // Add to iteration tracking
-                iterationErasedColors.add(type);
               }
+            });
+            // 復活演出の表示時間
+            soundManager.playSE(SE_IDS.ORB_REVIVE);
+            await this.sleep(220);
+            if (this._isDestroyed) return;
+            erasedByRepeatTotal += repeatCount; // 消えたリピートドロップ数を加算
+          }
+          const starsMatched = group.filter(o => o.isStar).length;
+          erasedByStarTotal += starsMatched; // スタードロップ消去数を加算
+          if (starsMatched > 0 && this.onStarErase) {
+            soundManager.playSE(SE_IDS.MATCH_STAR);
+            this.onStarErase(starsMatched);
+          }
+
+          // 消した色とコンボ数を記録
+          const type = group.groupType || (group.length > 0 ? group[0].type : null);
+          if (type) {
+            if (colorComboCounts[type] !== undefined) {
+              colorComboCounts[type]++;
+              erasedColorCounts[type] += group.length;
+              // Add to iteration tracking
+              iterationErasedColors.add(type);
             }
+          }
 
-            // 落ちコンで消えたグループかチェック（skyfall_bonus判定用、1回目のみ判定）
-            if (clearNum === 0 && group.some(o => o.isSkyfall)) {
-              hasSkyfallCombo = true;
-            }
+          // 落ちコンで消えたグループかチェック（skyfall_bonus判定用、1回目のみ判定）
+          if (clearNum === 0 && group.some(o => o.isSkyfall)) {
+            hasSkyfallCombo = true;
+          }
 
-            // --- カウント：初期盤のドロップがどれだけ消えたか ---
-            if (clearNum === 0) { // 1回目だけカウント
-              const nonSkyfallCount = group.filter(o => !o.isSkyfall).length;
-              clearedInitialOrbs += nonSkyfallCount;
-            }
+          // --- カウント：初期盤のドロップがどれだけ消えたか ---
+          if (clearNum === 0) { // 1回目だけカウント
+            const nonSkyfallCount = group.filter(o => !o.isSkyfall).length;
+            clearedInitialOrbs += nonSkyfallCount;
+          }
 
-            const shape = this.classifyShape(group);
-            if (shape && clearNum === 0) {
-              shapes.push(shape);
-              this.createShapeEffect(shape, group);
-            }
+          if (shape && clearNum === 0) {
+            shapes.push(shape);
+            this.createShapeEffect(shape, group);
+            soundManager.playSE(SE_IDS.SHAPE_BONUS);
+          }
 
-            // --- 特殊消しリアルタイム加算 ---
-            let addition = 1;
+          // --- 特殊消しリアルタイム加算 ---
+          let addition = 1;
 
+          if (!this.pureMode) {
             // Rainbow Combo Bonus
             if (hasRainbow && this.realtimeBonuses?.rainbow_combo_bonus) {
               addition += this.realtimeBonuses.rainbow_combo_bonus;
@@ -1187,6 +1269,7 @@ class PuzzleEngine {
             const enhancedBonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
             if (enhancedCount > 0 && this.realtimeBonuses?.enhancedOrbBonus > 0 && this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.enhancedOrbBonus) {
               this.realtimeBonuses.tokenIds.enhancedOrbBonus.forEach(id => this.onPassiveTrigger(id));
+              soundManager.playSE(SE_IDS.MATCH_PLUS);
             }
             addition += enhancedCount * enhancedBonusPerOrb;
 
@@ -1266,143 +1349,163 @@ class PuzzleEngine {
               if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.rainbow) {
                 this.realtimeBonuses.tokenIds.rainbow.forEach(id => this.onPassiveTrigger(id));
               }
+              soundManager.playSE(SE_IDS.MATCH_RAINBOW);
             }
 
-            group.forEach((o) => {
-              if (o.el) {
-                void o.el.offsetWidth; // force reflow
-                o.el.classList.add("orb-matching");
-              }
+            // Apply Mastery Multiplier (Real-time)
+            if (this.realtimeBonuses?.masteryMultiplier) {
+              addition *= this.realtimeBonuses.masteryMultiplier;
+            }
+          }
+
+          group.forEach((o) => {
+            if (o.el) {
+              void o.el.offsetWidth; // force reflow
+              // 虹ドロップ以外のみ消滅アニメーションを適用（ガタつき防止）
               if (!o.isRainbow) {
+                o.el.classList.add("orb-matching");
                 orbsToEraseThisTurn.add(o); // Mark for deferred deletion
               }
-            });
-
-            // Queue combo animations instead of waiting serially if possible (though existing logic awaits)
-            groupComboPromises.push(this.animateComboAdd(addition));
-
-            await this.sleep(300);
-            if (this._isDestroyed) return;
-            // We no longer remove DOM immediately here!
-
-            await groupComboPromises[groupComboPromises.length - 1]; // Wait for this specific combo
-            await this.sleep(50);
-            if (this._isDestroyed) return;
-          }
-        }
-
-        // Defer DOM/State cleanup for Rainbow drops
-        for (const ro of rainbowOrbsToUpdate) {
-          if (ro._pendingRainbowHits) {
-            ro.rainbowCount -= ro._pendingRainbowHits;
-            ro._pendingRainbowHits = 0; // Reset
-
-            if (ro.rainbowCount <= 0) {
-              orbsToEraseThisTurn.add(ro); // It's completely destroyed, queue for normal deletion
-            } else if (ro.el) {
-              // Survive: update UI
-              const countText = ro.el.querySelector('.rainbow-count-text');
-              if (countText) countText.innerText = ro.rainbowCount;
-              ro.el.classList.remove("orb-matching"); // Undo the matching animation state visually so it can be matched again
-
-              // Add a hit animation (pulse) instead of deletion
-              ro.el.classList.add("rainbow-hit-pulse");
-              setTimeout(() => { if (ro && ro.el) ro.el.classList.remove("rainbow-hit-pulse") }, 300);
             }
-          }
-        }
+          });
 
-        // Proceed with actual deletion
-        for (const orb of orbsToEraseThisTurn) {
-          if (orb.el) {
-            // スタードロップ消滅時の固有エフェクト
-            if (orb.isStar) {
-              this.createOrbEffect('len4', orb.r, orb.c); // len4エフェクトを流用
-            }
-            // 虹ドロップ消滅時の固有エフェクト
-            if (orb.isRainbow) {
-              this.createOrbEffect('len5', orb.r, orb.c); // len5エフェクトを流用
-            }
-            orb.el.remove();
-          }
-          // Safeguard: only nullify if the reference is still matching, to avoid overlaps
-          if (this.state[orb.r][orb.c] === orb) {
-            this.state[orb.r][orb.c] = null;
-            // 消えた色をイテレーション追跡に追加
-            if (orb.type && this.types.includes(orb.type)) {
-              iterationErasedColors.add(orb.type);
-            }
-          }
-        }
+          // Queue combo animations instead of waiting serially if possible (though existing logic awaits)
+          groupComboPromises.push(this.animateComboAdd(addition));
 
-        // --- 単色全消しチェック（通常パス）---
-        await this._checkMonoClear(iterationErasedColors);
-        if (this._isDestroyed) return;
-
-        // noSkyfall時はオーブを落下させるが新規オーブは生成しない
-        if (this.noSkyfall) {
-          await this.gravityOnly();
+          await this.sleep(300);
           if (this._isDestroyed) return;
-          await this.sleep(450);
-          if (this._isDestroyed) return;
-          // ループを継続し、落下後の配置でコンボ判定を行う
-          continue;
-        }
+          // We no longer remove DOM immediately here!
 
-        await this.simultaneousGravity();
+          await groupComboPromises[groupComboPromises.length - 1]; // Wait for this specific combo
+          await this.sleep(50);
+          if (this._isDestroyed) return;
+        }
+      }
+
+      // Defer DOM/State cleanup for Rainbow drops
+      for (const ro of rainbowOrbsToUpdate) {
+        if (ro._pendingRainbowHits) {
+          ro.rainbowCount -= ro._pendingRainbowHits;
+          ro._pendingRainbowHits = 0; // Reset
+
+          if (ro.rainbowCount <= 0) {
+            orbsToEraseThisTurn.add(ro); // It's completely destroyed, queue for normal deletion
+          } else if (ro.el) {
+            // Survive: update UI
+            const countText = ro.el.querySelector('.rainbow-count-text');
+            if (countText) countText.innerText = ro.rainbowCount;
+            ro.el.classList.remove("orb-matching"); // Undo the matching animation state visually so it can be matched again
+
+            // Add a hit animation (pulse) instead of deletion
+            ro.el.classList.add("rainbow-hit-pulse");
+            setTimeout(() => { if (ro && ro.el) ro.el.classList.remove("rainbow-hit-pulse") }, 300);
+          }
+        }
+      }
+
+      // Proceed with actual deletion
+      for (const orb of orbsToEraseThisTurn) {
+        if (orb.isBomb) bombSelfErased++;
+        if (orb.isRepeat) repeatSelfErased++;
+        if (orb.isStar) starSelfErased++;
+        if (orb.isRainbow) rainbowSelfErased++;
+
+        if (orb.el) {
+          // スタードロップ消滅時の固有エフェクト
+          if (orb.isStar) {
+            this.createOrbEffect('len4', orb.r, orb.c); // len4エフェクトを流用
+          }
+          // 虹ドロップ消滅時の固有エフェクト
+          if (orb.isRainbow) {
+            this.createOrbEffect('len5', orb.r, orb.c); // len5エフェクトを流用
+          }
+          orb.el.remove();
+        }
+        // Safeguard: only nullify if the reference is still matching, to avoid overlaps
+        if (this.state[orb.r][orb.c] === orb) {
+          this.state[orb.r][orb.c] = null;
+          // 消えた色をイテレーション追跡に追加
+          if (orb.type && this.types.includes(orb.type)) {
+            iterationErasedColors.add(orb.type);
+          }
+        }
+      }
+
+      // --- 単色全消しチェック（通常パス）---
+      await this._checkMonoClear(iterationErasedColors);
+      if (this._isDestroyed) return;
+
+      // noSkyfall時はオーブを落下させるが新規オーブは生成しない
+      if (this.noSkyfall) {
+        await this.gravityOnly();
         if (this._isDestroyed) return;
         await this.sleep(450);
         if (this._isDestroyed) return;
+        // ループを継続し、落下後の配置でコンボ判定を行う
+        continue;
       }
 
-      // noSkyfallの場合、コンボ連鎖が完全に終了した後で盤面を補充する
-      if (this.noSkyfall) {
-        await this.simultaneousGravity();
-        if (this._isDestroyed) return;
-        await this.sleep(200);
-      }
-
-      // --- Special Bonus: All Initial Orbs Cleared ---
-      const allInitialOrbsCleared = initialOrbCount > 0 && clearedInitialOrbs >= initialOrbCount;
-      if (allInitialOrbsCleared && this.currentCombo > 0) {
-        this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
-        if (this.comboEl) {
-          const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
-          this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ ALL CLEAR ✦</div><span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">×2</span>`;
-          this.comboEl.classList.remove('animate-combo-pop');
-          void this.comboEl.offsetWidth;
-          this.comboEl.classList.add('animate-combo-pop');
-        }
-        await this.sleep(1000);
-        if (this._isDestroyed) return;
-      }
-
-
-      // --- Special Bonus: Perfect Clear ---
-      const isPerfect = this.state.every((row) =>
-        row.every((orb) => orb === null),
-      );
-      if (isPerfect && this.currentCombo > 0) {
-        // 全消しボーナス: +10コンボ
-        this.currentCombo = Math.min(this.currentCombo + 10, MAX_COMBO);
-        this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
-        if (this.comboEl) {
-          const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
-          this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ PERFECT CLEAR ✦</div><span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">+10 & ×2</span>`;
-          this.comboEl.classList.remove('animate-combo-pop');
-          void this.comboEl.offsetWidth;
-          this.comboEl.classList.add('animate-combo-pop');
-        }
-        await this.sleep(1000);
-        if (this._isDestroyed) return;
-      }
-
-      if (this.onTurnEnd) {
-        await this.onTurnEnd(this.currentCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes, overLinkMultiplier, erasedByBombTotal, erasedByRepeatTotal, erasedByStarTotal, isPerfect || allInitialOrbsCleared);
-      }
-    } finally {
-      this.processing = false;
+      await this.simultaneousGravity();
+      if (this._isDestroyed) return;
+      await this.sleep(450);
+      if (this._isDestroyed) return;
     }
+
+    // noSkyfallの場合、コンボ連鎖が完全に終了した後で盤面を補充する
+    if (this.noSkyfall) {
+      await this.simultaneousGravity();
+      if (this._isDestroyed) return;
+      await this.sleep(200);
+    }
+
+    // --- Special Bonus: All Initial Orbs Cleared ---
+    const allInitialOrbsCleared = initialOrbCount > 0 && clearedInitialOrbs >= initialOrbCount;
+    if (allInitialOrbsCleared && this.currentCombo > 0) {
+      if (!this.realtimeBonuses?.hasMastery) {
+        this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
+      }
+      if (this.comboEl) {
+        const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
+        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ ALL CLEAR ✦</div><span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">×2</span>`;
+        this.comboEl.classList.remove('animate-combo-pop');
+        void this.comboEl.offsetWidth;
+        this.comboEl.classList.add('animate-combo-pop');
+      }
+      await this.sleep(1000);
+      if (this._isDestroyed) return;
+    }
+
+
+    // --- Special Bonus: Perfect Clear ---
+    const isPerfect = this.state.every((row) =>
+      row.every((orb) => orb === null),
+    );
+    if (isPerfect && this.currentCombo > 0) {
+      soundManager.playSE(SE_IDS.PERFECT_CLEAR);
+      // 全消しボーナス: +10コンボ
+      let pBonus = 10;
+      if (this.realtimeBonuses?.masteryMultiplier) {
+        pBonus *= this.realtimeBonuses.masteryMultiplier;
+      }
+      this.currentCombo = Math.min(this.currentCombo + pBonus, MAX_COMBO);
+      if (!this.realtimeBonuses?.hasMastery) {
+        this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
+      }
+      if (this.comboEl) {
+        const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
+        this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ PERFECT CLEAR ✦</div><span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">+10 & ×2</span>`;
+        this.comboEl.classList.remove('animate-combo-pop');
+        void this.comboEl.offsetWidth;
+        this.comboEl.classList.add('animate-combo-pop');
+      }
+      await this.sleep(1000);
+      if (this._isDestroyed) return;
+    }
+
+    if (this.onTurnEnd) {
+      await this.onTurnEnd(this.currentCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes, overLinkMultiplier, erasedByBombTotal, erasedByRepeatTotal, erasedByStarTotal, isPerfect || allInitialOrbsCleared, { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased });
+    }
+    this.processing = false;
   }
 
   findCombos() {
@@ -1582,7 +1685,8 @@ class PuzzleEngine {
       for (let c = 0; c < this.cols; c++) {
         // Exclude cells that are already of the target type
         // Also check if state exists (it should)
-        if (this.state[r][c]?.type && this.state[r][c].type !== type) {
+        const orb = this.state[r][c];
+        if (orb && orb.type !== type && !orb.isRainbow && !orb.isMoveDrop) {
           candidates.push({ r, c });
         }
       }
@@ -1629,7 +1733,10 @@ class PuzzleEngine {
   }
 
   changeBoardBalanced() {
-    const basicTypes = ["fire", "water", "wood", "light", "dark"];
+    let basicTypes = ["fire", "water", "wood", "light", "dark"];
+    if (this.vacationMode) {
+      basicTypes = ["fire", "water", "wood"];
+    }
     let deck = [];
     basicTypes.forEach(t => {
       for (let i = 0; i < 6; i++) deck.push(t);
@@ -1652,6 +1759,10 @@ class PuzzleEngine {
       for (let c = 0; c < this.cols; c++) {
         const type = deck[idx++] || "heart"; // Fallback to heart if deck empty (shouldn't happen)
         const orb = this.state[r][c];
+        if (orb && orb.isRainbow) {
+          idx++;
+          continue;
+        }
         orb.type = type;
         orb.isBomb = false;
 
@@ -1681,7 +1792,7 @@ class PuzzleEngine {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
-        if (orb && !orb.isBomb) {
+        if (orb && !orb.isBomb && !orb.isRainbow) {
           candidates.push(orb);
         }
       }
@@ -1695,7 +1806,8 @@ class PuzzleEngine {
     const targets = candidates.slice(0, count);
     targets.forEach((orb) => {
       // ランダムな色に変更してボム化
-      const type = this.types[Math.floor(Math.random() * this.types.length)];
+      const aTypes = this.getAvailableTypes(true);
+      const type = aTypes[Math.floor(Math.random() * aTypes.length)];
       orb.type = type;
       orb.isBomb = true;
 
@@ -1723,7 +1835,7 @@ class PuzzleEngine {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
-        if (orb && !orb.isBomb && (!targetType || orb.type === targetType)) {
+        if (orb && !orb.isBomb && !orb.isRainbow && (!targetType || orb.type === targetType)) {
           candidates.push(orb);
         }
       }
@@ -1750,7 +1862,7 @@ class PuzzleEngine {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
-        if (orb && !orb.isRepeat) {
+        if (orb && !orb.isRepeat && !orb.isRainbow) {
           candidates.push(orb);
         }
       }
@@ -1776,7 +1888,7 @@ class PuzzleEngine {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
-        if (orb && !orb.isRepeat && (!targetType || orb.type === targetType)) {
+        if (orb && !orb.isRepeat && !orb.isRainbow && (!targetType || orb.type === targetType)) {
           candidates.push(orb);
         }
       }
@@ -1802,7 +1914,7 @@ class PuzzleEngine {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
-        if (orb && !orb.isRainbow) {
+        if (orb && !orb.isRainbow && !orb.isMoveDrop) {
           candidates.push(orb);
         }
       }
@@ -1923,6 +2035,86 @@ class PuzzleEngine {
 
   sleep(ms) {
     return new Promise((res) => setTimeout(res, ms));
+  }
+
+  // --- ムーブドロップの同期処理 ---
+  syncMoveDrops(moveDropConfigs) {
+    if (this._isDestroyed || !this.state || this.state.length === 0) return;
+
+    const currentMoveDrops = [];
+    const normalOrbs = [];
+
+    // 現在の盤面を走査
+    this.state.forEach(row => {
+      row.forEach(orb => {
+        if (!orb) return;
+        if (orb.isMoveDrop) {
+          currentMoveDrops.push(orb);
+        } else if (!orb.isRainbow && !orb.isBomb && !orb.isRepeat && !orb.isStar) {
+          normalOrbs.push(orb);
+        }
+      });
+    });
+
+    // config に存在しないものを削除（通常のドロップに戻す）
+    const configIds = moveDropConfigs.map(c => c.tokenId);
+    currentMoveDrops.forEach(orb => {
+      if (!configIds.includes(orb.moveTokenId)) {
+        // 通常ドロップに書き換える
+        orb.isMoveDrop = false;
+        orb.moveTokenId = null;
+        const aTypes = this.getAvailableTypes(true);
+        orb.type = aTypes[Math.floor(Math.random() * aTypes.length)];
+        
+        orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${orb.type}`;
+        const inner = orb.el.querySelector('.orb-inner');
+        if (inner) {
+          inner.className = `orb-inner orb-${orb.type} shadow-lg`;
+          inner.innerHTML = ''; // span等をクリア
+          const iconSpan = document.createElement("span");
+          iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
+          iconSpan.innerText = this.icons[orb.type];
+          inner.appendChild(iconSpan);
+        }
+      }
+    });
+
+    // 新たに追加すべきものをさがす
+    const existingIds = currentMoveDrops.filter(o => o.isMoveDrop && configIds.includes(o.moveTokenId)).map(o => o.moveTokenId);
+    moveDropConfigs.forEach(config => {
+      if (!existingIds.includes(config.tokenId)) {
+        // 新規追加
+        if (normalOrbs.length > 0) {
+          // ランダムな位置の通常ドロップを選ぶ
+          const targetIdx = Math.floor(Math.random() * normalOrbs.length);
+          const orb = normalOrbs.splice(targetIdx, 1)[0];
+          
+          orb.isMoveDrop = true;
+          orb.moveTokenId = config.tokenId;
+          orb.moveCount = 0;
+          orb.moveSteps = 0;
+          orb.moveRequired = config.requiredWalks || 5;
+          orb.type = "move"; // 内部処理用
+          
+          orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-move`;
+          const inner = orb.el.querySelector('.orb-inner');
+          if (inner) {
+            inner.className = `orb-inner orb-move shadow-lg`;
+            inner.innerHTML = '';
+            const countSpan = document.createElement("span");
+            countSpan.className = "move-count-text";
+            countSpan.innerText = orb.moveCount;
+            inner.appendChild(countSpan);
+          }
+        }
+      } else {
+        // 既存のドロップの設定更新（レベルアップ等でrequiredWalksが変わった場合など）
+        const orb = currentMoveDrops.find(o => o.isMoveDrop && o.moveTokenId === config.tokenId);
+        if (orb) {
+          orb.moveRequired = config.requiredWalks || 5;
+        }
+      }
+    });
   }
 
   destroy() {

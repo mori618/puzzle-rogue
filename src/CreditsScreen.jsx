@@ -83,8 +83,14 @@ SOFTWARE.`
     ];
 
     return (
-        <div className="w-full h-screen bg-background-dark flex flex-col items-center justify-center p-4 animate-fade-in font-display">
-            <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md h-full max-h-[85vh] shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative">
+        <div 
+            className="w-full h-screen bg-background-dark flex flex-col items-center justify-center p-4 animate-fade-in font-display"
+            onClick={onClose}
+        >
+            <div 
+                className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md h-full max-h-[85vh] shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative"
+                onClick={(e) => e.stopPropagation()}
+            >
 
                 {/* ヘッダー */}
                 <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-900 shrink-0">
