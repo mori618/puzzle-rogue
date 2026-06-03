@@ -14,6 +14,8 @@ class SoundManager {
     this.currentBGM = null;
     this.currentBGMId = null;
     this.audioContext = null;
+    this.sePool = {}; // SE再生用のキャッシュプール
+    this.maxPoolSize = 4; // 同一SEの最大同時プール数
   }
 
   /** AudioContextの初期化（ブラウザの制限によりユーザー操作後に必要） */
@@ -89,18 +91,46 @@ class SoundManager {
     this.initAudioContext();
 
     try {
-      const audio = new Audio(path);
-      audio.volume = this.seVolume;
-      audio.playbackRate = pitch;
-      audio.play().catch(() => {
-        // ロード失敗時（ファイルがない場合）に電子音でフォールバック
-        this.playSynthSE(id, pitch);
-      });
-      
-      audio.onended = () => {
-        audio.src = '';
-        audio.load();
-      };
+      if (!this.sePool[id]) {
+        this.sePool[id] = [];
+      }
+
+      const pool = this.sePool[id];
+      let audio = null;
+
+      // 1. 再生中ではない（停止している）オーディオを探す
+      audio = pool.find(a => a.paused || a.ended);
+
+      // 2. 見つからず、プールサイズに空きがあれば新規作成
+      if (!audio && pool.length < this.maxPoolSize) {
+        audio = new Audio(path);
+        pool.push(audio);
+      }
+
+      // 3. それでも見つからない（すべて再生中かつプール満杯）場合、最も古い（最初の）オーディオを再利用
+      if (!audio && pool.length > 0) {
+        audio = pool[0];
+        audio.pause();
+      }
+
+      if (audio) {
+        audio.volume = this.seVolume;
+        audio.playbackRate = pitch;
+        audio.currentTime = 0; // 頭出し
+        audio.play().catch(() => {
+          // ロード失敗時（ファイルがない場合）に電子音でフォールバック
+          this.playSynthSE(id, pitch);
+        });
+      } else {
+        // 万が一のフォールバック
+        audio = new Audio(path);
+        pool.push(audio);
+        audio.volume = this.seVolume;
+        audio.playbackRate = pitch;
+        audio.play().catch(() => {
+          this.playSynthSE(id, pitch);
+        });
+      }
     } catch (e) {
       this.playSynthSE(id, pitch);
     }

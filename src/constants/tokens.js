@@ -142,8 +142,8 @@ const ALL_TOKEN_BASES = [
   { id: "conv_star_light", name: "星降る雷", icon: "stars", type: "skill", cost: 5, costLevels: true, action: "convert_star", params: { count: "all", color: "light" }, rarity: 2, price: 9, desc: "雷ドロップをすべてスタードロップにする。消費E:{cost}", attributes: ["light"], canBeInitial: true },
 
   // --- スキル: 虹ドロップ生成 ---
-  { id: "gen_rainbow_rand", name: "虹の創造", icon: "palette", type: "skill", cost: 2, costLevels: true, action: "spawn_rainbow", params: { count: 1 }, rarity: 1, price: 6, desc: "ランダムなドロップ1つをカウント3の虹ドロップにする。消費E:{cost}", attributes: ["fire", "water", "wood", "light", "dark"], canBeInitial: true },
-  { id: "rainbow_masterx", name: "虹の極致", icon: "palette", type: "skill", cost: 5, costLevels: true, action: "rainbow_master", params: { count: 1, to: 5 }, rarity: 3, price: 12, desc: "ランダムに虹ドロップを1つ生成し、盤面の全ての虹ドロップのカウントを5にする。消費E:{cost}", attributes: ["fire", "water", "wood", "light", "dark"], canBeCurseReward: true },
+  // { id: "gen_rainbow_rand", name: "虹の創造", icon: "palette", type: "skill", cost: 2, costLevels: true, action: "spawn_rainbow", params: { count: 1 }, rarity: 1, price: 6, desc: "ランダムなドロップ1つをカウント3の虹ドロップにする。消費E:{cost}", attributes: ["fire", "water", "wood", "light", "dark"], canBeInitial: true },
+  // { id: "rainbow_masterx", name: "虹の極致", icon: "palette", type: "skill", cost: 5, costLevels: true, action: "rainbow_master", params: { count: 1, to: 5 }, rarity: 3, price: 12, desc: "ランダムに虹ドロップを1つ生成し、盤面の全ての虹ドロップのカウントを5にする。消費E:{cost}", attributes: ["fire", "water", "wood", "light", "dark"], canBeCurseReward: true },
 
   // --- スキル: 特殊（時間・倍率・チャージ・再落下・ムーブドロップ）---
   {
@@ -652,18 +652,18 @@ const ALL_TOKEN_BASES = [
   },
 
   // --- パッシブ: 虹ドロップ ---
-  {
-    id: "rainbow_chance", name: "虹の呼び声", icon: "palette", type: "passive", effect: "rainbow_chance",
-    values: [0.02, 0.04, 0.07], rarity: 2, price: 8,
-    desc: "ドロップが[2/4/7]%の確率で虹ドロップとして降ってくるようになる。",
-    attributes: ["fire", "water", "wood", "light", "dark"], canBeInitial: true
-  },
-  {
-    id: "rainbow_bridge", name: "虹の架け橋", icon: "palette", type: "passive", effect: "rainbow_combo_bonus",
-    values: [1, 2, 5], rarity: 3, price: 10,
-    desc: "虹ドロップがコンボに関与した際、コンボがさらに +{values} される。",
-    attributes: ["fire", "water", "wood", "light", "dark"]
-  },
+  // {
+  //   id: "rainbow_chance", name: "虹の呼び声", icon: "palette", type: "passive", effect: "rainbow_chance",
+  //   values: [0.02, 0.04, 0.07], rarity: 2, price: 8,
+  //   desc: "ドロップが[2/4/7]%の確率で虹ドロップとして降ってくるようになる。",
+  //   attributes: ["fire", "water", "wood", "light", "dark"], canBeInitial: true
+  // },
+  // {
+  //   id: "rainbow_bridge", name: "虹の架け橋", icon: "palette", type: "passive", effect: "rainbow_combo_bonus",
+  //   values: [1, 2, 5], rarity: 3, price: 10,
+  //   desc: "虹ドロップがコンボに関与した際、コンボがさらに +{values} される。",
+  //   attributes: ["fire", "water", "wood", "light", "dark"]
+  // },
 
   // --- パッシブ: ムーブドロップ ---
   {

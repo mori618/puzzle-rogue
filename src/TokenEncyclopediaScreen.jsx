@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { ENCHANTMENTS, getEnchantDescription } from './constants/enchantments.js';
-import { getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils.js';
+import { getTokenIcon, getAttributeBarStyles, getTokenDescription } from './utils/tokenUtils.js';
 
 const TokenEncyclopediaScreen = ({ onClose }) => {
     // --- State ---
@@ -252,7 +252,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
 
                             {/* 簡易説明文 */}
                             <p className="text-xs text-slate-300 ml-2 line-clamp-2 mt-1">
-                                {item.desc?.replace(/{cost}/g, item.cost || 0)}
+                                {getTokenDescription(item)}
                             </p>
                         </div>
                     ))}
@@ -300,7 +300,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
                                         <span className="text-slate-400">属性: {translateAttributes(selectedItem.attributes)}</span>
                                     </h4>
                                     <p className="text-sm leading-relaxed text-slate-200">
-                                        {selectedItem.desc?.replace(/{cost}/g, selectedItem.cost || 0) || '説明がありません'}
+                                        {getTokenDescription(selectedItem) || '説明がありません'}
                                     </p>
                                 </div>
 

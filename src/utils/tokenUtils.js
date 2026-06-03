@@ -35,29 +35,52 @@ const getTokenDescription = (item, level, currentRunStats = null, currentTokens 
   const base = ALL_TOKEN_BASES.find((b) => b.id === (item.id || item));
   if (!base) return item?.desc || "";
 
+  // level も item.level も指定されていない場合は、図鑑表示用として全レベルの値を併記する
+  const isEncyclopedia = (level === undefined && item?.level === undefined);
   const targetLv = level || item?.level || 1;
   let d = base.desc;
 
-  if (base.costLevels) {
-    const cost = getEffectiveCost({ ...item, cost: base.cost, level: targetLv, type: 'skill' }, currentRunStats, currentTokens, currentBuffs);
-    d = d.replace(/{cost}/g, cost);
+  // {cost} の置換（コスト表示対応）
+  if (d.includes('{cost}')) {
+    if (isEncyclopedia && base.costLevels) {
+      // 図鑑用かつコストがレベルで変動する場合: [Lv1/Lv2/Lv3] の形式にする
+      const baseCost = base.cost || item?.cost || 0;
+      const costs = [1, 2, 3].map(lv => {
+        return getEffectiveCost({ ...item, cost: baseCost, level: lv, type: 'skill' }, currentRunStats, currentTokens, currentBuffs);
+      });
+      d = d.replace(/{cost}/g, `[${costs.join('/')}]`);
+    } else {
+      const baseCost = base.cost || item?.cost || 0;
+      const cost = getEffectiveCost({ ...item, cost: baseCost, level: targetLv, type: 'skill' }, currentRunStats, currentTokens, currentBuffs);
+      d = d.replace(/{cost}/g, cost);
+    }
   }
 
   if (base.values) {
-    const value = base.values[targetLv - 1];
-    if (value !== undefined) {
-      d = d.replace(/\[?([−±\-\d.]+(?:\/[−±\-\d.]+)+)\]?/g, (match, contents) => {
-        const parts = contents.split('/');
-        const val = parts[targetLv - 1] !== undefined ? parts[targetLv - 1] : value;
-        // 小数点を含む数値の場合、フォーマット（最大小数第二位、末尾の0削除）
-        if (!isNaN(parseFloat(val))) {
-          return Math.round(parseFloat(val) * 100) / 100;
-        }
-        return val;
-      });
+    if (isEncyclopedia) {
+      // 図鑑用: [値1/値2/値3] の形式にする
+      const allValuesStr = base.values.map(v => !isNaN(parseFloat(v)) ? Math.round(parseFloat(v) * 100) / 100 : v).join('/');
+      d = d.replace(/{values}/g, `[${allValuesStr}]`);
       d = d.replace(/Lvに応じ/g, "");
-      const formattedValue = !isNaN(parseFloat(value)) ? Math.round(parseFloat(value) * 100) / 100 : value;
-      d = d.replace(/Lv分/g, `${formattedValue}`);
+      d = d.replace(/Lv分/g, `[${allValuesStr}]`);
+    } else {
+      const value = base.values[targetLv - 1];
+      if (value !== undefined) {
+        const formattedValue = !isNaN(parseFloat(value)) ? Math.round(parseFloat(value) * 100) / 100 : value;
+        d = d.replace(/{values}/g, formattedValue);
+
+        d = d.replace(/\[?([−±\-\d.]+(?:\/[−±\-\d.]+)+)\]?/g, (match, contents) => {
+          const parts = contents.split('/');
+          const val = parts[targetLv - 1] !== undefined ? parts[targetLv - 1] : value;
+          // 小数点を含む数値の場合、フォーマット（最大小数第二位、末尾の0削除）
+          if (!isNaN(parseFloat(val))) {
+            return Math.round(parseFloat(val) * 100) / 100;
+          }
+          return val;
+        });
+        d = d.replace(/Lvに応じ/g, "");
+        d = d.replace(/Lv分/g, `${formattedValue}`);
+      }
     }
   }
 
