@@ -3300,24 +3300,7 @@ const App = () => {
         notify(`${token.name} 発動！ 操作時間1秒固定 (${finalDuration}ターン)`);
         break;
       }
-      // --- 虚無の封印: 全パッシブ効果を無効にするバフを追加 ---
-      case "curse_passive_null": {
-        const finalDuration = (token.params?.duration || 1) + extraDuration;
-        setActiveBuffs(prev => [
-          ...prev,
-          {
-            id: Date.now() + Math.random(),
-            action: "curse_passive_null",
-            params: {},
-            duration: finalDuration,
-            maxDuration: finalDuration,
-            tokenId: token.instanceId || token.id,
-            name: token.name,
-          },
-        ]);
-        notify(`${token.name} 発動！ 全パッシブ効果無効 (${finalDuration}ターン)`);
-        break;
-      }
+
       case "random_levelup": {
         const upgradeable = tokens.filter(t =>
           t &&
@@ -3403,39 +3386,7 @@ const App = () => {
         addTokenToast(newToken, `を生成した！ (${token.name})`);
         break;
       }
-      case "curse_multiply": {
-        const activeCount = tokens.filter(t => t?.type === 'skill').length;
-        const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
-        const maxSlots = 5 + tokenSlotExpansionCount;
 
-        // パッシブかアクティブかランダムに決定（空きがある方）
-        const canPassive = passiveCount < maxSlots;
-        const canActive = activeCount < maxSlots;
-
-        if (!canPassive && !canActive) {
-          notify("スロットがいっぱいで増殖できません！");
-          break;
-        }
-
-        let spawnType = 'passive';
-        if (canPassive && canActive) spawnType = Math.random() < 0.5 ? 'passive' : 'skill';
-        else if (canActive) spawnType = 'skill';
-
-        const dummyBase = ALL_TOKEN_BASES.find(t => t.id === (spawnType === 'passive' ? 'curse_multiplied_p' : 'curse_multiplied_a'));
-        if (dummyBase) {
-          const dummy = {
-            ...dummyBase,
-            instanceId: Date.now() + Math.random(),
-            parentId: token.instanceId,
-            level: 1,
-            charge: 0,
-            startValue: dummyBase.condition ? getStatByCondition(dummyBase.condition) : 0
-          };
-          setTokens(prev => [...prev, dummy]);
-          notify("呪いが増殖した…！");
-        }
-        break;
-      }
       default:
         break;
     }
