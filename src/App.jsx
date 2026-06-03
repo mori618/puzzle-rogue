@@ -3011,7 +3011,8 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
   };
 
   const buyItem = (item, clickPos) => {
-    if (stars < item.price) {
+    const cost = item.price;
+    if (stars < cost) {
       soundManager.playSE(SE_IDS.ERROR);
       return notify("★が足りません");
     }
