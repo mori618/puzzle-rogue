@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import App from './App.jsx';
 import { SAVE_KEY, SETTINGS_KEY } from './constants/gameConstants.js';
+import soundManager from './utils/SoundManager.js';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -54,6 +55,14 @@ const TestRunner = ({ onExit }) => {
         localStorage.removeItem(`${SETTINGS_KEY}_test_${i}`);
         localStorage.removeItem(`puzzle_rogue_stats_test_${i}`);
     }
+    
+    // 10分割テスト中はブラウザのWebMediaPlayer制限（約75個）によるクラッシュを防ぐため、
+    // また凄まじい騒音になるのを防ぐため、サウンドを完全に無効化する
+    soundManager.stopBGM();
+    soundManager.playSE = () => {};
+    soundManager.playBGM = () => {};
+    soundManager.playSynthSE = () => {};
+
     // Clear global logs for a fresh report
     window.AILogs = [];
     window.AIErrors = [];
