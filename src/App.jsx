@@ -15,12 +15,12 @@ import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, 
 import { formatJapaneseNumber } from './utils/numberUtils.js';
 import { PuzzleEngine } from './engine/PuzzleEngine.js';
 import { AITester } from './utils/AITester.js';
+import soundManager from './utils/SoundManager';
+import { BGM_IDS, SE_IDS } from './constants/sounds';
 const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = false, onStartMultiTest = null }) => {
   const instanceSaveKey = isMultiTest ? `${SAVE_KEY}_test_${testInstanceId}` : SAVE_KEY;
   const instanceSettingsKey = isMultiTest ? `${SETTINGS_KEY}_test_${testInstanceId}` : SETTINGS_KEY;
   const instanceStatsKey = isMultiTest ? `puzzle_rogue_stats_test_${testInstanceId}` : 'puzzle_rogue_stats';
-import soundManager from './utils/SoundManager';
-import { BGM_IDS, SE_IDS } from './constants/sounds';
 
   // Game State
   const [isLoaded, setIsLoaded] = useState(false);
@@ -2810,10 +2810,6 @@ import { BGM_IDS, SE_IDS } from './constants/sounds';
     setShowTitle(false);
   };
 
-  const notify = (text) => {
-    setMessage(text);
-    setTimeout(() => setMessage(null), 3000);
-  };
 
   const generateShop = () => {
     const isLuxury = totalPurchases >= 6;
@@ -4032,9 +4028,7 @@ import { BGM_IDS, SE_IDS } from './constants/sounds';
     buyItem, refreshShop, openShop, startNextCycle, handleChoice, activateSkill, 
     buyAwakeningItem, handleGiveUp, onStart, onContinue, handleStartOptionSelection, setShowShop 
   };
-      />
-    );
-  }
+
 
   const toggleEnchantStatus = (tokenInstanceId, enchantIndex) => {
     setTokens(prev => {
