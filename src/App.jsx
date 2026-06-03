@@ -3890,7 +3890,7 @@ const App = () => {
             const safeActivePage = Math.min(activeTokenPage, activePages - 1);
 
             return (
-              <section className="relative z-30 px-6 py-2 flex-none mb-4 flex flex-col gap-2 min-h-[196px] justify-start h-[280px]">
+              <section className={`relative z-30 px-6 py-1 flex-none mb-2 flex flex-col gap-1.5 justify-start ${isPracticeMode ? 'h-[110px]' : 'h-[196px]'}`}>
                 {isPracticeMode ? (
                   <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 flex flex-col items-center justify-center backdrop-blur-md shadow-inner h-full">
                     <div className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 flex items-center gap-2">
