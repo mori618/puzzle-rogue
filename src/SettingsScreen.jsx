@@ -13,8 +13,14 @@ const SettingsScreen = ({ settings, onSettingsChange, onClose }) => {
     const { comboAnimationMode = 'instant' } = settings || {};
 
     return (
-        <div className="w-full h-full bg-background-dark flex flex-col items-center justify-center p-6 animate-fade-in font-display">
-            <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-xs shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative p-6">
+        <div 
+            className="w-full h-full bg-background-dark flex flex-col items-center justify-center p-6 animate-fade-in font-display"
+            onClick={onClose}
+        >
+            <div 
+                className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-xs shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative p-6"
+                onClick={(e) => e.stopPropagation()}
+            >
 
                 {/* ヘッダー */}
                 <h2 className="text-3xl font-black text-white mb-8 text-center tracking-widest flex items-center justify-center gap-2">

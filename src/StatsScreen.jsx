@@ -59,8 +59,14 @@ const StatsScreen = ({ currentRunStats, onClose }) => {
     };
 
     return (
-        <div className="w-full h-full bg-background-dark flex flex-col items-center justify-center p-6 animate-fade-in font-display relative z-50">
-            <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-sm shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative p-6 max-h-[90vh] overflow-y-auto">
+        <div 
+            className="w-full h-full bg-background-dark flex flex-col items-center justify-center p-6 animate-fade-in font-display relative z-50"
+            onClick={onClose}
+        >
+            <div 
+                className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-sm shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative p-6 max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <h2 className="text-3xl font-black text-white mb-6 text-center tracking-widest flex items-center justify-center gap-2 sticky top-0 bg-slate-900 z-10 py-2">
                     <span className="material-icons-round text-amber-400">emoji_events</span>
                     STATS

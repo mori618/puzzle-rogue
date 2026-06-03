@@ -21,6 +21,8 @@ class PuzzleEngine {
     this.onStarErase = options.onStarErase || null;
     this.totalMoveTimeRef = options.totalMoveTimeRef || { current: 0 }; // 操作時間加算用Ref
     this.timerText = options.timerText || null; // 残り時間表示用要素
+    this.pureMode = options.pureMode || false; // 特殊消しボーナス無効モード
+    this.vacationMode = false;
 
     // Will be calculated in init()
     this.orbSize = 0;
@@ -74,6 +76,14 @@ class PuzzleEngine {
 
   setRealtimeBonuses(bonuses) {
     this.realtimeBonuses = { len4: 0, row: 0, l_shape: 0, ...bonuses };
+  }
+
+  getAvailableTypes(includeHeart = true) {
+    let types = this.types.filter(t => includeHeart || t !== "heart");
+    if (this.vacationMode) {
+      types = types.filter(t => t !== "light" && t !== "dark");
+    }
+    return types;
   }
 
   setEnhanceRates(rates) {
@@ -218,7 +228,7 @@ class PuzzleEngine {
     if (savedData) {
       type = savedData.type;
     } else if (!isNew) {
-      let availableTypes = [...this.types];
+      let availableTypes = this.getAvailableTypes(true);
       while (availableTypes.length > 0) {
         const idx = Math.floor(Math.random() * availableTypes.length);
         type = availableTypes[idx];
@@ -245,24 +255,27 @@ class PuzzleEngine {
         if (!matchHorizontal && !matchVertical) break;
         else availableTypes.splice(idx, 1);
       }
-      if (!type)
-        type = this.types[Math.floor(Math.random() * this.types.length)]; // Fallback
+      if (!type) {
+        const aTypes = this.getAvailableTypes(true);
+        type = aTypes[Math.floor(Math.random() * aTypes.length)]; // Fallback
+      }
     } else {
       // Weighted Random
+      const aTypes = this.getAvailableTypes(true);
       const weights = this.spawnWeights || {};
-      const totalWeight = this.types.reduce(
+      const totalWeight = aTypes.reduce(
         (acc, t) => acc + (weights[t] || 0),
         0,
       );
       let rVal = Math.random() * totalWeight;
-      for (const t of this.types) {
+      for (const t of aTypes) {
         rVal -= weights[t] || 0;
         if (rVal <= 0) {
           type = t;
           break;
         }
       }
-      if (!type) type = this.types[0];
+      if (!type) type = aTypes[0];
     }
 
     const el = document.createElement("div");
@@ -368,7 +381,8 @@ class PuzzleEngine {
       isStar = true;
     } else if (type === "star") {
       isStar = true;
-      type = this.types[Math.floor(Math.random() * this.types.length)]; // ランダムな色にする
+      const aTypes = this.getAvailableTypes(true);
+      type = aTypes[Math.floor(Math.random() * aTypes.length)]; // ランダムな色にする
     } else if (isNew && this.starRates && this.starRates.colors && this.starRates.colors[type]) {
       const rates = this.starRates.colors[type];
       for (const tokenRate of rates) {
@@ -1241,100 +1255,107 @@ class PuzzleEngine {
           // --- 特殊消しリアルタイム加算 ---
           let addition = 1;
 
-          // Rainbow Combo Bonus
-          if (hasRainbow && this.realtimeBonuses?.rainbow_combo_bonus) {
-            addition += this.realtimeBonuses.rainbow_combo_bonus;
-            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.rainbow_combo_bonus) {
-              this.realtimeBonuses.tokenIds.rainbow_combo_bonus.forEach(id => this.onPassiveTrigger(id));
-            }
-          }
-
-          // 強化ドロップボーナス（1回目のみ加算するのが自然だが、リピートという性質上毎回適用する）
-          const enhancedCount = group.filter(o => o.isEnhanced).length;
-          const enhancedBonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
-          if (enhancedCount > 0 && this.realtimeBonuses?.enhancedOrbBonus > 0 && this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.enhancedOrbBonus) {
-            this.realtimeBonuses.tokenIds.enhancedOrbBonus.forEach(id => this.onPassiveTrigger(id));
-            soundManager.playSE(SE_IDS.MATCH_PLUS);
-          }
-          addition += enhancedCount * enhancedBonusPerOrb;
-
-          // 過剰結合チェック
-          if (enhancedCount >= (this.realtimeBonuses?.overLink?.count || 999)) {
-            if (!overLinkMultiplier || overLinkMultiplier < (this.realtimeBonuses?.overLink?.value || 1)) {
-              overLinkMultiplier = this.realtimeBonuses?.overLink?.value || 1;
-              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.overLink) {
-                this.realtimeBonuses.tokenIds.overLink.forEach(id => this.onPassiveTrigger(id));
+          if (!this.pureMode) {
+            // Rainbow Combo Bonus
+            if (hasRainbow && this.realtimeBonuses?.rainbow_combo_bonus) {
+              addition += this.realtimeBonuses.rainbow_combo_bonus;
+              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.rainbow_combo_bonus) {
+                this.realtimeBonuses.tokenIds.rainbow_combo_bonus.forEach(id => this.onPassiveTrigger(id));
               }
             }
-          }
 
-          // Base Bonuses
-          if (shape === "len5") addition += 1;
-          if (shape === "l_shape") addition += 1;
-          if (shape === "cross") addition += 2;
-          if (shape === "row") addition += 2;
+            // 強化ドロップボーナス（1回目のみ加算するのが自然だが、リピートという性質上毎回適用する）
+            const enhancedCount = group.filter(o => o.isEnhanced).length;
+            const enhancedBonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
+            if (enhancedCount > 0 && this.realtimeBonuses?.enhancedOrbBonus > 0 && this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.enhancedOrbBonus) {
+              this.realtimeBonuses.tokenIds.enhancedOrbBonus.forEach(id => this.onPassiveTrigger(id));
+              soundManager.playSE(SE_IDS.MATCH_PLUS);
+            }
+            addition += enhancedCount * enhancedBonusPerOrb;
 
-          if (shape === "len4" && this.realtimeBonuses?.len4) {
-            addition += this.realtimeBonuses.len4;
-            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.len4) {
-              this.realtimeBonuses.tokenIds.len4.forEach(id => this.onPassiveTrigger(id));
+            // 過剰結合チェック
+            if (enhancedCount >= (this.realtimeBonuses?.overLink?.count || 999)) {
+              if (!overLinkMultiplier || overLinkMultiplier < (this.realtimeBonuses?.overLink?.value || 1)) {
+                overLinkMultiplier = this.realtimeBonuses?.overLink?.value || 1;
+                if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.overLink) {
+                  this.realtimeBonuses.tokenIds.overLink.forEach(id => this.onPassiveTrigger(id));
+                }
+              }
             }
-          }
-          if (shape === "len4" && this.realtimeBonuses?.stat_shape_additions?.len4) {
-            addition += this.realtimeBonuses.stat_shape_additions.len4;
-            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.stat_shape_additions?.len4) {
-              this.realtimeBonuses.tokenIds.stat_shape_additions.len4.forEach(id => this.onPassiveTrigger(id));
-            }
-          }
-          if (shape === "row" && this.realtimeBonuses?.row) {
-            addition += this.realtimeBonuses.row;
-            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.row) {
-              this.realtimeBonuses.tokenIds.row.forEach(id => this.onPassiveTrigger(id));
-            }
-          }
-          if (shape === "l_shape" && this.realtimeBonuses?.l_shape) {
-            addition += this.realtimeBonuses.l_shape;
-            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.l_shape) {
-              this.realtimeBonuses.tokenIds.l_shape.forEach(id => this.onPassiveTrigger(id));
-            }
-          }
-          if (shape === "cross" && this.realtimeBonuses?.stat_shape_additions?.cross) {
-            addition += this.realtimeBonuses.stat_shape_additions.cross;
-            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.stat_shape_additions?.cross) {
-              this.realtimeBonuses.tokenIds.stat_shape_additions.cross.forEach(id => this.onPassiveTrigger(id));
-            }
-          }
 
-          // Color Combo Bonus (Enchantment)
-          if (type && this.realtimeBonuses?.color_combo?.[type]) {
-            addition += this.realtimeBonuses.color_combo[type];
-          }
+            // Base Bonuses
+            if (shape === "len5") addition += 1;
+            if (shape === "l_shape") addition += 1;
+            if (shape === "cross") addition += 2;
+            if (shape === "row") addition += 2;
 
-          // Heart Combo Bonus (Passive)
-          if (type === 'heart' && this.realtimeBonuses?.heart_combo) {
-            addition += this.realtimeBonuses.heart_combo;
-            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.heart_combo) {
-              this.realtimeBonuses.tokenIds.heart_combo.forEach(id => this.onPassiveTrigger(id));
+            if (shape === "len4" && this.realtimeBonuses?.len4) {
+              addition += this.realtimeBonuses.len4;
+              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.len4) {
+                this.realtimeBonuses.tokenIds.len4.forEach(id => this.onPassiveTrigger(id));
+              }
             }
-          }
+            if (shape === "len4" && this.realtimeBonuses?.stat_shape_additions?.len4) {
+              addition += this.realtimeBonuses.stat_shape_additions.len4;
+              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.stat_shape_additions?.len4) {
+                this.realtimeBonuses.tokenIds.stat_shape_additions.len4.forEach(id => this.onPassiveTrigger(id));
+              }
+            }
+            if (shape === "row" && this.realtimeBonuses?.row) {
+              addition += this.realtimeBonuses.row;
+              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.row) {
+                this.realtimeBonuses.tokenIds.row.forEach(id => this.onPassiveTrigger(id));
+              }
+            }
+            if (shape === "l_shape" && this.realtimeBonuses?.l_shape) {
+              addition += this.realtimeBonuses.l_shape;
+              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.l_shape) {
+                this.realtimeBonuses.tokenIds.l_shape.forEach(id => this.onPassiveTrigger(id));
+              }
+            }
+            if (shape === "cross" && this.realtimeBonuses?.stat_shape_additions?.cross) {
+              addition += this.realtimeBonuses.stat_shape_additions.cross;
+              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.stat_shape_additions?.cross) {
+                this.realtimeBonuses.tokenIds.stat_shape_additions.cross.forEach(id => this.onPassiveTrigger(id));
+              }
+            }
 
-          // Skyfall Bonus
-          const isSkyfall = group.some(o => o.isSkyfall);
-          if (isSkyfall && this.realtimeBonuses?.skyfall) {
-            addition += this.realtimeBonuses.skyfall;
-            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.skyfall) {
-              this.realtimeBonuses.tokenIds.skyfall.forEach(id => this.onPassiveTrigger(id));
+            // Color Combo Bonus (Enchantment)
+            if (type && this.realtimeBonuses?.color_combo?.[type]) {
+              addition += this.realtimeBonuses.color_combo[type];
             }
-          }
 
-          // Rainbow Bridge (虹ドロップがコンボに関与した際のボーナス)
-          const involvedRainbow = group.some(o => o.isRainbow);
-          if (involvedRainbow && this.realtimeBonuses?.rainbow) {
-            addition += Number(this.realtimeBonuses.rainbow || 0);
-            if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.rainbow) {
-              this.realtimeBonuses.tokenIds.rainbow.forEach(id => this.onPassiveTrigger(id));
+            // Heart Combo Bonus (Passive)
+            if (type === 'heart' && this.realtimeBonuses?.heart_combo) {
+              addition += this.realtimeBonuses.heart_combo;
+              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.heart_combo) {
+                this.realtimeBonuses.tokenIds.heart_combo.forEach(id => this.onPassiveTrigger(id));
+              }
             }
-            soundManager.playSE(SE_IDS.MATCH_RAINBOW);
+
+            // Skyfall Bonus
+            const isSkyfall = group.some(o => o.isSkyfall);
+            if (isSkyfall && this.realtimeBonuses?.skyfall) {
+              addition += this.realtimeBonuses.skyfall;
+              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.skyfall) {
+                this.realtimeBonuses.tokenIds.skyfall.forEach(id => this.onPassiveTrigger(id));
+              }
+            }
+
+            // Rainbow Bridge (虹ドロップがコンボに関与した際のボーナス)
+            const involvedRainbow = group.some(o => o.isRainbow);
+            if (involvedRainbow && this.realtimeBonuses?.rainbow) {
+              addition += Number(this.realtimeBonuses.rainbow || 0);
+              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.rainbow) {
+                this.realtimeBonuses.tokenIds.rainbow.forEach(id => this.onPassiveTrigger(id));
+              }
+              soundManager.playSE(SE_IDS.MATCH_RAINBOW);
+            }
+
+            // Apply Mastery Multiplier (Real-time)
+            if (this.realtimeBonuses?.masteryMultiplier) {
+              addition *= this.realtimeBonuses.masteryMultiplier;
+            }
           }
 
           group.forEach((o) => {
@@ -1440,7 +1461,9 @@ class PuzzleEngine {
     // --- Special Bonus: All Initial Orbs Cleared ---
     const allInitialOrbsCleared = initialOrbCount > 0 && clearedInitialOrbs >= initialOrbCount;
     if (allInitialOrbsCleared && this.currentCombo > 0) {
-      this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
+      if (!this.realtimeBonuses?.hasMastery) {
+        this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
+      }
       if (this.comboEl) {
         const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
         this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ ALL CLEAR ✦</div><span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">×2</span>`;
@@ -1460,8 +1483,14 @@ class PuzzleEngine {
     if (isPerfect && this.currentCombo > 0) {
       soundManager.playSE(SE_IDS.PERFECT_CLEAR);
       // 全消しボーナス: +10コンボ
-      this.currentCombo = Math.min(this.currentCombo + 10, MAX_COMBO);
-      this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
+      let pBonus = 10;
+      if (this.realtimeBonuses?.masteryMultiplier) {
+        pBonus *= this.realtimeBonuses.masteryMultiplier;
+      }
+      this.currentCombo = Math.min(this.currentCombo + pBonus, MAX_COMBO);
+      if (!this.realtimeBonuses?.hasMastery) {
+        this.currentCombo = Math.min(this.currentCombo * 2, MAX_COMBO);
+      }
       if (this.comboEl) {
         const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
         this.comboEl.innerHTML = `<div class="combo-perfect-label">✦ PERFECT CLEAR ✦</div><span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">+10 & ×2</span>`;
@@ -1704,7 +1733,10 @@ class PuzzleEngine {
   }
 
   changeBoardBalanced() {
-    const basicTypes = ["fire", "water", "wood", "light", "dark"];
+    let basicTypes = ["fire", "water", "wood", "light", "dark"];
+    if (this.vacationMode) {
+      basicTypes = ["fire", "water", "wood"];
+    }
     let deck = [];
     basicTypes.forEach(t => {
       for (let i = 0; i < 6; i++) deck.push(t);
@@ -1774,7 +1806,8 @@ class PuzzleEngine {
     const targets = candidates.slice(0, count);
     targets.forEach((orb) => {
       // ランダムな色に変更してボム化
-      const type = this.types[Math.floor(Math.random() * this.types.length)];
+      const aTypes = this.getAvailableTypes(true);
+      const type = aTypes[Math.floor(Math.random() * aTypes.length)];
       orb.type = type;
       orb.isBomb = true;
 
@@ -2030,7 +2063,8 @@ class PuzzleEngine {
         // 通常ドロップに書き換える
         orb.isMoveDrop = false;
         orb.moveTokenId = null;
-        orb.type = this.types[Math.floor(Math.random() * this.types.length)];
+        const aTypes = this.getAvailableTypes(true);
+        orb.type = aTypes[Math.floor(Math.random() * aTypes.length)];
         
         orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${orb.type}`;
         const inner = orb.el.querySelector('.orb-inner');

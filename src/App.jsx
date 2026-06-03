@@ -26,7 +26,6 @@ const App = () => {
   const [isGameOver, setIsGameOver] = useState(false);
   const [target, setTarget] = useState(100);
   const [goalReached, setGoalReached] = useState(false);
-  const [message, setMessage] = useState(null); // Centralized message toast
   const [shopItems, setShopItems] = useState([]);
   const [turn, setTurn] = useState(1);
   const [cycleTotalCombo, setCycleTotalCombo] = useState(0);
@@ -134,6 +133,76 @@ const App = () => {
   const [targetPulse, setTargetPulse] = useState(false);
   const targetComboRef = useRef(null);
 
+  // --- Animation State ---
+  const prevStarsRef = useRef(stars);
+  const prevComboRef = useRef(cycleTotalCombo);
+  const [starPopups, setStarPopups] = useState([]);
+  const [comboPopups, setComboPopups] = useState([]);
+  const [tokenEventToasts, setTokenEventToasts] = useState([]);
+  const [purchasingParticles, setPurchasingParticles] = useState([]); // 購入・売却時のパーティクル
+  const [levelUpTokenId, setLevelUpTokenId] = useState(null); // レベルアップ演出用
+
+
+  const addTokenToast = useCallback((token, actionText) => {
+    const id = Date.now() + Math.random();
+    setTokenEventToasts(prev => [...prev.filter(t => t.id !== id), { id, token, actionText }]);
+    setTimeout(() => {
+      setTokenEventToasts(prev => prev.filter(t => t.id !== id));
+    }, 3500);
+  }, []);
+
+  const triggerLevelUp = (instanceId) => {
+    setLevelUpTokenId(instanceId);
+    setTimeout(() => setLevelUpTokenId(null), 1000);
+  };
+
+  const spawnParticles = (count, startX, startY, endX, endY, type = 'star') => {
+    const newParticles = Array.from({ length: count }).map(() => ({
+      id: Math.random(),
+      startX,
+      startY,
+      endX,
+      endY,
+      randX: (Math.random() - 0.5) * 100,
+      randY: (Math.random() - 0.5) * 100,
+      delay: Math.random() * 0.3,
+      type
+    }));
+    setPurchasingParticles(prev => [...prev, ...newParticles]);
+    setTimeout(() => {
+      setPurchasingParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
+    }, 1200);
+  };
+
+
+  const notify = useCallback((text) => {
+    addTokenToast(null, text);
+  }, [addTokenToast]);
+
+  useEffect(() => {
+    if (stars > prevStarsRef.current) {
+      const diff = stars - prevStarsRef.current;
+      const id = Date.now() + Math.random();
+      setStarPopups(prev => [...prev, { id, diff }]);
+      setTimeout(() => {
+        setStarPopups(prev => prev.filter(p => p.id !== id));
+      }, 800);
+    }
+    prevStarsRef.current = stars;
+  }, [stars]);
+
+  useEffect(() => {
+    if (cycleTotalCombo > prevComboRef.current) {
+      const diff = cycleTotalCombo - prevComboRef.current;
+      const id = Date.now() + Math.random();
+      setComboPopups(prev => [...prev, { id, diff }]);
+      setTimeout(() => {
+        setComboPopups(prev => prev.filter(p => p.id !== id));
+      }, 800);
+    }
+    prevComboRef.current = cycleTotalCombo;
+  }, [cycleTotalCombo]);
+
   // Refs
   const boardRef = useRef(null);
 
@@ -143,6 +212,9 @@ const App = () => {
   const [selectedEnchantDetail, setSelectedEnchantDetail] = useState(null);
   const [tokenMoveInput, setTokenMoveInput] = useState(''); // 並び替え用の入力値
   const [showGameClear, setShowGameClear] = useState(false); // 全画面クリア画面の表示フラグ
+  const [isPracticeMode, setIsPracticeMode] = useState(false); // 練習モードフラグ
+  const [practiceTimeLimit, setPracticeTimeLimit] = useState(10000); // 練習モード用操作時間 (10s初期)
+  const [isPureMode, setIsPureMode] = useState(false); // 純粋モード (特殊消しボーナス無効)
 
   // --- 覚醒ショップ State ---
   const [isEnchantShopUnlocked, setIsEnchantShopUnlocked] = useState(false); // エンチャントショップ解放フラグ
@@ -182,7 +254,7 @@ const App = () => {
     if (!t || (t.type !== 'curse' && !t.isCurse)) return null;
     const cond = t.condition;
     const target = t.targetValue || 1;
-    
+
     let current = 0;
     if (cond === 'skill_uses') {
       current = t.curseUses || 0;
@@ -191,21 +263,19 @@ const App = () => {
       const startValue = t.startValue || 0;
       current = Math.max(0, currentRaw - startValue);
     }
-    
+
     return { current, target, percent: Math.min(100, (current / target) * 100) };
   };
   const engineRef = useRef(null);
   const handleTurnEndRef = useRef(null);
   const onPassiveTriggerRef = useRef(null);
   const onStarEraseRef = useRef(null);
-  const totalMoveTimeRef = useRef(0); // エンジン内での操作時間累積用
+  const totalMoveTimeRef = useRef(0);
   const skipTurnProgressRef = useRef(false);
 
-  // --- 価格計算ヘルパー ---
   const getTokenDynamicPrice = useCallback((baseToken, currentTokens) => {
     if (!baseToken || baseToken.price === undefined) return 0;
 
-    // 所持数のカウント (アクティブ: skill, curse / パッシブ: passive)
     let possessionCount = 0;
     if (baseToken.type === 'skill' || baseToken.type === 'curse' || baseToken.isCurse) {
       possessionCount = currentTokens.filter(t => t && (t.type === 'skill' || t.type === 'curse' || t.isCurse)).length;
@@ -213,17 +283,15 @@ const App = () => {
       possessionCount = currentTokens.filter(t => t && t.type === 'passive').length;
     }
 
-    // 指数関数的な上昇: basePrice * (growthFactor ^ count)
     const dynamicPrice = Math.floor(baseToken.price * Math.pow(TOKEN_PRICE_GROWTH_FACTOR, possessionCount));
-    return Math.max(1, dynamicPrice); // 最低1
+    return Math.max(1, dynamicPrice);
   }, []);
 
-  // Derived
   const hasGiantDomain = tokens.some((t) => t?.id === "giant" || t?.enchantments?.some(e => e.effect === "expand_board"));
-  const hasDoubleTargetCurse = tokens.some((t) => t?.id === "curse_double_target");
+  const hasSaintToken = tokens.some((t) => t?.id === "legend_saint");
+  const hasDoubleTargetCurse = tokens.some((t) => t?.id === "curse_double_target") && !hasSaintToken;
   const effectiveTarget = hasDoubleTargetCurse ? target * 2 : target;
 
-  // NOTE: Changing board size forces re-init.
   const rows = hasGiantDomain ? 6 : 5;
   const cols = hasGiantDomain ? 7 : 6;
 
@@ -233,12 +301,11 @@ const App = () => {
       if (t?.effect === "picky_eater") return acc + (t.values[(t.level || 1) - 1] || 0);
       return acc;
     }, 0)
-    - (tokens.some(t => t?.id === "curse_turns") ? 1 : 0)
+    - (tokens.some(t => t?.id === "curse_turns") && !hasSaintToken ? 1 : 0)
   );
 
   const minMatchLength = tokens.some(t => t?.effect === "min_match") ? 2 : 3;
 
-  // --- Load Save Data ---
   useEffect(() => {
     const savedData = localStorage.getItem(SAVE_KEY);
     if (savedData) {
@@ -251,7 +318,6 @@ const App = () => {
         setStars(parsed.stars || 0);
         setSandsOfTimeSeconds(parsed.sandsOfTimeSeconds || 0);
 
-        // tokens は配列として復元
         if (parsed.tokens && Array.isArray(parsed.tokens)) {
           setTokens(parsed.tokens);
         }
@@ -262,7 +328,6 @@ const App = () => {
         setShopRerollBasePrice(parsed.shopRerollBasePrice || 1);
         setShopRerollPrice(parsed.shopRerollPrice || 1);
         setCurrentRunTotalCombo(parsed.currentRunTotalCombo || 0);
-        // 覚醒ショップのセーブデータを復元
         setIsEnchantShopUnlocked(parsed.isEnchantShopUnlocked || false);
         setTokenSlotExpansionCount(parsed.tokenSlotExpansionCount || 0);
         setIsAwakeningLevelUpBought(parsed.isAwakeningLevelUpBought || false);
@@ -272,8 +337,6 @@ const App = () => {
         if (parsed.shopItems) {
           setShopItems(parsed.shopItems);
         } else if (!parsed.isGameOver) {
-          // セーブデータはあるがショップ情報がない（古いデータ）場合のみ生成
-          // (tokens等がセットされた後の次のサイクルで実行される必要があるため、ここではフラグを立てるかsetTimeout等で対応)
           setTimeout(() => {
             setShopItems(prev => {
               if (prev.length === 0) {
@@ -289,11 +352,9 @@ const App = () => {
         console.error("Save data corrupted:", e);
       }
     } else {
-      // セーブデータが全くない場合のみ、初期ショップを生成
       generateShop();
     }
 
-    // Load Stats
     const savedStats = localStorage.getItem('puzzle_rogue_stats');
     if (savedStats) {
       try {
@@ -303,7 +364,6 @@ const App = () => {
       }
     }
 
-    // 設定のロード
     const savedSettings = localStorage.getItem(SETTINGS_KEY);
     if (savedSettings) {
       try {
@@ -318,12 +378,24 @@ const App = () => {
     setIsLoaded(true);
   }, []);
 
-  /** 音響設定の同期 */
+  const handleStartPractice = useCallback(() => {
+    setIsPracticeMode(true);
+    setShowTitle(false);
+    setTurn(1);
+    setTarget(0);
+    setGoalReached(false);
+    setTokens(Array(6).fill(null));
+    setActiveBuffs([]);
+    setCurrentRunStats(prev => ({ ...prev, maxCombo: 0 }));
+    if (engineRef.current) {
+      engineRef.current.init(null);
+    }
+  }, []);
+
   useEffect(() => {
     soundManager.updateSettings(settings);
   }, [settings]);
 
-  /** 画面に応じたBGMの切り替え */
   useEffect(() => {
     if (!isLoaded) return;
     if (showTitle) {
@@ -339,12 +411,10 @@ const App = () => {
     }
   }, [isLoaded, showTitle, isGameOver, showShop, isBeyondMode]);
 
-  // --- Auto Save ---
   useEffect(() => {
-    if (!isLoaded) return; // ロード完了前はセーブしない
+    if (!isLoaded) return;
 
     if (isGameOver) {
-      // ゲームオーバー時はセーブデータを消去
       localStorage.removeItem(SAVE_KEY);
       setHasSaveData(false);
       return;
@@ -365,7 +435,6 @@ const App = () => {
       shopRerollPrice,
       currentRunTotalCombo,
       shopItems,
-      // 覚醒ショップのセーブデータ
       isEnchantShopUnlocked,
       tokenSlotExpansionCount,
       isAwakeningLevelUpBought,
@@ -378,13 +447,11 @@ const App = () => {
 
   }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, isAwakeningLevelUpBought, currentRunStats]);
 
-  // --- Auto Save Stats ---
   useEffect(() => {
     if (!isLoaded) return;
     localStorage.setItem('puzzle_rogue_stats', JSON.stringify(stats));
   }, [stats, isLoaded]);
 
-  // --- Skyfall Weight Management ---
   useEffect(() => {
     if (!engineRef.current) return;
     const weights = {};
@@ -392,19 +459,17 @@ const App = () => {
     ALL_COLORS.forEach((c) => (weights[c] = 1));
     const isEnchantDisabled = tokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
 
-    // 偏食家: 指定色の出現率を0にする
     tokens.forEach((t) => {
       if (t?.effect === "picky_eater" && t.params?.excludeColors) {
         t.params.excludeColors.forEach((c) => { weights[c] = 0; });
       }
 
-      // エンチャントによる出現率変動
       if (!isEnchantDisabled && t?.enchantments) {
         t.enchantments.forEach(e => {
           if (e.effect === "skyfall_boost" && e.params?.color) {
-            weights[e.params.color] += 0.5; // 加算 (Boost)
+            weights[e.params.color] += 0.5;
           } else if (e.effect === "skyfall_nerf" && e.params?.color) {
-            weights[e.params.color] *= 0.5; // 乗算 (Nerf)
+            weights[e.params.color] *= 0.5;
           }
         });
       }
@@ -427,62 +492,53 @@ const App = () => {
   }, [activeBuffs, tokens]);
 
   const getTimeLimit = useCallback(() => {
+    if (isPracticeMode) return practiceTimeLimit;
     const isEnchantDisabled = tokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
-    // 背水の陣: 他の延長効果をすべて無視して4秒固定
     const hasDesperateStance = tokens.some(t => t?.effect === "desperate_stance");
     if (hasDesperateStance) {
       return 4000;
     }
-    // 刹那の呪縛バフ: 操作時間を指定ms（デフォルト1000ms）に固定
     const curseTimeFixBuff = activeBuffs.find(b => b?.action === "curse_op_time_fix");
     if (curseTimeFixBuff) {
       return curseTimeFixBuff.params?.timeMs ?? 1000;
     }
-    // 焦燥の刻印: 操作時間4秒固定
-    if (tokens.some(t => t?.id === "curse_time")) {
+    if (tokens.some(t => t?.id === "curse_time") && !hasSaintToken) {
       return 4000;
     }
 
     let base = 5000 + (sandsOfTimeSeconds * 1000);
     tokens.forEach((t) => {
       if (t?.effect === "time") base += (t.values[(t.level || 1) - 1] * 1000);
-      // 呪われた力: 操作時間-2秒
-      if (t?.effect === "cursed_power") base -= 2000;
+      if (t?.effect === "cursed_power" && !hasSaintToken) base -= 2000;
 
-      // --- 追加: エンチャントによる時間変動 ---
       if (!isEnchantDisabled) {
         t?.enchantments?.forEach(enc => {
           if (enc.effect === "time_ext_enc") base += (enc.value || 1) * 1000;
-          if (enc.effect === "berserk_mode") base -= 1000; // 狂戦士: -1秒
+          if (enc.effect === "berserk_mode") base -= 1000;
         });
       }
 
-      // --- 新規: 星2トークン数×操作時間延長 ---
       if (t?.effect === "star_count_time_ext") {
         const rarity2Count = tokens.filter(tok => tok?.rarity === 2).length;
         base += (t.values[(t.level || 1) - 1] * 1000) * rarity2Count;
       }
 
-      // --- 五星の導き手 ---
       if (t?.effect === "stat_shape_len5") {
-        const v = t.values[(t.level || 1) - 1]; // 0.5/1.0/1.5
+        const v = t.values[(t.level || 1) - 1];
         const count = Math.floor((currentRunStats.currentShapeLen5 || 0) / 10);
         if (count > 0) base += (v * 1000) * count;
       }
     });
-    // --- 追加: スキルによる操作時間延長バフ ---
     activeBuffs.forEach(b => {
       if (b.action === "op_time_boost") {
         base += (b.params?.extraTime || 0);
       }
     });
 
-    // 特殊消しボーナスによる操作時間延長（五星の印・十字の祈り）
     base *= nextTurnTimeMultiplier;
-    return Math.max(1000, base); // 最低1秒
-  }, [tokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs]);
+    return Math.max(1000, base);
+  }, [tokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs, isPracticeMode, practiceTimeLimit]);
 
-  // --- Init Engine ---
   useEffect(() => {
     if (!boardRef.current || !timerRef.current) return;
 
@@ -496,9 +552,8 @@ const App = () => {
         timeLimit: getTimeLimit(),
         minMatchLength,
         timerText: timerTextRef.current,
-        onCombo: () => {
-          // No-op for now to avoid re-renders
-        },
+        pureMode: isPureMode,
+        onCombo: () => {},
         onTurnEnd: async (total, colorComboCounts, erasedColorCounts, skyfall, shapes, overLinkMultiplier, erasedByBombTotal, erasedByRepeatTotal, erasedByStarTotal, isAllClear) => {
           if (handleTurnEndRef.current) {
             await handleTurnEndRef.current(total, colorComboCounts, erasedColorCounts, skyfall, shapes, overLinkMultiplier, erasedByBombTotal, erasedByRepeatTotal, erasedByStarTotal, isAllClear);
@@ -522,14 +577,18 @@ const App = () => {
       }
       engine.destroy();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, cols, showTitle, showHelp, showStats, showCredits, showSettings]);
 
-  // Update time limit and realtime bonuses live
   useEffect(() => {
     if (engineRef.current) {
-      engineRef.current.timeLimit = getTimeLimit();
+      const limit = getTimeLimit();
+      engineRef.current.timeLimit = limit;
       engineRef.current.minMatchLength = minMatchLength;
+      engineRef.current.pureMode = isPureMode;
+
+      if (engineRef.current.updateTimerDisplay) {
+        engineRef.current.updateTimerDisplay(limit);
+      }
 
       const effectiveTokens = tokens.map((t, index) => {
         if (!t) return t;
@@ -540,18 +599,26 @@ const App = () => {
       });
 
       const hasForbiddenLiteral = effectiveTokens.some((t) => t?.id === "forbidden" || t?.effect === "forbidden");
-      const hasCurseSkyfall = effectiveTokens.some((t) => t?.id === "curse_skyfall" || t?.effect === "curse_skyfall");
+      const hasCurseSkyfall = effectiveTokens.some((t) => (t?.id === "curse_skyfall" || t?.effect === "curse_skyfall") && !hasSaintToken);
       engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall;
+
+      const hasVacation = effectiveTokens.some((t) => t?.effect === "vacation");
+      engineRef.current.vacationMode = hasVacation;
 
       const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
 
-      // Calculate realtime bonuses from tokens
+      const masteryToken = effectiveTokens.find(t => t?.effect === "additive_mastery");
+      const hasMastery = !!masteryToken;
+      const masteryMultiplier = hasMastery ? masteryToken.values[(masteryToken.level || 1) - 1] : 1;
+
       const bonuses = {
         len4: 0, row: 0, l_shape: 0, color_combo: {}, heart_combo: 0, enhancedOrbBonus: 0, overLink: null,
         extra_repeat_activations: 0, moveDropBoost: 0,
         stat_shape_additions: { cross: 0, len4: 0 },
         skyfall: 0,
         rainbow: 0,
+        hasMastery,
+        masteryMultiplier,
         tokenIds: {
           len4: [], row: [], l_shape: [], heart_combo: [], enhancedOrbBonus: [], overLink: [],
           rainbow_combo_bonus: [], extra_repeat_activations: [], moveDropBoost: [], stat_shape_additions: { cross: [], len4: [] },
@@ -630,12 +697,18 @@ const App = () => {
           bonuses.tokenIds.stat_shape_additions.len4.push(tId);
         }
 
-        // Add color combo enchantments to realtime bonuses
+        if (t.effect === 'color_combo_add' && t.params?.color) {
+          const color = t.params.color;
+          const lv = t.level || 1;
+          const val = t.values?.[lv - 1] || 1;
+          bonuses.color_combo[color] = (bonuses.color_combo[color] || 0) + val;
+        }
+
         const enchList = isEnchantDisabled ? [] : (t.enchantments || []);
         enchList.forEach(enc => {
           if (enc.effect === 'color_combo' && enc.params?.color) {
             const color = enc.params.color;
-            bonuses.color_combo[color] = (bonuses.color_combo[color] || 0) + 1; // +1 per combo
+            bonuses.color_combo[color] = (bonuses.color_combo[color] || 0) + 1;
           }
           if (enc.effect === 'bomb_burst_combo') {
             bonuses.bomb_burst_combo = (bonuses.bomb_burst_combo || 0) + 3;
@@ -644,7 +717,6 @@ const App = () => {
       });
       engineRef.current.setRealtimeBonuses(bonuses);
 
-      // 強化ドロップ確率の計算
       const rates = { global: [], colors: {} };
       effectiveTokens.forEach(t => {
         if (!t) return;
@@ -654,8 +726,13 @@ const App = () => {
         if (t.effect === 'enhance_chance') {
           rates.global.push({ value: t.values[lv - 1] || 0, tokenId });
         }
+        if (t.effect === 'awakening') {
+          rates.global.push({ value: 1.0, tokenId });
+        }
+        if (t.effect === 'legend_awakening') {
+          rates.global.push({ value: 1.0, tokenId });
+        }
 
-        // 歴戦の証明: 現在ゲームのクリア回数分だけ強化ドロップ確率を加算
         if (t.effect === 'stat_progress_clear') {
           const clearCount = currentRunStats.currentClears || 0;
           if (clearCount > 0) {
@@ -675,7 +752,6 @@ const App = () => {
       });
       engineRef.current.setEnhanceRates(rates);
 
-      // ボムドロップ確率の計算
       const bombRates = { colors: {} };
       effectiveTokens.forEach(t => {
         if (!t) return;
@@ -690,7 +766,6 @@ const App = () => {
       });
       engineRef.current.setBombRates(bombRates);
 
-      // リピートドロップ確率の計算
       const repeatRates = { colors: {} };
       effectiveTokens.forEach(t => {
         if (!t) return;
@@ -705,7 +780,6 @@ const App = () => {
       });
       engineRef.current.repeatRates = repeatRates;
 
-      // スタードロップ確率の計算
       const starRates = { colors: {} };
       effectiveTokens.forEach(t => {
         if (!t) return;
@@ -720,7 +794,6 @@ const App = () => {
       });
       engineRef.current.starRates = starRates;
 
-      // 虹ドロップ生成確率の計算
       let rainbowRate = [];
       effectiveTokens.forEach(t => {
         if (!t) return;
@@ -731,7 +804,6 @@ const App = () => {
       });
       engineRef.current.setRainbowRates(rainbowRate);
 
-      // ムーブドロップの情報を同期
       const moveDropConfigs = [];
       effectiveTokens.forEach(t => {
         if (!t) return;
@@ -747,19 +819,104 @@ const App = () => {
     }
   }, [tokens, getTimeLimit, minMatchLength, activeBuffs]);
 
-  // --- Init Shop on Start ---
-  // (Removed separate useEffect to avoid race conditions with loading)
-
-  // --- Game Logic ---
-  // Debug State
-  // const [debugLog, setDebugLog] = useState(null);
-
   const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0, erasedByRepeatTotal = 0, erasedByStarTotal = 0, isAllClear = false, extraStats = {}) => {
+    const showComboBreakdownLocal = async (params) => {
+      const {
+        tc, logData, turnCombo, bonus, multiplier, effectiveCombo, isBeyondMode, MAX_COMBO
+      } = params;
+      const el = comboRef.current;
+      if (!el) return;
+
+      const mode = settings?.comboAnimationMode || 'instant';
+
+      if (mode === 'step' && turnCombo > 0) {
+        let currentVal = tc;
+        for (const step of logData.bonusSteps) {
+          if (!comboRef.current) break;
+          if (step.tokenId) triggerPassive(step.tokenId);
+          const stepValue = isNaN(step.value) ? 0 : step.value;
+          currentVal = isBeyondMode ? (currentVal + stepValue) : Math.min(currentVal + stepValue, MAX_COMBO);
+          const eEl = comboRef.current;
+          const sign = stepValue >= 0 ? '+' : '';
+          const prevVal = Math.max(0, currentVal - stepValue);
+          const safePrevVal = isNaN(prevVal) ? 0 : prevVal;
+          eEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(safePrevVal)}</span><span class="combo-bonus-add">${sign}${formatJapaneseNumber(stepValue)}<span class="combo-step-label"> ${step.label}</span></span>`;
+          eEl.classList.remove('animate-combo-pop');
+          void eEl.offsetWidth; eEl.classList.add('animate-combo-pop');
+          await new Promise(r => setTimeout(r, 900));
+        }
+
+        for (const step of logData.multiplierSteps) {
+          if (!comboRef.current) break;
+          if (step.tokenId) triggerPassive(step.tokenId);
+          const safeStepValue = isNaN(step.value) ? 1 : step.value;
+          const prevVal = isNaN(currentVal) ? 0 : currentVal;
+          currentVal = isBeyondMode ? Math.floor(prevVal * safeStepValue) : Math.min(Math.floor(prevVal * safeStepValue), MAX_COMBO);
+          const eEl = comboRef.current;
+          const roundedV = formatNum(safeStepValue);
+          eEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(prevVal)}</span><span class="combo-bonus-mult">×${roundedV}<span class="combo-step-label"> ${step.label}</span></span>`;
+          eEl.classList.remove('animate-combo-pop');
+          void eEl.offsetWidth; eEl.classList.add('animate-combo-pop');
+          await new Promise(r => setTimeout(r, 900));
+        }
+
+        await new Promise(r => setTimeout(r, 300));
+        if (comboRef.current) {
+          const safeCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
+          comboRef.current.innerHTML = `<span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
+          comboRef.current.classList.remove('animate-combo-pop');
+          comboRef.current.classList.add('animate-combo-pulse');
+          void comboRef.current.offsetWidth;
+        }
+      } else {
+        if (turnCombo > 0 && bonus > 0) {
+          await new Promise(r => setTimeout(r, 400));
+          const safeTurnCombo = isNaN(turnCombo) ? 0 : turnCombo;
+          const safeBonus = isNaN(bonus) ? 0 : bonus;
+          el.innerHTML = `<span class="combo-number">${safeTurnCombo}</span><span class="combo-bonus-add">+${safeBonus}</span>`;
+          el.classList.remove('animate-combo-pop');
+          void el.offsetWidth; el.classList.add('animate-combo-pop');
+        }
+        if (turnCombo > 0 && multiplier > 1) {
+          await new Promise(r => setTimeout(r, 500));
+          const baseVal = (isNaN(turnCombo) ? 0 : turnCombo) + (isNaN(bonus) ? 0 : bonus);
+          const roundedMultiplier = formatNum(isNaN(multiplier) ? 1 : multiplier);
+          el.innerHTML = `<span class="combo-number">${baseVal}</span><span class="combo-bonus-mult">×${roundedMultiplier}</span>`;
+          el.classList.remove('animate-combo-pop');
+          void el.offsetWidth; el.classList.add('animate-combo-pop');
+        }
+        if (turnCombo > 0) {
+          await new Promise(r => setTimeout(r, 600));
+          const safeEffectiveCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
+          el.innerHTML = `<span class="combo-number combo-number-final">${safeEffectiveCombo}</span><span class="combo-label">COMBO</span>`;
+          el.classList.remove('animate-combo-pop');
+          el.classList.add('animate-combo-pulse');
+          void el.offsetWidth;
+        } else if (turnCombo === 0 && effectiveCombo === 0) {
+          await new Promise(r => setTimeout(r, 400));
+          el.innerHTML = `<span class="combo-number combo-number-final">0</span><span class="combo-label">COMBO</span>`;
+          el.classList.remove('animate-combo-pop');
+          el.classList.add('animate-combo-pulse');
+          void el.offsetWidth;
+        }
+      }
+
+      await new Promise(r => setTimeout(r, 400));
+      setTargetPulse(true);
+      setTimeout(() => setTargetPulse(false), 800);
+      setTimeout(() => {
+        if (comboRef.current) {
+          comboRef.current.classList.remove('animate-combo-pulse');
+          comboRef.current.classList.add('animate-fade-out');
+          setTimeout(() => { if (comboRef.current) comboRef.current.innerHTML = ''; }, 500);
+        }
+      }, 1000);
+    };
+
     const { bombSelfErased = 0, repeatSelfErased = 0, starSelfErased = 0, rainbowSelfErased = 0 } = extraStats;
     let tc = Number(turnCombo) || 0;
 
-    // 絶望の癒し: ハートドロップを消してもコンボが増えなくなる
-    const isCurseHeartActive = tokens.some(t => t?.id === "curse_heart");
+    const isCurseHeartActive = tokens.some(t => t?.id === "curse_heart") && !hasSaintToken;
     if (isCurseHeartActive) {
       const heartMatches = colorComboCounts["heart"] || 0;
       tc = Math.max(0, tc - heartMatches);
@@ -772,7 +929,7 @@ const App = () => {
     let multiplier = 1;
     let exponentialBonus = 0;
     let exponentialMultiplier = 1;
-    let timeMultiplier = 1; // 次手の操作時間倍率
+    let timeMultiplier = 1;
     const matchedColorSet = new Set(Object.keys(colorComboCounts).filter(k => colorComboCounts[k] > 0));
     if (isCurseHeartActive) matchedColorSet.delete("heart");
 
@@ -799,23 +956,29 @@ const App = () => {
       return t;
     });
 
+    const masteryToken = effectiveTokens.find(t => t?.effect === "additive_mastery");
+    const hasMastery = !!masteryToken;
+    const masteryVal = hasMastery ? masteryToken.values[(masteryToken.level || 1) - 1] : 1;
+
     const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
-    // 虚無の封印バフ: 1ターン間、全パッシブ効果を無効にする
-    const isCursePassiveNull = activeBuffs.some(b => b?.action === "curse_passive_null");
+    const isCursePassiveNull = activeBuffs.some(b => b?.action === "curse_passive_null") && !hasSaintToken;
     const animationMode = settings?.comboAnimationMode || 'instant';
     const isInstant = animationMode === 'instant';
 
-    // 限界突破（limit_breaker）の判定
     let limitBreakerLevel = 0;
+    let hasAbsoluteLimitBreak = false;
     effectiveTokens.forEach(t => {
       if (t && t.effect === "limit_break") {
         const lv = t.level || 1;
         if (lv > limitBreakerLevel) limitBreakerLevel = lv;
       }
+      if (t && t.effect === "absolute_limit_break") {
+        hasAbsoluteLimitBreak = true;
+      }
     });
 
-    // 汎用: 上限キャップ適用関数
     const applyMultiplierCap = (baseVal, token) => {
+      if (hasAbsoluteLimitBreak) return baseVal;
       if (!token || !token.maxMultipliers) return baseVal;
       const lv = token.level || 1;
       let limit = token.maxMultipliers[lv - 1];
@@ -823,7 +986,7 @@ const App = () => {
 
       if (limitBreakerLevel === 1) limit *= 2;
       else if (limitBreakerLevel === 2) limit *= 5;
-      else if (limitBreakerLevel >= 3) limit = Infinity;
+      else if (limitBreakerLevel >= 3) limit *= 20;
 
       if (baseVal > limit) {
         return limit;
@@ -841,9 +1004,8 @@ const App = () => {
       isAllClear,
       bonuses: [],
       multipliers: [],
-      // 段階度演出用: { label, value } のステップリスト
-      bonusSteps: [],    // コンボ加算ステップ
-      multiplierSteps: [], // コンボ倍率ステップ
+      bonusSteps: [],
+      multiplierSteps: [],
     };
 
     if (isAllClear) {
@@ -858,17 +1020,22 @@ const App = () => {
       logData.bonusSteps.push({ label: 'ムーブドロップボーナス', value: moveDropBonus });
     }
 
+    const squareCount = shapes.filter(s => s === 'square').length;
+    if (squareCount > 0) {
+      const baseSquareMult = Math.pow(2, squareCount);
+      multiplier *= baseSquareMult;
+      logData.multipliers.push(`base_square_bonus:x${baseSquareMult}`);
+      logData.multiplierSteps.push({ label: '正方形消し(基礎)', value: baseSquareMult });
+    }
+
     effectiveTokens.forEach((t) => {
       if (!t) return;
-      // 虚無の封印が発動中の場合、パッシブトークンの効果を無効化
       if (isCursePassiveNull && t.type === 'passive') return;
 
       const lv = t.level || 1;
       const enchList = isEnchantDisabled ? [] : (t.enchantments || []);
 
-      // --- 共通処理関数 (トークン効果とエンチャント効果の両方をチェック) ---
       const checkEffect = (effect, params, val, tokenName, tokenId) => {
-        // 1. 先制の心得 (Opener)
         if (effect === "turn_1_bonus" && turn === 1) {
           if (isInstant) triggerPassive(tokenId);
           const v = val || 10;
@@ -876,7 +1043,6 @@ const App = () => {
           logData.bonuses.push(`opener:+${v}`);
           logData.bonusSteps.push({ label: tokenName || '先制の心得', value: v, tokenId });
         }
-        // 2. 土壇場の底力 (Clutch)
         if (effect === "last_turn_mult" && turn === maxTurns) {
           if (isInstant) triggerPassive(tokenId);
           const v = val || 1.5;
@@ -884,7 +1050,6 @@ const App = () => {
           logData.multipliers.push(`clutch:x${v}`);
           logData.multiplierSteps.push({ label: tokenName || '土壇場の底力', value: v, tokenId });
         }
-        // 3. 虹色の加護 (Rainbow)
         if (effect === "multi_color" && matchedColorSet.size >= 4) {
           if (isInstant) triggerPassive(tokenId);
           const v = val || 3;
@@ -892,7 +1057,6 @@ const App = () => {
           logData.bonuses.push(`rainbow:+${v}`);
           logData.bonusSteps.push({ label: tokenName || '虹色の加護', value: v, tokenId });
         }
-        // 4. 一点突破 (Sniper)
         if (effect === "single_color" && matchedColorSet.size > 0 && matchedColorSet.size <= 2) {
           if (isInstant) triggerPassive(tokenId);
           const v = val || 1.3;
@@ -900,8 +1064,6 @@ const App = () => {
           logData.multipliers.push(`sniper:x${v}`);
           logData.multiplierSteps.push({ label: tokenName || '一点突破', value: v, tokenId });
         }
-        // 5. 形状の達人 (Geometry) -> 削除済み (代わりに個別形状エンチャント)
-        // shapes: ["len4", "cross", "row", "l_shape", "square", ...]
         const shapeMap = {
           "shape_match4": "len4",
           "shape_cross": "cross",
@@ -913,7 +1075,6 @@ const App = () => {
         if (targetShape) {
           const count = shapes.filter(s => s === targetShape).length;
           if (count > 0) {
-            // 個数分だけ倍率を乗算 (例: 1.2のcount乗)
             let totalMult = Math.pow(val || 1.0, count);
             totalMult = applyMultiplierCap(totalMult, t);
             multiplier *= totalMult;
@@ -921,15 +1082,13 @@ const App = () => {
             logData.multiplierSteps.push({ label: tokenName || effect, value: totalMult, tokenId });
           }
         }
-        // 6. 運命の悪戯 (Gamble)
         if (effect === "random_bonus") {
           if (isInstant) triggerPassive(tokenId);
-          const rand = Math.floor(Math.random() * 21) - 5; // -5 to +15
+          const rand = Math.floor(Math.random() * 21) - 5;
           bonus += rand;
           logData.bonuses.push(`gamble:${rand > 0 ? '+' : ''}${rand}`);
           if (rand !== 0) logData.bonusSteps.push({ label: tokenName || '運命の悪戯', value: rand, tokenId });
         }
-        // 7. 狂戦士 (Berserk)
         if (effect === "berserk_mode") {
           if (isInstant) triggerPassive(tokenId);
           const v = val || 1.5;
@@ -937,7 +1096,6 @@ const App = () => {
           logData.multipliers.push(`berserk:x${v}`);
           logData.multiplierSteps.push({ label: tokenName || '狂戦士', value: v, tokenId });
         }
-        // 8. 追撃 (Aftershock)
         if (effect === "skyfall_mult" && hasSkyfallCombo) {
           if (isInstant) triggerPassive(tokenId);
           const v = val || 1.4;
@@ -945,16 +1103,14 @@ const App = () => {
           logData.multipliers.push(`aftershock:x${v}`);
           logData.multiplierSteps.push({ label: tokenName || '追撃', value: v, tokenId });
         }
-        // 9. 会心の一撃 (Critical) - トークン/エンチャント共通
         if (effect === "critical_strike") {
-          if (Math.random() < 0.2) { // 20%
+          if (Math.random() < 0.2) {
             multiplier *= val;
             logData.multipliers.push(`CRITICAL!:x${val}`);
             logData.multiplierSteps.push({ label: tokenName || '会心の一撃!', value: val, tokenId });
-            notify("会心の一撃！"); // 演出
+            notify("会心の一撃！");
           }
         }
-        // 10. 色別連舞 (Color Multiplier Enchantment)
         if (effect === "color_multiplier_enc") {
           const color = params?.color;
           if (color && matchedColorSet.has(color)) {
@@ -965,9 +1121,14 @@ const App = () => {
             logData.multiplierSteps.push({ label: tokenName || `色別連舞(${color})`, value: v, tokenId });
           }
         }
-
-        // 11. 形状別極意 (Shape Split Enchantments)
-        // shapes: ["len4", "cross", "row", "l_shape", "square", ...]
+        if (effect === "acrobat") {
+          if (colorComboCounts['heart'] >= 2) {
+            if (isInstant) triggerPassive(tokenId);
+            multiplier *= 7;
+            logData.multipliers.push(`acrobat:x7`);
+            logData.multiplierSteps.push({ label: tokenName || '曲芸師', value: 7, tokenId });
+          }
+        }
         let shapeType = null;
         if (effect === "shape_match4") shapeType = "len4";
         if (effect === "shape_cross") shapeType = "cross";
@@ -979,12 +1140,10 @@ const App = () => {
           const count = shapes.filter(s => s === shapeType).length;
           if (count > 0) {
             if (isInstant) {
-              // 消した回数分だけ跳ねさせる (見た目が壊れない程度に少しディレイを入れる)
               for (let i = 0; i < count; i++) {
                 setTimeout(() => triggerPassive(tokenId), i * 150);
               }
             }
-            // 個数分だけ倍率を乗算 (例: 1.2のcount乗)
             let totalMult = Math.pow(val || 1.0, count);
             totalMult = applyMultiplierCap(totalMult, t);
             multiplier *= totalMult;
@@ -996,20 +1155,15 @@ const App = () => {
 
       const tId = t.instanceId || t.id;
 
-      // トークン自体の効果をチェック
       if (t.type === 'passive') {
-        // valuesから現在レベルの値を取得
         const val = t.values ? t.values[lv - 1] : t.value;
         checkEffect(t.effect, t.params, val, t.name, tId);
       }
 
-      // エンチャントの効果をチェック
       enchList.forEach(enc => {
         checkEffect(enc.effect, enc.params, enc.value, t.name, tId);
       });
 
-      // Base bonuses
-      // エンチャント効果（複数対応）
       enchList.forEach(enc => {
         if (enc.effect === "fixed_add") { const v = enc.value || 3; bonus += v; logData.bonuses.push(`fixed_add:${v}`); logData.bonusSteps.push({ label: t.name || '固定加算', value: v, tokenId: tId }); }
         if (enc.effect === "star_add") { bonus += stars; logData.bonuses.push("star_add"); logData.bonusSteps.push({ label: t.name || 'スター加算', value: stars, tokenId: tId }); }
@@ -1041,7 +1195,6 @@ const App = () => {
         if (v !== 0) logData.bonusSteps.push({ label: t.name || 'ランダム加算', value: v, tokenId: tId });
       }
 
-      // --- 新規: 星1トークン数×コンボ加算 ---
       if (t.effect === "star_count_combo_add") {
         const rarity1Count = tokens.filter(tok => tok?.rarity === 1).length;
         const v = (t.values?.[lv - 1] || 1) * rarity1Count;
@@ -1053,7 +1206,6 @@ const App = () => {
         }
       }
 
-      // --- 新規: 属性別トークン数×コンボ加算 ---
       if (t.effect === "attribute_count_combo_add") {
         const attr = t.params?.attribute;
         const attrCount = tokens.filter(tok => tok?.attributes?.includes(attr)).length;
@@ -1066,10 +1218,8 @@ const App = () => {
         }
       }
 
-      // --- 新規: 無属性トークンなし倍率 ---
       if (t.effect === "no_attribute_multiplier") {
         const colorlessTokens = tokens.filter(tok => tok && (!tok.attributes || tok.attributes.length === 0));
-        // 「時の砂」は換算しない
         const otherColorless = colorlessTokens.filter(tok => tok.id !== "time_ext");
 
         if (otherColorless.length === 0) {
@@ -1082,7 +1232,6 @@ const App = () => {
         }
       }
 
-      // --- 新規: 星3トークン数×コンボ倍率 ---
       if (t.effect === "star_count_combo_mult") {
         const rarity3Count = tokens.filter(tok => tok?.rarity === 3).length;
         let v = Math.pow(t.values?.[lv - 1] || 1, rarity3Count);
@@ -1094,7 +1243,6 @@ const App = () => {
         }
       }
 
-      // --- 新規: 全レベル合計×コンボ加算 ---
       if (t.effect === "total_level_combo_add") {
         const totalLevel = tokens.reduce((sum, tok) => sum + (tok?.level || 0), 0);
         const v = (t.values?.[lv - 1] || 1) * totalLevel;
@@ -1106,7 +1254,6 @@ const App = () => {
         }
       }
 
-      // --- 新規: レベル3トークン数×コンボ倍率 ---
       if (t.effect === "level3_count_combo_mult") {
         const level3Count = tokens.filter(tok => tok?.level === 3).length;
         const base = t.values?.[lv - 1] || 1;
@@ -1120,7 +1267,6 @@ const App = () => {
         }
       }
 
-      // --- 新規: スタードロップ消去数×倍率 (パッシブ) ---
       if (t.effect === "star_erase_mult" && erasedByStarTotal > 0) {
         const baseMult = t.values?.[lv - 1] || 1.0;
         let multVal = erasedByStarTotal * baseMult;
@@ -1139,7 +1285,6 @@ const App = () => {
         }
       }
 
-      // エンチャントによる倍率アップ（全トークンのエンチャント数をカウントして適用）
       if (t.effect === "enchant_count_combo_mult") {
         const enchantCount = isEnchantDisabled ? 0 : tokens.reduce((sum, tok) => sum + (tok?.enchantments?.length || 0), 0);
         let v = Math.pow(t.values?.[lv - 1] || 1, enchantCount);
@@ -1152,7 +1297,6 @@ const App = () => {
         }
       }
 
-      // 呪い数による倍率アップ（全トークン内にある呪いの数をカウントして適用）
       if (t.effect === "curse_count_combo_mult") {
         const curseCount = tokens.filter(tok => tok?.type === 'curse' || tok?.isCurse).length;
         let v = Math.pow(t.values?.[lv - 1] || 1, curseCount);
@@ -1164,7 +1308,6 @@ const App = () => {
           logData.multiplierSteps.push({ label: t.name || '呪い数倍率', value: v, tokenId: tId });
         }
       }
-      // --- 新規: 呪い解除数による倍率加算 (呪い喰い) ---
       if (t.effect === "stat_curse_removed") {
         const removedCount = currentRunStats.currentCursesRemoved || 0;
         const v = (t.values?.[lv - 1] || 1) * removedCount;
@@ -1175,7 +1318,6 @@ const App = () => {
           logData.multiplierSteps.push({ label: t.name || '呪い喰い', value: v, tokenId: tId });
         }
       }
-      // --- 新規: ハート消去数による倍率上昇 (生命の器) ---
       if (t.effect === "stat_heart_chalice") {
         const heartCount = currentRunStats.totalHeartsErased || 0;
         const count = Math.floor(heartCount / 30);
@@ -1189,7 +1331,6 @@ const App = () => {
           logData.multiplierSteps.push({ label: t.name || '生命の器', value: v, tokenId: tId });
         }
       }
-      // --- 新規: スキップ回数による倍率上昇 (早送りの極意) ---
       if (t.effect === "stat_time_skipper") {
         const skipCount = currentRunStats.skipsPerformed || 0;
         const count = Math.floor(skipCount / 5);
@@ -1204,7 +1345,6 @@ const App = () => {
         }
       }
 
-      // --- 新規: ボム消去数×倍率 (パッシブ) ---
       if (t.effect === "bomb_erase_mult" && erasedByBombTotal > 0) {
         const baseMult = t.values?.[lv - 1] || 1.2;
         let v = erasedByBombTotal * baseMult;
@@ -1215,7 +1355,6 @@ const App = () => {
         logData.multiplierSteps.push({ label: t.name || 'ボム消去倍率', value: v, tokenId: tId });
       }
 
-      // --- 新規: リピートドロップ消去数×倍率 (パッシブ) ---
       if (t.effect === "repeat_combo_mult" && erasedByRepeatTotal > 0) {
         const baseMult = t.values?.[lv - 1] || 1.3;
         let v = erasedByRepeatTotal * baseMult;
@@ -1226,12 +1365,10 @@ const App = () => {
         logData.multiplierSteps.push({ label: t.name || 'リピート消去倍率', value: v, tokenId: tId });
       }
 
-      // Skyfall bonus - Already handled in PuzzleEngine
       if (t.effect === "skyfall_bonus" && hasSkyfallCombo) {
         logData.bonuses.push(`skyfall:(applied)`);
       }
 
-      // New: Combo Threshold (LE) Bonus
       if (t.effect === "combo_if_le" && turnCombo <= t.params?.combo) {
         const v = t.values?.[lv - 1] || 0;
         if (isInstant) triggerPassive(tId);
@@ -1240,7 +1377,6 @@ const App = () => {
         if (v > 0) logData.bonusSteps.push({ label: t.name || `${t.params.combo}コンボ以下`, value: v, tokenId: tId });
       }
 
-      // New: Combo Threshold Multiplier
       if (t.effect === "combo_if_ge" && turnCombo >= t.params?.combo) {
         const v = t.values?.[lv - 1] || 1;
         if (isInstant) triggerPassive(tId);
@@ -1249,7 +1385,6 @@ const App = () => {
         logData.multiplierSteps.push({ label: t.name || `${t.params.combo}コンボ以上`, value: v, tokenId: tId });
       }
 
-      // --- 追加: Skill Combo Bonus (Active Skill Lv3 Effect) ---
       if (t.action === "skill_combo_bonus") {
         const val = t.params?.value || 0;
         bonus += val;
@@ -1257,43 +1392,33 @@ const App = () => {
         if (val > 0) logData.bonusSteps.push({ label: t.name || 'スキルボーナス', value: val, tokenId: tId });
       }
 
-      // --- 特殊消しボーナス（Shape Bonus） ---
       if (t.effect === "shape_bonus" && shapes.length > 0) {
         const shape = t.params?.shape;
         const v = t.values?.[lv - 1] || 0;
-        // 該当形状が今回のターンで出現した回数分ボーナスを適用
         const matchCount = shapes.filter(s => s === shape).length;
         if (matchCount > 0) {
           if (isInstant) {
-            // 消した回数分だけ跳ねさせる
             for (let i = 0; i < matchCount; i++) {
               setTimeout(() => triggerPassive(t.instanceId || t.id), i * 150);
             }
           }
           if (shape === "square") {
-            // 四方の型: コンボ倍率
             let totalMult = Math.pow(v, matchCount);
             totalMult = applyMultiplierCap(totalMult, t);
             multiplier *= totalMult;
             logData.multipliers.push(`shape_square:mult_x${v}_count_${matchCount}`);
             logData.multiplierSteps.push({ label: t.name || '四方の型', value: totalMult, tokenId: tId });
           } else if (shape === "len5") {
-            // 五星の印: 次手操作延長 (重複適用)
             for (let i = 0; i < matchCount; i++) timeMultiplier *= v;
             logData.bonuses.push(`shape_len5:time_x${v}_count_${matchCount}`);
-            // 操作時間延長はコンボ表示には出さないが、跳ねる演出は上記で行っている
           } else if (shape === "cross") {
-            // 十字の祈り: 次手操作延長 (重複適用)
             for (let i = 0; i < matchCount; i++) timeMultiplier *= v;
             logData.bonuses.push(`shape_cross:time_x${v}_count_${matchCount}`);
-            // len4 / row / l_shape: すでに PuzzleEngine 内でリアルタイム加算済み
-            // ここでの v は集計ロジック用であり、段階的演出（演出データ）には追加しない（リアルタイムで跳ねるため）
             logData.bonuses.push(`shape_${shape}:${v}x${matchCount}(applied)`);
           }
         }
       }
 
-      // Multipliers
       if (t.id === "forbidden" || t.effect === "forbidden") {
         const v = t.values?.[lv - 1] || 1;
         if (isInstant) triggerPassive(t.instanceId || t.id);
@@ -1327,9 +1452,6 @@ const App = () => {
             logData.bonusSteps.push({ label: t.name || '万形の極意', value: b, tokenId: tId });
           }
         }
-        if (enc.effect === "magic_resonance") {
-          // 既存の魔力共鳴ロジックがあればここ（現在は説明文側で処理）
-        }
         if (enc.effect === "curse_catalyst") {
           const curseCount = tokens.filter(tok => tok != null && (tok.type === 'curse' || tok.isCurse)).length;
           if (curseCount > 0) {
@@ -1341,7 +1463,6 @@ const App = () => {
         }
       });
 
-      // Color multiplier
       if (t.effect === "color_multiplier") {
         const colors = t.params?.colors;
         const count = t.params?.count;
@@ -1362,7 +1483,6 @@ const App = () => {
         }
       }
 
-      // Color Drop Count Multiplier
       if (t.effect === "color_count_bonus") {
         const color = t.params?.color;
         const requiredCount = t.params?.count || 0;
@@ -1375,7 +1495,6 @@ const App = () => {
         }
       }
 
-      // Shape Variety Multiplier (2+ unique shapes)
       if (t.effect === "shape_variety_mult") {
         const uniqueShapes = new Set(shapes).size;
         if (uniqueShapes >= 2) {
@@ -1387,7 +1506,6 @@ const App = () => {
         }
       }
 
-      // Giant Domain Multiplier
       if (t.id === "giant") {
         const v = t.values?.[lv - 1] || 1;
         if (isInstant) triggerPassive(tId);
@@ -1396,7 +1514,6 @@ const App = () => {
         logData.multiplierSteps.push({ label: t.name || '巨人の領域', value: v, tokenId: tId });
       }
 
-      // 背水の陣: 固定倍率
       if (t.effect === "desperate_stance") {
         const v = t.values?.[lv - 1] || 3;
         if (isInstant) triggerPassive(tId);
@@ -1405,7 +1522,6 @@ const App = () => {
         logData.multiplierSteps.push({ label: t.name || '背水の陣', value: v, tokenId: tId });
       }
 
-      // 金満の暴力: スター数に依存した倍率加算
       if (t.effect === "greed_power") {
         const threshold = t.values?.[lv - 1] || 10;
         let greedBonus = Math.floor(stars / threshold);
@@ -1418,7 +1534,6 @@ const App = () => {
         }
       }
 
-      // 呪われた力: 固定コンボ加算
       if (t.effect === "cursed_power") {
         const v = t.values?.[lv - 1] || 10;
         if (isInstant) triggerPassive(tId);
@@ -1427,10 +1542,8 @@ const App = () => {
         logData.bonusSteps.push({ label: t.name || '呪われた力', value: v, tokenId: tId });
       }
 
-      // --- 実績参照系パッシブ ---
       if (t.effect === "stat_combo_記憶") {
         const v = t.values?.[lv - 1] || 1;
-        // 「記憶」はベース記録を参照
         const b = Math.floor((currentRunStats.maxBaseCombo || 0) / 5) * v;
         if (b > 0) {
           if (isInstant) triggerPassive(t.instanceId || t.id);
@@ -1442,7 +1555,6 @@ const App = () => {
       }
       if (t.effect === "stat_mult_余韻") {
         const v = t.values?.[lv - 1] || 0.1;
-        // 「余韻」は最終倍率記録を参照（ループ抑制のため上限処理は必須）
         const maxMult = currentRunStats.maxComboMultiplier || 1;
         if (maxMult > 1) {
           let m = 1 + (maxMult * v);
@@ -1467,7 +1579,6 @@ const App = () => {
           logData.multiplierSteps.push({ label: t.name || '千手', value: m, tokenId: tId });
         }
       }
-      // 十字・4連は PuzzleEngine 内でリアルタイム加算済み
       if (t.effect === "stat_shape_cross" && shapes.includes("cross")) {
         logData.bonuses.push(`stat_shape_cross:(applied)`);
       }
@@ -1514,16 +1625,13 @@ const App = () => {
       }
 
       if (t.effect === 'rainbow_combo_bonus') {
-        // Already handled in PuzzleEngine
         logData.bonuses.push(`rainbow:(applied)`);
       }
       if (t.effect === 'heart_combo_bonus') {
-        // Already handled in PuzzleEngine
         logData.bonuses.push(`heart_combo:(applied)`);
       }
     });
 
-    // 12. Min Match Multiplier (Dual Match)
     tokens.forEach((t) => {
       if (t?.effect === "min_match") {
         const lv = t.level || 1;
@@ -1536,16 +1644,13 @@ const App = () => {
       }
     });
 
-    // 強化ドロップ overLink 倍率を適用
     if (overLinkMultiplier > 1) {
       multiplier *= overLinkMultiplier;
       logData.multipliers.push(`overlink:${overLinkMultiplier}`);
     }
 
-    // 次手の操作時間倍率を設定（1ならリセット）
     setNextTurnTimeMultiplier(timeMultiplier);
 
-    // アクティブスキル（時限コンボ倍率）Buffの適用
     activeBuffs.forEach(buff => {
       if (buff.action === "temp_mult") {
         multiplier *= buff.params.multiplier;
@@ -1558,23 +1663,31 @@ const App = () => {
       }
     });
 
+    if (hasMastery) {
+      multiplier = 1;
+      exponentialMultiplier = 1;
+      logData.multipliers = [`additive_mastery_active: multipliers disabled`];
+      logData.multiplierSteps = [{ label: '加算の極意', value: masteryVal, isAdditiveMastery: true }];
+
+      bonus *= masteryVal;
+      exponentialBonus *= masteryVal;
+      logData.bonuses.push(`additive_mastery:x${masteryVal}`);
+      logData.bonusSteps.push({ label: '極意・加算増幅', value: `x${masteryVal}`, tokenId: masteryToken.instanceId || masteryToken.id });
+    }
+
     logData.finalMultiplier = multiplier;
 
-    // 脆弱の断層: コンボ数が半分になる (倍率 0.5)
-    if (tokens.some(t => t?.id === "curse_half")) {
+    if (tokens.some(t => t?.id === "curse_half") && !hasSaintToken) {
       multiplier *= 0.5;
       logData.multipliers.push("curse_half:x0.5");
-      logData.multiplierSteps.push({ label: '脆弱の断層', value: 0.5 });
+      logData.multiplierSteps.push({ label: '半減の呪い', value: 0.5 });
     }
 
     logData.finalBonus = bonus;
-    // setDebugLog(logData);
 
     const turnBaseCombo = (tc > 0) ? Math.floor(tc + Number(bonus - exponentialBonus)) : 0;
     const turnBaseMultiplier = multiplier / exponentialMultiplier;
 
-    // turnCombo（盤面でのマッチ数）が0なら強制的に最終0コンボにする
-    // 彼岸モード時はコンボ上限を撤廃
     let effectiveCombo;
     if (isBeyondMode) {
       effectiveCombo = (tc > 0) ? Math.floor((tc + Number(bonus || 0)) * Number(multiplier || 1)) : 0;
@@ -1584,19 +1697,29 @@ const App = () => {
 
     if (effectiveCombo >= MAX_COMBO) {
       setCurrentRunStats(prev => {
-        if (!prev.hasReachedMaxCombo) {
+        if (!prev.hasReachedMaxCombo && !isPracticeMode) {
           setShowMaxComboWarpDialog(true);
         }
         return { ...prev, hasReachedMaxCombo: true };
       });
     }
 
-    // --- Update Stats ---
+    if (isPracticeMode) {
+      setCurrentRunStats(prev => ({
+        ...prev,
+        maxCombo: Math.max(prev.maxCombo || 0, effectiveCombo)
+      }));
+      await showComboBreakdownLocal({
+        tc, logData, turnCombo, bonus, multiplier, effectiveCombo, isBeyondMode, MAX_COMBO
+      });
+      return;
+    }
+
     setCurrentRunTotalCombo(prev => prev + effectiveCombo);
 
     const currentEnchantCount = isEnchantDisabled ? 0 : tokens.reduce((sum, tok) => sum + (tok?.enchantments?.length || 0), 0);
     const measuredTime = totalMoveTimeRef.current;
-    totalMoveTimeRef.current = 0; // 次のターンのためにリセット
+    totalMoveTimeRef.current = 0;
 
     const countLen4 = shapes.filter(s => s === 'len4').length;
     const countCross = shapes.filter(s => s === 'cross').length;
@@ -1652,126 +1775,9 @@ const App = () => {
       totalRainbowsErased: (prev.totalRainbowsErased || 0) + rainbowSelfErased,
     }));
 
-    // --- effectiveCombo の段階的演出 ---
-    // comboRefを使って、ボーナス加算・倍率適用を盤面上に表示
-    const showComboBreakdown = async () => {
-      const el = comboRef.current;
-      if (!el) return;
-
-      const mode = settings?.comboAnimationMode || 'instant';
-
-      if (mode === 'step' && turnCombo > 0) {
-        // --- 段階的演出 ---
-        // 現在加算済みコンボ数を表示しながら段階的に積み上げる
-
-        // ステップ1: コンボ加算を1つずつ表示
-        let currentVal = tc;
-        for (const step of logData.bonusSteps) {
-          if (!comboRef.current) break;
-          // トークン跳ねるアニメーションをトリガー
-          if (step.tokenId) triggerPassive(step.tokenId);
-          const stepValue = isNaN(step.value) ? 0 : step.value;
-          currentVal = isBeyondMode ? (currentVal + stepValue) : Math.min(currentVal + stepValue, MAX_COMBO);
-          const eEl = comboRef.current;
-          const sign = stepValue >= 0 ? '+' : '';
-          const prevVal = Math.max(0, currentVal - stepValue);
-          const safePrevVal = isNaN(prevVal) ? 0 : prevVal;
-          eEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(safePrevVal)}</span><span class="combo-bonus-add">${sign}${formatJapaneseNumber(stepValue)}<span class="combo-step-label"> ${step.label}</span></span>`;
-          eEl.classList.remove('animate-combo-pop');
-          void eEl.offsetWidth;
-          eEl.classList.add('animate-combo-pop');
-          await new Promise(r => setTimeout(r, 900));
-        }
-
-        // ステップ2: コンボ倍率を1つずつ表示
-        let currentMult = 1;
-        for (const step of logData.multiplierSteps) {
-          if (!comboRef.current) break;
-          // トークン跳ねるアニメーションをトリガー
-          if (step.tokenId) triggerPassive(step.tokenId);
-          const safeStepValue = isNaN(step.value) ? 1 : step.value;
-          const prevVal = isNaN(currentVal) ? 0 : currentVal;
-          currentVal = isBeyondMode ? Math.floor(prevVal * safeStepValue) : Math.min(Math.floor(prevVal * safeStepValue), MAX_COMBO);
-          const eEl = comboRef.current;
-          const roundedV = formatNum(safeStepValue);
-          eEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(prevVal)}</span><span class="combo-bonus-mult">×${roundedV}<span class="combo-step-label"> ${step.label}</span></span>`;
-          eEl.classList.remove('animate-combo-pop');
-          void eEl.offsetWidth;
-          eEl.classList.add('animate-combo-pop');
-          await new Promise(r => setTimeout(r, 900));
-        }
-
-        // ステップ3: 最終値をパルス演出で表示
-        await new Promise(r => setTimeout(r, 300));
-        if (comboRef.current) {
-          const safeCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
-          comboRef.current.innerHTML = `<span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
-          comboRef.current.classList.remove('animate-combo-pop');
-          comboRef.current.classList.add('animate-combo-pulse');
-          void comboRef.current.offsetWidth;
-        }
-
-      } else {
-        // --- 一括演出（従来通り）---
-
-        // ステップ1: 素コンボ → ボーナス加算表示
-        if (turnCombo > 0 && bonus > 0) {
-          await new Promise(r => setTimeout(r, 400));
-          const safeTurnCombo = isNaN(turnCombo) ? 0 : turnCombo;
-          const safeBonus = isNaN(bonus) ? 0 : bonus;
-          el.innerHTML = `<span class="combo-number">${safeTurnCombo}</span><span class="combo-bonus-add">+${safeBonus}</span>`;
-          el.classList.remove('animate-combo-pop');
-          void el.offsetWidth;
-          el.classList.add('animate-combo-pop');
-        }
-
-        // ステップ2: 倍率表示
-        if (turnCombo > 0 && multiplier > 1) {
-          await new Promise(r => setTimeout(r, 500));
-          const baseVal = (isNaN(turnCombo) ? 0 : turnCombo) + (isNaN(bonus) ? 0 : bonus);
-          const roundedMultiplier = formatNum(isNaN(multiplier) ? 1 : multiplier);
-          el.innerHTML = `<span class="combo-number">${baseVal}</span><span class="combo-bonus-mult">×${roundedMultiplier}</span>`;
-          el.classList.remove('animate-combo-pop');
-          void el.offsetWidth;
-          el.classList.add('animate-combo-pop');
-        }
-
-        // ステップ3: 最終値をパルス演出で表示
-        if (turnCombo > 0) {
-          await new Promise(r => setTimeout(r, 600));
-          const safeEffectiveCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
-          el.innerHTML = `<span class="combo-number combo-number-final">${safeEffectiveCombo}</span><span class="combo-label">COMBO</span>`;
-          el.classList.remove('animate-combo-pop');
-          el.classList.add('animate-combo-pulse');
-          void el.offsetWidth;
-        } else if (turnCombo === 0 && effectiveCombo === 0) {
-          // 0コンボ時の表示
-          await new Promise(r => setTimeout(r, 400));
-          el.innerHTML = `<span class="combo-number combo-number-final">0</span><span class="combo-label">COMBO</span>`;
-          el.classList.remove('animate-combo-pop');
-          el.classList.add('animate-combo-pulse');
-          void el.offsetWidth;
-        }
-      }
-
-      // ターゲットコンボの数値パルス
-      await new Promise(r => setTimeout(r, 400));
-      setTargetPulse(true);
-      setTimeout(() => setTargetPulse(false), 800);
-
-      // 一定時間後にコンボ表示を消す
-      setTimeout(() => {
-        if (comboRef.current) {
-          comboRef.current.classList.remove('animate-combo-pulse');
-          comboRef.current.classList.add('animate-fade-out');
-          setTimeout(() => {
-            if (comboRef.current) comboRef.current.innerHTML = '';
-          }, 500);
-        }
-      }, 1000);
-    };
-
-    await showComboBreakdown();
+    await showComboBreakdownLocal({
+      tc, logData, turnCombo, bonus, multiplier, effectiveCombo, isBeyondMode, MAX_COMBO
+    });
 
     let totalReduction = 0;
     let extraStarsPerStarDropErase = 0;
@@ -1785,7 +1791,7 @@ const App = () => {
         extraStarsPerStarDropErase += t.values?.[(t.level || 1) - 1] || 0;
       }
     });
-    const isCurseInitActive = tokens.some(t => t?.id === "curse_init");
+    const isCurseInitActive = tokens.some(t => t?.id === "curse_init") && !hasSaintToken;
     const baseStarThreshold = Math.max(1, 5 - totalReduction);
     const starThreshold = isCurseInitActive ? baseStarThreshold + 1 : baseStarThreshold;
 
@@ -1801,7 +1807,6 @@ const App = () => {
       notify(`+ ${totalStarsEarned} STARS!`);
       soundManager.playSE(SE_IDS.MATCH_STAR);
 
-      // 黄金の収集者を跳ねさせる
       tokens.forEach(t => {
         if (t && t.id === "collector") {
           triggerPassive(t.instanceId || t.id);
@@ -1816,6 +1821,14 @@ const App = () => {
           if (!prevGoalReached) {
             setShopRerollPrice(shopRerollBasePrice);
             soundManager.playSE(SE_IDS.GOAL_REACHED);
+            const rewardMult = getRewardMultiplier();
+            const rewardAmount = Math.floor(3 * rewardMult);
+            setStars(s => s + rewardAmount);
+            setCurrentRunStats(prevStats => ({
+              ...prevStats,
+              totalStarsEarned: (prevStats.totalStarsEarned || 0) + rewardAmount
+            }));
+            notify(`クリア報酬: ★+${rewardAmount}`);
           }
           return true;
         });
@@ -1823,10 +1836,6 @@ const App = () => {
       return updated;
     });
 
-    /* setEnergy((prev) => Math.min(maxEnergy, prev + 2)); // REMOVED */
-
-    // --- Charge Skills ---
-    // 飛躍の号令等、盤面ムーブドロップのカウント倍数チェック (move_drop_lucky)
     let moveDropLuckyTriggered = false;
     let luckyTokenId = null;
     let luckyTokenName = "";
@@ -1863,10 +1872,9 @@ const App = () => {
     if (moveDropLuckyTriggered) {
       logData.bonuses.push(`move_drop_lucky_max_charge`);
       logData.bonusSteps.push({ label: luckyTokenName || '幸運の歩み', value: 0, tokenId: luckyTokenId });
-      setTimeout(() => soundManager.playSE(SE_IDS.SKILL_READY), 500); // すこし遅れて音を鳴らす
+      setTimeout(() => soundManager.playSE(SE_IDS.SKILL_READY), 500);
     }
 
-    // Zero Combo Charge check
     let zeroComboBonusCharge = 0;
     if (effectiveCombo === 0) {
       tokens.forEach(t => {
@@ -1875,28 +1883,40 @@ const App = () => {
         if (t.effect === "zero_combo_charge") {
           const chargeVal = t.values?.[lv - 1] || 0;
           if (chargeVal > 0) {
-            triggerPassive(t.instanceId || t.id); // これは0コンボ時なので常に跳ねて良い（演出がないため）
+            triggerPassive(t.instanceId || t.id);
             zeroComboBonusCharge += chargeVal;
           }
         }
       });
     }
 
+    let extraAutoCharge = 0;
+    tokens.forEach(t => {
+      if (!t) return;
+      const lv = t.level || 1;
+      if (t.effect === "auto_charge") {
+        const chargeVal = t.values?.[lv - 1] || 1;
+        if (chargeVal > 0) {
+          triggerPassive(t.instanceId || t.id);
+          extraAutoCharge += chargeVal;
+        }
+      }
+    });
+
     setTokens(prevTokens => {
       let nextTokens = prevTokens.map(t => {
         if (!t) return t;
         let nt = { ...t };
-        
-        // --- アクティブスキルのチャージ ---
+
         if (nt.type === 'skill') {
           const currentCharge = nt.charge || 0;
           const maxCharge = nt.cost || 0;
           const chargeBoostCount = nt.enchantments?.filter(e => e.effect === "charge_boost_passive").length || 0;
-          
+
           if (moveDropLuckyTriggered) {
             nt.charge = maxCharge;
           } else {
-            const chargeAmount = 1 + chargeBoostCount + zeroComboBonusCharge;
+            const chargeAmount = 1 + chargeBoostCount + zeroComboBonusCharge + extraAutoCharge;
             nt.charge = Math.min(maxCharge, currentCharge + chargeAmount);
             if (nt.charge === maxCharge && currentCharge < maxCharge) {
               soundManager.playSE(SE_IDS.SKILL_READY);
@@ -1904,7 +1924,6 @@ const App = () => {
           }
         }
 
-        // --- 累積消去数パッシブのカウント ---
         if (nt.isCountPassive) {
           const attr = nt.attributes?.[0];
           const erasedCount = erasedColorCounts[attr] || 0;
@@ -1914,7 +1933,6 @@ const App = () => {
         return nt;
       });
 
-      // --- 累積消去数パッシブの効果発動 ---
       nextTokens.forEach(t => {
         if (t && t.isCountPassive) {
           const threshold = t.values?.[(t.level || 1) - 1] || 30;
@@ -1923,94 +1941,86 @@ const App = () => {
             t.charge %= threshold;
 
             for (let i = 0; i < triggerCount; i++) {
-            triggerPassive(t.instanceId || t.id);
-            soundManager.playSE(SE_IDS.SKILL_READY); // 仮で同じ音を鳴らす
+              triggerPassive(t.instanceId || t.id);
+              soundManager.playSE(SE_IDS.SKILL_READY);
 
-            switch (t.id) {
-              case "passive_fire_count": {
-                // 炎: ランダムトークン入手
-                const maxSlots = 5 + (tokenSlotExpansionCount || 0);
-                const currentCount = nextTokens.filter(tok => tok !== null).length;
-                if (currentCount < maxSlots) {
-                  const candidatePool = ALL_TOKEN_BASES.filter(b => b.type !== 'curse' && !b.isCurse && b.rarity <= 2 && b.id !== "passive_fire_count");
-                  const randomBase = candidatePool[Math.floor(Math.random() * candidatePool.length)];
-                  const isSkill = randomBase.type === 'skill';
-                  const isCp = randomBase.isCountPassive;
-                  const newToken = { 
-                    ...randomBase, 
-                    instanceId: Date.now() + Math.random(), 
-                    level: 1, 
-                    charge: isSkill ? (randomBase.cost || 0) : 0,
-                    startValue: randomBase.condition ? getStatByCondition(randomBase.condition) : 0
-                  };
-                  // nullのスロットを探す
-                  const emptyIdx = nextTokens.findIndex(tok => tok === null);
-                  if (emptyIdx !== -1) {
-                    nextTokens[emptyIdx] = newToken;
+              switch (t.id) {
+                case "passive_fire_count": {
+                  const maxSlots = 5 + (tokenSlotExpansionCount || 0);
+                  const currentCount = nextTokens.filter(tok => tok !== null).length;
+                  if (currentCount < maxSlots) {
+                    const candidatePool = ALL_TOKEN_BASES.filter(b => b.type !== 'curse' && !b.isCurse && b.rarity <= 2 && b.id !== "passive_fire_count");
+                    const randomBase = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+                    const isSkill = randomBase.type === 'skill';
+                    const isCp = randomBase.isCountPassive;
+                    const newToken = {
+                      ...randomBase,
+                      instanceId: Date.now() + Math.random(),
+                      level: 1,
+                      charge: isSkill ? (randomBase.cost || 0) : 0,
+                      startValue: randomBase.condition ? getStatByCondition(randomBase.condition) : 0
+                    };
+                    addTokenToast(newToken, "を入手した！ (紅炎の供物)");
                   } else {
-                    nextTokens.push(newToken);
+                    notify("紅炎の供物: トークン枠がいっぱいです！");
                   }
-                  notify(`紅炎の供物: ${newToken.name} を入手した！`);
-                } else {
-                  notify("紅炎の供物: トークン枠がいっぱいです！");
+                  break;
                 }
-                break;
-              }
-              case "passive_water_count": {
-                // 雨: ランダムエンチャント付与
-                const targets = nextTokens.filter(tok => tok !== null && !tok.isCurse && tok.type !== 'curse');
-                if (targets.length > 0) {
-                  const target = targets[Math.floor(Math.random() * targets.length)];
-                  const randomEnc = ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
-                  target.enchantments = [...(target.enchantments || []), { ...randomEnc, instanceId: Date.now() + Math.random() }];
-                  notify(`蒼雨の供物: ${target.name} に ${randomEnc.name} を付与した！`);
-                }
-                break;
-              }
-              case "passive_wood_count": {
-                // 風: スター1.2倍
-                setStars(prevStars => {
-                  const nextStars = Math.floor(prevStars * 1.2);
-                  notify(`翠風の供物: スター所持数が ${formatJapaneseNumber(nextStars)} になった！`);
-                  return nextStars;
-                });
-                break;
-              }
-              case "passive_dark_count": {
-                // 月: ランダムレベルアップ
-                const upgradeable = nextTokens.filter(tok => tok !== null && (tok.level || 1) < 3 && !tok.isCurse && tok.type !== 'curse' && tok.id !== "passive_dark_count");
-                if (upgradeable.length > 0) {
-                  const target = upgradeable[Math.floor(Math.random() * upgradeable.length)];
-                  target.level = (target.level || 1) + 1;
-                  notify(`常月の供物: ${target.name} が Lv${target.level} に上がった！`);
-                }
-                break;
-              }
-              case "passive_light_count": {
-                // 雷: 全スキルチャージ+2
-                nextTokens.forEach(tok => {
-                  if (tok && tok.type === 'skill') {
-                    tok.charge = Math.min(tok.cost || 0, (tok.charge || 0) + 2);
+                case "passive_water_count": {
+                  const targets = nextTokens.filter(tok => tok !== null && !tok.isCurse && tok.type !== 'curse');
+                  if (targets.length > 0) {
+                    const target = targets[Math.floor(Math.random() * targets.length)];
+                    const randomEnc = ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
+                    const newEnc = { ...randomEnc, instanceId: Date.now() + Math.random() };
+                    target.enchantments = [...(target.enchantments || []), newEnc];
+                    nextTokens.forEach(tok => {
+                      if (tok && tok.id === 'legend_magician' && tok !== target) {
+                        tok.enchantments = [...(tok.enchantments || []), { ...newEnc, instanceId: Date.now() + Math.random() }];
+                      }
+                    });
+                    addTokenToast(target, `に「${randomEnc.name}」を付与した！ (蒼雨の供物)`);
                   }
-                });
-                notify("閃雷の供物: 全スキルのチャージが貯まった！");
-                break;
+                  break;
+                }
+                case "passive_wood_count": {
+                  setStars(prevStars => {
+                    const nextStars = Math.floor(prevStars * 1.2);
+                    notify(`翠風の供物: スター所持数が ${formatJapaneseNumber(nextStars)} になった！`);
+                    return nextStars;
+                  });
+                  break;
+                }
+                case "passive_dark_count": {
+                  const upgradeable = nextTokens.filter(tok => tok !== null && (tok.level || 1) < 3 && !tok.isCurse && tok.type !== 'curse' && tok.id !== "passive_dark_count");
+                  if (upgradeable.length > 0) {
+                    const target = upgradeable[Math.floor(Math.random() * upgradeable.length)];
+                    target.level = (target.level || 1) + 1;
+                    addTokenToast(target, `が Lv${target.level} に上がった！ (常月の供物)`);
+                  }
+                  break;
+                }
+                case "passive_light_count": {
+                  nextTokens.forEach(tok => {
+                    if (tok && tok.type === 'skill') {
+                      tok.charge = Math.min(tok.cost || 0, (tok.charge || 0) + 2);
+                    }
+                  });
+                  notify("閃雷の供物: 全スキルのチャージが貯まった！");
+                  break;
+                }
               }
             }
           }
         }
-      }
-    });
+      });
 
       return nextTokens;
     });
 
-    // --- 呪いの浄化判定 ---
     const heartsErasedThisTurn = erasedColorCounts["heart"] || 0;
     setCurrentRunStats(prev => {
       const nextHearts = (prev.totalHeartsErased || 0) + heartsErasedThisTurn;
 
-      // 各ドロップ消去数の加算処理
       const nextDrops = { ...(prev.currentDropsErased || { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }) };
       Object.keys(erasedColorCounts).forEach(color => {
         if (nextDrops[color] !== undefined) {
@@ -2027,7 +2037,6 @@ const App = () => {
       return nextStats;
     });
 
-    // 累計ドロップ消去数の更新 (stats)
     setStats(prev => {
       const nextLifetimeDrops = { ...(prev.lifetimeDropsErased || { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }) };
       Object.keys(erasedColorCounts).forEach(color => {
@@ -2046,29 +2055,23 @@ const App = () => {
       );
     }
 
-    // setGoalReached(true); // Moved inside setCycleTotalCombo above
-
     if (!skipTurnProgressRef.current) {
       setTurn((prev) => prev + 1);
     }
 
-    // Reset or persist noSkyfall based on passive tokens
     if (engineRef.current) {
       const hasForbiddenLiteral = tokens.some((t) => t?.id === "forbidden" || t?.effect === "forbidden");
-      const hasCurseSkyfall = tokens.some((t) => t?.id === "curse_skyfall" || t?.effect === "curse_skyfall");
+      const hasCurseSkyfall = tokens.some((t) => (t?.id === "curse_skyfall" || t?.effect === "curse_skyfall") && !hasSaintToken);
       engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall;
     }
 
     skipTurnProgressRef.current = false;
   };
 
-  // Keep handleTurnEndRef current
   useEffect(() => {
     handleTurnEndRef.current = handleTurnEnd;
     onPassiveTriggerRef.current = triggerPassive;
     onStarEraseRef.current = (count) => {
-      // スタードロップ消去時の即時獲得処理
-      // 獲得量の計算（handleTurnEnd内のロジックと同様のボーナスを適用）
       const effectiveTokens = tokens.map((t, index) => {
         if (!t) return t;
         if (t.effect === 'copy_left' && index > 0 && tokens[index - 1] && tokens[index - 1].effect !== 'copy_left') {
@@ -2095,7 +2098,6 @@ const App = () => {
         lifetimeStarEarnedByDrops: (prev.lifetimeStarEarnedByDrops || 0) + amount
       }));
 
-      // スターブースト効果を持つトークンを跳ねさせる
       effectiveTokens.forEach(t => {
         if (t && t.effect === "star_earn_boost") {
           triggerPassive(t.instanceId || t.id);
@@ -2104,40 +2106,61 @@ const App = () => {
     };
   });
 
-  // Sanitize tokens on mount/update to remove nulls if any exist from legacy state
   useEffect(() => {
-    if (tokens.some(t => t === null)) {
-      setTokens(prev => prev.filter(t => t !== null));
+    let needsUpdate = false;
+    let nextTokens = [...tokens];
+
+    if (nextTokens.some(t => t === null)) {
+      nextTokens = nextTokens.filter(t => t !== null);
+      needsUpdate = true;
     }
-  }, [tokens]);
 
-  // REMOVED: Automatic turn transition watcher
-  /*******************************************************
-   useEffect(() => {
-     // エンドレスモードならターン制限によるゲームオーバー/クリア判定をスキップ
-     if (isEndlessMode) return;
-  
-     if (turn > maxTurns) {
-       if (goalReached) {
-         handleCycleClear(0);
-       } else {
-         handleGameOver();
-       }
-     }
-     // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [turn, goalReached, maxTurns, isEndlessMode]);
-  ********************************************************/
+    const hasKingToken = nextTokens.some(t => t?.id === "legend_king");
+    if (hasKingToken) {
+      nextTokens = nextTokens.map(t => {
+        if (!t || t.noLevelUp || t.level === 3) return t;
+        needsUpdate = true;
+        const newLevel = 3;
+        return {
+          ...t,
+          level: newLevel,
+          desc: getTokenDescription({ ...t, level: newLevel }, newLevel, currentRunStats, nextTokens, activeBuffs)
+        };
+      });
+    }
 
-  // Also watch for game over state manually handled in render now
+    if (needsUpdate) {
+      setTokens(nextTokens);
+    }
+  }, [tokens, currentRunStats, activeBuffs]);
+
   useEffect(() => {
     if (isEndlessMode) return;
     if (turn > maxTurns && !goalReached && !isGameOver) {
+      // 魔法の石（id: legend_magic_stone）を所持しているかチェック
+      const stoneIndex = tokens.findIndex(t => t?.id === "legend_magic_stone");
+      if (stoneIndex !== -1) {
+        // 魔法の石を破壊（tokens配列から削除）
+        setTokens(prev => {
+          const next = [...prev];
+          next.splice(stoneIndex, 1);
+          return next;
+        });
+        // 手番を 5 復活（turn を戻す。現在の turn は maxTurns + 1 なので、5引くと maxTurns - 4 になる）
+        setTurn(prev => prev - 5);
+        notify("魔法の石が砕け散り、手番が5回分復活した！");
+        soundManager.playSE(SE_IDS.CURSE_BREAK); // トークンが壊れる「パリーン！」音
+        setTimeout(() => {
+          soundManager.playSE(SE_IDS.SKILL_READY); // 復活時のチャージ完了音
+        }, 300);
+        return;
+      }
+
       setIsGameOver(true);
       soundManager.playSE(SE_IDS.GAME_OVER);
     }
-  }, [turn, goalReached, maxTurns, isEndlessMode, isGameOver]);
+  }, [turn, goalReached, maxTurns, isEndlessMode, isGameOver, tokens, notify]);
 
-  // 詳細モーダルを開いたとき、並び替え入力欄をそのトークンの現在位置で初期化する
   useEffect(() => {
     if (!selectedTokenDetail) {
       setTokenMoveInput('');
@@ -2157,17 +2180,14 @@ const App = () => {
 
     let baseClears = currentRunStats.currentClears || 0;
     if (typeof warpToCycle === 'number') {
-      baseClears = warpToCycle - 2; // e.g. 25 -> 23 -> nextCycle = 25
+      baseClears = warpToCycle - 2;
     }
 
     const nextCycle = baseClears + 2;
     let newTarget;
 
     if (isBeyondMode) {
-      // 彼岸モード: 目標上限を撤廃し、5サイクルごとに3倍、それ以外は1.5倍
-      // beyondCycle = nextCycle - 25 (何サイクル目の彼岸か)
       const beyondCycle = nextCycle - 25;
-      // まずcycle25の目標値 (MAX_TARGET) を基準とする
       let base = MAX_TARGET;
       for (let j = 1; j <= beyondCycle; j++) {
         const isBeyondJump = j > 0 && j % 5 === 0;
@@ -2175,7 +2195,6 @@ const App = () => {
       }
       newTarget = base;
     } else {
-      // 通常モード: サイクル25でMAX_TARGET (4294967294) に到達するよう計算
       newTarget = 8;
       for (let i = 2; i <= nextCycle; i++) {
         let mult = 1.5;
@@ -2201,7 +2220,6 @@ const App = () => {
     setCurrentRunStats(prev => ({ ...prev, currentClears: baseClears + 1 }));
     setStarProgress(0);
 
-    // Update shop reroll prices
     const nextBase = Math.ceil(shopRerollBasePrice * SHOP_REROLL_GROWTH_FACTOR);
     setShopRerollBasePrice(nextBase);
     setShopRerollPrice(nextBase);
@@ -2209,7 +2227,6 @@ const App = () => {
     generateShop(nextCycle);
     setShowShop(false);
 
-    // エンドレスモードでない場合のみ統計を更新
     if (!isEndlessMode) {
       setStats(prev => {
         const nextCycleStats = baseClears + 2;
@@ -2219,11 +2236,9 @@ const App = () => {
           maxCycleAllTime: Math.max(prev.maxCycleAllTime || 0, nextCycleStats)
         };
       });
-      // setCurrentRunStats was already called above, so it is removed here to avoid double-increment!
     }
 
     notify("NEXT CYCLE STARTED!");
-    // --- 複利の導き (Compound Interest) ---
     const interestEnchants = tokens.flatMap(t => t?.enchantments || []).filter(e => e.effect === 'compound_interest');
     if (interestEnchants.length > 0) {
       const interestRate = 0.05 * interestEnchants.length;
@@ -2235,34 +2250,43 @@ const App = () => {
     }
   };
 
+  const getRewardMultiplier = () => {
+    let skipMasterMultiplier = 1;
+
+    tokens.forEach(t => {
+      if (!t) return;
+      if (t.id === 'skip_master' || t.effect === 'skip_bonus_multiplier') {
+        const val = t.values?.[(t.level || 1) - 1] || 1;
+        skipMasterMultiplier *= val;
+      }
+    });
+
+    let timeBonusPct = 0;
+    tokens.forEach(t => {
+      if (!t) return;
+      if (t.effect === 'stat_time_move') {
+        const v = t.values?.[(t.level || 1) - 1] || 0.5;
+        const minutes = Math.floor((currentRunStats.currentTotalMoveTime || 0) / 60000);
+        timeBonusPct += (minutes * v);
+      }
+    });
+
+    return skipMasterMultiplier * (1 + timeBonusPct);
+  };
+
   const skipTurns = () => {
     const remainingTurns = maxTurns - turn + 1;
-    if (remainingTurns <= 0) return; // Do nothing if already over
+    if (remainingTurns <= 0) return;
 
-    let bonusMultiplier = 3;
-    const skipTokens = tokens.filter(t => t?.id === 'skip_master');
-    if (skipTokens.length > 0) {
-      bonusMultiplier = skipTokens.reduce((acc, t) => acc + (t.values[(t.level || 1) - 1] || 0), 0);
-    }
+    const rewardMult = getRewardMultiplier();
+    const starsPerTurn = Math.floor(3 * rewardMult);
+    const bonus = remainingTurns * starsPerTurn;
 
-    // --- 熟考の果て ---
-    const endOfThoughtTokens = tokens.filter(t => t?.effect === 'stat_time_move');
-    if (endOfThoughtTokens.length > 0) {
-      const timeBonusPct = endOfThoughtTokens.reduce((acc, t) => {
-        const v = t.values[(t.level || 1) - 1] || 0.05;
-        const minutes = Math.floor((currentRunStats.currentTotalMoveTime || 0) / 60000);
-        return acc + (minutes * v);
-      }, 0);
-      bonusMultiplier = Math.floor(bonusMultiplier * (1 + timeBonusPct));
-    }
-
-    const bonus = remainingTurns * bonusMultiplier;
     setStars((s) => s + bonus);
-    notify(`SKIP BONUS: +${bonus} STARS!`);
+    notify(`SKIP BONUS: +${bonus} STARS! (+${starsPerTurn}/回)`);
     setSkippedTurnsBonus(prev => prev + remainingTurns);
     setCurrentRunStats(prev => ({ ...prev, skipsPerformed: (prev.skipsPerformed || 0) + 1 }));
 
-    // Force turn to end state to trigger Clear Overlay
     setTurn(maxTurns + 1);
   };
 
@@ -2278,22 +2302,20 @@ const App = () => {
     setShopRerollPrice(1);
     setTokens([]);
     setSandsOfTimeSeconds(0);
-    /* setEnergy(0); // REMOVED */
     setActiveBuffs([]);
     setSkippedTurnsBonus(0);
     setPendingShopItem(null);
     setGoalReached(false);
     setShowShop(false);
-    setShowGameClear(false); // Game Clear画面をリセット
+    setShowGameClear(false);
     setIsGameOver(false);
-    setIsEndlessMode(false); // Reset endless mode
-    setStarProgress(0); // Reset progress
+    setIsEndlessMode(false);
+    setStarProgress(0);
     setTotalPurchases(0);
     setTotalStarsSpent(0);
     setShopItems([]);
     setSavedBoard(null);
-    setHasSaveData(false); // 新規ゲーム時はセーブデータなし状態へ
-    // 覚醒ショップのリセット（解放フラグは新規ゲーム開始時にリセット）
+    setHasSaveData(false);
     setIsEnchantShopUnlocked(false);
     setTokenSlotExpansionCount(0);
     setIsAwakeningLevelUpBought(false);
@@ -2303,16 +2325,12 @@ const App = () => {
     }
     setStats(prev => {
       const nextStats = { ...prev };
-      // 新規ゲーム開始時、エンドレスでない場合は少なくともCycle 1を記録
       if (!isEndlessMode) {
         nextStats.maxCycleAllTime = Math.max(nextStats.maxCycleAllTime || 0, 1);
       }
       return nextStats;
     });
     setCurrentRunStats(initialCurrentRunStats);
-
-    // 開始スタイルによって初期スターを調整
-    // 無の対価 の場合は0、それ以外は5
   };
 
   const handleStartOptionSelection = (option) => {
@@ -2321,10 +2339,9 @@ const App = () => {
     setShowTitle(false);
 
     if (option === 'safety') {
-      // 安全: 操作時間3秒延長、星1パッシブ1つ + 星1スキル1つ、初期スター10
       setSandsOfTimeSeconds(3);
       setStars(10);
-      
+
       let star1PassivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type === 'passive' && t.canBeInitial && t.type !== 'curse');
       if (star1PassivePool.length === 0) star1PassivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type === 'passive' && t.type !== 'curse');
       const passiveToken = star1PassivePool[Math.floor(Math.random() * star1PassivePool.length)];
@@ -2333,14 +2350,14 @@ const App = () => {
       if (star1ActivePool.length === 0) star1ActivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type === 'skill' && t.type !== 'curse');
       const activeToken = star1ActivePool[Math.floor(Math.random() * star1ActivePool.length)];
 
-      setTokens([
-        { ...passiveToken, instanceId: Date.now() + Math.random(), level: 1 },
-        { ...activeToken, instanceId: Date.now() + Math.random() + 1, level: 1, charge: activeToken.cost || 0 }
-      ]);
+      const pToken = { ...passiveToken, instanceId: Date.now() + Math.random(), level: 1 };
+      const aToken = { ...activeToken, instanceId: Date.now() + Math.random() + 1, level: 1, charge: activeToken.cost || 0 };
+      setTokens([pToken, aToken]);
 
-      notify("「安全」スタイルで開始しました (+3s, 星1P+星1A, 10★)");
+      notify("「安全」スタイルで開始しました (+3s, 10★)");
+      addTokenToast(pToken, "を獲得した！");
+      addTokenToast(aToken, "を獲得した！");
     } else if (option === 'solid') {
-      // 堅実: 星2パッシブ + 星1アクティブ、初期スター5
       let star2PassivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 2 && t.type === 'passive' && t.canBeInitial && t.type !== 'curse');
       if (star2PassivePool.length === 0) star2PassivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 2 && t.type === 'passive' && t.type !== 'curse');
       const passiveToken = star2PassivePool[Math.floor(Math.random() * star2PassivePool.length)];
@@ -2349,22 +2366,21 @@ const App = () => {
       if (star1ActivePool.length === 0) star1ActivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type === 'skill' && t.type !== 'curse');
       const activeToken = star1ActivePool[Math.floor(Math.random() * star1ActivePool.length)];
 
-      setTokens([
-        { ...passiveToken, instanceId: Date.now() + Math.random(), level: 1 },
-        { ...activeToken, instanceId: Date.now() + Math.random() + 1, level: 1, charge: activeToken.cost || 0 }
-      ]);
+      const pToken = { ...passiveToken, instanceId: Date.now() + Math.random(), level: 1 };
+      const aToken = { ...activeToken, instanceId: Date.now() + Math.random() + 1, level: 1, charge: activeToken.cost || 0 };
+      setTokens([pToken, aToken]);
       setStars(5);
-      notify("「堅実」スタイルで開始しました (星2パッシブ + 星1アクティブ, 5★)");
+      notify("「堅実」スタイルで開始しました (5★)");
+      addTokenToast(pToken, "を獲得した！");
+      addTokenToast(aToken, "を獲得した！");
     } else if (option === 'challenge') {
-      // 挑戦: 呪い、初期スター5 (curse_initの場合は0)
       const cursePool = ALL_TOKEN_BASES.filter(t => t.type === 'curse' || t.isCurse === true);
       const randomCurse = cursePool[Math.floor(Math.random() * cursePool.length)];
-      const initToken = { 
-        ...randomCurse, 
+      const initToken = {
+        ...randomCurse,
         instanceId: Date.now() + Math.random(),
         startValue: randomCurse.condition ? getStatByCondition(randomCurse.condition) : 0
       };
-      // 増殖呪いの場合の初期設定
       if (randomCurse.id === 'curse_multiply') {
         initToken.charge = 0;
         const passiveDummy = ALL_TOKEN_BASES.find(t => t.id === 'curse_multiplied_p');
@@ -2377,7 +2393,8 @@ const App = () => {
 
       const initialStars = randomCurse.id === 'curse_init' ? Math.floor(5 / 2) : 5;
       setStars(initialStars);
-      notify(`「挑戦」スタイルで開始しました (呪い獲得, ${initialStars}★)`);
+      notify(`「挑戦」スタイルで開始しました (${initialStars}★)`);
+      addTokenToast(initToken, "の呪いを受けて開始...");
     }
 
     if (engineRef.current) {
@@ -2398,11 +2415,6 @@ const App = () => {
     setShowStartOption(true);
   };
 
-  const notify = (text) => {
-    setMessage(text);
-    setTimeout(() => setMessage(null), 3000);
-  };
-
   const generateShop = (overrideCycleCount = null) => {
     const isLuxury = totalPurchases >= 6;
 
@@ -2414,12 +2426,6 @@ const App = () => {
         const value = t.values[(t.level || 1) - 1];
         saleBonus += value;
       }
-      if (t?.effect === 'rainbow_combo_bonus') {
-        // Already handled in PuzzleEngine
-      }
-      if (t?.effect === 'heart_combo_bonus') {
-        // Already handled in PuzzleEngine
-      }
       if (t?.effect === "enchant_grant_boost") {
         const value = t.values[(t.level || 1) - 1];
         enchantGrantBonus += value;
@@ -2430,9 +2436,8 @@ const App = () => {
       }
     });
 
-    // Determine target counts
     const upgradeCount = 1;
-    const basePassiveCount = 3 + shopExpandBonus;
+    const basePassiveCount = 4 + shopExpandBonus;
     const baseActiveCount = 4 + shopExpandBonus;
     const enchantCount = 3;
     const extraEnchantCount = enchantGrantBonus + (isLuxury ? 1 : 0);
@@ -2440,7 +2445,6 @@ const App = () => {
 
     setIsAwakeningLevelUpBought(false);
 
-    // 属性の重み計算
     const attrWeights = { fire: 1, water: 1, wood: 1, light: 1, dark: 1, heart: 1, none: 1 };
     tokens.forEach(t => {
       if (t && t.effect === 'shop_attribute_weight' && t.params?.attribute) {
@@ -2449,11 +2453,11 @@ const App = () => {
       }
     });
 
-    // Define rarity probabilities based on cycleCount
     const getRarityProbabilities = (cycle) => {
-      if (cycle <= 5) return { 1: 0.60, 2: 0.30, 3: 0.10 };
-      if (cycle <= 9) return { 1: 0.40, 2: 0.40, 3: 0.20 };
-      return { 1: 0.30, 2: 0.40, 3: 0.30 }; // cycle 10+
+      if (cycle <= 5) return { 1: 0.60, 2: 0.30, 3: 0.10, 4: 0.00 };
+      if (cycle <= 9) return { 1: 0.40, 2: 0.40, 3: 0.20, 4: 0.00 };
+      if (cycle <= 15) return { 1: 0.30, 2: 0.38, 3: 0.30, 4: 0.02 };
+      return { 1: 0.20, 2: 0.30, 3: 0.40, 4: 0.10 };
     };
 
     const cycleCount = overrideCycleCount ?? ((currentRunStats?.currentClears || 0) + 1);
@@ -2477,41 +2481,53 @@ const App = () => {
     const adjustProb = (base, upRate, downRate, max) =>
       Math.max(0, Math.min(max, base + upRate * rarityUpCount - downRate * rarityDownCount));
 
-    let p3 = adjustProb(probs[3] || 0, 0.10, 0.10, 1);
-    let p2 = adjustProb(probs[2] || 0, 0.10, 0.10, 1 - p3);
-    let p1 = Math.max(0, 1 - p2 - p3);
+    let p4 = adjustProb(probs[4] || 0, 0.05, 0.05, 1);
+    let p3 = adjustProb(probs[3] || 0, 0.10, 0.10, 1 - p4);
+    let p2 = adjustProb(probs[2] || 0, 0.10, 0.10, 1 - p3 - p4);
+    let p1 = Math.max(0, 1 - p2 - p3 - p4);
 
-    probs = { 1: p1, 2: p2, 3: p3 };
+    const hasCeleb = tokens.some(t => t?.effect === "celeb");
+    if (hasCeleb) {
+      const halfP1 = p1 / 2;
+      p2 += halfP1;
+      p3 += halfP1;
+      p1 = 0;
+    }
+
+    probs = { 1: p1, 2: p2, 3: p3, 4: p4 };
 
     const getRarity = () => {
       const rand = Math.random();
       if (rand < probs[1]) return 1;
       if (rand < probs[1] + probs[2]) return 2;
-      return 3;
+      if (rand < probs[1] + probs[2] + probs[3]) return 3;
+      return 4;
     };
 
-    // Pool setup
     const passivesPools = {
       1: ALL_TOKEN_BASES.filter(t => t.type === "passive" && (t.rarity || 1) === 1 && !t.isCurse),
       2: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 2 && !t.isCurse),
       3: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 3 && !t.isCurse),
+      4: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 4 && !t.isCurse && !tokens.some(own => own?.id === t.id)),
     };
     if (passivesPools[2].length === 0) passivesPools[2] = passivesPools[1];
     if (passivesPools[3].length === 0) passivesPools[3] = passivesPools[2];
+    if (passivesPools[4].length === 0) passivesPools[4] = passivesPools[3];
 
     const activesPools = {
       1: ALL_TOKEN_BASES.filter(t => t.type === "skill" && (t.rarity || 1) === 1 && !t.isCurse),
       2: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 2 && !t.isCurse),
       3: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 3 && !t.isCurse),
+      4: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 4 && !t.isCurse && !tokens.some(own => own?.id === t.id)),
     };
     if (activesPools[2].length === 0) activesPools[2] = activesPools[1];
     if (activesPools[3].length === 0) activesPools[3] = activesPools[2];
+    if (activesPools[4].length === 0) activesPools[4] = activesPools[3];
 
     const createTokenItem = (pools) => {
       const rarity = getRarity();
       const pool = pools[rarity];
 
-      // 重み付き選択
       const weightedPool = pool.map(base => {
         let weight = 1;
         if (!base.attributes || base.attributes.length === 0) {
@@ -2536,20 +2552,15 @@ const App = () => {
       }
 
       const item = { ...selectedBase, level: 1, charge: selectedBase.cost || 0 };
-      item.price = getTokenDynamicPrice(selectedBase, tokens); // 動的価格を適用
+      item.price = getTokenDynamicPrice(selectedBase, tokens);
       item.desc = getTokenDescription(item, 1, currentRunStats, tokens, activeBuffs);
-      // エンチャント付きでのトークン販売は廃止
       return item;
     };
 
-
-    // 2. Passives
     const passiveItems = Array.from({ length: basePassiveCount }).map(() => createTokenItem(passivesPools));
 
-    // 3. Enchants（エンチャントショップ専用。常時生成する）
     const enchantItems = [];
     {
-      // 基本は常に2種類生成
       for (let i = 0; i < enchantCount; i++) {
         const enc = ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
         const encDesc = getEnchantDescription(enc.id);
@@ -2558,12 +2569,10 @@ const App = () => {
           type: "enchant_random",
           name: enc.name,
           originalName: enc.name,
-          // 効果説明をdescに直接含める
           desc: encDesc || `所持トークンにランダムに「${enc.name}」を付与する。`,
         });
       }
 
-      // 「魔道の極意」等によるボーナス枠
       for (let i = 0; i < extraEnchantCount; i++) {
         const enc = ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
         const encDesc = getEnchantDescription(enc.id);
@@ -2578,10 +2587,8 @@ const App = () => {
       }
     }
 
-    // 4. Actives
     const activeItems = Array.from({ length: baseActiveCount }).map(() => createTokenItem(activesPools));
 
-    // Apply Sales only to Passives and Actives
     const candidatesForSale = [...passiveItems, ...activeItems];
     const saleIndices = Array.from({ length: candidatesForSale.length }, (_, i) => i);
 
@@ -2593,8 +2600,6 @@ const App = () => {
       candidatesForSale[targetIdx].price = Math.floor(candidatesForSale[targetIdx].price / 2);
     }
 
-    // Combine all in required order
-    // Order: passive, enchant, active
     const finalItems = [...passiveItems, ...enchantItems, ...activeItems];
 
     if (cycleCount >= 5 && Math.random() < 0.3) {
@@ -2612,13 +2617,17 @@ const App = () => {
     return finalItems;
   };
 
-  const buyItem = (item) => {
+  const buyItem = (item, clickPos) => {
     if (stars < item.price) {
       soundManager.playSE(SE_IDS.ERROR);
       return notify("★が足りません");
     }
 
-    // 永続強化: 時の砂
+    if (clickPos) {
+      spawnParticles(8, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
+    }
+    soundManager.playSE(SE_IDS.BUY_STAR);
+
     if (item.id === "time_ext") {
       setSandsOfTimeSeconds(prev => prev + 2);
       setStars((s) => s - item.price);
@@ -2665,23 +2674,22 @@ const App = () => {
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
-      notify(`「${targetToLose.name}」が「${gainItem.name}」に昇華した！`);
-      setSelectedTokenDetail({ token: gainItem, actionText: `「${gainItem.name}」に昇華しました！` });
+      addTokenToast(gainItem, `に昇華しました！`);
       return;
     }
 
     if (item.type === "upgrade_random") {
-      // Filter only tokens that are not max level (Max Lv 3) and not copy tokens
       const upgradeableTokens = tokens.filter(t => (t.level || 1) < 3 && t.effect !== 'copy_left');
 
       if (upgradeableTokens.length === 0) return notify("強化可能なトークンがありません");
 
-      // Randomly select one from upgradeable tokens
       const targetToken = upgradeableTokens[Math.floor(Math.random() * upgradeableTokens.length)];
-      // Find index in original array to update
       const targetIdx = tokens.findIndex(t => t.instanceId === targetToken.instanceId);
 
+      triggerLevelUp(targetToken.instanceId);
+
       setTokens((prev) => {
+
         const next = [...prev];
         const nextLevel = (next[targetIdx].level || 1) + 1;
         next[targetIdx] = {
@@ -2698,11 +2706,10 @@ const App = () => {
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
-      
+
       const nextLevel = (targetToken.level || 1) + 1;
       const updatedToken = { ...targetToken, level: nextLevel, desc: getTokenDescription(targetToken, nextLevel, currentRunStats, tokens, activeBuffs) };
-      notify(`${targetToken.name} が強化されました! (Lv${nextLevel})`);
-      setSelectedTokenDetail({ token: updatedToken, actionText: "ランダム強化されました！" });
+      addTokenToast(updatedToken, "が強化されました！");
 
     } else if (item.type === "enchant_random") {
       const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left');
@@ -2713,10 +2720,19 @@ const App = () => {
 
       setTokens((prev) => {
         const next = [...prev];
+        const newEnc = { id: item.id, effect: item.effect, name: item.originalName, params: item.params };
         next[targetIdx] = {
           ...next[targetIdx],
-          enchantments: [...(next[targetIdx].enchantments || []), { id: item.id, effect: item.effect, name: item.originalName, params: item.params }],
+          enchantments: [...(next[targetIdx].enchantments || []), newEnc],
         };
+        next.forEach((t, i) => {
+          if (t && t.id === 'legend_magician' && i !== targetIdx) {
+            next[i] = {
+              ...next[i],
+              enchantments: [...(next[i].enchantments || []), { ...newEnc }]
+            };
+          }
+        });
         return next;
       });
 
@@ -2726,13 +2742,12 @@ const App = () => {
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
-      
-      const updatedToken = { 
-        ...targetToken, 
-        enchantments: [...(targetToken.enchantments || []), { id: item.id, effect: item.effect, name: item.originalName, params: item.params }] 
+
+      const updatedToken = {
+        ...targetToken,
+        enchantments: [...(targetToken.enchantments || []), { id: item.id, effect: item.effect, name: item.originalName, params: item.params }]
       };
-      notify(`${targetToken.name} に「${item.originalName}」を付与!`);
-      setSelectedTokenDetail({ token: updatedToken, actionText: `「${item.originalName}」をランダム付与しました！` });
+      addTokenToast(targetToken, `に「${item.originalName}」を付与しました！`);
 
     } else if (item.type === "enchant_grant") {
       const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left');
@@ -2743,10 +2758,19 @@ const App = () => {
 
       setTokens((prev) => {
         const next = [...prev];
+        const newEnc = { id: item.id, effect: item.effect, name: item.name, params: item.params };
         next[targetIdx] = {
           ...next[targetIdx],
-          enchantments: [...(next[targetIdx].enchantments || []), { id: item.id, effect: item.effect, name: item.name, params: item.params }],
+          enchantments: [...(next[targetIdx].enchantments || []), newEnc],
         };
+        next.forEach((t, i) => {
+          if (t && t.id === 'legend_magician' && i !== targetIdx) {
+            next[i] = {
+              ...next[i],
+              enchantments: [...(next[i].enchantments || []), { ...newEnc }]
+            };
+          }
+        });
         return next;
       });
       setStars((s) => s - item.price);
@@ -2754,13 +2778,12 @@ const App = () => {
       setTotalStarsSpent((prev) => prev + item.price);
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
-      
-      const updatedToken = { 
-        ...targetToken, 
-        enchantments: [...(targetToken.enchantments || []), { id: item.id, effect: item.effect, name: item.name, params: item.params }] 
+
+      const updatedToken = {
+        ...targetToken,
+        enchantments: [...(targetToken.enchantments || []), { id: item.id, effect: item.effect, name: item.name, params: item.params }]
       };
-      notify("購入完了!");
-      setSelectedTokenDetail({ token: updatedToken, actionText: `「${item.name}」を付与しました！` });
+      addTokenToast(updatedToken, `に「${item.name}」を付与しました！`);
     } else if (item.type === "grant_random_curse") {
       const activeCount = tokens.filter(t => t?.type === 'skill' || t?.isCurse).length;
       const passiveCount = tokens.filter(t => t && t?.type !== 'skill' && !t?.isCurse).length;
@@ -2775,10 +2798,10 @@ const App = () => {
       if (isCurseActive && activeCount >= maxSlots) return notify(`アクティブ枠がいっぱいで呪いを受け取れません`);
       if (!isCurseActive && passiveCount >= maxSlots) return notify(`パッシブ枠がいっぱいで呪いを受け取れません`);
 
-      const curseItem = { 
-        ...randomCurseBase, 
-        level: 1, 
-        charge: 0, 
+      const curseItem = {
+        ...randomCurseBase,
+        level: 1,
+        charge: 0,
         instanceId: Date.now() + Math.random(),
         startValue: randomCurseBase.condition ? getStatByCondition(randomCurseBase.condition) : 0
       };
@@ -2786,7 +2809,6 @@ const App = () => {
         curseItem.curseUses = 0;
       }
 
-      // 「増殖」の場合の初期デバフ生成
       if (randomCurseBase.id === 'curse_multiply') {
         const passiveDummy = ALL_TOKEN_BASES.find(t => t.id === 'curse_multiplied_p');
         const dummy = { ...passiveDummy, instanceId: Date.now() + Math.random(), parentId: curseItem.instanceId, level: 1, charge: 0 };
@@ -2796,46 +2818,42 @@ const App = () => {
       }
       setStars(s => {
         const nextStars = s - item.price;
-        return randomCurseBase.id === 'curse_init' ? Math.floor(nextStars / 2) : nextStars;
+        return randomCurseBase.id === 'curse_init' && !hasSaintToken ? Math.floor(nextStars / 2) : nextStars;
       });
       setTotalPurchases(p => p + 1);
       setShopItems(prev => prev.filter(i => i !== item));
-      notify(`呪い「${randomCurseBase.name}」を得た…！`);
-      setSelectedTokenDetail({ token: curseItem, actionText: `呪いを得た…！` });
+      addTokenToast(curseItem, "の呪いを得た…！");
     } else {
-      // Normal Token Purchase
       const isActive = item.type === 'skill';
       const maxSlots = 5 + tokenSlotExpansionCount;
 
       const existingIdx = tokens.findIndex((t) => t?.id === item.id);
       if (existingIdx !== -1) {
-        // 所持している場合：強化が可能か、あるいは2つ目が装備可能かチェック
+        if (item.noLevelUp) {
+          return notify("このトークンは複数所持・強化できません");
+        }
         const maxLv = tokens[existingIdx].values?.length || 3;
         const currentLevel = tokens[existingIdx].level || 1;
         const activeCount = tokens.filter(t => t?.type === 'skill').length;
         const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
 
         if (currentLevel < maxLv) {
-          // まだ強化可能なら、スロットが満杯でも進める（強化が選べるため）
           setPendingShopItem(item);
         } else {
-          // すでに最大Lvの場合、2つ目を装備できる空きがあるかチェック
           if ((isActive && activeCount >= maxSlots) || (!isActive && passiveCount >= maxSlots)) {
             return notify(`これ以上強化できません (Max Lv${maxLv})`);
           }
-          // 空きがあれば2つ目装備のためにモーダルを出す
           setPendingShopItem(item);
         }
       } else {
-        // 未所持の場合：スロットをチェック
         const activeCount = tokens.filter(t => t?.type === 'skill').length;
         const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
-        const maxSlotsCurrent = 5 + tokenSlotExpansionCount; 
+        const maxSlotsCurrent = 5 + tokenSlotExpansionCount;
         if (isActive && activeCount >= maxSlotsCurrent) return notify(`アクティブスキルは${maxSlotsCurrent}個までです`);
         if (!isActive && passiveCount >= maxSlotsCurrent) return notify(`パッシブアイテムは${maxSlotsCurrent}個までです`);
 
-        const obtainedToken = { 
-          ...item, 
+        const obtainedToken = {
+          ...item,
           instanceId: Date.now() + Math.random(),
           startValue: item.condition ? getStatByCondition(item.condition) : 0
         };
@@ -2850,19 +2868,18 @@ const App = () => {
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
         setShopItems((prev) => prev.filter((i) => i !== item));
         notify("購入完了!");
-        setSelectedTokenDetail({ token: obtainedToken, actionText: "取得しました！" });
+        addTokenToast(obtainedToken, "を獲得しました！");
       }
     }
   };
 
-  // --- 覚醒ショップの購入処理 ---
   const AWAKENING_TOKEN_SLOT_PRICES = [100, 500, 2000, 10000, 50000];
 
   const getTokenSlotExpandPrice = () => {
     return AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpansionCount, 4)] || 50000;
   };
 
-  const buyAwakeningItem = (type) => {
+  const buyAwakeningItem = (type, clickPos) => {
     switch (type) {
       case 'random_levelup': {
         const price = 5;
@@ -2873,7 +2890,15 @@ const App = () => {
         const upgradeableTokens = tokens.filter(t => (t?.level || 1) < 3);
         if (upgradeableTokens.length === 0) return notify('強化可能なトークンがありません (Max Lv3)');
         const targetToken = upgradeableTokens[Math.floor(Math.random() * upgradeableTokens.length)];
+
+        if (clickPos) {
+          spawnParticles(12, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
+        }
+        soundManager.playSE(SE_IDS.AWAKEN_BUY);
+        triggerLevelUp(targetToken.instanceId);
+
         const targetIdx = tokens.findIndex(t => t?.instanceId === targetToken.instanceId);
+
         setTokens(prev => {
           const next = [...prev];
           const nextLevel = (next[targetIdx].level || 1) + 1;
@@ -2891,11 +2916,11 @@ const App = () => {
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + price }));
         setIsAwakeningLevelUpBought(true);
         soundManager.playSE(SE_IDS.AWAKEN_BUY);
-        
+
         const nextLevel = (targetToken.level || 1) + 1;
         const updatedToken = { ...targetToken, level: nextLevel, desc: getTokenDescription(targetToken, nextLevel, currentRunStats, tokens, activeBuffs) };
         notify(`${targetToken.name} が強化されました! (Lv${nextLevel})`);
-        setSelectedTokenDetail({ token: updatedToken, actionText: "覚醒によりランダム強化されました！" });
+        addTokenToast(updatedToken, "が覚醒強化されました！");
         break;
       }
       case 'unlock_enchant_shop': {
@@ -2908,17 +2933,22 @@ const App = () => {
         setIsEnchantShopUnlocked(true);
         setStars(s => s - price);
         soundManager.playSE(SE_IDS.AWAKEN_BUY);
+        if (clickPos) {
+          spawnParticles(15, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
+        }
         notify('エンチャントショップが解放されました!');
         break;
       }
       case 'expand_token_slots': {
-        // 彼岸モード時は最大15枠、通常は最大10枠
-        const beyondSlotMax = isBeyondMode ? 10 : 5; // 拡張回数上限 (15-5=10 or 10-5=5)
+        const beyondSlotMax = isBeyondMode ? 10 : 5;
         if (tokenSlotExpansionCount >= beyondSlotMax) return notify(`これ以上拡張できません (最大${5 + beyondSlotMax}枠)`);
         const price = getTokenSlotExpandPrice();
         if (stars < price) {
           soundManager.playSE(SE_IDS.ERROR);
           return notify('★が足りません');
+        }
+        if (clickPos) {
+          spawnParticles(15, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
         }
         setTokenSlotExpansionCount(prev => prev + 1);
         setStars(s => s - price);
@@ -2926,6 +2956,7 @@ const App = () => {
         notify(`トークン枠が ${5 + tokenSlotExpansionCount + 1} / ${5 + tokenSlotExpansionCount + 1} に拡張されました!`);
         break;
       }
+
       default:
         break;
     }
@@ -2945,7 +2976,6 @@ const App = () => {
         if (idx !== -1) {
           const currentLevel = next[idx].level || 1;
           if (currentLevel >= 3) {
-            // Should verify in UI but safe check here
             return next;
           }
           const nextLevel = currentLevel + 1;
@@ -2959,10 +2989,9 @@ const App = () => {
         }
         return next;
       });
-      notify(`${item.name} を強化しました!`);
+      addTokenToast(item, "を強化した！");
     } else {
 
-      // "Equip Second" logic - check limits again
       const isActive = item.type === 'skill';
       const activeCount = tokens.filter(t => t.type === 'skill').length;
       const passiveCount = tokens.filter(t => t.type !== 'skill').length;
@@ -3003,19 +3032,17 @@ const App = () => {
     setShopItems((prev) => prev.filter((i) => i !== item));
     setPendingShopItem(null);
     if (updatedToken) {
-      setSelectedTokenDetail({ token: updatedToken, actionText });
+      addTokenToast(updatedToken, actionText);
     }
   };
 
   const activateSkill = (token) => {
     if (!token || token.type !== "skill") return;
 
-    // オーバーレイ表示時はスキル発動不可
     if (isGameOver) return notify("ゲームオーバー時は使用できません");
     if (turn > maxTurns && goalReached) return notify("クリア時は使用できません");
     if (showShop) return notify("ショップ画面では使用できません");
 
-    // Check individual charge
     const currentCharge = token.charge || 0;
     const cost = getEffectiveCost(token, currentRunStats, tokens, activeBuffs);
 
@@ -3038,14 +3065,10 @@ const App = () => {
     if (token.id === "curse_chronos") {
       soundManager.playSE(SE_IDS.CHRONOS_STOP);
     }
-    console.log("Using skill:", token);
 
-    // --- 効果時間延長パッシブの計算 ---
     let extraDuration = 0;
-    // calculateComboと同様、この時点でのtokens（またはリファクタリング後のeffectiveTokens相当）から取得
     tokens.forEach((t, index) => {
       if (!t) return;
-      // コピートークンも考慮
       let workToken = t;
       if (t.effect === 'copy_left' && index > 0 && tokens[index - 1] && tokens[index - 1].effect !== 'copy_left') {
         workToken = tokens[index - 1];
@@ -3076,7 +3099,7 @@ const App = () => {
                 textEl.innerText = orb.moveCount;
                 textEl.classList.remove('rainbow-hit-pulse');
                 void textEl.offsetWidth;
-                textEl.classList.add('rainbow-hit-pulse'); 
+                textEl.classList.add('rainbow-hit-pulse');
               }
             }
           });
@@ -3098,6 +3121,69 @@ const App = () => {
       case "board_balance":
         engine.changeBoardBalanced();
         break;
+      case "curse_passive_null": {
+          if (hasSaintToken) {
+            notify("聖女の加護により呪いの効果を無効化！");
+          } else {
+            const duration = token.params?.duration || 2;
+            setActiveBuffs(prev => [
+              ...prev,
+              {
+                action: "curse_passive_null",
+                params: { duration },
+                remaining: duration,
+                sourceTokenId: token.instanceId,
+                name: "受難の呪い(パッシブ無効)"
+              }
+            ]);
+            notify("受難の呪いが発動…（数手番パッシブ無効）");
+            addTokenToast(token, "パッシブ無効化…");
+          }
+          break;
+        }
+
+      case "curse_multiply": {
+          if (hasSaintToken) {
+            notify("聖女の加護により呪いの増殖を阻止！");
+          } else {
+            const spawnType = token.params?.spawnType || 'passive';
+            const dummyBase = ALL_TOKEN_BASES.find(t => t.id === (spawnType === 'passive' ? 'curse_multiplied_p' : 'curse_multiplied_a'));
+            if (dummyBase) {
+              const maxSlots = 5 + tokenSlotExpansionCount;
+              const currentCount = tokens.filter(t => t && t.type === (spawnType === 'passive' ? 'passive' : 'skill')).length;
+              if (currentCount < maxSlots) {
+                const newDummy = { ...dummyBase, instanceId: Date.now() + Math.random(), parentId: token.instanceId, level: 1, charge: 0 };
+                setTokens(prev => [...prev, newDummy]);
+                notify("呪いが増殖した…！");
+                addTokenToast(token, "増殖！");
+              } else {
+                notify("枠が一杯で呪いは増殖できなかった");
+              }
+            }
+          }
+          break;
+        }
+
+      case "curse_time_reduction": {
+          if (hasSaintToken) {
+            notify("聖女の加護により時間の消失を無効化！");
+          } else {
+            const duration = token.params?.duration || 2;
+            setActiveBuffs(prev => [
+              ...prev,
+              {
+                action: "curse_op_time_fix",
+                params: { timeMs: token.params?.timeMs || 1000 },
+                remaining: duration,
+                sourceTokenId: token.instanceId,
+                name: "刹那の呪縛"
+              }
+            ]);
+            notify("刹那の呪縛が発動…（数手番操作時間短縮）");
+            addTokenToast(token, "時間が奪われる…");
+          }
+          break;
+        }
       case "spawn_bomb_random":
         engine.spawnBombRandom(token.params.count);
         break;
@@ -3233,15 +3319,15 @@ const App = () => {
         break;
       }
       case "random_levelup": {
-        const upgradeable = tokens.filter(t => 
-          t && 
-          t.instanceId !== token.instanceId && 
-          (t.level || 1) < 3 && 
-          t.effect !== 'copy_left' && 
-          !t.isCurse && 
+        const upgradeable = tokens.filter(t =>
+          t &&
+          t.instanceId !== token.instanceId &&
+          (t.level || 1) < 3 &&
+          t.effect !== 'copy_left' &&
+          !t.isCurse &&
           t.type !== 'curse'
         );
-        
+
         if (upgradeable.length > 0) {
           const target = upgradeable[Math.floor(Math.random() * upgradeable.length)];
           setTokens(prev => {
@@ -3285,8 +3371,8 @@ const App = () => {
           selectedBase = cursePool[Math.floor(Math.random() * cursePool.length)];
         } else {
           // 「招来」系スキル自身を除外したプールから抽選
-          const pool = ALL_TOKEN_BASES.filter(b => 
-            b.rarity === targetRarity && 
+          const pool = ALL_TOKEN_BASES.filter(b =>
+            b.rarity === targetRarity &&
             b.type !== 'curse' && !b.isCurse &&
             !["gen_token_s1", "gen_token_s2", "gen_token_s3"].includes(b.id)
           );
@@ -3314,7 +3400,7 @@ const App = () => {
         };
 
         setTokens(prev => [...prev.filter(t => t !== null), newToken]);
-        notify(`${token.name}: ${selectedBase.name} を生成した！`);
+        addTokenToast(newToken, `を生成した！ (${token.name})`);
         break;
       }
       case "curse_multiply": {
@@ -3422,7 +3508,7 @@ const App = () => {
     setStats(prev => ({ ...prev, lifetimeCursesRemoved: (prev.lifetimeCursesRemoved || 0) + 1 }));
 
     setSelectedTokenDetail(null);
-    notify(`呪いを解除！「${rewardToken.name}」を獲得しました。`);
+    addTokenToast(rewardToken, "を獲得しました！ (呪い解除報酬)");
   };
 
   const sellToken = (token) => {
@@ -3444,7 +3530,11 @@ const App = () => {
     }
 
     setStars(s => s + sellPrice);
+
+    // エフェクト発火（トークンベルト付近から発生）
+    spawnParticles(10, window.innerWidth / 2, window.innerHeight * 0.4, window.innerWidth * 0.8, 40, 'star');
     soundManager.playSE(SE_IDS.SELL_STAR);
+
 
     setTokens(prev => prev.filter(t => t.instanceId !== token.instanceId));
     setCurrentRunStats(prev => ({
@@ -3515,11 +3605,16 @@ const App = () => {
     setShowShop(true);
   };
 
-  const refreshShop = () => {
+  const refreshShop = (clickPos) => {
     if (stars < shopRerollPrice) {
       soundManager.playSE(SE_IDS.ERROR);
       return notify("★が足りません");
     }
+
+    if (clickPos) {
+      spawnParticles(5, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
+    }
+
     setStars(s => s - shopRerollPrice);
     soundManager.playSE(SE_IDS.SHOP_REFRESH);
     setTotalStarsSpent((prev) => prev + shopRerollPrice);
@@ -3529,6 +3624,7 @@ const App = () => {
     generateShop();
     notify("商品を入荷しました");
   };
+
 
   // ロード中の画面
   if (!isLoaded) {
@@ -3596,6 +3692,7 @@ const App = () => {
         onCredits={() => setShowCredits(true)}
         onSettings={() => setShowSettings(true)}
         onEncyclopedia={() => setShowEncyclopedia(true)}
+        onPractice={handleStartPractice}
       />
     );
   }
@@ -3630,6 +3727,33 @@ const App = () => {
           <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
         </div>
 
+        {/* Notification Banner (Top Left) - Refined and Larger */}
+        <div className="absolute top-[86px] left-4 z-[200] pointer-events-none flex flex-col gap-3 max-w-[85%]">
+          {tokenEventToasts.map(toast => (
+            <div key={toast.id} className="glass-panel border-white/20 p-3 rounded-2xl flex items-center gap-4 animate-token-toast shadow-2xl bg-slate-900/90 backdrop-blur-xl border-l-4 border-l-primary">
+              <div className="relative w-12 h-12 shrink-0 border border-white/10 rounded-xl flex items-center justify-center bg-slate-800 shadow-inner">
+                {toast.token && (
+                  <>
+                    <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg z-10" style={getAttributeBarStyles(toast.token?.attributes)}></div>
+                    <span className={`material-icons-round text-2xl relative z-20 ${toast.token?.type === 'curse' || toast.token?.isCurse ? 'text-red-500' : 'text-slate-100'}`}>
+                      {getTokenIcon(toast.token)}
+                    </span>
+                  </>
+                )}
+                {!toast.token && (
+                  <span className="material-icons-round text-primary text-2xl">info</span>
+                )}
+              </div>
+              <div className="flex flex-col flex-1 min-w-0 pr-2 leading-snug">
+                {toast.token && <span className="text-[13px] font-black text-white truncate drop-shadow-sm uppercase tracking-wider">{toast.token?.name}</span>}
+                <span className={`${toast.token ? 'text-[11px] text-slate-300' : 'text-[13px] text-white'} font-bold leading-tight line-clamp-2`}>
+                  {toast.actionText}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* --- Top Area Swipe Handler --- */}
         <div
           className="flex-none flex flex-col relative z-30"
@@ -3637,18 +3761,29 @@ const App = () => {
           {/* Top Status Bar */}
           <header className="relative z-10 px-4 pt-6 pb-2 flex justify-between items-center glass-panel border-b border-white/5 h-[76px] shrink-0">
             <div className="flex flex-col">
-              <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-white whitespace-nowrap">
-                  <span className="text-[10px] uppercase text-slate-400 mr-1">Cycle</span>
-                  {(currentRunStats?.currentClears || 0) + 1}
-                </span>
-                <span className="text-primary font-bold">/</span>
-                <span className="text-lg font-bold text-white whitespace-nowrap">
-                  <span className="text-[10px] uppercase text-slate-400 mr-1">Turn</span>
-                  {turn}{isEndlessMode ? ' ∞' : ''}
-                </span>
-              </div>
+              {isPracticeMode ? (
+                <>
+                  <span className="text-xs font-semibold tracking-wider text-indigo-400 uppercase">Mode</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-black text-white whitespace-nowrap tracking-wide">PRACTICE</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-white whitespace-nowrap">
+                      <span className="text-[10px] uppercase text-slate-400 mr-1">Cycle</span>
+                      {(currentRunStats?.currentClears || 0) + 1}
+                    </span>
+                    <span className="text-primary font-bold">/</span>
+                    <span className="text-lg font-bold text-white whitespace-nowrap">
+                      <span className="text-[10px] uppercase text-slate-400 mr-1">Turn</span>
+                      {turn}{isEndlessMode ? ' ∞' : ''}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -3658,56 +3793,129 @@ const App = () => {
               >
                 <span className="material-icons-round text-sm">pause</span>
               </button>
-              <div className="flex items-center gap-2 bg-slate-800/50 px-2 py-1 rounded-full border border-white/10">
-                <span className="material-icons-round text-yellow-400 text-sm">star</span>
-                <span className="font-bold text-sm tracking-wide">{formatJapaneseNumber(stars)}</span>
-              </div>
-              <button
-                onClick={openShop}
-                className="flex items-center gap-1 bg-slate-800/50 hover:bg-slate-700/50 px-3 py-1 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-all text-sm font-bold text-white"
-              >
-                <span className="material-icons-round text-primary text-sm">storefront</span>
-                <span>Shop</span>
-              </button>
+              {!isPracticeMode && (
+                <>
+                  <div className="flex items-center gap-2 bg-slate-800/50 px-2 py-1 rounded-full border border-white/10 relative">
+                    <span className="material-icons-round text-yellow-400 text-sm">star</span>
+                    <span className="font-bold text-sm tracking-wide">{formatJapaneseNumber(stars)}</span>
+                    {starPopups.map((p) => (
+                      <div key={p.id} className="value-popup text-yellow-300 left-1/2 -top-4 -translate-x-1/2 animate-float-up-fade text-sm">
+                        +{formatJapaneseNumber(p.diff)}
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={openShop}
+                    className="flex items-center gap-1 bg-slate-800/50 hover:bg-slate-700/50 px-3 py-1 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-all text-sm font-bold text-white"
+                  >
+                    <span className="material-icons-round text-primary text-sm">storefront</span>
+                    <span>Shop</span>
+                  </button>
+                </>
+              )}
             </div>
           </header>
 
           {/* Main Stats Area */}
-          <section className="relative z-10 px-6 py-3 flex-none w-full">
-            <div className={`flex items-center w-full p-2.5 rounded-2xl border transition-all duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-950/40 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake-tension' : goalReached ? 'bg-green-950/20 border-green-500/30' : 'bg-slate-800/40 border-white/5 shadow-md'}`}>
-               {/* Target Combo テキスト表示 (左) */}
-               <div className="flex-1 flex items-center gap-2.5 min-w-0 pl-1 pr-2">
-                 <div className={`w-10 h-10 rounded-full flex items-center justify-center border shrink-0 shadow-inner transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-900 border-red-500/50 text-red-300' : goalReached ? 'bg-green-900/40 border-green-500/40 text-green-400' : 'bg-slate-800 border-white/10 text-primary'}`}>
-                   <span className="material-icons-round text-xl">flag</span>
-                 </div>
-                 <div className="flex flex-col min-w-0">
-                   <span className={`text-[10px] uppercase font-bold text-left tracking-wider transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'text-red-400' : goalReached ? 'text-green-400' : 'text-slate-400'}`}>Target Combo</span>
-                   <span className={`text-lg font-mono font-bold truncate text-left leading-tight transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'text-red-300 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]' : goalReached ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : isBeyondMode ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' : 'text-slate-300'}`}>
-                     {formatJapaneseNumber(isBeyondMode ? target : effectiveTarget)}
-                   </span>
-                 </div>
-               </div>
- 
-               {/* 縦棒 (仕切り) 上下を少し開ける */}
-               <div className={`w-[1px] h-8 flex-shrink-0 mx-1 rounded-full transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-500/30' : goalReached ? 'bg-green-500/30' : 'bg-white/10'}`}></div>
- 
-               {/* Current Combo テキスト表示 (右) */}
-               <div className="flex-1 flex items-center gap-2.5 min-w-0 pl-2 pr-1">
-                 <div className={`w-10 h-10 rounded-full flex items-center justify-center border shrink-0 shadow-inner transition-colors duration-300 ${goalReached ? 'bg-green-900/40 border-green-500/40 text-green-400' : 'bg-slate-800 border-white/10 text-orange-500'}`}>
-                   <span className="material-icons-round text-xl">whatshot</span>
-                 </div>
-                 <div className="flex flex-col min-w-0">
-                   <span className={`text-[10px] uppercase font-bold text-left tracking-wider transition-colors duration-300 ${goalReached ? 'text-green-400' : 'text-slate-400'}`}>Current Combo</span>
-                   <span
-                     ref={targetComboRef}
-                     className={`text-lg font-mono font-bold truncate text-left leading-tight transition-colors duration-300 drop-shadow-sm ${targetPulse ? 'animate-target-pulse text-yellow-300' : goalReached ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'text-white'}`}
-                   >
-                     {formatJapaneseNumber(cycleTotalCombo)}
-                   </span>
-                 </div>
-               </div>
-             </div>
-          </section>
+          {isPracticeMode ? (
+            <section className="relative z-10 px-6 py-3 flex-none w-full animate-fade-in h-[104px] flex flex-col justify-center">
+              <div className="bg-indigo-900/40 border border-indigo-500/30 p-2.5 rounded-2xl shadow-lg backdrop-blur-md flex flex-col gap-1.5">
+                {/* Operation Time Control */}
+                <div className="flex items-center justify-between gap-2 overflow-hidden">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-300">
+                      <span className="material-icons-round text-xs">timer</span>
+                    </div>
+                    <span className="text-[10px] font-black text-indigo-300 uppercase tracking-tighter">Time</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-black/30 p-0.5 rounded-xl border border-white/5">
+                    <button
+                      onClick={() => {
+                        setPracticeTimeLimit(prev => Math.max(1000, prev - 1000));
+                        soundManager.playSE(SE_IDS.UI_CLICK);
+                      }}
+                      className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center active:scale-90 transition-all border border-white/5"
+                    >
+                      <span className="material-icons-round text-sm">remove</span>
+                    </button>
+                    <div className="w-12 flex flex-col items-center">
+                      <span className="text-base font-mono font-black text-white leading-none">{(practiceTimeLimit / 1000).toFixed(0)}</span>
+                      <span className="text-[7px] font-black text-indigo-400">SEC</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setPracticeTimeLimit(prev => Math.min(60000, prev + 1000));
+                        soundManager.playSE(SE_IDS.UI_CLICK);
+                      }}
+                      className="w-8 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center active:scale-90 transition-all border border-white/5"
+                    >
+                      <span className="material-icons-round text-sm">add</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Pure Mode Toggle */}
+                <div className="flex items-center justify-between gap-2 border-t border-indigo-500/20 pt-1.5 overflow-hidden">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-300">
+                      <span className="material-icons-round text-xs">psychology</span>
+                    </div>
+                    <span className="text-[10px] font-black text-indigo-300 uppercase tracking-tighter">Pure Mode</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsPureMode(!isPureMode);
+                      soundManager.playSE(SE_IDS.UI_CLICK);
+                    }}
+                    className={`relative w-12 h-6 rounded-full transition-colors duration-300 flex items-center px-0.5 ${isPureMode ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-slate-800 border border-white/10'}`}
+                  >
+                    <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-300 ${isPureMode ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                  </button>
+                </div>
+              </div>
+            </section>
+          ) : (
+            <section className="relative z-10 px-6 py-3 flex-none w-full">
+              <div className={`flex items-center w-full p-2.5 rounded-2xl border transition-all duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-950/40 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake-tension' : goalReached ? 'bg-green-950/20 border-green-500/30' : 'bg-slate-800/40 border-white/5 shadow-md'}`}>
+                {/* Target Combo テキスト表示 (左) */}
+                <div className="flex-1 flex items-center gap-2.5 min-w-0 pl-1 pr-2">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border shrink-0 shadow-inner transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-900 border-red-500/50 text-red-300' : goalReached ? 'bg-green-900/40 border-green-500/40 text-green-400' : 'bg-slate-800 border-white/10 text-primary'}`}>
+                    <span className="material-icons-round text-xl">flag</span>
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className={`text-[10px] uppercase font-bold text-left tracking-wider transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'text-red-400' : goalReached ? 'text-green-400' : 'text-slate-400'}`}>Target Combo</span>
+                    <span className={`text-lg font-mono font-bold truncate text-left leading-tight transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'text-red-300 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]' : goalReached ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : isBeyondMode ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' : 'text-slate-300'}`}>
+                      {formatJapaneseNumber(isBeyondMode ? target : effectiveTarget)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 縦棒 (仕切り) 上下を少し開ける */}
+                <div className={`w-[1px] h-8 flex-shrink-0 mx-1 rounded-full transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-500/30' : goalReached ? 'bg-green-500/30' : 'bg-white/10'}`}></div>
+
+                {/* Current Combo テキスト表示 (右) */}
+                <div className="flex-1 flex items-center gap-2.5 min-w-0 pl-2 pr-1 relative">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border shrink-0 shadow-inner transition-colors duration-300 ${goalReached ? 'bg-green-900/40 border-green-500/40 text-green-400' : 'bg-slate-800 border-white/10 text-orange-500'}`}>
+                    <span className="material-icons-round text-xl">whatshot</span>
+                  </div>
+                  <div className="flex flex-col min-w-0 relative">
+                    <span className={`text-[10px] uppercase font-bold text-left tracking-wider transition-colors duration-300 ${goalReached ? 'text-green-400' : 'text-slate-400'}`}>Current Combo</span>
+                    <span
+                      ref={targetComboRef}
+                      className={`text-lg font-mono font-bold truncate text-left leading-tight transition-colors duration-300 drop-shadow-sm ${targetPulse ? 'animate-target-pulse text-yellow-300' : goalReached ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'text-white'}`}
+                    >
+                      {formatJapaneseNumber(cycleTotalCombo)}
+                    </span>
+                    {comboPopups.map((p) => (
+                      <div key={p.id} className="value-popup text-orange-400 right-0 -top-2 animate-float-up-fade text-base">
+                        +{formatJapaneseNumber(p.diff)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Token/Skill Belt */}
           {(() => {
@@ -3721,311 +3929,338 @@ const App = () => {
             const safeActivePage = Math.min(activeTokenPage, activePages - 1);
 
             return (
-              <section className="relative z-30 px-6 py-2 flex-none mb-4 flex flex-col gap-2">
-
-                {/* Passive Tokens Row */}
-                <div>
-                  <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider flex justify-between items-center">
-                    <span>Passive Artifacts</span>
-                    <div className="flex items-center gap-1">
-                      {passivePages > 1 && (
-                        <>
-                          <button onClick={() => setPassiveTokenPage(p => Math.max(p - 1, 0))} disabled={safePassivePage === 0}
-                            className="w-4 h-4 rounded flex items-center justify-center text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors active:scale-90">
-                            <span className="material-icons-round text-[12px]">chevron_left</span>
-                          </button>
-                          <span className="text-[9px] text-slate-600">{safePassivePage + 1}/{passivePages}</span>
-                          <button onClick={() => setPassiveTokenPage(p => Math.min(p + 1, passivePages - 1))} disabled={safePassivePage === passivePages - 1}
-                            className="w-4 h-4 rounded flex items-center justify-center text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors active:scale-90">
-                            <span className="material-icons-round text-[12px]">chevron_right</span>
-                          </button>
-                        </>
-                      )}
-                      <span className="text-[9px] ml-1">{passiveTokens.length}/{maxSlots}</span>
+              <section className="relative z-30 px-6 py-2 flex-none mb-4 flex flex-col gap-2 min-h-[196px] justify-start h-[280px]">
+                {isPracticeMode ? (
+                  <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 flex flex-col items-center justify-center backdrop-blur-md shadow-inner h-full">
+                    <div className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 flex items-center gap-2">
+                      <span className="w-8 h-[1px] bg-slate-800"></span>
+                      Practice Best
+                      <span className="w-8 h-[1px] bg-slate-800"></span>
                     </div>
-                  </h3>
-                  <div className="overflow-hidden"
-                    onTouchStart={e => { passiveSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
-                    onTouchEnd={e => {
-                      if (!passiveSwipeRef.current) return;
-                      const dx = e.changedTouches[0].clientX - passiveSwipeRef.current.x;
-                      const dy = e.changedTouches[0].clientY - passiveSwipeRef.current.y;
-                      passiveSwipeRef.current = null;
-                      if (Math.abs(dx) < 30 || Math.abs(dy) > Math.abs(dx)) return;
-                      if (dx < 0) setPassiveTokenPage(p => Math.min(p + 1, passivePages - 1));
-                      else setPassiveTokenPage(p => Math.max(p - 1, 0));
-                    }}
-                    onMouseDown={e => {
-                      const startX = e.clientX;
-                      const onUp = eu => {
-                        window.removeEventListener('mouseup', onUp);
-                        const dx = eu.clientX - startX;
-                        if (Math.abs(dx) < 30) return;
-                        if (dx < 0) setPassiveTokenPage(p => Math.min(p + 1, passivePages - 1));
-                        else setPassiveTokenPage(p => Math.max(p - 1, 0));
-                      };
-                      window.addEventListener('mouseup', onUp);
-                    }}
-                  >
-                    <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${safePassivePage * 100}%)` }}>
-                      {Array.from({ length: passivePages }).map((_, pageIdx) => (
-                        <div key={pageIdx} className="grid grid-cols-5 gap-2 flex-shrink-0 w-full">
-                          {Array.from({ length: TOKENS_PER_PAGE }).map((_, slotIdx) => {
-                            const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
-                            const t = passiveTokens[globalSlot];
-                            const isLocked = globalSlot >= maxSlots;
-                            let borderColor = isLocked ? 'border-slate-800' : (t ? (t.rarity === 3 ? 'border-yellow-400/60' : t.rarity === 2 ? 'border-sky-400/60' : 'border-white/20') : 'border-white/5');
-                            let shadowClass = '';
-                            let animClass = '';
-                            if (t && triggeredPassives.includes(t.instanceId || t.id)) {
-                              animClass = 'animate-bounce';
-                              shadowClass = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
-                            }
-                            if (t && !animClass) {
-                              let conditionMet = false;
-                              switch (t.effect) {
-                                case 'color_count_bonus': {
-                                  const countReq = t.params?.count || 0;
-                                  const cColor = t.params?.color;
-                                  conditionMet = cColor && (lastErasedColorCounts[cColor] || 0) >= countReq;
-                                  break;
+                    <div className="flex items-center gap-4 py-2">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-white/10 shadow-inner">
+                        <span className="material-icons-round text-3xl text-slate-500">workspace_premium</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-5xl font-black font-mono text-white opacity-80">
+                            {formatJapaneseNumber(currentRunStats.maxCombo || 0)}
+                          </span>
+                          <span className="text-xl font-black text-slate-500 uppercase tracking-tighter italic">Combo</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Passive Tokens Row */}
+                    <div>
+                      <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider flex justify-between items-center">
+                        <span>Passive Artifacts</span>
+                        <div className="flex items-center gap-1">
+                          {passivePages > 1 && (
+                            <>
+                              <button onClick={() => setPassiveTokenPage(p => Math.max(p - 1, 0))} disabled={safePassivePage === 0}
+                                className="w-4 h-4 rounded flex items-center justify-center text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors active:scale-90">
+                                <span className="material-icons-round text-[12px]">chevron_left</span>
+                              </button>
+                              <span className="text-[9px] text-slate-600">{safePassivePage + 1}/{passivePages}</span>
+                              <button onClick={() => setPassiveTokenPage(p => Math.min(p + 1, passivePages - 1))} disabled={safePassivePage === passivePages - 1}
+                                className="w-4 h-4 rounded flex items-center justify-center text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors active:scale-90">
+                                <span className="material-icons-round text-[12px]">chevron_right</span>
+                              </button>
+                            </>
+                          )}
+                          <span className="text-[9px] ml-1">{passiveTokens.length}/{maxSlots}</span>
+                        </div>
+                      </h3>
+                      <div className="overflow-hidden"
+                        onTouchStart={e => { passiveSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+                        onTouchEnd={e => {
+                          if (!passiveSwipeRef.current) return;
+                          const dx = e.changedTouches[0].clientX - passiveSwipeRef.current.x;
+                          const dy = e.changedTouches[0].clientY - passiveSwipeRef.current.y;
+                          passiveSwipeRef.current = null;
+                          if (Math.abs(dx) < 30 || Math.abs(dy) > Math.abs(dx)) return;
+                          if (dx < 0) setPassiveTokenPage(p => Math.min(p + 1, passivePages - 1));
+                          else setPassiveTokenPage(p => Math.max(p - 1, 0));
+                        }}
+                        onMouseDown={e => {
+                          const startX = e.clientX;
+                          const onUp = eu => {
+                            window.removeEventListener('mouseup', onUp);
+                            const dx = eu.clientX - startX;
+                            if (Math.abs(dx) < 30) return;
+                            if (dx < 0) setPassiveTokenPage(p => Math.min(p + 1, passivePages - 1));
+                            else setPassiveTokenPage(p => Math.max(p - 1, 0));
+                          };
+                          window.addEventListener('mouseup', onUp);
+                        }}
+                      >
+                        <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${safePassivePage * 100}%)` }}>
+                          {Array.from({ length: passivePages }).map((_, pageIdx) => (
+                            <div key={pageIdx} className="grid grid-cols-5 gap-2 flex-shrink-0 w-full">
+                              {Array.from({ length: TOKENS_PER_PAGE }).map((_, slotIdx) => {
+                                const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
+                                const t = passiveTokens[globalSlot];
+                                const isLocked = globalSlot >= maxSlots;
+                                let borderColor = isLocked ? 'border-slate-800' : (t ? (t.rarity === 4 ? 'border-red-500/60' : t.rarity === 3 ? 'border-yellow-400/60' : t.rarity === 2 ? 'border-sky-400/60' : 'border-white/20') : 'border-white/5');
+                                let shadowClass = '';
+                                let animClass = '';
+                                if (t && triggeredPassives.includes(t.instanceId || t.id)) {
+                                  animClass = 'animate-bounce';
+                                  shadowClass = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
                                 }
-                                case 'combo_if_ge':
-                                  conditionMet = lastTurnCombo >= (t.params?.combo || 0);
-                                  break;
-                                case 'combo_if_le':
-                                   conditionMet = lastTurnCombo <= (t.params?.combo || 0);
-                                  break;
-                                default:
-                                  break;
-                              }
-                              if (conditionMet) {
-                                borderColor = 'border-green-400/80';
-                                shadowClass = 'shadow-[0_0_15px_rgba(74,222,128,0.5)]';
-                              }
-                            }
-                            return (
-                              <div
-                                key={`passive-p${pageIdx}-${slotIdx}`}
-                                onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
-                                draggable={!!t && !isLocked}
-                                onDragStart={(e) => handleDragStart(e, t)}
-                                onDragOver={handleDragOver}
-                                onDrop={(e) => handleDrop(e, globalSlot + 1, false)}
-                                onDragEnd={() => setDraggedToken(null)}
-                                className={`aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
-                              >
-                                <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
-                                  {/* 属性バー */}
-                                  {t && (
-                                    <div
-                                      className="absolute left-0 top-0 bottom-0 w-1 z-30"
-                                      style={getAttributeBarStyles(t?.attributes)}
-                                    />
-                                  )}
-                                  {isLocked ? (
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                      <span className="material-icons-round text-slate-700 text-lg">lock</span>
-                                    </div>
-                                  ) : t ? (
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                      {t.isCountPassive && (
-                                        <div className="absolute inset-0 bg-primary/5">
-                                          <div
-                                            className="absolute bottom-0 left-0 right-0 bg-primary/20 transition-all duration-500"
-                                            style={{ height: `${Math.min(100, ((t.charge || 0) / (t.values?.[(t.level || 1) - 1] || 30)) * 100)}%` }}
-                                          />
-                                        </div>
+                                if (t && !animClass) {
+                                  let conditionMet = false;
+                                  switch (t.effect) {
+                                    case 'color_count_bonus': {
+                                      const countReq = t.params?.count || 0;
+                                      const cColor = t.params?.color;
+                                      conditionMet = cColor && (lastErasedColorCounts[cColor] || 0) >= countReq;
+                                      break;
+                                    }
+                                    case 'combo_if_ge':
+                                      conditionMet = lastTurnCombo >= (t.params?.combo || 0);
+                                      break;
+                                    case 'combo_if_le':
+                                      conditionMet = lastTurnCombo <= (t.params?.combo || 0);
+                                      break;
+                                    default:
+                                      break;
+                                  }
+                                  if (conditionMet) {
+                                    borderColor = 'border-green-400/80';
+                                    shadowClass = 'shadow-[0_0_15px_rgba(74,222,128,0.5)]';
+                                  }
+                                }
+                                return (
+                                  <div
+                                    key={`passive-p${pageIdx}-${slotIdx}`}
+                                    onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
+                                    draggable={!!t && !isLocked}
+                                    onDragStart={(e) => handleDragStart(e, t)}
+                                    onDragOver={handleDragOver}
+                                    onDrop={(e) => handleDrop(e, globalSlot + 1, false)}
+                                    onDragEnd={() => setDraggedToken(null)}
+                                    className={`aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
+                                  >
+
+                                    <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
+                                      {/* 属性バー */}
+                                      {t && (
+                                        <div
+                                          className="absolute left-0 top-0 bottom-0 w-1 z-30"
+                                          style={getAttributeBarStyles(t?.attributes)}
+                                        />
                                       )}
-                                      <span className={`material-icons-round text-2xl relative z-10 ${t?.type === 'curse' || t?.isCurse ? 'text-red-500' : animClass ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-slate-400'}`}>
-                                        {getTokenIcon(t)}
-                                      </span>
+                                      {isLocked ? (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                          <span className="material-icons-round text-slate-700 text-lg">lock</span>
+                                        </div>
+                                      ) : t ? (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                          {t.isCountPassive && (
+                                            <div className="absolute inset-0 bg-primary/5">
+                                              <div
+                                                className="absolute bottom-0 left-0 right-0 bg-primary/20 transition-all duration-500"
+                                                style={{ height: `${Math.min(100, ((t.charge || 0) / (t.values?.[(t.level || 1) - 1] || 30)) * 100)}%` }}
+                                              />
+                                            </div>
+                                          )}
+                                          <span className={`material-icons-round text-2xl relative z-10 ${t?.type === 'curse' || t?.isCurse ? 'text-red-500' : animClass ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-slate-400'}`}>
+                                            {getTokenIcon(t)}
+                                          </span>
+                                        </div>
+                                      ) : null}
                                     </div>
-                                  ) : null}
-                                </div>
-                                {t && !isLocked && (
-                                  <>
-                                    {/* 属性丸は削除 */}
-                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
-                                      {t.level || 1}
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            );
-                          })}
+                                    {t && !isLocked && (
+                                      <>
+                                        {/* 属性丸は削除 */}
+                                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
+                                          {t.level || 1}
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                  {passivePages > 1 && (
-                    <div className="flex justify-center gap-1 mt-1">
-                      {Array.from({ length: passivePages }).map((_, i) => (
-                        <button key={i} onClick={() => setPassiveTokenPage(i)}
-                          className={`h-1 rounded-full transition-all duration-200 ${i === safePassivePage ? 'bg-primary w-3' : 'bg-slate-600 w-1'}`} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Active Tokens Row */}
-                <div>
-                  <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider flex justify-between items-center">
-                    <span>Active Spells</span>
-                    <div className="flex items-center gap-1">
-                      {activePages > 1 && (
-                        <>
-                          <button onClick={() => setActiveTokenPage(p => Math.max(p - 1, 0))} disabled={safeActivePage === 0}
-                            className="w-4 h-4 rounded flex items-center justify-center text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors active:scale-90">
-                            <span className="material-icons-round text-[12px]">chevron_left</span>
-                          </button>
-                          <span className="text-[9px] text-slate-600">{safeActivePage + 1}/{activePages}</span>
-                          <button onClick={() => setActiveTokenPage(p => Math.min(p + 1, activePages - 1))} disabled={safeActivePage === activePages - 1}
-                            className="w-4 h-4 rounded flex items-center justify-center text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors active:scale-90">
-                            <span className="material-icons-round text-[12px]">chevron_right</span>
-                          </button>
-                        </>
+                      </div>
+                      {passivePages > 1 && (
+                        <div className="flex justify-center gap-1 mt-1">
+                          {Array.from({ length: passivePages }).map((_, i) => (
+                            <button key={i} onClick={() => setPassiveTokenPage(i)}
+                              className={`h-1 rounded-full transition-all duration-200 ${i === safePassivePage ? 'bg-primary w-3' : 'bg-slate-600 w-1'}`} />
+                          ))}
+                        </div>
                       )}
-                      <span className="text-[9px] ml-1">{activeTokens.length}/{maxSlots}</span>
                     </div>
-                  </h3>
-                  <div className="overflow-hidden"
-                    onTouchStart={e => { activeSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
-                    onTouchEnd={e => {
-                      if (!activeSwipeRef.current) return;
-                      const dx = e.changedTouches[0].clientX - activeSwipeRef.current.x;
-                      const dy = e.changedTouches[0].clientY - activeSwipeRef.current.y;
-                      activeSwipeRef.current = null;
-                      if (Math.abs(dx) < 30 || Math.abs(dy) > Math.abs(dx)) return;
-                      if (dx < 0) setActiveTokenPage(p => Math.min(p + 1, activePages - 1));
-                      else setActiveTokenPage(p => Math.max(p - 1, 0));
-                    }}
-                    onMouseDown={e => {
-                      const startX = e.clientX;
-                      const onUp = eu => {
-                        window.removeEventListener('mouseup', onUp);
-                        const dx = eu.clientX - startX;
-                        if (Math.abs(dx) < 30) return;
-                        if (dx < 0) setActiveTokenPage(p => Math.min(p + 1, activePages - 1));
-                        else setActiveTokenPage(p => Math.max(p - 1, 0));
-                      };
-                      window.addEventListener('mouseup', onUp);
-                    }}
-                  >
-                    <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${safeActivePage * 100}%)` }}>
-                      {Array.from({ length: activePages }).map((_, pageIdx) => (
-                        <div key={pageIdx} className="grid grid-cols-5 gap-2 flex-shrink-0 w-full">
-                          {Array.from({ length: TOKENS_PER_PAGE }).map((_, slotIdx) => {
-                            const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
-                            const t = activeTokens[globalSlot];
-                            const isLocked = globalSlot >= maxSlots;
-                            const isSkill = t?.type === 'skill';
-                            const charge = t?.charge || 0;
-                            const cost = getEffectiveCost(t, currentRunStats, tokens, activeBuffs);
-                            const progress = isSkill ? Math.min(100, (charge / cost) * 100) : 100;
-                            const isReady = isSkill && charge >= cost;
-                            const relatedBuffs = t ? activeBuffs.filter(b => b.tokenId === (t.instanceId || t.id)) : [];
-                            const activeBuff = relatedBuffs.length > 0 ? relatedBuffs[0] : null;
-                            const stackCount = relatedBuffs.length;
-                            const buffProgress = activeBuff ? Math.min(100, (activeBuff.duration / activeBuff.maxDuration) * 100) : 0;
-                            let animClass = '';
-                            let triggeredShadow = '';
-                            if (t && triggeredPassives.includes(t.instanceId || t.id)) {
-                              animClass = 'animate-bounce';
-                              triggeredShadow = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
-                            }
-                            const readyBorder = t?.isCurse
-                              ? 'border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.35)]'
-                              : (t && t.rarity === 3 ? 'border-yellow-400/60 shadow-[0_0_10px_rgba(250,204,21,0.25)]' : t && t.rarity === 2 ? 'border-sky-400/60 shadow-[0_0_10px_rgba(56,189,248,0.25)]' : 'border-primary/50 shadow-[0_0_10px_rgba(91,19,236,0.25)]');
-                            const notReadyBorder = t?.isCurse
-                              ? 'border-red-500/30'
-                              : (t && t.rarity === 3 ? 'border-yellow-400/30' : t && t.rarity === 2 ? 'border-sky-400/30' : 'border-white/10');
-                            const buffBorder = stackCount > 1 ? 'border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)] animate-pulse' : stackCount === 1 ? 'border-cyan-500/80 shadow-[0_0_10px_rgba(6,182,212,0.4)]' : '';
-                            let containerClasses = isLocked
-                              ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed'
-                              : (t
-                                ? (stackCount > 0 ? `bg-slate-800 ${buffBorder} cursor-pointer group hover:scale-105` : (isReady ? `bg-slate-800 ${readyBorder} cursor-pointer group hover:scale-105` : `bg-slate-900 ${notReadyBorder} opacity-80 cursor-pointer`))
-                                : 'bg-slate-900/30 border-white/5 border-dashed');
-                            containerClasses = `${containerClasses} ${animClass} ${triggeredShadow}`;
-                            return (
-                              <div
-                                key={`active-p${pageIdx}-${slotIdx}`}
-                                onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
-                                draggable={!!t && !isLocked}
-                                onDragStart={(e) => handleDragStart(e, t)}
-                                onDragOver={handleDragOver}
-                                onDrop={(e) => handleDrop(e, globalSlot + 1, true)}
-                                onDragEnd={() => setDraggedToken(null)}
-                                className={`aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${containerClasses}`}
-                              >
-                                <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
-                                  {/* 属性バー */}
-                                  {t && (
-                                    <div
-                                      className="absolute left-0 top-0 bottom-0 w-1 z-30 transition-all"
-                                      style={getAttributeBarStyles(t?.attributes)}
-                                    />
-                                  )}
-                                  {isLocked ? (
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                      <span className="material-icons-round text-slate-700 text-lg">lock</span>
-                                    </div>
-                                  ) : t ? (
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                      <div className="absolute inset-0 bg-primary/10">
-                                        {isSkill && <div
-                                          className={`absolute bottom-0 left-0 right-0 transition-all duration-500 ${t?.isCurse ? 'bg-red-500/30' : 'bg-primary/20'}`}
-                                          style={{ height: `${progress}%` }}
-                                        />}
-                                        {stackCount > 0 && activeBuff && <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cyan-500/60 to-blue-400/30 transition-all duration-500" style={{ height: `${buffProgress}%` }}></div>}
-                                      </div>
-                                      <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : (t?.isCurse || t?.type === 'curse') ? (isReady ? 'text-red-400' : 'text-red-700') : (isReady ? 'text-primary' : 'text-slate-500')}`}>
-                                        {getTokenIcon(t)}
-                                      </span>
-                                    </div>
-                                  ) : null}
-                                </div>
 
-                                {t && !isLocked && (
-                                  <>
-                                    {/* 属性丸は削除 */}
-                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
-                                      {t.level || 1}
-                                    </div>
-                                    {isSkill && t.cost > 0 && (
-                                      <div className="absolute top-[-4px] right-1 z-20">
-                                        <span className="text-[10px] text-slate-300 font-mono font-bold drop-shadow-md">{charge}/{cost}</span>
-                                      </div>
-                                    )}
-                                    {stackCount > 0 && activeBuff && (
-                                      <div className="absolute top-[-4px] left-1 z-20">
-                                        <span className="text-[10px] text-cyan-300 font-bold drop-shadow-md">{activeBuff.duration}t</span>
-                                      </div>
-                                    )}
-                                    {stackCount > 1 && (
-                                      <div className="absolute top-[8px] left-1 bg-cyan-600/80 text-white rounded-sm px-0.5 flex items-center justify-center text-[8px] font-black z-20 shadow-sm border border-white/10">
-                                        x{stackCount}
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            );
-                          })}
+                    {/* Active Tokens Row */}
+                    <div>
+                      <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider flex justify-between items-center">
+                        <span>Active Spells</span>
+                        <div className="flex items-center gap-1">
+                          {activePages > 1 && (
+                            <>
+                              <button onClick={() => setActiveTokenPage(p => Math.max(p - 1, 0))} disabled={safeActivePage === 0}
+                                className="w-4 h-4 rounded flex items-center justify-center text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors active:scale-90">
+                                <span className="material-icons-round text-[12px]">chevron_left</span>
+                              </button>
+                              <span className="text-[9px] text-slate-600">{safeActivePage + 1}/{activePages}</span>
+                              <button onClick={() => setActiveTokenPage(p => Math.min(p + 1, activePages - 1))} disabled={safeActivePage === activePages - 1}
+                                className="w-4 h-4 rounded flex items-center justify-center text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors active:scale-90">
+                                <span className="material-icons-round text-[12px]">chevron_right</span>
+                              </button>
+                            </>
+                          )}
+                          <span className="text-[9px] ml-1">{activeTokens.length}/{maxSlots}</span>
                         </div>
-                      ))}
+                      </h3>
+                      <div className="overflow-hidden"
+                        onTouchStart={e => { activeSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+                        onTouchEnd={e => {
+                          if (!activeSwipeRef.current) return;
+                          const dx = e.changedTouches[0].clientX - activeSwipeRef.current.x;
+                          const dy = e.changedTouches[0].clientY - activeSwipeRef.current.y;
+                          activeSwipeRef.current = null;
+                          if (Math.abs(dx) < 30 || Math.abs(dy) > Math.abs(dx)) return;
+                          if (dx < 0) setActiveTokenPage(p => Math.min(p + 1, activePages - 1));
+                          else setActiveTokenPage(p => Math.max(p - 1, 0));
+                        }}
+                        onMouseDown={e => {
+                          const startX = e.clientX;
+                          const onUp = eu => {
+                            window.removeEventListener('mouseup', onUp);
+                            const dx = eu.clientX - startX;
+                            if (Math.abs(dx) < 30) return;
+                            if (dx < 0) setActiveTokenPage(p => Math.min(p + 1, activePages - 1));
+                            else setActiveTokenPage(p => Math.max(p - 1, 0));
+                          };
+                          window.addEventListener('mouseup', onUp);
+                        }}
+                      >
+                        <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${safeActivePage * 100}%)` }}>
+                          {Array.from({ length: activePages }).map((_, pageIdx) => (
+                            <div key={pageIdx} className="grid grid-cols-5 gap-2 flex-shrink-0 w-full">
+                              {Array.from({ length: TOKENS_PER_PAGE }).map((_, slotIdx) => {
+                                const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
+                                const t = activeTokens[globalSlot];
+                                const isLocked = globalSlot >= maxSlots;
+                                const isSkill = t?.type === 'skill';
+                                const charge = t?.charge || 0;
+                                const cost = getEffectiveCost(t, currentRunStats, tokens, activeBuffs);
+                                const progress = isSkill ? Math.min(100, (charge / cost) * 100) : 100;
+                                const isReady = isSkill && charge >= cost;
+                                const relatedBuffs = t ? activeBuffs.filter(b => b.tokenId === (t.instanceId || t.id)) : [];
+                                const activeBuff = relatedBuffs.length > 0 ? relatedBuffs[0] : null;
+                                const stackCount = relatedBuffs.length;
+                                const buffProgress = activeBuff ? Math.min(100, (activeBuff.duration / activeBuff.maxDuration) * 100) : 0;
+                                let animClass = '';
+                                let triggeredShadow = '';
+                                if (t && triggeredPassives.includes(t.instanceId || t.id)) {
+                                  animClass = 'animate-bounce';
+                                  triggeredShadow = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
+                                }
+                                const readyBorder = t?.isCurse
+                                  ? 'border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.35)]'
+                                  : (t && t.rarity === 3 ? 'border-yellow-400/60 shadow-[0_0_10px_rgba(250,204,21,0.25)]' : t && t.rarity === 2 ? 'border-sky-400/60 shadow-[0_0_10px_rgba(56,189,248,0.25)]' : 'border-primary/50 shadow-[0_0_10px_rgba(91,19,236,0.25)]');
+                                const notReadyBorder = t?.isCurse
+                                  ? 'border-red-500/30'
+                                  : (t && t.rarity === 3 ? 'border-yellow-400/30' : t && t.rarity === 2 ? 'border-sky-400/30' : 'border-white/10');
+                                const buffBorder = stackCount > 1 ? 'border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)] animate-pulse' : stackCount === 1 ? 'border-cyan-500/80 shadow-[0_0_10px_rgba(6,182,212,0.4)]' : '';
+                                let containerClasses = isLocked
+                                  ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed'
+                                  : (t
+                                    ? (stackCount > 0 ? `bg-slate-800 ${buffBorder} cursor-pointer group hover:scale-105` : (isReady ? `bg-slate-800 ${readyBorder} cursor-pointer group hover:scale-105` : `bg-slate-900 ${notReadyBorder} opacity-80 cursor-pointer`))
+                                    : 'bg-slate-900/30 border-white/5 border-dashed');
+                                containerClasses = `${containerClasses} ${animClass} ${triggeredShadow}`;
+                                return (
+                                  <div
+                                    key={`active-p${pageIdx}-${slotIdx}`}
+                                    onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
+                                    draggable={!!t && !isLocked}
+                                    onDragStart={(e) => handleDragStart(e, t)}
+                                    onDragOver={handleDragOver}
+                                    onDrop={(e) => handleDrop(e, globalSlot + 1, true)}
+                                    onDragEnd={() => setDraggedToken(null)}
+                                    className={`aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${containerClasses}`}
+                                  >
+
+                                    <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
+                                      {/* 属性バー */}
+                                      {t && (
+                                        <div
+                                          className="absolute left-0 top-0 bottom-0 w-1 z-30 transition-all"
+                                          style={getAttributeBarStyles(t?.attributes)}
+                                        />
+                                      )}
+                                      {isLocked ? (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                          <span className="material-icons-round text-slate-700 text-lg">lock</span>
+                                        </div>
+                                      ) : t ? (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                          <div className="absolute inset-0 bg-primary/10">
+                                            {isSkill && <div
+                                              className={`absolute bottom-0 left-0 right-0 transition-all duration-500 ${t?.isCurse ? 'bg-red-500/30' : 'bg-primary/20'}`}
+                                              style={{ height: `${progress}%` }}
+                                            />}
+                                            {stackCount > 0 && activeBuff && <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cyan-500/60 to-blue-400/30 transition-all duration-500" style={{ height: `${buffProgress}%` }}></div>}
+                                          </div>
+                                          <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : (t?.isCurse || t?.type === 'curse') ? (isReady ? 'text-red-400' : 'text-red-700') : (isReady ? 'text-primary' : 'text-slate-500')}`}>
+                                            {getTokenIcon(t)}
+                                          </span>
+                                        </div>
+                                      ) : null}
+                                    </div>
+
+                                    {t && !isLocked && (
+                                      <>
+                                        {/* 属性丸は削除 */}
+                                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
+                                          {t.level || 1}
+                                        </div>
+                                        {isSkill && t.cost > 0 && (
+                                          <div className="absolute top-[-4px] right-1 z-20">
+                                            <span className="text-[10px] text-slate-300 font-mono font-bold drop-shadow-md">{charge}/{cost}</span>
+                                          </div>
+                                        )}
+                                        {stackCount > 0 && activeBuff && (
+                                          <div className="absolute top-[-4px] left-1 z-20">
+                                            <span className="text-[10px] text-cyan-300 font-bold drop-shadow-md">{activeBuff.duration}t</span>
+                                          </div>
+                                        )}
+                                        {stackCount > 1 && (
+                                          <div className="absolute top-[8px] left-1 bg-cyan-600/80 text-white rounded-sm px-0.5 flex items-center justify-center text-[8px] font-black z-20 shadow-sm border border-white/10">
+                                            x{stackCount}
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {activePages > 1 && (
+                        <div className="flex justify-center gap-1 mt-1">
+                          {Array.from({ length: activePages }).map((_, i) => (
+                            <button key={i} onClick={() => setActiveTokenPage(i)}
+                              className={`h-1 rounded-full transition-all duration-200 ${i === safeActivePage ? 'bg-primary w-3' : 'bg-slate-600 w-1'}`} />
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  {activePages > 1 && (
-                    <div className="flex justify-center gap-1 mt-1">
-                      {Array.from({ length: activePages }).map((_, i) => (
-                        <button key={i} onClick={() => setActiveTokenPage(i)}
-                          className={`h-1 rounded-full transition-all duration-200 ${i === safeActivePage ? 'bg-primary w-3' : 'bg-slate-600 w-1'}`} />
-                      ))}
-                    </div>
-                  )}
-                </div>
+                  </>
+                )}
               </section>
+
             );
           })()}
 
@@ -4222,7 +4457,10 @@ const App = () => {
                   onTitle={() => {
                     setShowPause(false);
                     setShowShop(false);
+                    setIsPracticeMode(false);
                     setShowTitle(true);
+                    // 練習モード離脱時などに最大コンボをクリア
+                    setCurrentRunStats(prev => ({ ...prev, maxCombo: 0 }));
                   }}
                   onHelp={() => setShowHelp(true)}
                   onStats={() => setShowStats(true)}
@@ -4385,8 +4623,8 @@ const App = () => {
                       const existingToken = tokens.find(t => t?.id === pendingShopItem.id);
                       const isMaxLevel = existingToken && (existingToken.level || 1) >= (existingToken.values?.length || 3);
                       return (
-                        <button 
-                          onClick={() => !isMaxLevel && handleChoice("upgrade")} 
+                        <button
+                          onClick={() => !isMaxLevel && handleChoice("upgrade")}
                           disabled={isMaxLevel}
                           className={`py-3 rounded-xl font-bold active:scale-95 shadow-lg transition-opacity ${isMaxLevel ? 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-50' : 'bg-primary text-white shadow-primary/25'}`}
                         >
@@ -4773,20 +5011,31 @@ const App = () => {
             })()
           }
 
-          {/* Premium Notification Toast */}
-          {
-            message && (
-              <div className="premium-toast">
-                <div className="premium-toast-glow"></div>
-                <div className="premium-toast-inner">
-                  <span className="material-icons-round text-primary text-xl">info</span>
-                  <div className="premium-toast-text">{message}</div>
-                </div>
+          {/* Particle Layer */}
+          <div className="fixed inset-0 pointer-events-none z-[2000] overflow-hidden">
+            {purchasingParticles.map(p => (
+              <div
+                key={p.id}
+                className="absolute text-gold animate-particle-fly"
+                style={{
+                  left: 0,
+                  top: 0,
+                  '--start-x': `${p.startX}px`,
+                  '--start-y': `${p.startY}px`,
+                  '--end-x': `${p.endX}px`,
+                  '--end-y': `${p.endY}px`,
+                  '--rand-x': `${p.randX}px`,
+                  '--rand-y': `${p.randY}px`,
+                  animationDelay: `${p.delay}s`,
+                }}
+              >
+                <span className="material-icons-round text-xl">star</span>
               </div>
-            )
-          }
+            ))}
+          </div>
 
         </div >
+
 
       </div >
     </div>

@@ -2,7 +2,7 @@ import React from 'react';
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
 
-const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCredits, onSettings, onEncyclopedia }) => {
+const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCredits, onSettings, onEncyclopedia, onPractice }) => {
     return (
         <div className="w-full h-screen bg-background-dark flex flex-col items-center justify-center relative overflow-hidden font-display">
             {/* Background effects */}
@@ -95,6 +95,16 @@ const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCred
                     >
                         <span className="material-icons-round text-xl">settings</span>
                         設定
+                    </button>
+                    <button
+                        onClick={() => {
+                            onPractice();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
+                        className="w-full bg-indigo-900/40 hover:bg-indigo-800/60 text-indigo-200 font-bold py-4 rounded-xl border border-indigo-500/30 transform transition-all active:scale-95 flex items-center justify-center gap-2 mt-2"
+                    >
+                        <span className="material-icons-round text-xl">extension</span>
+                        パズル練習
                     </button>
                     <button
                         onClick={() => {
