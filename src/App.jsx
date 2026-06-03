@@ -4007,6 +4007,25 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
     });
   };
 
+  // --- タイトル画面表示 ---
+  if (showTitle) {
+    return (
+      <TitleScreen
+        hasSaveData={hasSaveData}
+        testInstanceId={testInstanceId}
+        onContinue={onContinue}
+        onStart={onStart}
+        onHelp={() => setShowHelp(true)}
+        onStats={() => setShowStats(true)}
+        onCredits={() => setShowCredits(true)}
+        onSettings={() => setShowSettings(true)}
+        onEncyclopedia={() => setShowEncyclopedia(true)}
+        onPractice={handleStartPractice}
+        onStartMultiTest={onStartMultiTest}
+      />
+    );
+  }
+
   return (
     <div className="bg-background-dark font-display text-slate-100 h-screen overflow-hidden flex justify-center w-full">
       {showStartOption && (
