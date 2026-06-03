@@ -245,6 +245,7 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
 
 
   const timerRef = useRef(null);
+  const timerTextRef = useRef(null); // タイマー秒数テキスト表示用 (mainブランチで追加)
   
   const getPreferredColorTypes = (currentTokens) => {
     const newPref = [];
