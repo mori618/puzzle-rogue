@@ -138,18 +138,28 @@ const App = () => {
   const prevComboRef = useRef(cycleTotalCombo);
   const [starPopups, setStarPopups] = useState([]);
   const [comboPopups, setComboPopups] = useState([]);
-  const [tokenEventToasts, setTokenEventToasts] = useState([]);
+  const [toastQueue, setToastQueue] = useState([]);
+  const [currentToast, setCurrentToast] = useState(null);
   const [purchasingParticles, setPurchasingParticles] = useState([]); // 購入・売却時のパーティクル
   const [levelUpTokenId, setLevelUpTokenId] = useState(null); // レベルアップ演出用
 
-
   const addTokenToast = useCallback((token, actionText) => {
     const id = Date.now() + Math.random();
-    setTokenEventToasts(prev => [...prev.filter(t => t.id !== id), { id, token, actionText }]);
-    setTimeout(() => {
-      setTokenEventToasts(prev => prev.filter(t => t.id !== id));
-    }, 3500);
+    setToastQueue(prev => [...prev, { id, token, actionText }]);
   }, []);
+
+  useEffect(() => {
+    if (!currentToast && toastQueue.length > 0) {
+      const nextToast = toastQueue[0];
+      setCurrentToast(nextToast);
+      setToastQueue(prev => prev.slice(1));
+      // キューの詰まり具合に応じて表示速度を動的に調整 (たまっているときは早送り)
+      const duration = toastQueue.length > 3 ? 1000 : toastQueue.length > 1 ? 1600 : 2500;
+      setTimeout(() => {
+        setCurrentToast(null);
+      }, duration);
+    }
+  }, [currentToast, toastQueue]);
 
   const triggerLevelUp = (instanceId) => {
     setLevelUpTokenId(instanceId);
@@ -3680,29 +3690,29 @@ const App = () => {
 
         {/* Notification Banner (Top Left) - Refined and Larger */}
         <div className="absolute top-[86px] left-4 z-[200] pointer-events-none flex flex-col gap-3 max-w-[85%]">
-          {tokenEventToasts.map(toast => (
-            <div key={toast.id} className="glass-panel border-white/20 p-3 rounded-2xl flex items-center gap-4 animate-token-toast shadow-2xl bg-slate-900/90 backdrop-blur-xl border-l-4 border-l-primary">
+          {currentToast && (
+            <div key={currentToast.id} className="glass-panel border-white/20 p-3 rounded-2xl flex items-center gap-4 animate-token-toast shadow-2xl bg-slate-900/90 backdrop-blur-xl border-l-4 border-l-primary">
               <div className="relative w-12 h-12 shrink-0 border border-white/10 rounded-xl flex items-center justify-center bg-slate-800 shadow-inner">
-                {toast.token && (
+                {currentToast.token && (
                   <>
-                    <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg z-10" style={getAttributeBarStyles(toast.token?.attributes)}></div>
-                    <span className={`material-icons-round text-2xl relative z-20 ${toast.token?.type === 'curse' || toast.token?.isCurse ? 'text-red-500' : 'text-slate-100'}`}>
-                      {getTokenIcon(toast.token)}
+                    <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg z-10" style={getAttributeBarStyles(currentToast.token?.attributes)}></div>
+                    <span className={`material-icons-round text-2xl relative z-20 ${currentToast.token?.type === 'curse' || currentToast.token?.isCurse ? 'text-red-500' : 'text-slate-100'}`}>
+                      {getTokenIcon(currentToast.token)}
                     </span>
                   </>
                 )}
-                {!toast.token && (
+                {!currentToast.token && (
                   <span className="material-icons-round text-primary text-2xl">info</span>
                 )}
               </div>
               <div className="flex flex-col flex-1 min-w-0 pr-2 leading-snug">
-                {toast.token && <span className="text-[13px] font-black text-white truncate drop-shadow-sm uppercase tracking-wider">{toast.token?.name}</span>}
-                <span className={`${toast.token ? 'text-[11px] text-slate-300' : 'text-[13px] text-white'} font-bold leading-tight line-clamp-2`}>
-                  {toast.actionText}
+                {currentToast.token && <span className="text-[13px] font-black text-white truncate drop-shadow-sm uppercase tracking-wider">{currentToast.token?.name}</span>}
+                <span className={`${currentToast.token ? 'text-[11px] text-slate-300' : 'text-[13px] text-white'} font-bold leading-tight line-clamp-2`}>
+                  {currentToast.actionText}
                 </span>
               </div>
             </div>
-          ))}
+          )}
         </div>
 
         {/* --- Top Area Swipe Handler --- */}
