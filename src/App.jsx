@@ -3518,48 +3518,6 @@ const App = ({ isMultiTest = false, testInstanceId = 0, initialAutoStartAI = fal
       case "board_balance":
         engine.changeBoardBalanced();
         break;
-      case "curse_passive_null": {
-          if (hasSaintToken) {
-            notify("聖女の加護により呪いの効果を無効化！");
-          } else {
-            const duration = token.params?.duration || 2;
-            setActiveBuffs(prev => [
-              ...prev,
-              {
-                action: "curse_passive_null",
-                params: { duration },
-                remaining: duration,
-                sourceTokenId: token.instanceId,
-                name: "受難の呪い(パッシブ無効)"
-              }
-            ]);
-            notify("受難の呪いが発動…（数手番パッシブ無効）");
-            addTokenToast(token, "パッシブ無効化…");
-          }
-          break;
-        }
-
-      case "curse_multiply": {
-          if (hasSaintToken) {
-            notify("聖女の加護により呪いの増殖を阻止！");
-          } else {
-            const spawnType = token.params?.spawnType || 'passive';
-            const dummyBase = ALL_TOKEN_BASES.find(t => t.id === (spawnType === 'passive' ? 'curse_multiplied_p' : 'curse_multiplied_a'));
-            if (dummyBase) {
-              const maxSlots = 5 + tokenSlotExpansionCount;
-              const currentCount = tokens.filter(t => t && t.type === (spawnType === 'passive' ? 'passive' : 'skill')).length;
-              if (currentCount < maxSlots) {
-                const newDummy = { ...dummyBase, instanceId: Date.now() + Math.random(), parentId: token.instanceId, level: 1, charge: 0 };
-                setTokens(prev => [...prev, newDummy]);
-                notify("呪いが増殖した…！");
-                addTokenToast(token, "増殖！");
-              } else {
-                notify("枠が一杯で呪いは増殖できなかった");
-              }
-            }
-          }
-          break;
-        }
 
       case "curse_time_reduction": {
           if (hasSaintToken) {
