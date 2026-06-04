@@ -72,6 +72,27 @@ class PuzzleEngine {
     this.rainbowRates = []; // chance to spawn rainbow drop
     this.chronosStopActive = false;
     this.chronosTimerId = null;
+
+    // 高速化（ファストフォワード）機能用ステートとバインド
+    this.isPointerDown = false;
+    this.isFastForward = false;
+
+    this.onPointerDownForSpeed = (e) => {
+      if (e.type === 'mousedown' && e.button !== 0) return;
+      this.isPointerDown = true;
+      this.updateFastForwardState();
+    };
+
+    this.onPointerUpForSpeed = () => {
+      this.isPointerDown = false;
+      this.updateFastForwardState();
+    };
+
+    window.addEventListener('mousedown', this.onPointerDownForSpeed);
+    window.addEventListener('mouseup', this.onPointerUpForSpeed);
+    window.addEventListener('touchstart', this.onPointerDownForSpeed, { passive: true });
+    window.addEventListener('touchend', this.onPointerUpForSpeed);
+    window.addEventListener('touchcancel', this.onPointerUpForSpeed);
   }
 
   setRealtimeBonuses(bonuses) {
@@ -484,6 +505,8 @@ class PuzzleEngine {
 
   onStart(e, orbOrR, c) {
     if (this.processing) return;
+    this.isPointerDown = false;
+    this.updateFastForwardState();
 
     // 操作開始前に、盤面の全ドロップの skyfall フラグをリセットする
     // また、どのドロップを掴んで操作を始めても、盤面のすべてのムーブドロップのカウントを0にリセットする
@@ -691,6 +714,7 @@ class PuzzleEngine {
     // 修正: 動かしていない（スワップしていない）場合はターンを進めない
     // moveStart はスワップが発生した時点でセットされる
     if (!this.moveStart) {
+      this.updateFastForwardState();
       return;
     }
 
@@ -2033,8 +2057,25 @@ class PuzzleEngine {
     await this.sleep(800);
   }
 
+  updateFastForwardState() {
+    const shouldFast = this.processing && this.isPointerDown && !this.dragging;
+    if (shouldFast) {
+      if (!this.isFastForward) {
+        this.isFastForward = true;
+        this.container.classList.add('is-fast-forward');
+      }
+    } else {
+      if (this.isFastForward) {
+        this.isFastForward = false;
+        this.container.classList.remove('is-fast-forward');
+      }
+    }
+  }
+
   sleep(ms) {
-    return new Promise((res) => setTimeout(res, ms));
+    this.updateFastForwardState();
+    const factor = this.isFastForward ? 0.2 : 1.0;
+    return new Promise((res) => setTimeout(res, ms * factor));
   }
 
   // --- ムーブドロップの同期処理 ---
@@ -2132,6 +2173,12 @@ class PuzzleEngine {
     window.removeEventListener("mouseup", this.onEnd);
     window.removeEventListener("touchmove", this.onMove);
     window.removeEventListener("touchend", this.onEnd);
+    window.removeEventListener("touchcancel", this.onEnd);
+    window.removeEventListener('mousedown', this.onPointerDownForSpeed);
+    window.removeEventListener('mouseup', this.onPointerUpForSpeed);
+    window.removeEventListener('touchstart', this.onPointerDownForSpeed);
+    window.removeEventListener('touchend', this.onPointerUpForSpeed);
+    window.removeEventListener('touchcancel', this.onPointerUpForSpeed);
   }
 }
 

@@ -1206,3 +1206,52 @@ body {
 .animate-star-sparkle {
   animation: star-sparkle 0.5s ease-in-out infinite;
 }
+
+/* 高速化（ファストフォワード）モード時のアニメーション時間短縮 */
+.is-fast-forward .orb {
+  transition-duration: 0.07s !important;
+}
+
+.is-fast-forward .orb-falling {
+  transition-duration: 0.08s !important;
+}
+
+.is-fast-forward .orb-matching>* {
+  animation-duration: 0.06s !important;
+}
+
+.is-fast-forward .orb-reviving>.orb-inner {
+  animation-duration: 0.09s !important;
+}
+
+.is-fast-forward .orb-revive-ring {
+  animation-duration: 0.1s !important;
+}
+
+.is-fast-forward .rainbow-hit-pulse {
+  animation-duration: 0.06s !important;
+}
+
+.is-fast-forward .animate-combo-pop {
+  animation-duration: 0.07s !important;
+}
+
+.is-fast-forward .animate-combo-pulse {
+  animation-duration: 0.12s !important;
+}
+
+.is-fast-forward .animate-target-pulse {
+  animation-duration: 0.14s !important;
+}
+
+.is-fast-forward .animate-combo-float {
+  animation-duration: 0.2s !important;
+}
+
+.is-fast-forward .combo-bonus-add {
+  animation-duration: 0.08s !important;
+}
+
+.is-fast-forward .combo-bonus-mult {
+  animation-duration: 0.08s !important;
+}

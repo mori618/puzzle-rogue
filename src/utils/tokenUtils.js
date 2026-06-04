@@ -56,15 +56,38 @@ const getTokenDescription = (item, level, currentRunStats = null, currentTokens 
     }
   }
 
-  if (base.values) {
+  let valuesToUse = base.values;
+  const isMultiplierEffect = base.effect && (
+    [
+      "color_multiplier", "color_count_bonus", "min_match",
+      "clutch", "sniper", "berserk", "aftershock", "critical",
+      "shape_variety_mult", "desperate_stance", "stat_spend_star",
+      "stat_progress_clear", "stat_time_move", "no_attribute_multiplier",
+      "combo_if_ge"
+    ].includes(base.effect) ||
+    (base.effect === "shape_bonus" && base.params?.shape === "square")
+  );
+
+  if (base.values && isMultiplierEffect) {
+    const isActuallyMultiplierDesc = d.includes("倍になる") || d.includes("倍される");
+    valuesToUse = base.values.map(v => {
+      const num = parseFloat(v);
+      if (isActuallyMultiplierDesc) {
+        return v;
+      }
+      return !isNaN(num) ? num - 1.0 : v;
+    });
+  }
+
+  if (valuesToUse) {
     if (isEncyclopedia) {
       // 図鑑用: [値1/値2/値3] の形式にする
-      const allValuesStr = base.values.map(v => !isNaN(parseFloat(v)) ? Math.round(parseFloat(v) * 100) / 100 : v).join('/');
+      const allValuesStr = valuesToUse.map(v => !isNaN(parseFloat(v)) ? Math.round(parseFloat(v) * 100) / 100 : v).join('/');
       d = d.replace(/{values}/g, `[${allValuesStr}]`);
       d = d.replace(/Lvに応じ/g, "");
       d = d.replace(/Lv分/g, `[${allValuesStr}]`);
     } else {
-      const value = base.values[targetLv - 1];
+      const value = valuesToUse[targetLv - 1];
       if (value !== undefined) {
         const formattedValue = !isNaN(parseFloat(value)) ? Math.round(parseFloat(value) * 100) / 100 : value;
         d = d.replace(/{values}/g, formattedValue);
@@ -151,7 +174,7 @@ const getTokenDynamicInfo = (item, level, currentRunStats = null, currentTokens 
       infoList.push({ label: 'L字消し累計', value: `${count} 回`, type: 'stat' });
       infoList.push({ label: '売却値増加', value: `+${formatNum(count * v)}`, type: 'boost' });
     } else if (effect === 'stat_shape_row') {
-      const count = Math.floor((currentRunStats.currentShapeRow || 0) / 2);
+      const count = Math.floor((currentRunStats.currentShapeRow || 0) / 5);
       const m = Math.pow(v, count);
       infoList.push({ label: '横一列累計', value: `${currentRunStats.currentShapeRow || 0} 回`, type: 'stat' });
       infoList.push({ label: '乗算値', value: `x${formatNum(m)}`, type: 'boost' });
