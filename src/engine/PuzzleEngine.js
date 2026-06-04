@@ -76,6 +76,7 @@ class PuzzleEngine {
     // 高速化（ファストフォワード）機能用ステートとバインド
     this.isPointerDown = false;
     this.isFastForward = false;
+    this.speedMultiplier = options.speedMultiplier || 3;
 
     this.onPointerDownForSpeed = (e) => {
       if (e.type === 'mousedown' && e.button !== 0) return;
@@ -711,10 +712,13 @@ class PuzzleEngine {
       return;
     }
 
+    // パズル操作が終了したので、倍速用ポインターのタッチ状態をリセットする
+    this.isPointerDown = false;
+    this.updateFastForwardState();
+
     // 修正: 動かしていない（スワップしていない）場合はターンを進めない
     // moveStart はスワップが発生した時点でセットされる
     if (!this.moveStart) {
-      this.updateFastForwardState();
       return;
     }
 
@@ -2063,18 +2067,21 @@ class PuzzleEngine {
       if (!this.isFastForward) {
         this.isFastForward = true;
         this.container.classList.add('is-fast-forward');
+        this.container.setAttribute('data-speed', `▶▶ ${this.speedMultiplier || 3}x`);
       }
     } else {
       if (this.isFastForward) {
         this.isFastForward = false;
         this.container.classList.remove('is-fast-forward');
+        this.container.removeAttribute('data-speed');
       }
     }
   }
 
   sleep(ms) {
     this.updateFastForwardState();
-    const factor = this.isFastForward ? 0.2 : 1.0;
+    const speed = this.speedMultiplier || 3;
+    const factor = this.isFastForward ? (1.0 / speed) : 1.0;
     return new Promise((res) => setTimeout(res, ms * factor));
   }
 

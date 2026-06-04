@@ -127,6 +127,33 @@ const SettingsScreen = ({ settings, onSettingsChange, onClose }) => {
                         />
                     </div>
 
+                    {/* 倍速の速さ */}
+                    <div className="bg-slate-800/60 rounded-xl p-4 border border-white/5">
+                        <p className="text-slate-300 text-sm font-bold mb-3 flex items-center gap-1.5">
+                            <span className="material-icons-round text-base text-primary">speed</span>
+                            倍速の速さ
+                        </p>
+                        <p className="text-slate-500 text-xs mb-4 leading-relaxed">
+                            パズル演出時の長押し倍速の速さを変更します。
+                        </p>
+
+                        <div className="flex gap-2">
+                            {[2, 3, 5].map((speed) => (
+                                <button
+                                    key={speed}
+                                    onClick={() => onSettingsChange('speedMultiplier', speed)}
+                                    className={`flex-1 py-2.5 rounded-xl font-bold transition-all active:scale-95 text-sm ${
+                                        (settings.speedMultiplier || 3) === speed
+                                            ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                                            : 'bg-slate-700/60 text-slate-400 border border-white/5 hover:bg-slate-700'
+                                    }`}
+                                >
+                                    {speed}倍
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="my-1 border-b border-white/5 w-full"></div>
 
                     {/* 戻るボタン */}

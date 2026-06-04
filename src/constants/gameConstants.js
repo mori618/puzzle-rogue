@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS = {
   seVolume: 0.7,
   bgmMuted: false,
   seMuted: false,
+  speedMultiplier: 3, // デフォルト3倍速
 };
 
 const TOKEN_PRICE_GROWTH_FACTOR = 1.15;

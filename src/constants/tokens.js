@@ -943,7 +943,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "memory_of_flash", name: "一閃の記憶", icon: "category", type: "passive", effect: "stat_shape_row",
     values: [2, 3, 4], maxMultipliers: [10, 20, 50], rarity: 2, price: 9,
-    desc: "現在のゲーム中の「横1列消し累計回数」5回につき、横1列消しのコンボ倍率にプラス[2/3/4]。",
+    desc: "現在のゲーム中の「横1列消し累計回数」5回につき、横1列消し1つにつきコンボ倍率にプラス[2/3/4]。",
     attributes: [],
     canBeInitial: true
   },

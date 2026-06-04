@@ -4572,19 +4572,40 @@ const App = () => {
                   <div className="absolute inset-0 z-30 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in px-8 text-center">
                     <span className="material-icons-round text-7xl text-red-500 mb-4 animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">broken_image</span>
                     <h2 className="text-4xl font-black font-display text-white mb-2 tracking-tighter">GAME OVER</h2>
-                    <p className="text-slate-400 mb-8 text-sm font-medium">目標未達成...<br />リトライして再挑戦しよう</p>
+                    <p className="text-slate-400 mb-6 text-sm font-medium">目標未達成...<br />リトライして再挑戦しよう</p>
+
+                    <div className="bg-slate-800/40 border border-white/10 rounded-2xl p-4 mb-8 w-full max-w-[280px] grid grid-cols-2 gap-4 animate-fade-in">
+                      <div className="text-center">
+                        <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">最終到達サイクル</div>
+                        <div className="text-2xl font-black text-white font-mono mt-1">{(currentRunStats?.currentClears || 0) + 1}</div>
+                      </div>
+                      <div className="text-center border-l border-white/10">
+                        <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">最大コンボ</div>
+                        <div className="text-2xl font-black text-yellow-400 font-mono mt-1">{currentRunStats?.maxCombo || 0}</div>
+                      </div>
+                    </div>
 
                     <div className="flex flex-col gap-3 w-full">
-                      <button onClick={handleEndlessMode} className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-2xl font-bold text-sm shadow-lg hover:shadow-purple-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 w-full">
-                        <span className="material-icons-round">all_inclusive</span>
-                        エンドレスモードで継続
-                      </button>
-                      <button onClick={handleGiveUp} className="bg-slate-800 text-slate-300 py-4 rounded-2xl font-bold text-sm active:scale-95 hover:bg-slate-700 transition-colors w-full border border-white/5">
+                      <button onClick={handleGiveUp} className="w-full bg-slate-800 text-slate-300 py-4 rounded-2xl font-bold text-sm active:scale-95 hover:bg-slate-700 transition-colors border border-white/5">
                         リトライ
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsGameOver(false);
+                          setShowShop(false);
+                          setIsPracticeMode(false);
+                          setShowTitle(true);
+                          setCurrentRunStats(prev => ({ ...prev, maxCombo: 0 }));
+                        }}
+                        className="w-full bg-slate-800 text-slate-300 py-4 rounded-2xl font-bold text-sm active:scale-95 hover:bg-slate-700 transition-colors border border-white/5 flex items-center justify-center gap-1"
+                      >
+                        <span className="material-icons-round text-sm">home</span>
+                        タイトルに戻る
                       </button>
                     </div>
                   </div>
                 )}
+
 
               </div>
 
