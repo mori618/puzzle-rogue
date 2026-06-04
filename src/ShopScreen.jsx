@@ -3,6 +3,7 @@ import { getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
 import { formatJapaneseNumber } from './utils/numberUtils';
+import { AWAKENING_TOKEN_SLOT_PRICES } from './constants/gameConstants';
 
 // 通常アイテムの背景・ボーダー色を返すヘルパー
 
@@ -217,8 +218,7 @@ const ShopScreen = ({
     };
 
 
-    // 覚醒ショップの価格計算
-    const AWAKENING_TOKEN_SLOT_PRICES = [50, 200, 800, 3000, 10000];
+
     const tokenSlotExpCount = tokenSlotExpansionCount || 0;
     const isTokenSlotMaxed = tokenSlotExpCount >= 5;
     const tokenSlotExpandPrice = isTokenSlotMaxed ? 0 : (AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpCount, 4)] || 50000);

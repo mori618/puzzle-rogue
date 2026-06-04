@@ -329,6 +329,48 @@ body {
 
 /* === コンボ表示システム === */
 
+/* 数式表示用のスタイル */
+.combo-formula {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.combo-formula-expr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.combo-formula-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+  margin-top: 4px;
+}
+
+.combo-formula-part {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.combo-formula-op {
+  font-size: clamp(1.5rem, 8vw, 3rem);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.6);
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  padding-bottom: 15px; /* ラベルとの位置調整 */
+}
+
 /* コンボ表示のコンテナ */
 .combo-display {
   display: flex;

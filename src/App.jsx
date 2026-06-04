@@ -10,7 +10,7 @@ import StartOptionScreen from "./StartOptionScreen";
 import TokenEncyclopediaScreen from "./TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, getEnchantDescription, ENCHANTMENTS } from './constants/enchantments.js';
-import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_GROWTH_FACTOR, SHOP_REROLL_GROWTH_FACTOR } from './constants/gameConstants.js';
+import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_GROWTH_FACTOR, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES } from './constants/gameConstants.js';
 import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
 import { formatJapaneseNumber } from './utils/numberUtils.js';
 import { PuzzleEngine } from './engine/PuzzleEngine.js';
@@ -832,7 +832,8 @@ const App = () => {
   const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0, erasedByRepeatTotal = 0, erasedByStarTotal = 0, isAllClear = false, extraStats = {}) => {
     const showComboBreakdownLocal = async (params) => {
       const {
-        tc, logData, turnCombo, bonus, multiplier, effectiveCombo, isBeyondMode, MAX_COMBO
+        tc, logData, turnCombo, bonus, multiplier, effectiveCombo, isBeyondMode, MAX_COMBO,
+        finalBaseCombo, finalComboMultiplier, debuffMultiplier, addedMultiplier
       } = params;
       const el = comboRef.current;
       if (!el) return;
@@ -840,74 +841,225 @@ const App = () => {
       const mode = settings?.comboAnimationMode || 'instant';
 
       if (mode === 'step' && turnCombo > 0) {
-        let currentVal = tc;
+        let currentBase = tc;
+        let currentMult = 1.0;
+
+        // 初期描画
+        el.innerHTML = `
+          <div class="combo-formula">
+            <div class="combo-formula-expr">
+              <div class="combo-formula-part">
+                <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
+                <span class="combo-label">BASE</span>
+              </div>
+              <div class="combo-formula-op">×</div>
+              <div class="combo-formula-part">
+                <span class="combo-number">${formatNum(currentMult)}</span>
+                <span class="combo-label">MULT</span>
+              </div>
+            </div>
+          </div>
+        `;
+        el.classList.remove('animate-combo-pop');
+        void el.offsetWidth;
+        el.classList.add('animate-combo-pop');
+        await new Promise(r => setTimeout(r, 900));
+
+        // 1. 基礎コンボ加算フェーズ
         for (const step of logData.bonusSteps) {
           if (!comboRef.current) break;
           if (step.tokenId) triggerPassive(step.tokenId);
           const stepValue = isNaN(step.value) ? 0 : step.value;
-          currentVal = isBeyondMode ? (currentVal + stepValue) : Math.min(currentVal + stepValue, MAX_COMBO);
+          currentBase += stepValue;
+          
           const eEl = comboRef.current;
           const sign = stepValue >= 0 ? '+' : '';
-          const prevVal = Math.max(0, currentVal - stepValue);
-          const safePrevVal = isNaN(prevVal) ? 0 : prevVal;
-          eEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(safePrevVal)}</span><span class="combo-bonus-add">${sign}${formatJapaneseNumber(stepValue)}<span class="combo-step-label"> ${step.label}</span></span>`;
+          const prevBase = Math.max(0, currentBase - stepValue);
+          
+          eEl.innerHTML = `
+            <div class="combo-formula">
+              <div class="combo-formula-expr">
+                <div class="combo-formula-part">
+                  <span class="combo-number">${formatJapaneseNumber(prevBase)}</span>
+                  <span class="combo-bonus-add">${sign}${formatJapaneseNumber(stepValue)}<span class="combo-step-label"> ${step.label}</span></span>
+                </div>
+                <div class="combo-formula-op">×</div>
+                <div class="combo-formula-part">
+                  <span class="combo-number">${formatNum(currentMult)}</span>
+                  <span class="combo-label">MULT</span>
+                </div>
+              </div>
+            </div>
+          `;
           eEl.classList.remove('animate-combo-pop');
-          void eEl.offsetWidth; eEl.classList.add('animate-combo-pop');
+          void eEl.offsetWidth;
+          eEl.classList.add('animate-combo-pop');
           await new Promise(r => setTimeout(r, 900));
         }
 
+        // 2. 呪い（デバフ）適用フェーズ
+        if (logData.debuffSteps && logData.debuffSteps.length > 0) {
+          for (const step of logData.debuffSteps) {
+            if (!comboRef.current) break;
+            const prevBase = currentBase;
+            currentBase = Math.floor(currentBase * step.value);
+            
+            const eEl = comboRef.current;
+            eEl.innerHTML = `
+              <div class="combo-formula">
+                <div class="combo-formula-expr">
+                  <div class="combo-formula-part">
+                    <span class="combo-number">${formatJapaneseNumber(prevBase)}</span>
+                    <span class="combo-bonus-mult">×${step.value}<span class="combo-step-label"> ${step.label}</span></span>
+                  </div>
+                  <div class="combo-formula-op">×</div>
+                  <div class="combo-formula-part">
+                    <span class="combo-number">${formatNum(currentMult)}</span>
+                    <span class="combo-label">MULT</span>
+                  </div>
+                </div>
+              </div>
+            `;
+            eEl.classList.remove('animate-combo-pop');
+            void eEl.offsetWidth;
+            eEl.classList.add('animate-combo-pop');
+            await new Promise(r => setTimeout(r, 900));
+          }
+        }
+
+        // 3. コンボ倍率加算・乗算フェーズ
         for (const step of logData.multiplierSteps) {
           if (!comboRef.current) break;
           if (step.tokenId) triggerPassive(step.tokenId);
-          const safeStepValue = isNaN(step.value) ? 1 : step.value;
-          const prevVal = isNaN(currentVal) ? 0 : currentVal;
-          currentVal = isBeyondMode ? Math.floor(prevVal * safeStepValue) : Math.min(Math.floor(prevVal * safeStepValue), MAX_COMBO);
-          const eEl = comboRef.current;
-          const roundedV = formatNum(safeStepValue);
-          eEl.innerHTML = `<span class="combo-number">${formatJapaneseNumber(prevVal)}</span><span class="combo-bonus-mult">×${roundedV}<span class="combo-step-label"> ${step.label}</span></span>`;
-          eEl.classList.remove('animate-combo-pop');
-          void eEl.offsetWidth; eEl.classList.add('animate-combo-pop');
+          
+          const prevMult = currentMult;
+          if (step.type === 'add') {
+            const addedVal = isNaN(step.addedValue) ? 0 : step.addedValue;
+            currentMult += addedVal;
+            const sign = addedVal >= 0 ? '+' : '';
+            
+            const eEl = comboRef.current;
+            eEl.innerHTML = `
+              <div class="combo-formula">
+                <div class="combo-formula-expr">
+                  <div class="combo-formula-part">
+                    <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
+                    <span class="combo-label">BASE</span>
+                  </div>
+                  <div class="combo-formula-op">×</div>
+                  <div class="combo-formula-part">
+                    <span class="combo-number">${formatNum(prevMult)}</span>
+                    <span class="combo-bonus-add">${sign}${addedVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span></span>
+                  </div>
+                </div>
+              </div>
+            `;
+            eEl.classList.remove('animate-combo-pop');
+            void eEl.offsetWidth;
+            eEl.classList.add('animate-combo-pop');
+          } else {
+            const multVal = isNaN(step.value) ? 1.0 : step.value;
+            currentMult *= multVal;
+            
+            const eEl = comboRef.current;
+            eEl.innerHTML = `
+              <div class="combo-formula">
+                <div class="combo-formula-expr">
+                  <div class="combo-formula-part">
+                    <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
+                    <span class="combo-label">BASE</span>
+                  </div>
+                  <div class="combo-formula-op">×</div>
+                  <div class="combo-formula-part">
+                    <span class="combo-number">${formatNum(prevMult)}</span>
+                    <span class="combo-bonus-mult">×${multVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span></span>
+                  </div>
+                </div>
+              </div>
+            `;
+            eEl.classList.remove('animate-combo-pop');
+            void eEl.offsetWidth;
+            eEl.classList.add('animate-combo-pop');
+          }
           await new Promise(r => setTimeout(r, 900));
         }
 
         await new Promise(r => setTimeout(r, 300));
         if (comboRef.current) {
           const safeCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
-          comboRef.current.innerHTML = `<span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
+          comboRef.current.innerHTML = `
+            <span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span>
+            <span class="combo-label">COMBO</span>
+          `;
           comboRef.current.classList.remove('animate-combo-pop');
           comboRef.current.classList.add('animate-combo-pulse');
           void comboRef.current.offsetWidth;
         }
       } else {
-        if (turnCombo > 0 && bonus > 0) {
-          await new Promise(r => setTimeout(r, 400));
-          const safeTurnCombo = isNaN(turnCombo) ? 0 : turnCombo;
-          const safeBonus = isNaN(bonus) ? 0 : bonus;
-          el.innerHTML = `<span class="combo-number">${safeTurnCombo}</span><span class="combo-bonus-add">+${safeBonus}</span>`;
-          el.classList.remove('animate-combo-pop');
-          void el.offsetWidth; el.classList.add('animate-combo-pop');
-        }
-        if (turnCombo > 0 && multiplier > 1) {
-          await new Promise(r => setTimeout(r, 500));
-          const baseVal = (isNaN(turnCombo) ? 0 : turnCombo) + (isNaN(bonus) ? 0 : bonus);
-          const roundedMultiplier = formatNum(isNaN(multiplier) ? 1 : multiplier);
-          el.innerHTML = `<span class="combo-number">${baseVal}</span><span class="combo-bonus-mult">×${roundedMultiplier}</span>`;
-          el.classList.remove('animate-combo-pop');
-          void el.offsetWidth; el.classList.add('animate-combo-pop');
-        }
         if (turnCombo > 0) {
-          await new Promise(r => setTimeout(r, 600));
-          const safeEffectiveCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
-          el.innerHTML = `<span class="combo-number combo-number-final">${safeEffectiveCombo}</span><span class="combo-label">COMBO</span>`;
-          el.classList.remove('animate-combo-pop');
-          el.classList.add('animate-combo-pulse');
+          el.innerHTML = `
+            <div class="combo-formula">
+              <div class="combo-formula-expr">
+                <div class="combo-formula-part">
+                  <span class="combo-number">${formatJapaneseNumber(finalBaseCombo)}</span>
+                  ${bonus > 0 ? `<span class="combo-bonus-add">+${bonus}</span>` : ''}
+                  ${debuffMultiplier < 1 ? `<span class="combo-bonus-mult">×${debuffMultiplier}</span>` : ''}
+                </div>
+                <div class="combo-formula-op">×</div>
+                <div class="combo-formula-part">
+                  <span class="combo-number">${formatNum(finalComboMultiplier)}</span>
+                  ${addedMultiplier > 0 ? `<span class="combo-bonus-add">+${addedMultiplier.toFixed(1)}</span>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+          el.classList.remove('animate-combo-pulse', 'animate-combo-pop');
           void el.offsetWidth;
-        } else if (turnCombo === 0 && effectiveCombo === 0) {
-          await new Promise(r => setTimeout(r, 400));
-          el.innerHTML = `<span class="combo-number combo-number-final">0</span><span class="combo-label">COMBO</span>`;
-          el.classList.remove('animate-combo-pop');
-          el.classList.add('animate-combo-pulse');
+          el.classList.add('animate-combo-pop');
+
+          await new Promise(r => setTimeout(r, 900));
+
+          if (comboRef.current) {
+            const safeCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
+            comboRef.current.innerHTML = `
+              <span class="combo-number combo-number-final">${formatJapaneseNumber(safeCombo)}</span>
+              <span class="combo-label">COMBO</span>
+            `;
+            comboRef.current.classList.remove('animate-combo-pop');
+            comboRef.current.classList.add('animate-combo-pulse');
+            void comboRef.current.offsetWidth;
+          }
+        } else {
+          el.innerHTML = `
+            <div class="combo-formula">
+              <div class="combo-formula-expr">
+                <div class="combo-formula-part">
+                  <span class="combo-number">0</span>
+                  <span class="combo-label">BASE</span>
+                </div>
+                <div class="combo-formula-op">×</div>
+                <div class="combo-formula-part">
+                  <span class="combo-number">1.0</span>
+                  <span class="combo-label">MULT</span>
+                </div>
+              </div>
+            </div>
+          `;
+          el.classList.remove('animate-combo-pulse', 'animate-combo-pop');
           void el.offsetWidth;
+          el.classList.add('animate-combo-pop');
+
+          await new Promise(r => setTimeout(r, 900));
+
+          if (comboRef.current) {
+            comboRef.current.innerHTML = `
+              <span class="combo-number combo-number-final">0</span>
+              <span class="combo-label">COMBO</span>
+            `;
+            comboRef.current.classList.remove('animate-combo-pop');
+            comboRef.current.classList.add('animate-combo-pulse');
+            void comboRef.current.offsetWidth;
+          }
         }
       }
 
@@ -920,7 +1072,7 @@ const App = () => {
           comboRef.current.classList.add('animate-fade-out');
           setTimeout(() => { if (comboRef.current) comboRef.current.innerHTML = ''; }, 500);
         }
-      }, 1000);
+      }, 1500);
     };
 
     const { bombSelfErased = 0, repeatSelfErased = 0, starSelfErased = 0, rainbowSelfErased = 0 } = extraStats;
@@ -937,8 +1089,11 @@ const App = () => {
 
     let bonus = 0;
     let multiplier = 1;
+    let addedMultiplier = 0.0;
+    let multMultiplier = 1.0;
+    let debuffMultiplier = 1.0;
     let exponentialBonus = 0;
-    let exponentialMultiplier = 1;
+    let exponentialMultiplier = 0.0;
     let timeMultiplier = 1;
     const matchedColorSet = new Set(Object.keys(colorComboCounts).filter(k => colorComboCounts[k] > 0));
     if (isCurseHeartActive) matchedColorSet.delete("heart");
@@ -1019,9 +1174,9 @@ const App = () => {
     };
 
     if (isAllClear) {
-      multiplier *= 2;
-      logData.multipliers.push(`all_clear_multiplier:x2`);
-      logData.multiplierSteps.push({ label: '全消しボーナス', value: 2 });
+      addedMultiplier += 1.0;
+      logData.multipliers.push(`all_clear_multiplier:+1.0`);
+      logData.multiplierSteps.push({ label: '全消しボーナス', value: 2, addedValue: 1.0, type: 'add' });
     }
 
     if (moveDropBonus > 0) {
@@ -1033,9 +1188,10 @@ const App = () => {
     const squareCount = shapes.filter(s => s === 'square').length;
     if (squareCount > 0) {
       const baseSquareMult = Math.pow(2, squareCount);
-      multiplier *= baseSquareMult;
-      logData.multipliers.push(`base_square_bonus:x${baseSquareMult}`);
-      logData.multiplierSteps.push({ label: '正方形消し(基礎)', value: baseSquareMult });
+      const addVal = baseSquareMult - 1.0;
+      addedMultiplier += addVal;
+      logData.multipliers.push(`base_square_bonus:+${addVal.toFixed(2)}`);
+      logData.multiplierSteps.push({ label: '正方形消し(基礎)', value: baseSquareMult, addedValue: addVal, type: 'add' });
     }
 
     effectiveTokens.forEach((t) => {
@@ -1056,9 +1212,9 @@ const App = () => {
         if (effect === "last_turn_mult" && turn === maxTurns) {
           if (isInstant) triggerPassive(tokenId);
           const v = val || 1.5;
-          multiplier *= v;
-          logData.multipliers.push(`clutch:x${v}`);
-          logData.multiplierSteps.push({ label: tokenName || '土壇場の底力', value: v, tokenId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`clutch:+${(v - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: tokenName || '土壇場の底力', value: v, addedValue: v - 1.0, type: 'add', tokenId });
         }
         if (effect === "multi_color" && matchedColorSet.size >= 4) {
           if (isInstant) triggerPassive(tokenId);
@@ -1070,9 +1226,9 @@ const App = () => {
         if (effect === "single_color" && matchedColorSet.size > 0 && matchedColorSet.size <= 2) {
           if (isInstant) triggerPassive(tokenId);
           const v = val || 1.3;
-          multiplier *= v;
-          logData.multipliers.push(`sniper:x${v}`);
-          logData.multiplierSteps.push({ label: tokenName || '一点突破', value: v, tokenId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`sniper:+${(v - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: tokenName || '一点突破', value: v, addedValue: v - 1.0, type: 'add', tokenId });
         }
         const shapeMap = {
           "shape_match4": "len4",
@@ -1087,9 +1243,9 @@ const App = () => {
           if (count > 0) {
             let totalMult = Math.pow(val || 1.0, count);
             totalMult = applyMultiplierCap(totalMult, t);
-            multiplier *= totalMult;
-            logData.multipliers.push(`${effect}:${val}^${count}=x${totalMult.toFixed(2)}`);
-            logData.multiplierSteps.push({ label: tokenName || effect, value: totalMult, tokenId });
+            addedMultiplier += (totalMult - 1.0);
+            logData.multipliers.push(`${effect}:${val}^${count}=+${(totalMult - 1.0).toFixed(2)}`);
+            logData.multiplierSteps.push({ label: tokenName || effect, value: totalMult, addedValue: totalMult - 1.0, type: 'add', tokenId });
           }
         }
         if (effect === "random_bonus") {
@@ -1102,22 +1258,22 @@ const App = () => {
         if (effect === "berserk_mode") {
           if (isInstant) triggerPassive(tokenId);
           const v = val || 1.5;
-          multiplier *= v;
-          logData.multipliers.push(`berserk:x${v}`);
-          logData.multiplierSteps.push({ label: tokenName || '狂戦士', value: v, tokenId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`berserk:+${(v - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: tokenName || '狂戦士', value: v, addedValue: v - 1.0, type: 'add', tokenId });
         }
         if (effect === "skyfall_mult" && hasSkyfallCombo) {
           if (isInstant) triggerPassive(tokenId);
           const v = val || 1.4;
-          multiplier *= v;
-          logData.multipliers.push(`aftershock:x${v}`);
-          logData.multiplierSteps.push({ label: tokenName || '追撃', value: v, tokenId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`aftershock:+${(v - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: tokenName || '追撃', value: v, addedValue: v - 1.0, type: 'add', tokenId });
         }
         if (effect === "critical_strike") {
           if (Math.random() < 0.2) {
-            multiplier *= val;
-            logData.multipliers.push(`CRITICAL!:x${val}`);
-            logData.multiplierSteps.push({ label: tokenName || '会心の一撃!', value: val, tokenId });
+            addedMultiplier += (val - 1.0);
+            logData.multipliers.push(`CRITICAL!:+${(val - 1.0).toFixed(2)}`);
+            logData.multiplierSteps.push({ label: tokenName || '会心の一撃!', value: val, addedValue: val - 1.0, type: 'add', tokenId });
             notify("会心の一撃！");
           }
         }
@@ -1126,17 +1282,17 @@ const App = () => {
           if (color && matchedColorSet.has(color)) {
             if (isInstant) triggerPassive(tokenId);
             const v = val || 1.2;
-            multiplier *= v;
-            logData.multipliers.push(`color_enc_${color}:x${v}`);
-            logData.multiplierSteps.push({ label: tokenName || `色別連舞(${color})`, value: v, tokenId });
+            addedMultiplier += (v - 1.0);
+            logData.multipliers.push(`color_enc_${color}:+${(v - 1.0).toFixed(2)}`);
+            logData.multiplierSteps.push({ label: tokenName || `色別連舞(${color})`, value: v, addedValue: v - 1.0, type: 'add', tokenId });
           }
         }
         if (effect === "acrobat") {
           if (colorComboCounts['heart'] >= 2) {
             if (isInstant) triggerPassive(tokenId);
-            multiplier *= 7;
-            logData.multipliers.push(`acrobat:x7`);
-            logData.multiplierSteps.push({ label: tokenName || '曲芸師', value: 7, tokenId });
+            addedMultiplier += 6.0;
+            logData.multipliers.push(`acrobat:+6.0`);
+            logData.multiplierSteps.push({ label: tokenName || '曲芸師', value: 7, addedValue: 6.0, type: 'add', tokenId });
           }
         }
         let shapeType = null;
@@ -1145,7 +1301,7 @@ const App = () => {
         if (effect === "shape_row") shapeType = "row";
         if (effect === "shape_l") shapeType = "l_shape";
         if (effect === "shape_square") shapeType = "square";
-
+ 
         if (shapeType) {
           const count = shapes.filter(s => s === shapeType).length;
           if (count > 0) {
@@ -1154,11 +1310,6 @@ const App = () => {
                 setTimeout(() => triggerPassive(tokenId), i * 150);
               }
             }
-            let totalMult = Math.pow(val || 1.0, count);
-            totalMult = applyMultiplierCap(totalMult, t);
-            multiplier *= totalMult;
-            logData.multipliers.push(`${effect}:${val}^${count}=x${totalMult.toFixed(2)}`);
-            logData.multiplierSteps.push({ label: tokenName || effect, value: totalMult, tokenId });
           }
         }
       };
@@ -1192,9 +1343,9 @@ const App = () => {
       if (t.effect === "contract_of_void") {
         const v = t.values?.[lv - 1] || 1;
         if (isInstant) triggerPassive(tId);
-        multiplier *= v;
-        logData.multipliers.push(`contract_of_void:x${v.toFixed(2)}`);
-        logData.multiplierSteps.push({ label: t.name || '契約の虚無', value: v, tokenId: tId });
+        addedMultiplier += (v - 1.0);
+        logData.multipliers.push(`contract_of_void:+${(v - 1.0).toFixed(2)}`);
+        logData.multiplierSteps.push({ label: t.name || '契約の虚無', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
       }
       if (t.effect === "random_add") {
         const pool = t.values?.[lv - 1] || [0];
@@ -1236,9 +1387,9 @@ const App = () => {
           let v = t.values?.[lv - 1] || 10;
           v = applyMultiplierCap(v, t);
           if (isInstant) triggerPassive(tId);
-          multiplier *= v;
-          logData.multipliers.push(`pure_power:x${v.toFixed(2)}`);
-          logData.multiplierSteps.push({ label: t.name, value: v, tokenId: tId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`pure_power:+${(v - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name, value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
         }
       }
 
@@ -1247,9 +1398,9 @@ const App = () => {
         let v = Math.pow(t.values?.[lv - 1] || 1, rarity3Count);
         v = applyMultiplierCap(v, t);
         if (v > 1) {
-          multiplier *= v;
-          logData.multipliers.push(`star3_mult_boost:x${v.toFixed(2)}`);
-          logData.multiplierSteps.push({ label: t.name || '星3コンボ倍率', value: v, tokenId: tId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`star3_mult_boost:+${(v - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || '星3コンボ倍率', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
         }
       }
 
@@ -1271,9 +1422,9 @@ const App = () => {
         v = applyMultiplierCap(v, t);
         if (v > 1) {
           if (isInstant) triggerPassive(tId);
-          multiplier *= v;
-          logData.multipliers.push(`level3_count_mult:x${v.toFixed(2)}`);
-          logData.multiplierSteps.push({ label: t.name || 'レベル3数倍率', value: v, tokenId: tId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`level3_count_mult:+${(v - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || 'レベル3数倍率', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
         }
       }
 
@@ -1283,15 +1434,15 @@ const App = () => {
         multVal = applyMultiplierCap(multVal, t);
         if (multVal > 1) {
           if (isInstant) triggerPassive(tId);
-          multiplier *= multVal;
-          logData.multipliers.push(`star_erase_mult:x${multVal.toFixed(2)}`);
-          logData.multiplierSteps.push({ label: t.name || 'スター消去倍率', value: multVal, tokenId: tId });
+          addedMultiplier += (multVal - 1.0);
+          logData.multipliers.push(`star_erase_mult:+${(multVal - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || 'スター消去倍率', value: multVal, addedValue: multVal - 1.0, type: 'add', tokenId: tId });
         } else if (multVal > 0 && multVal <= 1) {
           if (isInstant) triggerPassive(tId);
           const m = Math.max(1, multVal);
-          multiplier *= m;
-          logData.multipliers.push(`star_erase_mult:x${m.toFixed(2)}`);
-          if (m > 1) logData.multiplierSteps.push({ label: t.name || 'スター消去倍率', value: m, tokenId: tId });
+          addedMultiplier += (m - 1.0);
+          logData.multipliers.push(`star_erase_mult:+${(m - 1.0).toFixed(2)}`);
+          if (m > 1) logData.multiplierSteps.push({ label: t.name || 'スター消去倍率', value: m, addedValue: m - 1.0, type: 'add', tokenId: tId });
         }
       }
 
@@ -1301,9 +1452,9 @@ const App = () => {
         v = applyMultiplierCap(v, t);
         if (v > 1) {
           if (isInstant) triggerPassive(tId);
-          multiplier *= v;
-          logData.multipliers.push(`enchant_mult_boost:x${formatNum(v)}`);
-          logData.multiplierSteps.push({ label: t.name || 'エンチャント数倍率', value: v, tokenId: tId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`enchant_mult_boost:+${(v - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || 'エンチャント数倍率', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
         }
       }
 
@@ -1313,9 +1464,9 @@ const App = () => {
         v = applyMultiplierCap(v, t);
         if (v > 1) {
           if (isInstant) triggerPassive(tId);
-          multiplier *= v;
-          logData.multipliers.push(`curse_mult_boost:x${formatNum(v)}`);
-          logData.multiplierSteps.push({ label: t.name || '呪い数倍率', value: v, tokenId: tId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`curse_mult_boost:+${(v - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || '呪い数倍率', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
         }
       }
       if (t.effect === "stat_curse_removed") {
@@ -1323,9 +1474,9 @@ const App = () => {
         const v = (t.values?.[lv - 1] || 1) * removedCount;
         if (v > 0) {
           if (isInstant) triggerPassive(tId);
-          multiplier += v;
+          addedMultiplier += v;
           logData.multipliers.push(`curse_eater:+${v}(removed:${removedCount})`);
-          logData.multiplierSteps.push({ label: t.name || '呪い喰い', value: v, tokenId: tId });
+          logData.multiplierSteps.push({ label: t.name || '呪い喰い', value: 1.0 + v, addedValue: v, type: 'add', tokenId: tId });
         }
       }
       if (t.effect === "stat_heart_chalice") {
@@ -1336,9 +1487,9 @@ const App = () => {
           let v = Math.pow(base, count);
           v = applyMultiplierCap(v, t);
           if (isInstant) triggerPassive(tId);
-          multiplier *= v;
-          logData.multipliers.push(`heart_chalice:x${v.toFixed(2)}(hearts:${heartCount})`);
-          logData.multiplierSteps.push({ label: t.name || '生命の器', value: v, tokenId: tId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`heart_chalice:+${(v - 1.0).toFixed(2)}(hearts:${heartCount})`);
+          logData.multiplierSteps.push({ label: t.name || '生命の器', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
         }
       }
       if (t.effect === "stat_time_skipper") {
@@ -1349,9 +1500,9 @@ const App = () => {
           let v = Math.pow(base, count);
           v = applyMultiplierCap(v, t);
           if (isInstant) triggerPassive(tId);
-          multiplier *= v;
-          logData.multipliers.push(`time_skipper:x${v.toFixed(2)}(skips:${skipCount})`);
-          logData.multiplierSteps.push({ label: t.name || '早送りの極意', value: v, tokenId: tId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`time_skipper:+${(v - 1.0).toFixed(2)}(skips:${skipCount})`);
+          logData.multiplierSteps.push({ label: t.name || '早送りの極意', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
         }
       }
 
@@ -1360,9 +1511,9 @@ const App = () => {
         let v = erasedByBombTotal * baseMult;
         v = applyMultiplierCap(v, t);
         if (isInstant) triggerPassive(tId);
-        multiplier *= v;
-        logData.multipliers.push(`bomb_erase_mult:x${formatNum(v)}`);
-        logData.multiplierSteps.push({ label: t.name || 'ボム消去倍率', value: v, tokenId: tId });
+        addedMultiplier += (v - 1.0);
+        logData.multipliers.push(`bomb_erase_mult:+${(v - 1.0).toFixed(2)}`);
+        logData.multiplierSteps.push({ label: t.name || 'ボム消去倍率', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
       }
 
       if (t.effect === "repeat_combo_mult" && erasedByRepeatTotal > 0) {
@@ -1370,9 +1521,9 @@ const App = () => {
         let v = erasedByRepeatTotal * baseMult;
         v = applyMultiplierCap(v, t);
         if (isInstant) triggerPassive(tId);
-        multiplier *= v;
-        logData.multipliers.push(`repeat_combo_mult:x${formatNum(v)}`);
-        logData.multiplierSteps.push({ label: t.name || 'リピート消去倍率', value: v, tokenId: tId });
+        addedMultiplier += (v - 1.0);
+        logData.multipliers.push(`repeat_combo_mult:+${(v - 1.0).toFixed(2)}`);
+        logData.multiplierSteps.push({ label: t.name || 'リピート消去倍率', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
       }
 
       if (t.effect === "skyfall_bonus" && hasSkyfallCombo) {
@@ -1390,9 +1541,9 @@ const App = () => {
       if (t.effect === "combo_if_ge" && turnCombo >= t.params?.combo) {
         const v = t.values?.[lv - 1] || 1;
         if (isInstant) triggerPassive(tId);
-        multiplier *= v;
-        logData.multipliers.push(`combo_ge_${t.params.combo}:${v}`);
-        logData.multiplierSteps.push({ label: t.name || `${t.params.combo}コンボ以上`, value: v, tokenId: tId });
+        addedMultiplier += (v - 1.0);
+        logData.multipliers.push(`combo_ge_${t.params.combo}:+${(v - 1.0).toFixed(2)}`);
+        logData.multiplierSteps.push({ label: t.name || `${t.params.combo}コンボ以上`, value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
       }
 
       if (t.action === "skill_combo_bonus") {
@@ -1415,9 +1566,9 @@ const App = () => {
           if (shape === "square") {
             let totalMult = Math.pow(v, matchCount);
             totalMult = applyMultiplierCap(totalMult, t);
-            multiplier *= totalMult;
+            addedMultiplier += (totalMult - 1.0);
             logData.multipliers.push(`shape_square:mult_x${v}_count_${matchCount}`);
-            logData.multiplierSteps.push({ label: t.name || '四方の型', value: totalMult, tokenId: tId });
+            logData.multiplierSteps.push({ label: t.name || '四方の型', value: totalMult, addedValue: totalMult - 1.0, type: 'add', tokenId: tId });
           } else if (shape === "len5") {
             for (let i = 0; i < matchCount; i++) timeMultiplier *= v;
             logData.bonuses.push(`shape_len5:time_x${v}_count_${matchCount}`);
@@ -1432,20 +1583,21 @@ const App = () => {
       if (t.id === "forbidden" || t.effect === "forbidden") {
         const v = t.values?.[lv - 1] || 1;
         if (isInstant) triggerPassive(t.instanceId || t.id);
-        multiplier *= v;
-        logData.multipliers.push(`forbidden:${v}`);
-        logData.multiplierSteps.push({ label: t.name || '禁忌', value: v, tokenId: tId });
+        addedMultiplier += (v - 1.0);
+        logData.multipliers.push(`forbidden:+${(v - 1.0).toFixed(2)}`);
+        logData.multiplierSteps.push({ label: t.name || '禁忌', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
       }
       if (t.action === "forbidden_temp" && engineRef.current?.noSkyfall) {
         if (isInstant) triggerPassive(t.instanceId || t.id);
-        multiplier *= 3;
-        logData.multipliers.push("forbidden_temp:3");
-        logData.multiplierSteps.push({ label: t.name || '禁忌(一時)', value: 3, tokenId: tId });
+        addedMultiplier += 2.0;
+        logData.multipliers.push("forbidden_temp:+2.0");
+        logData.multiplierSteps.push({ label: t.name || '禁忌(一時)', value: 3, addedValue: 2.0, type: 'add', tokenId: tId });
       }
       enchList.forEach(enc => {
         if (enc.effect === "lvl_mult") {
-          multiplier *= lv;
-          logData.multipliers.push(`lvl_mult:${lv}`);
+          addedMultiplier += (lv - 1.0);
+          logData.multipliers.push(`lvl_mult:+${(lv - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: 'レベル倍率', value: lv, addedValue: lv - 1.0, type: 'add', tokenId: tId });
         }
         if (enc.effect === "stat_shape_all") {
           const totalShape = (currentRunStats.currentShapeLen4 || 0) +
@@ -1466,9 +1618,9 @@ const App = () => {
           const curseCount = tokens.filter(tok => tok != null && (tok.type === 'curse' || tok.isCurse)).length;
           if (curseCount > 0) {
             const v = Math.pow(1.5, curseCount);
-            multiplier *= v;
-            logData.multipliers.push(`curse_catalyst:x${v.toFixed(2)}`);
-            logData.multiplierSteps.push({ label: '呪力変換', value: v, tokenId: tId });
+            addedMultiplier += (v - 1.0);
+            logData.multipliers.push(`curse_catalyst:+${(v - 1.0).toFixed(2)}`);
+            logData.multiplierSteps.push({ label: '呪力変換', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
           }
         }
       });
@@ -1488,8 +1640,8 @@ const App = () => {
         if (match) {
           if (isInstant) triggerPassive(tId);
           const mv = t.values?.[lv - 1] || 1;
-          multiplier *= mv;
-          logData.multiplierSteps.push({ label: t.name || '色倍率', value: mv, tokenId: tId });
+          addedMultiplier += (mv - 1.0);
+          logData.multiplierSteps.push({ label: t.name || '色倍率', value: mv, addedValue: mv - 1.0, type: 'add', tokenId: tId });
         }
       }
 
@@ -1499,9 +1651,9 @@ const App = () => {
         if (color && erasedColorCounts[color] >= requiredCount) {
           const v = t.values?.[lv - 1] || 1;
           if (isInstant) triggerPassive(tId);
-          multiplier *= v;
-          logData.multipliers.push(`color_count_bonus_${color}_${requiredCount}:${v}`);
-          logData.multiplierSteps.push({ label: t.name || `色倍率(${color})`, value: v, tokenId: tId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`color_count_bonus_${color}_${requiredCount}:+${(v - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || `色倍率(${color})`, value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
         }
       }
 
@@ -1510,26 +1662,26 @@ const App = () => {
         if (uniqueShapes >= 2) {
           const v = t.values?.[lv - 1] || 1;
           if (isInstant) triggerPassive(tId);
-          multiplier *= v;
-          logData.multipliers.push(`shape_variety_mult_${uniqueShapes}:${v}`);
-          logData.multiplierSteps.push({ label: t.name || '形状多様性', value: v, tokenId: tId });
+          addedMultiplier += (v - 1.0);
+          logData.multipliers.push(`shape_variety_mult_${uniqueShapes}:+${(v - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || '形状多様性', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
         }
       }
 
       if (t.id === "giant") {
         const v = t.values?.[lv - 1] || 1;
         if (isInstant) triggerPassive(tId);
-        multiplier *= v;
-        logData.multipliers.push(`giant:${v}`);
-        logData.multiplierSteps.push({ label: t.name || '巨人の領域', value: v, tokenId: tId });
+        addedMultiplier += (v - 1.0);
+        logData.multipliers.push(`giant:+${(v - 1.0).toFixed(2)}`);
+        logData.multiplierSteps.push({ label: t.name || '巨人の領域', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
       }
 
       if (t.effect === "desperate_stance") {
         const v = t.values?.[lv - 1] || 3;
         if (isInstant) triggerPassive(tId);
-        multiplier *= v;
-        logData.multipliers.push(`desperate_stance:${v}`);
-        logData.multiplierSteps.push({ label: t.name || '背水の陣', value: v, tokenId: tId });
+        addedMultiplier += (v - 1.0);
+        logData.multipliers.push(`desperate_stance:+${(v - 1.0).toFixed(2)}`);
+        logData.multiplierSteps.push({ label: t.name || '背水の陣', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
       }
 
       if (t.effect === "greed_power") {
@@ -1538,9 +1690,9 @@ const App = () => {
         greedBonus = applyMultiplierCap(greedBonus, t);
         if (greedBonus > 0) {
           if (isInstant) triggerPassive(tId);
-          multiplier += greedBonus;
+          addedMultiplier += greedBonus;
           logData.multipliers.push(`greed_power:+${greedBonus}(stars:${stars}/threshold:${threshold})`);
-          logData.multiplierSteps.push({ label: t.name || '金満の暴力', value: greedBonus, tokenId: tId });
+          logData.multiplierSteps.push({ label: t.name || '金満の暴力', value: 1.0 + greedBonus, addedValue: greedBonus, type: 'add', tokenId: tId });
         }
       }
 
@@ -1570,10 +1722,10 @@ const App = () => {
           let m = 1 + (maxMult * v);
           m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
-          multiplier *= m;
-          exponentialMultiplier *= m;
-          logData.multipliers.push(`stat_mult_余韻:x${formatNum(m)}`);
-          logData.multiplierSteps.push({ label: t.name || '余韻', value: m, tokenId: tId });
+          addedMultiplier += (m - 1.0);
+          exponentialMultiplier += (m - 1.0);
+          logData.multipliers.push(`stat_mult_余韻:+${(m - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || '余韻', value: m, addedValue: m - 1.0, type: 'add', tokenId: tId });
         }
       }
       if (t.effect === "stat_mult_千手") {
@@ -1583,10 +1735,10 @@ const App = () => {
           let m = Math.pow(v, count);
           m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
-          multiplier *= m;
-          exponentialMultiplier *= m;
-          logData.multipliers.push(`stat_mult_千手:x${formatNum(m)}`);
-          logData.multiplierSteps.push({ label: t.name || '千手', value: m, tokenId: tId });
+          addedMultiplier += (m - 1.0);
+          exponentialMultiplier += (m - 1.0);
+          logData.multipliers.push(`stat_mult_千手:+${(m - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || '千手', value: m, addedValue: m - 1.0, type: 'add', tokenId: tId });
         }
       }
       if (t.effect === "stat_shape_cross" && shapes.includes("cross")) {
@@ -1603,9 +1755,9 @@ const App = () => {
           let m = Math.pow(Math.pow(v, count), rowCountInTurn);
           m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
-          multiplier *= m;
-          logData.multipliers.push(`stat_shape_row:x${formatNum(m)}`);
-          logData.multiplierSteps.push({ label: t.name || '一列の叡智', value: m, tokenId: tId });
+          addedMultiplier += (m - 1.0);
+          logData.multipliers.push(`stat_shape_row:+${(m - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || '一列の叡智', value: m, addedValue: m - 1.0, type: 'add', tokenId: tId });
         }
       }
       if (t.effect === "stat_shape_square") {
@@ -1616,9 +1768,9 @@ const App = () => {
           let m = Math.pow(Math.pow(v, count), squareCountInTurn);
           m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
-          multiplier *= m;
-          logData.multipliers.push(`stat_shape_square:x${formatNum(m)}`);
-          logData.multiplierSteps.push({ label: t.name || '四方の叡智', value: m, tokenId: tId });
+          addedMultiplier += (m - 1.0);
+          logData.multipliers.push(`stat_shape_square:+${(m - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || '四方の叡智', value: m, addedValue: m - 1.0, type: 'add', tokenId: tId });
         }
       }
       if (t.effect === "stat_spend_star") {
@@ -1628,9 +1780,9 @@ const App = () => {
           let m = Math.pow(v, count);
           m = applyMultiplierCap(m, t);
           if (isInstant) triggerPassive(t.instanceId || t.id);
-          multiplier *= m;
-          logData.multipliers.push(`stat_spend_star:x${formatNum(m)}`);
-          logData.multiplierSteps.push({ label: t.name || '富の余韻', value: m, tokenId: tId });
+          addedMultiplier += (m - 1.0);
+          logData.multipliers.push(`stat_spend_star:+${(m - 1.0).toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || '富の余韻', value: m, addedValue: m - 1.0, type: 'add', tokenId: tId });
         }
       }
 
@@ -1648,34 +1800,36 @@ const App = () => {
         const v = t.values?.[lv - 1] || 1;
         const tId2 = t.instanceId || t.id;
         if (isInstant) triggerPassive(tId2);
-        multiplier *= v;
-        logData.multipliers.push(`min_match:${v}`);
-        logData.multiplierSteps.push({ label: t.name || 'デュアルマッチ', value: v, tokenId: tId2 });
+        addedMultiplier += (v - 1.0);
+        logData.multipliers.push(`min_match:+${(v - 1.0).toFixed(2)}`);
+        logData.multiplierSteps.push({ label: t.name || 'デュアルマッチ', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId2 });
       }
     });
 
     if (overLinkMultiplier > 1) {
-      multiplier *= overLinkMultiplier;
-      logData.multipliers.push(`overlink:${overLinkMultiplier}`);
+      addedMultiplier += (overLinkMultiplier - 1.0);
+      logData.multipliers.push(`overlink:+${(overLinkMultiplier - 1.0).toFixed(2)}`);
+      logData.multiplierSteps.push({ label: 'オーバーリンク', value: overLinkMultiplier, addedValue: overLinkMultiplier - 1.0, type: 'add' });
     }
 
     setNextTurnTimeMultiplier(timeMultiplier);
 
     activeBuffs.forEach(buff => {
       if (buff.action === "temp_mult") {
-        multiplier *= buff.params.multiplier;
-        logData.multipliers.push(`temp_mult:${buff.params.multiplier}`);
-        logData.multiplierSteps.push({ label: 'スキル倍率', value: buff.params.multiplier });
+        addedMultiplier += (buff.params.multiplier - 1.0);
+        logData.multipliers.push(`temp_mult:+${(buff.params.multiplier - 1.0).toFixed(2)}`);
+        logData.multiplierSteps.push({ label: 'スキル倍率', value: buff.params.multiplier, addedValue: buff.params.multiplier - 1.0, type: 'add' });
       } else if (buff.action === "seal_of_power") {
-        multiplier *= buff.params.multiplier;
-        logData.multipliers.push(`seal_of_power:x${buff.params.multiplier}`);
-        logData.multiplierSteps.push({ label: '封印の力', value: buff.params.multiplier });
+        addedMultiplier += (buff.params.multiplier - 1.0);
+        logData.multipliers.push(`seal_of_power:+${(buff.params.multiplier - 1.0).toFixed(2)}`);
+        logData.multiplierSteps.push({ label: '封印の力', value: buff.params.multiplier, addedValue: buff.params.multiplier - 1.0, type: 'add' });
       }
     });
 
     if (hasMastery) {
-      multiplier = 1;
-      exponentialMultiplier = 1;
+      addedMultiplier = 0.0;
+      multMultiplier = 1.0;
+      exponentialMultiplier = 0.0;
       logData.multipliers = [`additive_mastery_active: multipliers disabled`];
       logData.multiplierSteps = [{ label: '加算の極意', value: masteryVal, isAdditiveMastery: true }];
 
@@ -1685,24 +1839,38 @@ const App = () => {
       logData.bonusSteps.push({ label: '極意・加算増幅', value: `x${masteryVal}`, tokenId: masteryToken.instanceId || masteryToken.id });
     }
 
-    logData.finalMultiplier = multiplier;
-
+    // デバフである「半減の呪い」は基礎コンボに掛ける
     if (tokens.some(t => t?.id === "curse_half") && !hasSaintToken) {
-      multiplier *= 0.5;
-      logData.multipliers.push("curse_half:x0.5");
-      logData.multiplierSteps.push({ label: '半減の呪い', value: 0.5 });
+      debuffMultiplier *= 0.5;
+      logData.debuffMultiplier = debuffMultiplier;
+      logData.debuffSteps = logData.debuffSteps || [];
+      logData.debuffSteps.push({ label: '半減の呪い', value: 0.5 });
     }
 
     logData.finalBonus = bonus;
 
-    const turnBaseCombo = (tc > 0) ? Math.floor(tc + Number(bonus - exponentialBonus)) : 0;
-    const turnBaseMultiplier = multiplier / exponentialMultiplier;
+    // 指示に基づき、マイナス倍率は基礎コンボのほうに掛け算する
+    const finalBaseComboBeforeDebuff = tc + bonus;
+    const finalBaseCombo = (tc > 0) ? Math.floor(finalBaseComboBeforeDebuff * debuffMultiplier) : 0;
+    
+    // コンボ倍率の計算
+    const finalComboMultiplier = (1.0 + addedMultiplier) * multMultiplier;
+    multiplier = finalComboMultiplier; // 念のため multiplier 変数にも入れておく
+
+    logData.finalMultiplier = finalComboMultiplier;
+    logData.finalBaseCombo = finalBaseCombo;
+    logData.finalComboMultiplier = finalComboMultiplier;
+    logData.debuffMultiplier = debuffMultiplier;
+    logData.addedMultiplier = addedMultiplier;
+
+    const turnBaseCombo = (tc > 0) ? Math.floor(finalBaseComboBeforeDebuff - exponentialBonus) : 0;
+    const turnBaseMultiplier = 1.0 + addedMultiplier - exponentialMultiplier;
 
     let effectiveCombo;
     if (isBeyondMode) {
-      effectiveCombo = (tc > 0) ? Math.floor((tc + Number(bonus || 0)) * Number(multiplier || 1)) : 0;
+      effectiveCombo = (tc > 0) ? Math.floor(finalBaseCombo * finalComboMultiplier) : 0;
     } else {
-      effectiveCombo = (tc > 0) ? Math.min(Math.floor((tc + Number(bonus || 0)) * Number(multiplier || 1)), MAX_COMBO) : 0;
+      effectiveCombo = (tc > 0) ? Math.min(Math.floor(finalBaseCombo * finalComboMultiplier), MAX_COMBO) : 0;
     }
 
     if (effectiveCombo >= MAX_COMBO) {
@@ -1720,7 +1888,8 @@ const App = () => {
         maxCombo: Math.max(prev.maxCombo || 0, effectiveCombo)
       }));
       await showComboBreakdownLocal({
-        tc, logData, turnCombo, bonus, multiplier, effectiveCombo, isBeyondMode, MAX_COMBO
+        tc, logData, turnCombo, bonus, multiplier, effectiveCombo, isBeyondMode, MAX_COMBO,
+        finalBaseCombo, finalComboMultiplier, debuffMultiplier, addedMultiplier
       });
       return;
     }
@@ -1786,7 +1955,8 @@ const App = () => {
     }));
 
     await showComboBreakdownLocal({
-      tc, logData, turnCombo, bonus, multiplier, effectiveCombo, isBeyondMode, MAX_COMBO
+      tc, logData, turnCombo, bonus, multiplier, effectiveCombo, isBeyondMode, MAX_COMBO,
+      finalBaseCombo, finalComboMultiplier, debuffMultiplier, addedMultiplier
     });
 
     let totalReduction = 0;
@@ -2883,7 +3053,7 @@ const App = () => {
     }
   };
 
-  const AWAKENING_TOKEN_SLOT_PRICES = [100, 500, 2000, 10000, 50000];
+
 
   const getTokenSlotExpandPrice = () => {
     return AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpansionCount, 4)] || 50000;
