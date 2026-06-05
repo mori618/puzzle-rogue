@@ -195,7 +195,7 @@ const App = () => {
 
 
   return (
-    <div className="bg-background-dark font-display text-slate-100 h-screen overflow-hidden flex justify-center w-full">
+    <div className="bg-background-dark font-display text-slate-100 h-[100dvh] overflow-hidden flex justify-center w-full">
       {showStartOption && (
         <StartOptionScreen onSelect={handleStartOptionSelection} />
       )}
@@ -239,7 +239,7 @@ const App = () => {
           className="flex-none flex flex-col relative z-30"
         >
           {/* Top Status Bar */}
-          <header className="relative z-10 px-4 pt-6 pb-2 flex justify-between items-center glass-panel border-b border-white/5 h-[76px] shrink-0">
+          <header className="relative z-10 px-4 pt-[calc(12px+env(safe-area-inset-top,20px))] pb-2 flex justify-between items-center glass-panel border-b border-white/5 h-[8dvh] min-h-[60px] max-h-[76px] shrink-0">
             <div className="flex flex-col">
               {isPracticeMode ? (
                 <>
@@ -298,7 +298,7 @@ const App = () => {
 
           {/* Main Stats Area */}
           {isPracticeMode ? (
-            <section className="relative z-10 px-6 py-3 flex-none w-full animate-fade-in h-[104px] flex flex-col justify-center">
+            <section className="relative z-10 px-4 py-1.5 flex-none w-full animate-fade-in h-[9dvh] min-h-[64px] max-h-[80px] flex flex-col justify-center">
               <div className="bg-indigo-900/40 border border-indigo-500/30 p-2.5 rounded-2xl shadow-lg backdrop-blur-md flex flex-col gap-1.5">
                 {/* Operation Time Control */}
                 <div className="flex items-center justify-between gap-2 overflow-hidden">
@@ -355,7 +355,7 @@ const App = () => {
               </div>
             </section>
           ) : (
-            <section className="relative z-10 px-6 py-3 flex-none w-full">
+            <section className="relative z-10 px-4 py-1.5 flex-none w-full h-[9dvh] min-h-[64px] max-h-[80px] flex items-center">
               <div className={`flex items-center w-full p-2.5 rounded-2xl border transition-all duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-950/40 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake-tension' : goalReached ? 'bg-green-950/20 border-green-500/30' : 'bg-slate-800/40 border-white/5 shadow-md'}`}>
                 {/* Target Combo テキスト表示 (左) */}
                 <div className="flex-1 flex items-center gap-2.5 min-w-0 pl-1 pr-2">
@@ -409,9 +409,9 @@ const App = () => {
             const safeActivePage = Math.min(activeTokenPage, activePages - 1);
 
             return (
-              <section className={`relative z-30 px-6 py-1 flex-none mb-2 flex flex-col gap-1.5 justify-start ${isPracticeMode ? 'h-[110px]' : 'h-[196px]'}`}>
+              <section className="relative z-30 px-4 py-1.5 flex-none mb-2 flex flex-col justify-between h-[22dvh] min-h-[135px] max-h-[180px]">
                 {isPracticeMode ? (
-                  <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 flex flex-col items-center justify-center backdrop-blur-md shadow-inner h-full">
+                  <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-4 flex flex-col items-center justify-center backdrop-blur-md shadow-inner h-full w-full">
                     <div className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 flex items-center gap-2">
                       <span className="w-8 h-[1px] bg-slate-800"></span>
                       Practice Best
@@ -434,8 +434,8 @@ const App = () => {
                 ) : (
                   <>
                     {/* Passive Tokens Row */}
-                    <div>
-                      <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider flex justify-between items-center">
+                    <div className="h-[38%] flex flex-col justify-between">
+                      <h3 className="text-[10px] uppercase text-slate-500 font-bold tracking-wider flex justify-between items-center shrink-0">
                         <span>Passive Artifacts</span>
                         <div className="flex items-center gap-1">
                           {passivePages > 1 && (
@@ -454,7 +454,7 @@ const App = () => {
                           <span className="text-[9px] ml-1">{passiveTokens.length}/{maxSlots}</span>
                         </div>
                       </h3>
-                      <div className="overflow-hidden"
+                      <div className="overflow-hidden flex-1"
                         onTouchStart={e => { passiveSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
                         onTouchEnd={e => {
                           if (!passiveSwipeRef.current) return;
@@ -477,9 +477,9 @@ const App = () => {
                           window.addEventListener('mouseup', onUp);
                         }}
                       >
-                        <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${safePassivePage * 100}%)` }}>
+                        <div className="flex transition-transform duration-300 ease-out h-full" style={{ transform: `translateX(-${safePassivePage * 100}%)` }}>
                           {Array.from({ length: passivePages }).map((_, pageIdx) => (
-                            <div key={pageIdx} className="grid grid-cols-5 gap-2 flex-shrink-0 w-full">
+                            <div key={pageIdx} className="flex justify-between items-center gap-1.5 flex-shrink-0 w-full h-full">
                               {Array.from({ length: TOKENS_PER_PAGE }).map((_, slotIdx) => {
                                 const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
                                 const t = passiveTokens[globalSlot];
@@ -523,7 +523,7 @@ const App = () => {
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, globalSlot + 1, false)}
                                     onDragEnd={() => setDraggedToken(null)}
-                                    className={`aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
+                                    className={`h-full aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
                                   >
 
                                     <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
@@ -580,8 +580,8 @@ const App = () => {
                     </div>
 
                     {/* Active Tokens Row */}
-                    <div>
-                      <h3 className="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider flex justify-between items-center">
+                    <div className="h-[38%] flex flex-col justify-between">
+                      <h3 className="text-[10px] uppercase text-slate-500 font-bold tracking-wider flex justify-between items-center shrink-0">
                         <span>Active Spells</span>
                         <div className="flex items-center gap-1">
                           {activePages > 1 && (
@@ -600,7 +600,7 @@ const App = () => {
                           <span className="text-[9px] ml-1">{activeTokens.length}/{maxSlots}</span>
                         </div>
                       </h3>
-                      <div className="overflow-hidden"
+                      <div className="overflow-hidden flex-1"
                         onTouchStart={e => { activeSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
                         onTouchEnd={e => {
                           if (!activeSwipeRef.current) return;
@@ -623,9 +623,9 @@ const App = () => {
                           window.addEventListener('mouseup', onUp);
                         }}
                       >
-                        <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${safeActivePage * 100}%)` }}>
+                        <div className="flex transition-transform duration-300 ease-out h-full" style={{ transform: `translateX(-${safeActivePage * 100}%)` }}>
                           {Array.from({ length: activePages }).map((_, pageIdx) => (
-                            <div key={pageIdx} className="grid grid-cols-5 gap-2 flex-shrink-0 w-full">
+                            <div key={pageIdx} className="flex justify-between items-center gap-1.5 flex-shrink-0 w-full h-full">
                               {Array.from({ length: TOKENS_PER_PAGE }).map((_, slotIdx) => {
                                 const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
                                 const t = activeTokens[globalSlot];
@@ -667,7 +667,7 @@ const App = () => {
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, globalSlot + 1, true)}
                                     onDragEnd={() => setDraggedToken(null)}
-                                    className={`aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${containerClasses}`}
+                                    className={`h-full aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${containerClasses}`}
                                   >
 
                                     <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
@@ -747,7 +747,7 @@ const App = () => {
 
 
           {/* 操作時間ゲージ（トークンの下） */}
-          <div className="relative z-30 px-6 mb-2 flex items-center gap-2">
+          <div className="relative z-30 px-4 flex items-center gap-2 h-[3dvh] min-h-[18px] max-h-[24px]">
             <span ref={timerTextRef} className="text-sm font-mono font-bold text-slate-300 min-w-[3ch] text-right"></span>
             <div className="flex-1 h-3 bg-slate-800 rounded-full overflow-hidden border border-white/5 relative shadow-inner">
               <div ref={timerRef} className="h-full bg-gradient-to-r from-green-400 to-emerald-600 w-full transition-all duration-0 ease-linear shadow-[0_0_10px_rgba(34,197,94,0.5)] rounded-full"></div>
@@ -767,165 +767,166 @@ const App = () => {
             )}
           </div>
 
-          {/* Puzzle Grid Area */}
-          <section className="relative z-20 flex-1 bg-slate-900 rounded-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
-            {/* Grid Background effects */}
-            <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-90"></div>
+          {/* ======================================================== */}
+          {/* 1. パズルグリッド・メイン盤面エリア                             */}
+          {/* ======================================================== */}
+          <section className="relative z-20 flex-1 bg-slate-900 rounded-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden puzzle-grid-section flex flex-col justify-end p-4 pt-4 pb-[calc(16px+env(safe-area-inset-bottom,16px))]">
+            
+            {/* 盤面背景エフェクト（グラデーション） */}
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-90 pointer-events-none"></div>
 
+            {/* 盤面中央のコンボ数ポップアップ表示用コンテナ */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 flex justify-center w-full">
+              <div ref={comboRef} className="combo-display"></div>
+            </div>
 
+            {/* アスペクト比を維持するドロップ配置用グリッドコンテナ（cols/rows の比率で伸縮） */}
+            <div className="w-full max-h-full mx-auto relative flex-shrink-0" style={{ aspectRatio: `${cols} / ${rows}` }}>
 
-            <div className="relative w-full h-full p-4 pt-4 flex flex-col justify-start">
-              {/* コンボ表示 */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 flex justify-center w-full">
-                <div ref={comboRef} className="combo-display"></div>
+              {/* レイヤー 1: パズルボード本体（PuzzleEngine がオーブを描画する DOM ターゲット） */}
+              <div
+                ref={boardRef}
+                className="w-full h-full absolute inset-0 z-0"
+                style={{ touchAction: "none" }}
+              >
+                {/* PuzzleEngine がこの中にオーブを動的生成してレンダリングします */}
               </div>
+            {/* ======================================================== */}
+            {/* 2. サイクルクリア時のオーバーレイ (Layer 2)                 */}
+            {/* ======================================================== */}
+            {turn > maxTurns && goalReached && !isGameOver && (
+              <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in px-8 text-center">
+                <h2 className="text-4xl text-yellow-400 font-black mb-2 tracking-widest font-display italic drop-shadow-glow w-full">
+                  {isBeyondMode ? '∞ CLEARED!' : 'CLEARED!'}
+                </h2>
+                <p className="text-slate-300 text-sm mb-8 font-bold leading-relaxed">
+                  目標達成！<br />装備を整えて次のサイクルへ挑もう
+                </p>
 
-              {/* Timer Bar はトークンベルトの下に移動済み */}
+                <div className="flex flex-col gap-4 w-full">
+                  <button
+                    onClick={() => setShowShop(true)}
+                    className="group bg-slate-800 text-white py-4 rounded-2xl font-bold border border-white/10 hover:bg-slate-700 transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center group-hover:bg-slate-600 transition-colors">
+                      <span className="material-icons-round text-yellow-400 text-lg">storefront</span>
+                    </div>
+                    <span>ショップで強化</span>
+                  </button>
 
-              {/* The 6x5 Grid Container with Overlays */}
-              <div className="w-full relative" style={{ aspectRatio: `${cols} / ${rows}` }}>
+                  {currentRunStats?.hasReachedMaxCombo && ((currentRunStats?.currentClears || 0) + 1 < 25) && (
+                    <button
+                      onClick={() => startNextCycle(25)}
+                      className="bg-gradient-to-r from-red-600 to-purple-800 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full animate-pulse-slow"
+                    >
+                      <span className="material-icons-round">bolt</span>
+                      <span>ラストステージへ挑む</span>
+                    </button>
+                  )}
 
-                {/* Layer 1: Puzzle Board (Always rendered behind) */}
-                <div
-                  ref={boardRef}
-                  className="w-full h-full absolute inset-0 z-0"
-                  style={{ touchAction: "none" }}
-                >
-                  {/* PuzzleEngine renders orbs here */}
+                  {/* サイクル25クリア時に彼岸モードボタンを表示 */}
+                  {!isBeyondMode && (currentRunStats?.currentClears || 0) + 1 >= 25 && (
+                    <button
+                      onClick={() => {
+                        setIsBeyondMode(true);
+                        startNextCycle();
+                        notify('【彼岸】への扉が開かれた…');
+                      }}
+                      className="bg-gradient-to-r from-violet-900 via-fuchsia-700 to-violet-900 text-white py-4 rounded-2xl font-bold shadow-[0_0_30px_rgba(168,85,247,0.5)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full border border-fuchsia-400/30"
+                    >
+                      <span className="material-icons-round text-fuchsia-300">all_inclusive</span>
+                      <span className="text-fuchsia-200">彼岸へ至る</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => startNextCycle()}
+                    className="bg-gradient-to-r from-primary to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full animate-pulse-slow"
+                  >
+                    <span>次のエリアへ</span>
+                    <span className="material-icons-round">arrow_forward</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ======================================================== */}
+            {/* 3. 最大コンボ到達時のワープダイアログ (Layer X)             */}
+            {/* ======================================================== */}
+            {showMaxComboWarpDialog && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+                <div className="bg-slate-900 border-2 border-primary/50 rounded-2xl p-6 text-center max-w-sm w-full shadow-[0_0_50px_rgba(var(--color-primary),0.3)]">
+                  <span className="material-icons-round text-5xl text-primary mb-4 block">bolt</span>
+                  <h2 className="text-2xl font-bold text-white mb-2 whitespace-pre-wrap">限界突破</h2>
+                  <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                    あなたは神の領域（コンボ限界）に到達しました。<br />
+                    全てを飛ばして、最終試練である「ラストステージ（サイクル25）」へ直行しますか？
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={() => {
+                        setShowMaxComboWarpDialog(false);
+                        startNextCycle(25);
+                      }}
+                      className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-4 rounded-xl transition-all"
+                    >
+                      はい（ラストへ直行）
+                    </button>
+                    <button
+                      onClick={() => setShowMaxComboWarpDialog(false)}
+                      className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-3 px-4 rounded-xl transition-all"
+                    >
+                      いいえ（そのまま続ける）
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ======================================================== */}
+            {/* 4. ゲームオーバー時のオーバーレイ (Layer 3)                 */}
+            {/* ======================================================== */}
+            {isGameOver && (
+              <div className="absolute inset-0 z-30 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in px-8 text-center">
+                <span className="material-icons-round text-7xl text-red-500 mb-4 animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">broken_image</span>
+                <h2 className="text-4xl font-black font-display text-white mb-2 tracking-tighter">GAME OVER</h2>
+                <p className="text-slate-400 mb-6 text-sm font-medium">目標未達成...<br />リトライして再挑戦しよう</p>
+
+                <div className="bg-slate-800/40 border border-white/10 rounded-2xl p-4 mb-8 w-full max-w-[280px] grid grid-cols-2 gap-4 animate-fade-in">
+                  <div className="text-center">
+                    <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">最終到達サイクル</div>
+                    <div className="text-2xl font-black text-white font-mono mt-1">{(currentRunStats?.currentClears || 0) + 1}</div>
+                  </div>
+                  <div className="text-center border-l border-white/10">
+                    <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">最大コンボ</div>
+                    <div className="text-2xl font-black text-yellow-400 font-mono mt-1">{currentRunStats?.maxCombo || 0}</div>
+                  </div>
                 </div>
 
-                {/* Layer 2: Cycle Clear Overlay */}
-                {turn > maxTurns && goalReached && !isGameOver && (
-                  <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in px-8 text-center">
-                    <h2 className="text-4xl text-yellow-400 font-black mb-2 tracking-widest font-display italic drop-shadow-glow w-full">
-                      {isBeyondMode ? '∞ CLEARED!' : 'CLEARED!'}
-                    </h2>
-                    <p className="text-slate-300 text-sm mb-8 font-bold leading-relaxed">
-                      目標達成！<br />装備を整えて次のサイクルへ挑もう
-                    </p>
-
-                    <div className="flex flex-col gap-4 w-full">
-                      <button
-                        onClick={() => setShowShop(true)}
-                        className="group bg-slate-800 text-white py-4 rounded-2xl font-bold border border-white/10 hover:bg-slate-700 transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center group-hover:bg-slate-600 transition-colors">
-                          <span className="material-icons-round text-yellow-400 text-lg">storefront</span>
-                        </div>
-                        <span>ショップで強化</span>
-                      </button>
-
-                      {currentRunStats?.hasReachedMaxCombo && ((currentRunStats?.currentClears || 0) + 1 < 25) && (
-                        <button
-                          onClick={() => startNextCycle(25)}
-                          className="bg-gradient-to-r from-red-600 to-purple-800 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full animate-pulse-slow"
-                        >
-                          <span className="material-icons-round">bolt</span>
-                          <span>ラストステージへ挑む</span>
-                        </button>
-                      )}
-
-                      {/* サイクル25クリア時に彼岸モードボタンを表示 */}
-                      {!isBeyondMode && (currentRunStats?.currentClears || 0) + 1 >= 25 && (
-                        <button
-                          onClick={() => {
-                            setIsBeyondMode(true);
-                            startNextCycle();
-                            notify('【彼岸】への扉が開かれた…');
-                          }}
-                          className="bg-gradient-to-r from-violet-900 via-fuchsia-700 to-violet-900 text-white py-4 rounded-2xl font-bold shadow-[0_0_30px_rgba(168,85,247,0.5)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full border border-fuchsia-400/30"
-                        >
-                          <span className="material-icons-round text-fuchsia-300">all_inclusive</span>
-                          <span className="text-fuchsia-200">彼岸へ至る</span>
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => startNextCycle()}
-                        className="bg-gradient-to-r from-primary to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full animate-pulse-slow"
-                      >
-                        <span>次のエリアへ</span>
-                        <span className="material-icons-round">arrow_forward</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Layer X: Max Combo Warp Dialog */}
-                {showMaxComboWarpDialog && (
-                  <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
-                    <div className="bg-slate-900 border-2 border-primary/50 rounded-2xl p-6 text-center max-w-sm w-full shadow-[0_0_50px_rgba(var(--color-primary),0.3)]">
-                      <span className="material-icons-round text-5xl text-primary mb-4 block">bolt</span>
-                      <h2 className="text-2xl font-bold text-white mb-2 whitespace-pre-wrap">限界突破</h2>
-                      <p className="text-slate-300 text-sm mb-6 leading-relaxed">
-                        あなたは神の領域（コンボ限界）に到達しました。<br />
-                        全てを飛ばして、最終試練である「ラストステージ（サイクル25）」へ直行しますか？
-                      </p>
-                      <div className="flex flex-col gap-3">
-                        <button
-                          onClick={() => {
-                            setShowMaxComboWarpDialog(false);
-                            startNextCycle(25);
-                          }}
-                          className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-4 rounded-xl transition-all"
-                        >
-                          はい（ラストへ直行）
-                        </button>
-                        <button
-                          onClick={() => setShowMaxComboWarpDialog(false)}
-                          className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-3 px-4 rounded-xl transition-all"
-                        >
-                          いいえ（そのまま続ける）
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Layer 3: Game Over Overlay */}
-                {isGameOver && (
-                  <div className="absolute inset-0 z-30 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in px-8 text-center">
-                    <span className="material-icons-round text-7xl text-red-500 mb-4 animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">broken_image</span>
-                    <h2 className="text-4xl font-black font-display text-white mb-2 tracking-tighter">GAME OVER</h2>
-                    <p className="text-slate-400 mb-6 text-sm font-medium">目標未達成...<br />リトライして再挑戦しよう</p>
-
-                    <div className="bg-slate-800/40 border border-white/10 rounded-2xl p-4 mb-8 w-full max-w-[280px] grid grid-cols-2 gap-4 animate-fade-in">
-                      <div className="text-center">
-                        <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">最終到達サイクル</div>
-                        <div className="text-2xl font-black text-white font-mono mt-1">{(currentRunStats?.currentClears || 0) + 1}</div>
-                      </div>
-                      <div className="text-center border-l border-white/10">
-                        <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">最大コンボ</div>
-                        <div className="text-2xl font-black text-yellow-400 font-mono mt-1">{currentRunStats?.maxCombo || 0}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-3 w-full">
-                      <button onClick={handleGiveUp} className="w-full bg-slate-800 text-slate-300 py-4 rounded-2xl font-bold text-sm active:scale-95 hover:bg-slate-700 transition-colors border border-white/5">
-                        リトライ
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsGameOver(false);
-                          setShowShop(false);
-                          setIsPracticeMode(false);
-                          setShowTitle(true);
-                          setCurrentRunStats(prev => ({ ...prev, maxCombo: 0 }));
-                        }}
-                        className="w-full bg-slate-800 text-slate-300 py-4 rounded-2xl font-bold text-sm active:scale-95 hover:bg-slate-700 transition-colors border border-white/5 flex items-center justify-center gap-1"
-                      >
-                        <span className="material-icons-round text-sm">home</span>
-                        タイトルに戻る
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-
+                <div className="flex flex-col gap-3 w-full">
+                  <button onClick={handleGiveUp} className="w-full bg-slate-800 text-slate-300 py-4 rounded-2xl font-bold text-sm active:scale-95 hover:bg-slate-700 transition-colors border border-white/5">
+                    リトライ
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsGameOver(false);
+                      setShowShop(false);
+                      setIsPracticeMode(false);
+                      setShowTitle(true);
+                      setCurrentRunStats(prev => ({ ...prev, maxCombo: 0 }));
+                    }}
+                    className="w-full bg-slate-800 text-slate-300 py-4 rounded-2xl font-bold text-sm active:scale-95 hover:bg-slate-700 transition-colors border border-white/5 flex items-center justify-center gap-1"
+                  >
+                    <span className="material-icons-round text-sm">home</span>
+                    タイトルに戻る
+                  </button>
+                </div>
               </div>
+            )}
+
+          </div>
 
 
-            </div>
           </section>
 
           {/* Shop Overlay */}

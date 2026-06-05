@@ -57,6 +57,7 @@ class PuzzleEngine {
 
     this._isDestroyed = false;
     this._rafId = null; // requestAnimationFrame ID
+    this.activeTimeouts = new Set();
     this.realtimeBonuses = {
       len4: 0,
       row: 0,
@@ -479,6 +480,11 @@ class PuzzleEngine {
       el.style.transition = 'none';
       el.style.transform = `translate3d(0, ${offsetY}px, 0)`;
       el.classList.add('orb-falling');
+      orb.currentDx = 0;
+      orb.currentDy = offsetY;
+    } else {
+      orb.currentDx = 0;
+      orb.currentDy = 0;
     }
   }
 
@@ -491,12 +497,61 @@ class PuzzleEngine {
           // transformで移動量を計算
           const dx = targetLeft - orb.baseLeft;
           const dy = targetTop - orb.baseTop;
-          // transitionを有効化してからtransformを設定
-          orb.el.style.transition = '';
-          if (animClass) {
-            orb.el.classList.add(animClass);
+          
+          if (animClass === 'orb-falling') {
+            const prevDx = orb.currentDx !== undefined ? orb.currentDx : 0;
+            const prevDy = orb.currentDy !== undefined ? orb.currentDy : 0;
+            const moveX = dx - prevDx;
+            const moveY = dy - prevDy;
+            const dist = Math.sqrt(moveX * moveX + moveY * moveY);
+            const gridDist = Math.max(1, dist / (this.orbSize + this.gap));
+            
+            // 落下距離に応じた動的な落下時間 (1マスあたり約160msの平方根比例)
+            const duration = Math.round(160 * Math.sqrt(gridDist));
+            
+            // 高速化（ファストフォワード）時は transition-duration をスケール
+            const speed = this.speedMultiplier || 3;
+            const factor = this.isFastForward ? (1.0 / speed) : 1.0;
+            const finalDuration = duration * factor;
+
+            orb.el.style.transition = `transform ${finalDuration}ms cubic-bezier(0.25, 1, 0.5, 1), opacity ${finalDuration}ms ease`;
+            
+            // 既存の落下クリーンアップ用タイマーがあればクリア
+            if (orb._fallingTimeout) {
+              clearTimeout(orb._fallingTimeout);
+              this.activeTimeouts.delete(orb._fallingTimeout);
+            }
+            
+            // アニメーション完了後にクラスとインラインtransitionをクリーンアップ
+            const timeoutId = setTimeout(() => {
+              this.activeTimeouts.delete(timeoutId);
+              if (orb && orb.el && !this._isDestroyed) {
+                orb.el.classList.remove('orb-falling');
+                orb.el.style.transition = '';
+                orb._fallingTimeout = null;
+              }
+            }, finalDuration);
+            this.activeTimeouts.add(timeoutId);
+            orb._fallingTimeout = timeoutId;
+            
+            orb.el.classList.add('orb-falling');
+          } else {
+            orb.el.style.transition = '';
+            if (animClass) {
+              orb.el.classList.add(animClass);
+            } else {
+              orb.el.classList.remove('orb-falling');
+              if (orb._fallingTimeout) {
+                clearTimeout(orb._fallingTimeout);
+                this.activeTimeouts.delete(orb._fallingTimeout);
+                orb._fallingTimeout = null;
+              }
+            }
           }
+
           orb.el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+          orb.currentDx = dx;
+          orb.currentDy = dy;
           orb.r = r;
           orb.c = c;
         }
@@ -515,6 +570,14 @@ class PuzzleEngine {
       row.forEach(orb => {
         if (orb) {
           orb.isSkyfall = false;
+          // 残留している可能性のある落下用クラスとスタイルを完全にクリーンアップする
+          orb.el.classList.remove('orb-falling');
+          orb.el.style.transition = '';
+          if (orb._fallingTimeout) {
+            clearTimeout(orb._fallingTimeout);
+            this.activeTimeouts.delete(orb._fallingTimeout);
+            orb._fallingTimeout = null;
+          }
           if (orb.isMoveDrop) {
             orb.moveCount = 0;
             orb.moveSteps = 0;
@@ -704,6 +767,21 @@ class PuzzleEngine {
       const elapsed = Date.now() - this.moveStart;
       this.totalMoveTimeRef.current += elapsed;
     }
+
+    // ドラッグ終了時に盤面全体の transition/クラスを一旦リセット
+    this.state.forEach(row => {
+      row.forEach(orb => {
+        if (orb) {
+          orb.el.classList.remove('orb-falling');
+          orb.el.style.transition = '';
+          if (orb._fallingTimeout) {
+            clearTimeout(orb._fallingTimeout);
+            this.activeTimeouts.delete(orb._fallingTimeout);
+            orb._fallingTimeout = null;
+          }
+        }
+      });
+    });
 
     this.render();
 
@@ -2169,6 +2247,12 @@ class PuzzleEngine {
     this._isDestroyed = true;
     clearInterval(this.timerId);
     clearTimeout(this.chronosTimerId);
+    
+    // アクティブなタイマー（落下アニメーションのクリーンアップ用など）をすべてクリア
+    if (this.activeTimeouts) {
+      this.activeTimeouts.forEach(id => clearTimeout(id));
+      this.activeTimeouts.clear();
+    }
     if (this._rafId) {
       cancelAnimationFrame(this._rafId);
       this._rafId = null;
