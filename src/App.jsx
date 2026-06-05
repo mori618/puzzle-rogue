@@ -393,6 +393,7 @@ const App = () => {
     }
 
     setIsLoaded(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleStartPractice = useCallback(() => {
@@ -554,7 +555,7 @@ const App = () => {
 
     base *= nextTurnTimeMultiplier;
     return Math.max(1000, base);
-  }, [tokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs, isPracticeMode, practiceTimeLimit]);
+  }, [tokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs, isPracticeMode, practiceTimeLimit, hasSaintToken]);
 
   useEffect(() => {
     if (!boardRef.current || !timerRef.current) return;
@@ -594,6 +595,7 @@ const App = () => {
       }
       engine.destroy();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, cols, showTitle, showHelp, showStats, showCredits, showSettings]);
 
   useEffect(() => {
@@ -834,12 +836,13 @@ const App = () => {
       });
       engineRef.current.syncMoveDrops(moveDropConfigs);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tokens, getTimeLimit, minMatchLength, activeBuffs]);
 
   const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0, erasedByRepeatTotal = 0, erasedByStarTotal = 0, isAllClear = false, extraStats = {}) => {
     const showComboBreakdownLocal = async (params) => {
       const {
-        tc, logData, turnCombo, bonus, multiplier, effectiveCombo, isBeyondMode, MAX_COMBO,
+        tc, logData, turnCombo, bonus, effectiveCombo, MAX_COMBO,
         finalBaseCombo, finalComboMultiplier, debuffMultiplier, addedMultiplier
       } = params;
       const el = comboRef.current;
@@ -1989,20 +1992,16 @@ const App = () => {
     }));
 
     await showComboBreakdownLocal({
-      tc, logData, turnCombo, bonus, multiplier, effectiveCombo, isBeyondMode, MAX_COMBO,
+      tc, logData, turnCombo, bonus, effectiveCombo, MAX_COMBO,
       finalBaseCombo, finalComboMultiplier, debuffMultiplier, addedMultiplier
     });
 
     let totalReduction = 0;
-    let extraStarsPerStarDropErase = 0;
     tokens.forEach((t) => {
       if (!t) return;
       if (t.id === "collector") {
         const threshold = t.values?.[(t.level || 1) - 1] || 5;
         totalReduction += (5 - threshold);
-      }
-      if (t.effect === "star_earn_boost") {
-        extraStarsPerStarDropErase += t.values?.[(t.level || 1) - 1] || 0;
       }
     });
     const isCurseInitActive = tokens.some(t => t?.id === "curse_init") && !hasSaintToken;
@@ -2166,7 +2165,6 @@ const App = () => {
                     const candidatePool = ALL_TOKEN_BASES.filter(b => b.type !== 'curse' && !b.isCurse && b.rarity <= 2 && b.id !== "passive_fire_count");
                     const randomBase = candidatePool[Math.floor(Math.random() * candidatePool.length)];
                     const isSkill = randomBase.type === 'skill';
-                    const isCp = randomBase.isCountPassive;
                     const newToken = {
                       ...randomBase,
                       instanceId: Date.now() + Math.random(),
@@ -2386,7 +2384,7 @@ const App = () => {
     const sameTypeTokens = tokens.filter(tok => tok != null && (isSkill ? tok.type === 'skill' : tok.type !== 'skill'));
     const currentPos = sameTypeTokens.findIndex(tok => tok.instanceId === t.instanceId) + 1;
     if (currentPos > 0) setTokenMoveInput(String(currentPos));
-  }, [selectedTokenDetail]);
+  }, [selectedTokenDetail, tokens]);
 
   const startNextCycle = (warpToCycle = null) => {
     setTurn(1);
@@ -2617,12 +2615,6 @@ const App = () => {
   };
 
 
-  const handleEndlessMode = () => {
-    setIsGameOver(false);
-    setIsEndlessMode(true);
-    notify("ENDLESS MODE START!");
-  };
-
   const handleGiveUp = () => {
     setIsGameOver(false);
     resetGame();
@@ -2650,7 +2642,6 @@ const App = () => {
       }
     });
 
-    const upgradeCount = 1;
     const basePassiveCount = 4 + shopExpandBonus;
     const baseActiveCount = 4 + shopExpandBonus;
     const enchantCount = 3;
@@ -2957,10 +2948,6 @@ const App = () => {
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
 
-      const updatedToken = {
-        ...targetToken,
-        enchantments: [...(targetToken.enchantments || []), { id: item.id, effect: item.effect, name: item.originalName, params: item.params }]
-      };
       addTokenToast(targetToken, `に「${item.originalName}」を付与しました！`);
 
     } else if (item.type === "enchant_grant") {
@@ -3652,8 +3639,14 @@ const App = () => {
   const purifyCurse = (token) => {
     if (!token || (token.type !== 'curse' && !token.isCurse)) return;
 
-    // 解除報酬の星3トークンを抽選
-    const rewardPool = ALL_TOKEN_BASES.filter(t => t.rarity === 3 && t.canBeCurseReward);
+    // 10%の確率で伝説トークン (rarity: 4) を解除報酬にする
+    const isLegendary = Math.random() < 0.1;
+    let rewardPool;
+    if (isLegendary) {
+      rewardPool = ALL_TOKEN_BASES.filter(t => t.rarity === 4 && t.type !== 'curse' && !t.isCurse);
+    } else {
+      rewardPool = ALL_TOKEN_BASES.filter(t => t.rarity === 3 && t.canBeCurseReward);
+    }
     const rewardBase = rewardPool[Math.floor(Math.random() * rewardPool.length)] || rewardPool[0];
 
     const rewardToken = {
@@ -3673,7 +3666,11 @@ const App = () => {
     setStats(prev => ({ ...prev, lifetimeCursesRemoved: (prev.lifetimeCursesRemoved || 0) + 1 }));
 
     setSelectedTokenDetail(null);
-    addTokenToast(rewardToken, "を獲得しました！ (呪い解除報酬)");
+    if (isLegendary) {
+      addTokenToast(rewardToken, "を獲得しました！ (呪い解除報酬・伝説！)");
+    } else {
+      addTokenToast(rewardToken, "を獲得しました！ (呪い解除報酬)");
+    }
   };
 
   const sellToken = (token) => {
@@ -4984,7 +4981,6 @@ const App = () => {
                     {/* エンチャント情報（複数表示対応） */}
                     {enchList.length > 0 ? (
                       enchList.map((enc, encIdx) => {
-                        const enchDef = ENCHANTMENTS.find(e => e.id === enc.id);
                         const encIsDisabled = enc.disabled;
                         return (
                           <div

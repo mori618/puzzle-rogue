@@ -1,6 +1,39 @@
+/* global global */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PuzzleEngine } from './engine/PuzzleEngine.js';
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
+
+// AudioContextのモック
+class MockAudioContext {
+    createOscillator() {
+        return {
+            connect: () => {},
+            start: () => {},
+            stop: () => {},
+            frequency: {
+                setValueAtTime: () => {},
+                exponentialRampToValueAtTime: () => {},
+            }
+        };
+    }
+    createGain() {
+        return {
+            connect: () => {},
+            gain: {
+                setValueAtTime: () => {},
+                exponentialRampToValueAtTime: () => {},
+            },
+        };
+    }
+    destination = {};
+    close() {}
+    state = 'suspended';
+    resume() { return Promise.resolve(); }
+}
+global.AudioContext = MockAudioContext;
+global.webkitAudioContext = MockAudioContext;
+window.AudioContext = MockAudioContext;
+window.webkitAudioContext = MockAudioContext;
 
 describe('PuzzleEngine Headless Tests', () => {
     let container;

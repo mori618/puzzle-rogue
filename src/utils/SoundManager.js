@@ -57,10 +57,13 @@ class SoundManager {
       const audio = new Audio(path);
       audio.loop = loop;
       audio.volume = this.bgmMuted ? 0 : this.bgmVolume;
-      audio.play().catch(e => {
-        // Fallback for BGM is not implemented (requires complex synth)
-        console.warn(`BGM play failed for ${id}:`, e.message);
-      });
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          // Fallback for BGM is not implemented (requires complex synth)
+          console.warn(`BGM play failed for ${id}:`, e.message);
+        });
+      }
       this.currentBGM = audio;
       this.currentBGMId = id;
     } catch (e) {
@@ -117,21 +120,27 @@ class SoundManager {
         audio.volume = this.seVolume;
         audio.playbackRate = pitch;
         audio.currentTime = 0; // 頭出し
-        audio.play().catch(() => {
-          // ロード失敗時（ファイルがない場合）に電子音でフォールバック
-          this.playSynthSE(id, pitch);
-        });
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            // ロード失敗時（ファイルがない場合）に電子音でフォールバック
+            this.playSynthSE(id, pitch);
+          });
+        }
       } else {
         // 万が一のフォールバック
         audio = new Audio(path);
         pool.push(audio);
         audio.volume = this.seVolume;
         audio.playbackRate = pitch;
-        audio.play().catch(() => {
-          this.playSynthSE(id, pitch);
-        });
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            this.playSynthSE(id, pitch);
+          });
+        }
       }
-    } catch (e) {
+    } catch {
       this.playSynthSE(id, pitch);
     }
   }

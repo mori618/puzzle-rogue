@@ -1,6 +1,40 @@
+/* global global */
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import App from './App';
+import { ALL_TOKEN_BASES } from './constants/tokens.js';
+
+// AudioContextのモック
+class MockAudioContext {
+    createOscillator() {
+        return {
+            connect: () => {},
+            start: () => {},
+            stop: () => {},
+            frequency: {
+                setValueAtTime: () => {},
+                exponentialRampToValueAtTime: () => {},
+            }
+        };
+    }
+    createGain() {
+        return {
+            connect: () => {},
+            gain: {
+                setValueAtTime: () => {},
+                exponentialRampToValueAtTime: () => {},
+            },
+        };
+    }
+    destination = {};
+    close() {}
+    state = 'suspended';
+    resume() { return Promise.resolve(); }
+}
+global.AudioContext = MockAudioContext;
+global.webkitAudioContext = MockAudioContext;
+window.AudioContext = MockAudioContext;
+window.webkitAudioContext = MockAudioContext;
 
 // Mock Lucide icons
 vi.mock('lucide-react', () => ({
@@ -28,6 +62,27 @@ vi.mock('lucide-react', () => ({
     HelpCircle: () => <div data-testid="icon-help" />,
     Cpu: () => <div data-testid="icon-cpu" />,
 }));
+
+describe('purifyCurse reward pooling logic', () => {
+    it('selects rarity 4 tokens for legendary reward', () => {
+        const legendPool = ALL_TOKEN_BASES.filter(t => t.rarity === 4 && t.type !== 'curse' && !t.isCurse);
+        expect(legendPool.length).toBeGreaterThan(0);
+        legendPool.forEach(t => {
+            expect(t.rarity).toBe(4);
+            expect(t.type).not.toBe('curse');
+            expect(t.isCurse).not.toBe(true);
+        });
+    });
+
+    it('selects rarity 3 tokens for normal reward', () => {
+        const rewardPool = ALL_TOKEN_BASES.filter(t => t.rarity === 3 && t.canBeCurseReward);
+        expect(rewardPool.length).toBeGreaterThan(0);
+        rewardPool.forEach(t => {
+            expect(t.rarity).toBe(3);
+            expect(t.canBeCurseReward).toBe(true);
+        });
+    });
+});
 
 describe('App Monkey Test', () => {
     beforeEach(() => {

@@ -213,7 +213,7 @@ const TabBasic = () => (
                     { step: '3', icon: 'store', color: 'bg-purple-600', label: 'ショップフェーズ', desc: '★を使ってトークン購入・強化' },
                     { step: '↓', icon: null, color: '', label: '', desc: '' },
                     { step: '4', icon: 'replay', color: 'bg-amber-600', label: '次のサイクルへ', desc: '目標値が上昇して繰り返し' },
-                ].map(({ step, icon, color, label, desc }, i) => {
+                ].map(({ icon, color, label, desc }, i) => {
                     if (!icon) return (
                         <div key={i} className="flex items-center justify-center text-slate-500 text-sm py-0.5">▼</div>
                     );
