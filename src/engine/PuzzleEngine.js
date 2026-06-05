@@ -2067,13 +2067,13 @@ class PuzzleEngine {
       if (!this.isFastForward) {
         this.isFastForward = true;
         this.container.classList.add('is-fast-forward');
-        this.container.setAttribute('data-speed', `▶▶ ${this.speedMultiplier || 3}x`);
+        this.container.setAttribute('data-speed-multiplier', `${this.speedMultiplier || 3}x`);
       }
     } else {
       if (this.isFastForward) {
         this.isFastForward = false;
         this.container.classList.remove('is-fast-forward');
-        this.container.removeAttribute('data-speed');
+        this.container.removeAttribute('data-speed-multiplier');
       }
     }
   }

@@ -1258,13 +1258,13 @@ body {
 
 /* 倍速中マークの表示 */
 .is-fast-forward::after {
-  content: attr(data-speed);
+  content: attr(data-speed-multiplier);
   position: absolute;
   top: 10px;
   right: 10px;
   background: rgba(239, 68, 68, 0.9);
   color: white;
-  padding: 4px 8px;
+  padding: 0 8px 0 24px;
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 900;
@@ -1274,6 +1274,28 @@ body {
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
   font-family: var(--font-display);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: fast-forward-pulse 0.8s ease-in-out infinite alternate;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  box-sizing: border-box;
+}
+
+.is-fast-forward::before {
+  content: "fast_forward";
+  font-family: 'Material Icons Round';
+  position: absolute;
+  top: 10px;
+  right: 32px;
+  font-size: 0.9rem;
+  color: white;
+  z-index: 201;
+  pointer-events: none;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   animation: fast-forward-pulse 0.8s ease-in-out infinite alternate;
 }
 
@@ -1287,3 +1309,5 @@ body {
     transform: scale(1.05);
   }
 }
+
+
