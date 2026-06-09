@@ -766,7 +766,11 @@ export const useShop = ({
     soundManager.playSE(SE_IDS.SHOP_REFRESH);
     setTotalStarsSpent((prev) => prev + shopRerollPrice);
     setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + shopRerollPrice }));
-    setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + shopRerollPrice }));
+    setCurrentRunStats(prev => ({
+      ...prev,
+      currentStarsSpent: (prev.currentStarsSpent || 0) + shopRerollPrice,
+      currentShopRerolls: (prev.currentShopRerolls || 0) + 1, // 浪費の勲章用リロール回数カウント
+    }));
     setShopRerollPrice(prev => Math.ceil(prev * SHOP_REROLL_GROWTH_FACTOR));
     generateShop();
     return true;

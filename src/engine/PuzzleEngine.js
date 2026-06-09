@@ -45,6 +45,9 @@ class PuzzleEngine {
     this.processing = false;
     this.currentCombo = 0;
     this.noSkyfall = false;
+    this.gravityDirection = 'down'; // 重力方向（'down' または 'up'）
+    this.hasOneStrokeSeal = false;  // 一筆書きの誓約が有効か
+    this.oneStrokeVisited = null;   // ドラッグ中の訪問済みセル（Set で管理）
     this.spawnWeights = {};
     this.types.forEach((t) => (this.spawnWeights[t] = 1));
     this.timerProgress = 1; // Added for external display
@@ -238,13 +241,16 @@ class PuzzleEngine {
           orb.el.style.height = `${this.orbSize}px`;
           orb.el.style.top = `${orb.baseTop}px`;
           orb.el.style.left = `${orb.baseLeft}px`;
-          orb.el.style.transform = 'translate3d(0, 0, 0)';
+          orb.el.style.transform = this.getOrbTransform(orb, 0, 0);
         }
       });
     });
   }
 
-
+  getOrbTransform(orb, dx, dy, scale = 1.0) {
+    const scaleStr = scale !== 1.0 ? ` scale(${scale})` : '';
+    return `translate3d(${dx}px, ${dy}px, 0)${scaleStr}`;
+  }
 
   spawnOrb(r, c, isNew, startRowOffset = 0, savedData = null) {
     let type;
@@ -474,15 +480,18 @@ class PuzzleEngine {
     this.container.appendChild(el);
 
     if (isNew) {
-      // 新規オーブ: 盤面外(上方)からの落下アニメーション
-      const offsetY = -((startRowOffset + 1) * (this.orbSize + this.gap));
-      // transitionなしで上方にセット
+      // 重力方向に応じて盤面外からの落下アニメーションを設定
+      // 'up': 下方から上へ落ちる（正の Y オフセットから開始）
+      // 'down': 上方から下へ落ちる（負の Y オフセットから開始）
+      const fallSign = this.gravityDirection === 'up' ? 1 : -1;
+      const offsetY = fallSign * ((startRowOffset + 1) * (this.orbSize + this.gap));
       el.style.transition = 'none';
-      el.style.transform = `translate3d(0, ${offsetY}px, 0)`;
+      orb.el.style.transform = this.getOrbTransform(orb, 0, offsetY);
       el.classList.add('orb-falling');
       orb.currentDx = 0;
       orb.currentDy = offsetY;
     } else {
+      orb.el.style.transform = this.getOrbTransform(orb, 0, 0); // 初期状態の位置を明示的にインラインtransformで設定（ブラウザの描画バグ対策）
       orb.currentDx = 0;
       orb.currentDy = 0;
     }
@@ -535,23 +544,34 @@ class PuzzleEngine {
             orb._fallingTimeout = timeoutId;
             
             orb.el.classList.add('orb-falling');
+
+            orb.el.style.transform = this.getOrbTransform(orb, dx, dy);
+            orb.currentDx = dx;
+            orb.currentDy = dy;
           } else {
-            orb.el.style.transition = '';
-            if (animClass) {
-              orb.el.classList.add(animClass);
+            // 位置が実際に変わった場合のみスタイル更新処理を実行（不要な再描画を防ぐ）
+            if (dx !== orb.currentDx || dy !== orb.currentDy) {
+              if (animClass) {
+                orb.el.classList.add(animClass);
+              } else {
+                orb.el.classList.remove('orb-falling');
+                if (orb._fallingTimeout) {
+                  clearTimeout(orb._fallingTimeout);
+                  this.activeTimeouts.delete(orb._fallingTimeout);
+                  orb._fallingTimeout = null;
+                }
+              }
+
+              orb.el.style.transform = this.getOrbTransform(orb, dx, dy);
+              orb.currentDx = dx;
+              orb.currentDy = dy;
             } else {
-              orb.el.classList.remove('orb-falling');
-              if (orb._fallingTimeout) {
-                clearTimeout(orb._fallingTimeout);
-                this.activeTimeouts.delete(orb._fallingTimeout);
-                orb._fallingTimeout = null;
+              // 位置が変わっていないが、animClassが指定された場合はクラスの付与等のみ行う
+              if (animClass) {
+                orb.el.classList.add(animClass);
               }
             }
           }
-
-          orb.el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
-          orb.currentDx = dx;
-          orb.currentDy = dy;
           orb.r = r;
           orb.c = c;
         }
@@ -561,6 +581,7 @@ class PuzzleEngine {
 
   onStart(e, orbOrR, c) {
     if (this.processing) return;
+    this._boardRect = this.container.getBoundingClientRect(); // ボード位置をキャッシュ
     this.isPointerDown = false;
     this.updateFastForwardState();
 
@@ -603,6 +624,13 @@ class PuzzleEngine {
     this.dragging.el.classList.add("orb-grabbing");
     this.dragging.el.style.zIndex = "100";
 
+    // 一筆書きの誓約: ドラッグ開始時に訪問済みセットを初期化
+    if (this.hasOneStrokeSeal) {
+      this.oneStrokeVisited = new Set();
+      this.oneStrokeVisited.add(`${target.r},${target.c}`);
+      this._createOneStrokeIndicator(target.r, target.c);
+    }
+
     if (this.comboEl) this.comboEl.style.display = "none";
 
     this.moveStart = null;
@@ -634,14 +662,14 @@ class PuzzleEngine {
         this._rafId = null;
         if (!this.dragging || !this._lastMovePoint) return;
 
-        const rect = this.container.getBoundingClientRect();
+        const rect = this._boardRect || this.container.getBoundingClientRect(); // キャッシュ優先
         const x = this._lastMovePoint.clientX - rect.left;
         const y = this._lastMovePoint.clientY - rect.top;
 
         // ドラッグ中のオーブの位置をtransformで直接設定
         const dx = x - this.orbSize / 2 - this.dragging.baseLeft;
         const dy = y - this.orbSize / 2 - this.dragging.baseTop;
-        this.dragging.el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(1.2)`;
+        this.dragging.el.style.transform = this.getOrbTransform(this.dragging, dx, dy, 1.2);
 
         const nr = Math.max(
           0,
@@ -659,6 +687,16 @@ class PuzzleEngine {
             this.timerId = setInterval(this.updateTimer, 20);
           }
 
+          // 一筆書きの誓約: 通過済みセルへの移動をブロック
+          if (this.hasOneStrokeSeal && this.oneStrokeVisited) {
+            const visitKey = `${nr},${nc}`;
+            if (this.oneStrokeVisited.has(visitKey)) {
+              return; // このマスは既に通過済みなので移動を拒否
+            }
+            this.oneStrokeVisited.add(visitKey);
+            this._createOneStrokeIndicator(nr, nc);
+          }
+
           const target = this.state[nr][nc];
           this.state[nr][nc] = this.dragging;
           this.state[this.dragging.r][this.dragging.c] = target;
@@ -671,13 +709,6 @@ class PuzzleEngine {
           this._incrementMoveDropCount(this.dragging);
           if (target) this._incrementMoveDropCount(target);
 
-          // 入れ替わるオーブにスワップアニメーションクラスを付与
-          if (target && target.el) {
-            target.el.classList.add('orb-swapping');
-            setTimeout(() => {
-              if (target && target.el) target.el.classList.remove('orb-swapping');
-            }, 160);
-          }
           soundManager.playSE(SE_IDS.DRAG_MOVE);
           this.render(); // Update positions
         }
@@ -752,15 +783,7 @@ class PuzzleEngine {
       this._rafId = null;
     }
     this._lastMovePoint = null;
-
-    this.dragging.el.classList.remove("orb-grabbing");
-    this.dragging.el.style.zIndex = "";
-    this.dragging = null;
-
-    window.removeEventListener("mousemove", this.onMove);
-    window.removeEventListener("mouseup", this.onEnd);
-    window.removeEventListener("touchmove", this.onMove);
-    window.removeEventListener("touchend", this.onEnd);
+    this._boardRect = null; // キャッシュをクリア
 
     // --- 操作時間の計測と記録 ---
     if (this.moveStart) {
@@ -768,10 +791,37 @@ class PuzzleEngine {
       this.totalMoveTimeRef.current += elapsed;
     }
 
+    const target = this.dragging;
+    const hasMoved = !!this.moveStart;
+
+    // ドラッグしていたオーブを元のマスの位置に滑らかにスナップさせる
+    target.el.classList.remove("orb-grabbing");
+    target.el.classList.add("orb-returning");
+    
+    const targetTop = (target.r * (this.orbSize + this.gap));
+    const targetLeft = (target.c * (this.orbSize + this.gap));
+    const dx = targetLeft - target.baseLeft;
+    const dy = targetTop - target.baseTop;
+    
+    target.el.style.transition = 'transform 120ms cubic-bezier(0.25, 1, 0.5, 1)';
+    target.el.style.transform = this.getOrbTransform(target, dx, dy);
+    target.el.style.zIndex = "";
+    
+    this.dragging = null;
+
+    window.removeEventListener("mousemove", this.onMove);
+    window.removeEventListener("mouseup", this.onEnd);
+    window.removeEventListener("touchmove", this.onMove);
+    window.removeEventListener("touchend", this.onEnd);
+
+    // 一筆書きインジケーターのクリーンアップ
+    this._clearOneStrokeIndicators();
+    this.oneStrokeVisited = null;
+
     // ドラッグ終了時に盤面全体の transition/クラスを一旦リセット
     this.state.forEach(row => {
       row.forEach(orb => {
-        if (orb) {
+        if (orb && orb !== target) {
           orb.el.classList.remove('orb-falling');
           orb.el.style.transition = '';
           if (orb._fallingTimeout) {
@@ -787,6 +837,13 @@ class PuzzleEngine {
 
     // クロノス・ストップ中はprocess()に進まない
     if (this.chronosStopActive) {
+      // スナップアニメーションのクラスのクリーンアップはクロノス・ストップ中であっても行う
+      setTimeout(() => {
+        if (target && target.el) {
+          target.el.classList.remove("orb-returning");
+          target.el.style.transition = '';
+        }
+      }, 120);
       return;
     }
 
@@ -794,13 +851,23 @@ class PuzzleEngine {
     this.isPointerDown = false;
     this.updateFastForwardState();
 
-    // 修正: 動かしていない（スワップしていない）場合はターンを進めない
-    // moveStart はスワップが発生した時点でセットされる
-    if (!this.moveStart) {
-      return;
-    }
-
-    this.process();
+    // スナップアニメーションの完了を待ってから、必要に応じて process() を実行する
+    setTimeout(() => {
+      if (target && target.el) {
+        target.el.classList.remove("orb-returning");
+        target.el.style.transition = '';
+      }
+      
+      // 修正: 動かしていない（スワップしていない）場合はターンを進めない
+      // hasMoved はスワップが発生した時点でセットされる
+      if (!hasMoved) {
+        return;
+      }
+      
+      if (!this._isDestroyed) {
+        this.process();
+      }
+    }, 120);
   }
 
   setSpawnWeights(weights) {
@@ -2072,19 +2139,37 @@ class PuzzleEngine {
 
   // 重力処理のみ（新規オーブ生成なし）- noSkyfall時に使用
   async gravityOnly() {
-    for (let c = 0; c < this.cols; c++) {
-      let emptySlots = 0;
-      for (let r = this.rows - 1; r >= 0; r--) {
-        if (this.state[r][c] === null) {
-          emptySlots++;
-        } else if (emptySlots > 0) {
-          const orb = this.state[r][c];
-          this.state[r + emptySlots][c] = orb;
-          this.state[r][c] = null;
-          orb.r = r + emptySlots;
+    if (this.gravityDirection === 'up') {
+      // 上方向重力: オーブを上へ詰める
+      for (let c = 0; c < this.cols; c++) {
+        let emptySlots = 0;
+        for (let r = 0; r < this.rows; r++) {
+          if (this.state[r][c] === null) {
+            emptySlots++;
+          } else if (emptySlots > 0) {
+            const orb = this.state[r][c];
+            this.state[r - emptySlots][c] = orb;
+            this.state[r][c] = null;
+            orb.r = r - emptySlots;
+          }
         }
       }
-      // noSkyfall: 空きスロットは null のまま（新規オーブを生成しない）
+    } else {
+      // 下方向重力（デフォルト）
+      for (let c = 0; c < this.cols; c++) {
+        let emptySlots = 0;
+        for (let r = this.rows - 1; r >= 0; r--) {
+          if (this.state[r][c] === null) {
+            emptySlots++;
+          } else if (emptySlots > 0) {
+            const orb = this.state[r][c];
+            this.state[r + emptySlots][c] = orb;
+            this.state[r][c] = null;
+            orb.r = r + emptySlots;
+          }
+        }
+        // noSkyfall: 空きスロットは null のまま（新規オーブを生成しない）
+      }
     }
     // 強制的にリフローを発生させ、既存のstyle変更をブラウザに認識させる
     void this.container.offsetHeight;
@@ -2096,20 +2181,43 @@ class PuzzleEngine {
   }
 
   async simultaneousGravity() {
-    for (let c = 0; c < this.cols; c++) {
-      let emptySlots = 0;
-      for (let r = this.rows - 1; r >= 0; r--) {
-        if (this.state[r][c] === null) {
-          emptySlots++;
-        } else if (emptySlots > 0) {
-          const orb = this.state[r][c];
-          this.state[r + emptySlots][c] = orb;
-          this.state[r][c] = null;
-          orb.r = r + emptySlots;
+    if (this.gravityDirection === 'up') {
+      // 上方向重力: オーブを上へ詰め、下端から新規オーブを生成
+      for (let c = 0; c < this.cols; c++) {
+        let emptySlots = 0;
+        for (let r = 0; r < this.rows; r++) {
+          if (this.state[r][c] === null) {
+            emptySlots++;
+          } else if (emptySlots > 0) {
+            const orb = this.state[r][c];
+            this.state[r - emptySlots][c] = orb;
+            this.state[r][c] = null;
+            orb.r = r - emptySlots;
+          }
+        }
+        // 下端（rows-1 から上方向）に空きスロット分の新規オーブを生成
+        for (let i = 0; i < emptySlots; i++) {
+          const targetRow = this.rows - 1 - i;
+          this.spawnOrb(targetRow, c, true, emptySlots - 1 - i);
         }
       }
-      for (let i = 0; i < emptySlots; i++) {
-        this.spawnOrb(i, c, true, emptySlots - 1 - i);
+    } else {
+      // 下方向重力（デフォルト）
+      for (let c = 0; c < this.cols; c++) {
+        let emptySlots = 0;
+        for (let r = this.rows - 1; r >= 0; r--) {
+          if (this.state[r][c] === null) {
+            emptySlots++;
+          } else if (emptySlots > 0) {
+            const orb = this.state[r][c];
+            this.state[r + emptySlots][c] = orb;
+            this.state[r][c] = null;
+            orb.r = r + emptySlots;
+          }
+        }
+        for (let i = 0; i < emptySlots; i++) {
+          this.spawnOrb(i, c, true, emptySlots - 1 - i);
+        }
       }
     }
     // 強制的にリフローを発生させ、初期のtransform位置をブラウザに確実に認識させる
@@ -2119,6 +2227,27 @@ class PuzzleEngine {
     await this.sleep(10);
     if (this._isDestroyed) return;
     this.render('orb-falling');
+  }
+
+  /** 一筆書きの誓約: 通過セルのビジュアルインジケーターを生成 */
+  _createOneStrokeIndicator(r, c) {
+    const indicator = document.createElement('div');
+    indicator.className = 'one-stroke-tile';
+    // オーブと同じサイズ・位置に絶対配置
+    const baseTop = r * (this.orbSize + this.gap);
+    const baseLeft = c * (this.orbSize + this.gap);
+    indicator.style.width = `${this.orbSize}px`;
+    indicator.style.height = `${this.orbSize}px`;
+    indicator.style.top = `${baseTop}px`;
+    indicator.style.left = `${baseLeft}px`;
+    this.container.appendChild(indicator);
+  }
+
+  /** 一筆書きの誓約: 全インジケーターを削除 */
+  _clearOneStrokeIndicators() {
+    if (!this.container) return;
+    const indicators = this.container.querySelectorAll('.one-stroke-tile');
+    indicators.forEach(el => el.remove());
   }
 
   // --- 単色全消しチェック（ヘルパー） ---

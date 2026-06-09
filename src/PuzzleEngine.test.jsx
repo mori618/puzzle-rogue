@@ -220,5 +220,101 @@ describe('PuzzleEngine Headless Tests', () => {
             expect(true).toBe(true);
         });
     });
+
+    describe('新規トークンと重力逆転の挙動テスト', () => {
+        it('重力方向を上に切り替えてオーブが上に詰まることを検証', async () => {
+            engine.gravityDirection = 'up';
+            
+            // c=0 列をすべて空にする
+            for (let r = 0; r < engine.rows; r++) {
+                engine.state[r][0] = null;
+            }
+            
+            // (1,0) にだけテスト用オーブを配置する
+            const testOrb = {
+                type: 'fire',
+                el: document.createElement('div'),
+                r: 1,
+                c: 0,
+                baseTop: 0,
+                baseLeft: 0
+            };
+            engine.state[1][0] = testOrb;
+            
+            engine.gravityOnly();
+            await vi.advanceTimersByTimeAsync(100);
+            
+            // testOrb が上に詰められるはず
+            expect(engine.state[0][0]).toBe(testOrb);
+            expect(engine.state[1][0]).toBeNull();
+        });
+
+        it('一筆書きの誓約が有効な場合、通過済みマスへの移動がブロックされることを検証', async () => {
+            engine.hasOneStrokeSeal = true;
+            const startOrb = engine.state[0][0];
+            const secondOrb = engine.state[0][1];
+
+            // ドラッグ開始
+            const downEvent = new MouseEvent('mousedown');
+            startOrb.el.dispatchEvent(downEvent);
+            expect(engine.oneStrokeVisited.has('0,0')).toBe(true);
+            expect(container.querySelectorAll('.one-stroke-tile').length).toBe(1);
+
+            // 隣のセル (0,1) に移動（スワップ）
+            // xの位置は clientX = rect.left (0) + 71px (1セル分 + 余裕)
+            engine.onMove(new MouseEvent('mousemove', { clientX: 71, clientY: 20 }));
+            vi.advanceTimersByTime(100);
+
+            // 訪問履歴に (0,1) が追加され、スワップされていること
+            expect(engine.oneStrokeVisited.has('0,1')).toBe(true);
+            expect(engine.state[0][1]).toBe(startOrb);
+            expect(engine.state[0][0]).toBe(secondOrb);
+            expect(container.querySelectorAll('.one-stroke-tile').length).toBe(2);
+
+            // 訪問済みの (0,0) に戻るようなマウス移動
+            engine.onMove(new MouseEvent('mousemove', { clientX: 20, clientY: 20 }));
+            vi.advanceTimersByTime(100);
+
+            // 移動が拒否され、オーブの位置は (0,1) = startOrb, (0,0) = secondOrb のままであること
+            expect(engine.state[0][1]).toBe(startOrb);
+            expect(engine.state[0][0]).toBe(secondOrb);
+            expect(container.querySelectorAll('.one-stroke-tile').length).toBe(2);
+
+            // ドラッグ終了
+            const upEvent = new MouseEvent('mouseup');
+            window.dispatchEvent(upEvent);
+            
+            // インジケーターがクリーンアップされていること
+            expect(container.querySelectorAll('.one-stroke-tile').length).toBe(0);
+            expect(engine.oneStrokeVisited).toBeNull();
+        });
+
+        it('ランダムな位置にリピートオーブとボムオーブが生成されることを検証', () => {
+            let repeatCount = 0;
+            let bombCount = 0;
+            engine.state.forEach(row => {
+                row.forEach(orb => {
+                    if (orb && orb.isRepeat) repeatCount++;
+                    if (orb && orb.isBomb) bombCount++;
+                });
+            });
+            expect(repeatCount).toBe(0);
+            expect(bombCount).toBe(0);
+
+            engine.spawnRepeatRandom(3);
+            engine.spawnBombRandom(2);
+
+            repeatCount = 0;
+            bombCount = 0;
+            engine.state.forEach(row => {
+                row.forEach(orb => {
+                    if (orb && orb.isRepeat) repeatCount++;
+                    if (orb && orb.isBomb) bombCount++;
+                });
+            });
+            expect(repeatCount).toBe(3);
+            expect(bombCount).toBe(2);
+        });
+    });
 });
 

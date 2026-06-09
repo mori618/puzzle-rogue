@@ -26,17 +26,28 @@ import { BGM_IDS, SE_IDS } from '../constants/sounds';
 
 export const useGameState = () => {
   // フック本体のロジック
+  // セーブデータをマウント前に同期的にロード（初期表示時のフラッシュ防止およびパズル盤面の確実な復元のため）
+  const savedData = (() => {
+    try {
+      const data = localStorage.getItem(SAVE_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      console.error("Failed to parse saved data from localStorage:", e);
+      return null;
+    }
+  })();
+
   // Game State
   const [isLoaded, setIsLoaded] = useState(false);
-  const [hasSaveData, setHasSaveData] = useState(false);
-  const [tokens, setTokens] = useState(Array(6).fill(null));
-  const [sandsOfTimeSeconds, setSandsOfTimeSeconds] = useState(0); // 永続強化: 時の砂
-  const [isGameOver, setIsGameOver] = useState(false);
-  const [target, setTarget] = useState(100);
-  const [goalReached, setGoalReached] = useState(false);
-  const [turn, setTurn] = useState(1);
-  const [cycleTotalCombo, setCycleTotalCombo] = useState(0);
-  const [stars, setStars] = useState(5);
+  const [hasSaveData, setHasSaveData] = useState(!!savedData);
+  const [tokens, setTokens] = useState(() => savedData?.tokens || Array(6).fill(null));
+  const [sandsOfTimeSeconds, setSandsOfTimeSeconds] = useState(() => savedData?.sandsOfTimeSeconds || 0);
+  const [isGameOver, setIsGameOver] = useState(() => savedData?.isGameOver || false);
+  const [target, setTarget] = useState(() => savedData?.target || 100);
+  const [goalReached, setGoalReached] = useState(() => savedData?.goalReached || false);
+  const [turn, setTurn] = useState(() => savedData?.turn || 1);
+  const [cycleTotalCombo, setCycleTotalCombo] = useState(() => savedData?.cycleTotalCombo || 0);
+  const [stars, setStars] = useState(() => savedData?.stars || 5);
   /* const [energy, setEnergy] = useState(0); // REMOVED: Global Energy */
   /* const [maxEnergy] = useState(10); // REMOVED: Global Energy */
 
@@ -58,13 +69,13 @@ export const useGameState = () => {
   const [showCredits, setShowCredits] = useState(false);
   const [showStartOption, setShowStartOption] = useState(false);
   const [showEncyclopedia, setShowEncyclopedia] = useState(false);
-  const [savedBoard, setSavedBoard] = useState(null);
+  const [savedBoard, setSavedBoard] = useState(() => savedData?.board || null);
 
 
   // settings と handleSettingsChange は useGameSettings フックから取得します
 
   // Stats State
-  const [currentRunTotalCombo, setCurrentRunTotalCombo] = useState(0);
+  const [currentRunTotalCombo, setCurrentRunTotalCombo] = useState(() => savedData?.currentRunTotalCombo || 0);
   const [stats, setStats] = useState({
     lifetimeTotalCombo: 0,
     maxComboAllTime: 0,
@@ -110,11 +121,13 @@ export const useGameState = () => {
     currentDropsErased: { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }, // 今回の各ドロップ消去数
     maxBaseCombo: 0,
     maxBaseComboMultiplier: 1,
+    currentShopRerolls: 0,      // ショップリロール累計回数（浪費の勲章用）
+    currentMoveDropTotal: 0,    // ムーブドロップ累計カウント（ムーブ・リピーター用）
   };
-  const [currentRunStats, setCurrentRunStats] = useState(initialCurrentRunStats);
+  const [currentRunStats, setCurrentRunStats] = useState(() => savedData?.currentRunStats || initialCurrentRunStats);
   // const [isLuxury, setIsLuxury] = useState(false); // Unused
-  const [totalPurchases, setTotalPurchases] = useState(0);
-  const [totalStarsSpent, setTotalStarsSpent] = useState(0);
+  const [totalPurchases, setTotalPurchases] = useState(() => savedData?.totalPurchases || 0);
+  const [totalStarsSpent, setTotalStarsSpent] = useState(() => savedData?.totalStarsSpent || 0);
   const [triggeredPassives, setTriggeredPassives] = useState([]); // Visual feedback state
 
   const getAnimDelay = useCallback((baseDelay) => {
@@ -228,8 +241,8 @@ export const useGameState = () => {
   const [isPureMode, setIsPureMode] = useState(false); // 純粋モード (特殊消しボーナス無効)
 
   // --- 覚醒ショップ State ---
-  const [isEnchantShopUnlocked, setIsEnchantShopUnlocked] = useState(false); // エンチャントショップ解放フラグ
-  const [isAwakeningLevelUpBought, setIsAwakeningLevelUpBought] = useState(false); // 覚醒ショップ: ランダムレベルアップ購入済みフラグ
+  const [isEnchantShopUnlocked, setIsEnchantShopUnlocked] = useState(() => savedData?.isEnchantShopUnlocked || false); // エンチャントショップ解放フラグ
+  const [isAwakeningLevelUpBought, setIsAwakeningLevelUpBought] = useState(() => savedData?.isAwakeningLevelUpBought || false); // 覚醒ショップ: ランダムレベルアップ購入済みフラグ
   const [showMaxComboWarpDialog, setShowMaxComboWarpDialog] = useState(false);
   const [isBeyondMode, setIsBeyondMode] = useState(false); // 彼岸モード: サイクル25クリア後の無限モード
   const [passiveTokenPage, setPassiveTokenPage] = useState(0);
@@ -368,49 +381,24 @@ export const useGameState = () => {
   const minMatchLength = tokens.some(t => t?.effect === "min_match") ? 2 : 3;
 
   useEffect(() => {
-    const savedData = localStorage.getItem(SAVE_KEY);
+    // セーブデータのロード
     if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        setTurn(parsed.turn || 1);
-        setCycleTotalCombo(parsed.cycleTotalCombo || 0);
-        setTarget(parsed.target || 8);
-        setGoalReached(parsed.goalReached || false);
-        setStars(parsed.stars || 0);
-        setSandsOfTimeSeconds(parsed.sandsOfTimeSeconds || 0);
+      // useGameState内で直接初期化できないフック管理下のステートを復元
+      setShopRerollBasePrice(savedData.shopRerollBasePrice || 1);
+      setShopRerollPrice(savedData.shopRerollPrice || 1);
+      setTokenSlotExpansionCount(savedData.tokenSlotExpansionCount || 0);
 
-        if (parsed.tokens && Array.isArray(parsed.tokens)) {
-          setTokens(parsed.tokens);
-        }
-
-        setTotalPurchases(parsed.totalPurchases || 0);
-        setTotalStarsSpent(parsed.totalStarsSpent || 0);
-        setIsGameOver(parsed.isGameOver || false);
-        setShopRerollBasePrice(parsed.shopRerollBasePrice || 1);
-        setShopRerollPrice(parsed.shopRerollPrice || 1);
-        setCurrentRunTotalCombo(parsed.currentRunTotalCombo || 0);
-        setIsEnchantShopUnlocked(parsed.isEnchantShopUnlocked || false);
-        setTokenSlotExpansionCount(parsed.tokenSlotExpansionCount || 0);
-        setIsAwakeningLevelUpBought(parsed.isAwakeningLevelUpBought || false);
-        if (parsed.currentRunStats) {
-          setCurrentRunStats(parsed.currentRunStats);
-        }
-        if (parsed.shopItems) {
-          setShopItems(parsed.shopItems);
-        } else if (!parsed.isGameOver) {
-          setTimeout(() => {
-            setShopItems(prev => {
-              if (prev.length === 0) {
-                return generateShop();
-              }
-              return prev;
-            });
-          }, 0);
-        }
-        if (parsed.board) setSavedBoard(parsed.board);
-        setHasSaveData(true);
-      } catch (e) {
-        console.error("Save data corrupted:", e);
+      if (savedData.shopItems) {
+        setShopItems(savedData.shopItems);
+      } else if (!savedData.isGameOver) {
+        setTimeout(() => {
+          setShopItems(prev => {
+            if (prev.length === 0) {
+              return generateShop();
+            }
+            return prev;
+          });
+        }, 0);
       }
     } else {
       generateShop();
@@ -878,6 +866,9 @@ export const useGameState = () => {
         }
       });
       engineRef.current.syncMoveDrops(moveDropConfigs);
+
+      // 一筆書きの誓約: 有効かどうかをエンジンに通知
+      engineRef.current.hasOneStrokeSeal = effectiveTokens.some(t => t?.effect === 'one_stroke_seal');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tokens, getTimeLimit, minMatchLength, activeBuffs, settings?.speedMultiplier]);
@@ -923,17 +914,17 @@ export const useGameState = () => {
           if (!comboRef.current) break;
           if (step.tokenId) triggerPassive(step.tokenId);
           const stepValue = isNaN(step.value) ? 0 : step.value;
-          currentBase += stepValue;
           
           const eEl = comboRef.current;
           const sign = stepValue >= 0 ? '+' : '';
-          const prevBase = Math.max(0, currentBase - stepValue);
+          currentBase += stepValue;
           
+          // ポップの瞬間は、変化した側の数値を黄色（text-yellow-300）にしてバウンドさせる
           eEl.innerHTML = `
             <div class="combo-formula">
               <div class="combo-formula-expr">
                 <div class="combo-formula-part">
-                  <span class="combo-number">${formatJapaneseNumber(prevBase)}</span>
+                  <span class="combo-number text-yellow-300 animate-combo-pop">${formatJapaneseNumber(currentBase)}</span>
                   <span class="combo-bonus-add">${sign}${formatJapaneseNumber(stepValue)}<span class="combo-step-label"> ${step.label}</span></span>
                 </div>
                 <div class="combo-formula-op">×</div>
@@ -947,23 +938,43 @@ export const useGameState = () => {
           eEl.classList.remove('animate-combo-pop');
           void eEl.offsetWidth;
           eEl.classList.add('animate-combo-pop');
-          await new Promise(r => setTimeout(r, getAnimDelay(900)));
+          
+          await new Promise(r => setTimeout(r, getAnimDelay(450)));
+          if (!comboRef.current) break;
+
+          // 演出（待機）終了後、次のポップのために数値を白（通常色）に戻し、加算値を薄く（opacity-50）固定する
+          eEl.innerHTML = `
+            <div class="combo-formula">
+              <div class="combo-formula-expr">
+                <div class="combo-formula-part">
+                  <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
+                  <span class="combo-bonus-add opacity-50">${sign}${formatJapaneseNumber(stepValue)}<span class="combo-step-label"> ${step.label}</span></span>
+                </div>
+                <div class="combo-formula-op">×</div>
+                <div class="combo-formula-part">
+                  <span class="combo-number">${formatNum(currentMult)}</span>
+                  <span class="combo-label">MULT</span>
+                </div>
+              </div>
+            </div>
+          `;
         }
 
         // 2. 呪い（デバフ）適用フェーズ
         if (logData.debuffSteps && logData.debuffSteps.length > 0) {
           for (const step of logData.debuffSteps) {
             if (!comboRef.current) break;
-            const prevBase = currentBase;
             currentBase = Math.floor(currentBase * step.value);
             
             const eEl = comboRef.current;
+            
+            // ポップの瞬間は、デバフ反映後の数値を赤色（text-red-500）にしてバウンドさせる
             eEl.innerHTML = `
               <div class="combo-formula">
                 <div class="combo-formula-expr">
                   <div class="combo-formula-part">
-                    <span class="combo-number">${formatJapaneseNumber(prevBase)}</span>
-                    <span class="combo-bonus-mult">×${step.value}<span class="combo-step-label"> ${step.label}</span></span>
+                    <span class="combo-number text-red-500 animate-combo-pop">${formatJapaneseNumber(currentBase)}</span>
+                    <span class="combo-bonus-mult text-red-400">×${step.value}<span class="combo-step-label"> ${step.label}</span></span>
                   </div>
                   <div class="combo-formula-op">×</div>
                   <div class="combo-formula-part">
@@ -976,7 +987,26 @@ export const useGameState = () => {
             eEl.classList.remove('animate-combo-pop');
             void eEl.offsetWidth;
             eEl.classList.add('animate-combo-pop');
-            await new Promise(r => setTimeout(r, getAnimDelay(900)));
+            
+            await new Promise(r => setTimeout(r, getAnimDelay(450)));
+            if (!comboRef.current) break;
+
+            // 演出（待機）終了後、数値を通常色に戻し、デバフ表示を薄くする
+            eEl.innerHTML = `
+              <div class="combo-formula">
+                <div class="combo-formula-expr">
+                  <div class="combo-formula-part">
+                    <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
+                    <span class="combo-bonus-mult text-red-400 opacity-50">×${step.value}<span class="combo-step-label"> ${step.label}</span></span>
+                  </div>
+                  <div class="combo-formula-op">×</div>
+                  <div class="combo-formula-part">
+                    <span class="combo-number">${formatNum(currentMult)}</span>
+                    <span class="combo-label">MULT</span>
+                  </div>
+                </div>
+              </div>
+            `;
           }
         }
 
@@ -986,12 +1016,15 @@ export const useGameState = () => {
           if (step.tokenId) triggerPassive(step.tokenId);
           
           const prevMult = currentMult;
+          const prevBase = currentBase;
+          const eEl = comboRef.current;
+          
           if (step.type === 'add') {
             const addedVal = isNaN(step.addedValue) ? 0 : step.addedValue;
             currentMult += addedVal;
             const sign = addedVal >= 0 ? '+' : '';
             
-            const eEl = comboRef.current;
+            // 倍率の加算と同時に倍率数値を黄色にしてバウンドさせる
             eEl.innerHTML = `
               <div class="combo-formula">
                 <div class="combo-formula-expr">
@@ -1001,7 +1034,7 @@ export const useGameState = () => {
                   </div>
                   <div class="combo-formula-op">×</div>
                   <div class="combo-formula-part">
-                    <span class="combo-number">${formatNum(prevMult)}</span>
+                    <span class="combo-number text-yellow-300 animate-combo-pop">${formatNum(currentMult)}</span>
                     <span class="combo-bonus-add">${sign}${addedVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span></span>
                   </div>
                 </div>
@@ -1010,17 +1043,36 @@ export const useGameState = () => {
             eEl.classList.remove('animate-combo-pop');
             void eEl.offsetWidth;
             eEl.classList.add('animate-combo-pop');
-          } else {
-            const multVal = isNaN(step.value) ? 1.0 : step.value;
-            const prevBase = currentBase;
-            currentBase = Math.floor(currentBase * multVal);
-            
-            const eEl = comboRef.current;
+
+            await new Promise(r => setTimeout(r, getAnimDelay(450)));
+            if (!comboRef.current) break;
+
+            // 演出終了後、倍率数値を白に戻し、加算値表示を薄くする
             eEl.innerHTML = `
               <div class="combo-formula">
                 <div class="combo-formula-expr">
                   <div class="combo-formula-part">
-                    <span class="combo-number">${formatJapaneseNumber(prevBase)}</span>
+                    <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
+                    <span class="combo-label">BASE</span>
+                  </div>
+                  <div class="combo-formula-op">×</div>
+                  <div class="combo-formula-part">
+                    <span class="combo-number">${formatNum(currentMult)}</span>
+                    <span class="combo-bonus-add opacity-50">${sign}${addedVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span></span>
+                  </div>
+                </div>
+              </div>
+            `;
+          } else {
+            const multVal = isNaN(step.value) ? 1.0 : step.value;
+            currentBase = Math.floor(currentBase * multVal);
+            
+            // 乗算反映と同時にベース数値を黄色にしてバウンドさせる
+            eEl.innerHTML = `
+              <div class="combo-formula">
+                <div class="combo-formula-expr">
+                  <div class="combo-formula-part">
+                    <span class="combo-number text-yellow-300 animate-combo-pop">${formatJapaneseNumber(currentBase)}</span>
                     <span class="combo-bonus-mult">×${multVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span></span>
                   </div>
                   <div class="combo-formula-op">×</div>
@@ -1034,8 +1086,27 @@ export const useGameState = () => {
             eEl.classList.remove('animate-combo-pop');
             void eEl.offsetWidth;
             eEl.classList.add('animate-combo-pop');
+
+            await new Promise(r => setTimeout(r, getAnimDelay(450)));
+            if (!comboRef.current) break;
+
+            // 演出終了後、ベース数値を白に戻し、乗算表示を薄くする
+            eEl.innerHTML = `
+              <div class="combo-formula">
+                <div class="combo-formula-expr">
+                  <div class="combo-formula-part">
+                    <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
+                    <span class="combo-bonus-mult opacity-50">×${multVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span></span>
+                  </div>
+                  <div class="combo-formula-op">×</div>
+                  <div class="combo-formula-part">
+                    <span class="combo-number">${formatNum(currentMult)}</span>
+                    <span class="combo-label">MULT</span>
+                  </div>
+                </div>
+              </div>
+            `;
           }
-          await new Promise(r => setTimeout(r, getAnimDelay(900)));
         }
 
         await new Promise(r => setTimeout(r, getAnimDelay(300)));
@@ -1151,6 +1222,7 @@ export const useGameState = () => {
     let addedMultiplier = 0.0;
     let multMultiplier = 1.0;
     let debuffMultiplier = 1.0;
+    let baseMultiplier = 1.0; // 新規追加: からっぽの財布、重力逆転、一筆書きの誓約用の基礎コンボ倍率
     let exponentialBonus = 0;
     let exponentialMultiplier = 0.0;
     let timeMultiplier = 1;
@@ -1865,6 +1937,53 @@ export const useGameState = () => {
       }
     });
 
+    // --- からっぽの財布: 所持スターが規定数以下で基礎コンボ乗算 ---
+    effectiveTokens.forEach(t => {
+      if (!t || t.effect !== 'empty_wallet') return;
+      if (isCursePassiveNull && t.type === 'passive') return;
+      const lv = t.level || 1;
+      const tId = t.instanceId || t.id;
+      const maxStars = (t.params?.maxStars || [3, 5, 10])[lv - 1];
+      const multVal = t.values[lv - 1];
+      if (stars <= maxStars) {
+        if (isInstant) triggerPassive(tId);
+        baseMultiplier *= multVal;
+        logData.multipliers.push(`empty_wallet:x${multVal}`);
+        logData.multiplierSteps.push({ label: t.name || 'からっぽの財布', value: multVal, type: 'mult', tokenId: tId });
+      }
+    });
+
+    // --- 浪費の勲章: リロール累計回数に応じてコンボ倍率加算 ---
+    effectiveTokens.forEach(t => {
+      if (!t || t.effect !== 'medal_of_spendthrift') return;
+      if (isCursePassiveNull && t.type === 'passive') return;
+      const lv = t.level || 1;
+      const tId = t.instanceId || t.id;
+      const threshold = t.values[lv - 1]; // 5 / 3 / 2
+      const rerollCount = currentRunStats.currentShopRerolls || 0;
+      const stacks = Math.floor(rerollCount / threshold);
+      if (stacks > 0) {
+        const addVal = stacks * 0.5;
+        if (isInstant) triggerPassive(tId);
+        addedMultiplier += addVal;
+        logData.multipliers.push(`medal_of_spendthrift:+${addVal.toFixed(1)}`);
+        logData.multiplierSteps.push({ label: t.name || '浪費の勲章', value: 1.0 + addVal, addedValue: addVal, type: 'add', tokenId: tId });
+      }
+    });
+
+    // --- 一筆書きの誓約: 基礎コンボ乗算 ---
+    effectiveTokens.forEach(t => {
+      if (!t || t.effect !== 'one_stroke_seal') return;
+      if (isCursePassiveNull && t.type === 'passive') return;
+      const lv = t.level || 1;
+      const tId = t.instanceId || t.id;
+      const multVal = t.values[lv - 1];
+      if (isInstant) triggerPassive(tId);
+      baseMultiplier *= multVal;
+      logData.multipliers.push(`one_stroke_seal:x${multVal.toFixed(1)}`);
+      logData.multiplierSteps.push({ label: t.name || '一筆書きの誓約', value: multVal, type: 'mult', tokenId: tId });
+    });
+
     tokens.forEach((t) => {
       if (t?.effect === "min_match") {
         const lv = t.level || 1;
@@ -1894,6 +2013,11 @@ export const useGameState = () => {
         multMultiplier *= buff.params.multiplier;
         logData.multipliers.push(`seal_of_power:x${buff.params.multiplier.toFixed(2)}`);
         logData.multiplierSteps.push({ label: '封印の力', value: buff.params.multiplier, type: 'mult' });
+      } else if (buff.action === 'gravity_overdrive') {
+        // 重力逆転発動ターンの基礎コンボ数×2
+        baseMultiplier *= 2.0;
+        logData.multipliers.push(`gravity_overdrive:x2.0`);
+        logData.multiplierSteps.push({ label: '重力逆転', value: 2.0, type: 'mult' });
       }
     });
 
@@ -1922,7 +2046,7 @@ export const useGameState = () => {
 
     // 指示に基づき、マイナス倍率は基礎コンボのほうに掛け算する
     const finalBaseComboBeforeDebuff = tc + bonus;
-    const finalBaseCombo = (tc > 0) ? Math.floor(finalBaseComboBeforeDebuff * debuffMultiplier) : 0;
+    const finalBaseCombo = (tc > 0) ? Math.floor(finalBaseComboBeforeDebuff * debuffMultiplier * baseMultiplier) : 0;
     
     // 犬神（コンボ数100以上で倍率10倍）
     const inugamiToken = effectiveTokens.find(t => t?.effect === "inugami");
@@ -2272,6 +2396,46 @@ export const useGameState = () => {
       return nextTokens;
     });
 
+    // --- 星塵の起爆剤: ボムとスターが同時消去された場合、ボムドロップを追加する ---
+    if (bombSelfErased > 0 && starSelfErased > 0 && engineRef.current) {
+      effectiveTokens.forEach(t => {
+        if (!t || t.effect !== 'stardust_catalyst') return;
+        const lv = t.level || 1;
+        const spawnCount = t.values[lv - 1];
+        triggerPassive(t.instanceId || t.id);
+        notify(`星塵の起爆剤発動！ボムドロップが${spawnCount}個落下する！`);
+        setTimeout(() => {
+          if (engineRef.current && !engineRef.current._isDestroyed) {
+            engineRef.current.spawnBombRandom(spawnCount);
+          }
+        }, 300);
+      });
+    }
+
+    // --- ムーブ・リピーター: ムーブドロップ累計が閾値を越えるたびにリピートドロップを変換 ---
+    if (moveDropBonus > 0) {
+      effectiveTokens.forEach(t => {
+        if (!t || t.effect !== 'move_repeater') return;
+        const lv = t.level || 1;
+        const threshold = t.values[lv - 1]; // 30 / 20 / 10
+        const prevTotal = currentRunStats.currentMoveDropTotal || 0;
+        const newTotal = prevTotal + moveDropBonus;
+        const prevStacks = Math.floor(prevTotal / threshold);
+        const newStacks = Math.floor(newTotal / threshold);
+        const gained = newStacks - prevStacks;
+        if (gained > 0 && engineRef.current) {
+          triggerPassive(t.instanceId || t.id);
+          notify(`ムーブ・リピーター発動！リピートドロップが${gained}個変換！`);
+          setTimeout(() => {
+            if (engineRef.current && !engineRef.current._isDestroyed) {
+              engineRef.current.spawnRepeatRandom(gained);
+            }
+          }, 300);
+        }
+        setCurrentRunStats(prev => ({ ...prev, currentMoveDropTotal: newTotal }));
+      });
+    }
+
     const heartsErasedThisTurn = erasedColorCounts["heart"] || 0;
     setCurrentRunStats(prev => {
       const nextHearts = (prev.totalHeartsErased || 0) + heartsErasedThisTurn;
@@ -2318,6 +2482,9 @@ export const useGameState = () => {
       const hasForbiddenLiteral = tokens.some((t) => t?.id === "forbidden" || t?.effect === "forbidden");
       const hasCurseSkyfall = tokens.some((t) => (t?.id === "curse_skyfall" || t?.effect === "curse_skyfall") && !hasSaintToken);
       engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall;
+      // 重力逆転バフがターン終了で失效した場合は重力方向をリセット
+      const hasGravityBuff = activeBuffs.some(b => b.action === 'gravity_overdrive' && b.duration > 1);
+      engineRef.current.gravityDirection = hasGravityBuff ? 'up' : 'down';
     }
 
     skipTurnProgressRef.current = false;
@@ -2875,6 +3042,27 @@ export const useGameState = () => {
         const finalDuration = (token.params.duration || 1) + extraDuration;
         engine.activateChronosStop(finalDuration);
         notify(`${token.name} 発動！ (${finalDuration}手番)`);
+        break;
+      }
+      case 'gravity_overdrive': {
+        // 重力逆転: エンジンの重力方向を上に切り替え、コンボ倍率×2のバフを追加
+        if (engine) {
+          engine.gravityDirection = 'up';
+        }
+        const finalDuration = (token.params?.duration || 1) + extraDuration;
+        setActiveBuffs(prev => [
+          ...prev,
+          {
+            id: Date.now() + Math.random(),
+            action: 'gravity_overdrive',
+            params: { direction: 'up' },
+            duration: finalDuration,
+            maxDuration: finalDuration,
+            tokenId: token.instanceId || token.id,
+            name: token.name,
+          }
+        ]);
+        notify(`${token.name} 発動！ドロップが上に落下する！ (コンボ倍率×2)`);
         break;
       }
       case "op_time_boost": {

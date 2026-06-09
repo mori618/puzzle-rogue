@@ -200,7 +200,7 @@ const App = () => {
         <StartOptionScreen onSelect={handleStartOptionSelection} />
       )}
       {/* Mobile Container */}
-      <div className="w-full max-w-md h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md h-full flex flex-col justify-between relative bg-background-dark shadow-2xl overflow-hidden">
         {/* Abstract Background Pattern */}
         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
           <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-primary/30 to-transparent"></div>
@@ -236,7 +236,7 @@ const App = () => {
 
         {/* --- Top Area Swipe Handler --- */}
         <div
-          className="flex-none flex flex-col relative z-30"
+          className="flex-none flex flex-col gap-2 relative z-30"
         >
           {/* Top Status Bar */}
           <header className="relative z-10 px-4 pt-[calc(12px+env(safe-area-inset-top,20px))] pb-2 flex justify-between items-center glass-panel border-b border-white/5 h-[8dvh] min-h-[60px] max-h-[76px] shrink-0">
@@ -409,7 +409,7 @@ const App = () => {
             const safeActivePage = Math.min(activeTokenPage, activePages - 1);
 
             return (
-              <section className="relative z-30 px-4 py-1.5 flex-none mb-2 flex flex-col justify-between h-[22dvh] min-h-[135px] max-h-[180px]">
+              <section className="relative z-30 px-4 py-1.5 flex-none mb-2 flex flex-col justify-between w-full aspect-[2.1]">
                 {isPracticeMode ? (
                   <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-4 flex flex-col items-center justify-center backdrop-blur-md shadow-inner h-full w-full">
                     <div className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 flex items-center gap-2">
@@ -434,7 +434,7 @@ const App = () => {
                 ) : (
                   <>
                     {/* Passive Tokens Row */}
-                    <div className="h-[38%] flex flex-col justify-between">
+                    <div className="w-full aspect-[4.3] flex flex-col justify-between">
                       <h3 className="text-[10px] uppercase text-slate-500 font-bold tracking-wider flex justify-between items-center shrink-0">
                         <span>Passive Artifacts</span>
                         <div className="flex items-center gap-1">
@@ -454,7 +454,7 @@ const App = () => {
                           <span className="text-[9px] ml-1">{passiveTokens.length}/{maxSlots}</span>
                         </div>
                       </h3>
-                      <div className="overflow-hidden flex-1"
+                      <div className="overflow-hidden w-full aspect-[5.375]"
                         onTouchStart={e => { passiveSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
                         onTouchEnd={e => {
                           if (!passiveSwipeRef.current) return;
@@ -479,7 +479,7 @@ const App = () => {
                       >
                         <div className="flex transition-transform duration-300 ease-out h-full" style={{ transform: `translateX(-${safePassivePage * 100}%)` }}>
                           {Array.from({ length: passivePages }).map((_, pageIdx) => (
-                            <div key={pageIdx} className="flex justify-between items-center gap-1.5 flex-shrink-0 w-full h-full">
+                            <div key={pageIdx} className="grid grid-cols-5 gap-1.5 flex-shrink-0 w-full">
                               {Array.from({ length: TOKENS_PER_PAGE }).map((_, slotIdx) => {
                                 const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
                                 const t = passiveTokens[globalSlot];
@@ -523,7 +523,7 @@ const App = () => {
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, globalSlot + 1, false)}
                                     onDragEnd={() => setDraggedToken(null)}
-                                    className={`h-full aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
+                                    className={`w-full aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
                                   >
 
                                     <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
@@ -580,7 +580,7 @@ const App = () => {
                     </div>
 
                     {/* Active Tokens Row */}
-                    <div className="h-[38%] flex flex-col justify-between">
+                    <div className="w-full aspect-[4.3] flex flex-col justify-between">
                       <h3 className="text-[10px] uppercase text-slate-500 font-bold tracking-wider flex justify-between items-center shrink-0">
                         <span>Active Spells</span>
                         <div className="flex items-center gap-1">
@@ -600,7 +600,7 @@ const App = () => {
                           <span className="text-[9px] ml-1">{activeTokens.length}/{maxSlots}</span>
                         </div>
                       </h3>
-                      <div className="overflow-hidden flex-1"
+                      <div className="overflow-hidden w-full aspect-[5.375]"
                         onTouchStart={e => { activeSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
                         onTouchEnd={e => {
                           if (!activeSwipeRef.current) return;
@@ -625,7 +625,7 @@ const App = () => {
                       >
                         <div className="flex transition-transform duration-300 ease-out h-full" style={{ transform: `translateX(-${safeActivePage * 100}%)` }}>
                           {Array.from({ length: activePages }).map((_, pageIdx) => (
-                            <div key={pageIdx} className="flex justify-between items-center gap-1.5 flex-shrink-0 w-full h-full">
+                            <div key={pageIdx} className="grid grid-cols-5 gap-1.5 flex-shrink-0 w-full">
                               {Array.from({ length: TOKENS_PER_PAGE }).map((_, slotIdx) => {
                                 const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
                                 const t = activeTokens[globalSlot];
@@ -667,7 +667,7 @@ const App = () => {
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, globalSlot + 1, true)}
                                     onDragEnd={() => setDraggedToken(null)}
-                                    className={`h-full aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${containerClasses}`}
+                                    className={`w-full aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${containerClasses}`}
                                   >
 
                                     <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
@@ -747,7 +747,7 @@ const App = () => {
 
 
           {/* 操作時間ゲージ（トークンの下） */}
-          <div className="relative z-30 px-4 flex items-center gap-2 h-[3dvh] min-h-[18px] max-h-[24px]">
+          <div className="relative z-30 px-4 my-2 flex items-center gap-2 h-[3dvh] min-h-[18px] max-h-[24px]">
             <span ref={timerTextRef} className="text-sm font-mono font-bold text-slate-300 min-w-[3ch] text-right"></span>
             <div className="flex-1 h-3 bg-slate-800 rounded-full overflow-hidden border border-white/5 relative shadow-inner">
               <div ref={timerRef} className="h-full bg-gradient-to-r from-green-400 to-emerald-600 w-full transition-all duration-0 ease-linear shadow-[0_0_10px_rgba(34,197,94,0.5)] rounded-full"></div>
@@ -770,7 +770,7 @@ const App = () => {
           {/* ======================================================== */}
           {/* 1. パズルグリッド・メイン盤面エリア                             */}
           {/* ======================================================== */}
-          <section className="relative z-20 flex-1 bg-slate-900 rounded-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden puzzle-grid-section flex flex-col justify-end p-4 pt-4 pb-[calc(16px+env(safe-area-inset-bottom,16px))]">
+          <section className="relative z-20 flex-1 bg-slate-900 rounded-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden puzzle-grid-section flex flex-col justify-center p-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom,0px))]">
             
             {/* 盤面背景エフェクト（グラデーション） */}
             <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-90 pointer-events-none"></div>
@@ -781,7 +781,7 @@ const App = () => {
             </div>
 
             {/* アスペクト比を維持するドロップ配置用グリッドコンテナ（cols/rows の比率で伸縮） */}
-            <div className="w-full max-h-full mx-auto relative flex-shrink-0" style={{ aspectRatio: `${cols} / ${rows}` }}>
+            <div className="w-full max-h-full mx-auto my-auto relative flex-shrink-0" style={{ aspectRatio: `${cols} / ${rows}` }}>
 
               {/* レイヤー 1: パズルボード本体（PuzzleEngine がオーブを描画する DOM ターゲット） */}
               <div

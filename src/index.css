@@ -148,18 +148,17 @@ body {
   z-index: 10;
   /* GPUアクセラレーション: transformベースでアニメーション */
   will-change: transform, opacity;
+  /* デフォルトでスナップ感のある短いtransitionを設定（ずらされたドロップの滑らかな移動用） */
   transition:
-    transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+    transform 0.12s cubic-bezier(0.25, 1, 0.5, 1),
     opacity 0.3s ease;
   /* top/leftは初期配置用。アニメーションはtranslate3dで行う */
   transform: translate3d(0, 0, 0);
-  /* overflow: hidden; Removed to allow badge to protrude */
 }
 
 /* 形状定義（完全丸み対応版：border-radiusのみ使用） */
 .orb-shape-fire {
   border-radius: 50% 50% 50% 0%;
-  transform: rotate(45deg);
 }
 
 /* しずく（斜め） */
@@ -180,7 +179,6 @@ body {
 /* 有機的オーバル */
 .orb-shape-dark {
   border-radius: 5% 50% 50% 50%;
-  transform: rotate(-45deg);
 }
 
 /* 雫（逆向き斜め） */
@@ -225,8 +223,8 @@ body {
 }
 
 /* 入れ替え時のスナップ感を出すための短いtransition */
-.orb-swapping {
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+.orb-returning {
+  transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
 
 /* 落下時のバウンスエフェクト */
@@ -1313,12 +1311,13 @@ body {
 
 /* パズル盤面セクションのセーフエリア制御 */
 .puzzle-grid-section {
-  padding-bottom: 0px;
+  /* App.jsx側のTailwindでセーフエリアを考慮したpadding-bottomを指定しているため、CSS側での上書きは行いません */
 }
 
 @media (display-mode: standalone) {
   .puzzle-grid-section {
-    padding-bottom: env(safe-area-inset-bottom, 16px);
+    /* ホーム画面追加時（スタンドアロンモード）は、ツールバーがないためセーフエリアにのみ追従させ、不要な隙間（54px）を34pxに削減します */
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 20px)) !important;
   }
 }
 

@@ -1444,6 +1444,101 @@ const ALL_TOKEN_BASES = [
     desc: "コンボ倍率系の効果が一切発動しなくなる代わり、すべての「コンボ加算値」が[5/15/30]倍になる。",
     attributes: [],
     canBeInitial: false
+  },
+
+  // ==========================================
+  // ★ 新規追加トークン
+  // ==========================================
+
+  // --- パッシブ: からっぽの財布 ---
+  {
+    id: "empty_wallet",
+    name: "からっぽの財布",
+    icon: "wallet",
+    type: "passive",
+    effect: "empty_wallet",
+    values: [1.5, 2.2, 3.5],
+    params: { maxStars: [3, 5, 10] },
+    rarity: 2, price: 8,
+    desc: "所持スターが[3/5/10]個以下のとき、基礎コンボ数が[1.5/2.2/3.5]倍になる。",
+    attributes: [],
+    canBeInitial: false
+  },
+
+  // --- パッシブ: 星塵の起爆剤 ---
+  {
+    id: "stardust_catalyst",
+    name: "星塵の起爆剤",
+    icon: "auto_awesome",
+    type: "passive",
+    effect: "stardust_catalyst",
+    values: [1, 2, 3],
+    rarity: 3, price: 10,
+    desc: "ボムドロップとスタードロップを同時に消去した場合、消去後にランダムなドロップ[1/2/3]個がボムドロップとして落下する。",
+    attributes: [],
+    canBeInitial: false,
+    canBeCurseReward: true
+  },
+
+  // --- パッシブ: ムーブ・リピーター ---
+  {
+    id: "move_repeater",
+    name: "ムーブ・リピーター",
+    icon: "repeat",
+    type: "passive",
+    effect: "move_repeater",
+    values: [30, 20, 10],
+    rarity: 2, price: 9,
+    desc: "ムーブドロップのカウントが[30/20/10]蓄積するごとに、盤面のランダムなドロップ1個をリピートドロップに変化させる。",
+    attributes: [],
+    canBeInitial: false
+  },
+
+  // --- パッシブ: 浪費の勲章 ---
+  {
+    id: "medal_of_spendthrift",
+    name: "浪費の勲章",
+    icon: "military_tech",
+    type: "passive",
+    effect: "medal_of_spendthrift",
+    values: [5, 3, 2],
+    rarity: 3, price: 10,
+    desc: "現在のゲーム中にショップでリロールを行った累計回数[5/3/2]回につき、コンボ倍率に+0.5加算する。",
+    attributes: [],
+    canBeInitial: false,
+    canBeCurseReward: true
+  },
+
+  // --- スキル: 重力逆転 ---
+  {
+    id: "gravity_overdrive",
+    name: "重力逆転",
+    icon: "vertical_align_top",
+    type: "skill",
+    cost: 5,
+    costLevels: true,
+    action: "gravity_overdrive",
+    params: { direction: "up", duration: 1 },
+    rarity: 3, price: 10,
+    desc: "１ターンの間、ドロップの落下方向が「上」に逆転する。さらに基礎コンボ数が2倍になる。消費E:{cost}",
+    attributes: [],
+    canBeInitial: false,
+    canBeCurseReward: true
+  },
+
+  // --- パッシブ: 一筆書きの誓約 ---
+  {
+    id: "one_stroke_seal",
+    name: "一筆書きの誓約",
+    icon: "gesture",
+    type: "passive",
+    effect: "one_stroke_seal",
+    values: [4.0, 6.5, 10.0],
+    rarity: 3, price: 12,
+    desc: "ドラッグ操作中に一度通過したマスを二度と通過できなくなる（一筆書きルール）。その代わり、基礎コンボ数が[4.0/6.5/10.0]倍になる。",
+    attributes: [],
+    canBeInitial: false,
+    canBeCurseReward: true
   }
 ];
 
