@@ -586,7 +586,6 @@ class PuzzleEngine {
     this.updateFastForwardState();
 
     // 操作開始前に、盤面の全ドロップの skyfall フラグをリセットする
-    // また、どのドロップを掴んで操作を始めても、盤面のすべてのムーブドロップのカウントを0にリセットする
     this.state.forEach(row => {
       row.forEach(orb => {
         if (orb) {
@@ -598,12 +597,6 @@ class PuzzleEngine {
             clearTimeout(orb._fallingTimeout);
             this.activeTimeouts.delete(orb._fallingTimeout);
             orb._fallingTimeout = null;
-          }
-          if (orb.isMoveDrop) {
-            orb.moveCount = 0;
-            orb.moveSteps = 0;
-            const textEl = orb.el.querySelector('.move-count-text');
-            if (textEl) textEl.innerText = orb.moveCount;
           }
         }
       });
@@ -875,6 +868,139 @@ class PuzzleEngine {
   }
 
   // --- Skill Actions ---
+  // 指定された色のドロップを左上から順に整列させ、他のドロップを下・右に詰める
+  organizeColor(targetColor) {
+    if (this.processing) return;
+
+    const D_list = [];
+    const O_list = [];
+
+    // 下から上、右から左の順に走査して分類
+    for (let r = this.rows - 1; r >= 0; r--) {
+      for (let c = this.cols - 1; c >= 0; c--) {
+        const orb = this.state[r][c];
+        if (orb) {
+          if (orb.type === targetColor) {
+            D_list.push(orb);
+          } else {
+            O_list.push(orb);
+          }
+        }
+      }
+    }
+
+    // 新しい盤面状態を初期化
+    const newState = Array.from({ length: this.rows }, () => Array(this.cols).fill(null));
+
+    // 他のドロップ（O_list）を下から上、右から左の順に配置
+    let oIdx = 0;
+    for (let r = this.rows - 1; r >= 0; r--) {
+      for (let c = this.cols - 1; c >= 0; c--) {
+        if (oIdx < O_list.length) {
+          newState[r][c] = O_list[oIdx++];
+        }
+      }
+    }
+
+    // 整理対象ドロップ（D_list）を残りの空きスペース（上部・左側）に左上から右の順に配置
+    let dIdx = 0;
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        if (newState[r][c] === null && dIdx < D_list.length) {
+          newState[r][c] = D_list[dIdx++];
+        }
+      }
+    }
+
+    // 状態を更新
+    this.state = newState;
+
+    // 再描画（落下アニメーション付きで各ドロップの移動を表現）
+    this.render('orb-falling');
+  }
+
+  // 指定された色のドロップを全て削除し、コンボ換算消去数と生の個数を返す非同期メソッド
+  async eraseColor(targetColor) {
+    if (this.processing) return { erasedCount: 0, rawCount: 0 };
+    this.processing = true;
+
+    const matchedOrbs = [];
+    let erasedCount = 0; // 特殊ドロップ2倍換算の消去数
+    let rawCount = 0;    // 実際の消去個数
+
+    this.state.forEach((row) => {
+      row.forEach((orb) => {
+        if (orb && orb.type === targetColor) {
+          matchedOrbs.push(orb);
+          // ボム、リピート、スター、虹、ムーブドロップなどの特殊ドロップ判定
+          const isSpecial = orb.isBomb || orb.isRepeat || orb.isStar || orb.isRainbow || orb.isMoveDrop;
+          erasedCount += isSpecial ? 2 : 1;
+          rawCount += 1;
+        }
+      });
+    });
+
+    if (matchedOrbs.length === 0) {
+      this.processing = false;
+      return { erasedCount: 0, rawCount: 0 };
+    }
+
+    // 消去アニメーションクラスの付与とエフェクト生成
+    matchedOrbs.forEach((orb) => {
+      orb.el.classList.add("orb-matching");
+      this.createOrbEffect('len5', orb.r, orb.c);
+    });
+
+    soundManager.playSE(SE_IDS.BOMB_EXPLODE);
+
+    // アニメーション完了を待つ (300ms)
+    await this.sleep(300);
+    if (this._isDestroyed) return { erasedCount, rawCount };
+
+    // DOMからドロップ要素を削除し、盤面状態をクリア
+    matchedOrbs.forEach((orb) => {
+      orb.el.remove();
+      this.state[orb.r][orb.c] = null;
+    });
+
+    // 少し待機してから落下処理を実行
+    await this.sleep(100);
+    if (this._isDestroyed) return { erasedCount, rawCount };
+
+    // 落下および新規ドロップ補充
+    await this.simultaneousGravity();
+    if (this._isDestroyed) return { erasedCount, rawCount };
+
+    // 落下アニメーションの完了を待機
+    await this.sleep(450);
+    if (this._isDestroyed) return { erasedCount, rawCount };
+
+    this.processing = false;
+    return { erasedCount, rawCount };
+  }
+
+  // 盤面上のすべてのドロップを指定した色の強化（プラス）ドロップに変換する
+  changeBoardToEnhancedColor(targetColor) {
+    if (this._isDestroyed) return;
+    this.state.forEach((row) => {
+      row.forEach((orb) => {
+        if (orb && !orb.isMoveDrop) {
+          orb.type = targetColor;
+          orb.isEnhanced = true;
+          // DOM要素のクラスと見た目の更新
+          orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${targetColor}`;
+          orb.el.querySelector(".orb-inner").className = `orb-inner orb-${targetColor} shadow-lg`;
+          const span = orb.el.querySelector("span");
+          if (span) span.innerText = this.icons[targetColor];
+          // プラス（強化）マークを追加
+          this.addPlusMark(orb.el);
+        }
+      });
+    });
+    // 再描画
+    this.render();
+  }
+
   convertColor(fromType, toType) {
     if (this.processing) return;
     this.state.forEach((row) => {
@@ -1676,8 +1802,33 @@ class PuzzleEngine {
     }
 
     if (this.onTurnEnd) {
-      await this.onTurnEnd(this.currentCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes, overLinkMultiplier, erasedByBombTotal, erasedByRepeatTotal, erasedByStarTotal, isPerfect || allInitialOrbsCleared, { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased });
+      await this.onTurnEnd(
+        this.currentCombo,
+        colorComboCounts,
+        erasedColorCounts,
+        hasSkyfallCombo,
+        shapes,
+        overLinkMultiplier,
+        erasedByBombTotal,
+        erasedByRepeatTotal,
+        erasedByStarTotal,
+        isPerfect || allInitialOrbsCleared,
+        { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased }
+      );
     }
+
+    // ターン終了したため、盤面上のすべてのムーブドロップのカウントとステップをリセットする
+    this.state.forEach(row => {
+      row.forEach(orb => {
+        if (orb && orb.isMoveDrop) {
+          orb.moveCount = 0;
+          orb.moveSteps = 0;
+          const textEl = orb.el.querySelector('.move-count-text');
+          if (textEl) textEl.innerText = orb.moveCount;
+        }
+      });
+    });
+
     this.processing = false;
   }
 

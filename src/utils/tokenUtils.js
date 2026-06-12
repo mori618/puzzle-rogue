@@ -126,6 +126,12 @@ const getTokenDynamicInfo = (item, level, currentRunStats = null, currentTokens 
     }
   }
 
+  // 消滅スキルの累積消去数を表示
+  if (item && item.action === 'erase_color') {
+    const count = item.erasedCount || 0;
+    infoList.push({ label: '累計消去数', value: `${count} / 30`, type: 'stat' });
+  }
+
   // 2. 現在値（値が存在する場合）
   if (currentRunStats && base.values) {
     const v = base.values[targetLv - 1];

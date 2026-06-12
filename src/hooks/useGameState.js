@@ -56,6 +56,8 @@ export const useGameState = () => {
   const [nextTurnTimeMultiplier, setNextTurnTimeMultiplier] = useState(1);
   const [lastTurnCombo, setLastTurnCombo] = useState(0);
   const [lastErasedColorCounts, setLastErasedColorCounts] = useState({});
+  // スキル使用によって消去されたドロップ数をターン終了時にマージするための一時的な状態
+  const [skillErasedCounts, setSkillErasedCounts] = useState({});
 
   // Shop choice state
 
@@ -874,6 +876,14 @@ export const useGameState = () => {
   }, [tokens, getTimeLimit, minMatchLength, activeBuffs, settings?.speedMultiplier]);
 
   const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0, erasedByRepeatTotal = 0, erasedByStarTotal = 0, isAllClear = false, extraStats = {}) => {
+    // スキルによって消去されたドロップ数をマージ
+    const finalErasedColorCounts = { ...erasedColorCounts };
+    Object.keys(skillErasedCounts).forEach(color => {
+      finalErasedColorCounts[color] = (finalErasedColorCounts[color] || 0) + skillErasedCounts[color];
+    });
+    // 一時ステートをクリア
+    setSkillErasedCounts({});
+
     const showComboBreakdownLocal = async (params) => {
       const {
         tc, logData, turnCombo, bonus, effectiveCombo, MAX_COMBO,
@@ -888,17 +898,36 @@ export const useGameState = () => {
         let currentBase = tc;
         let currentMult = 1.0;
 
+        // 演出リズムを作るための動的ディレイ決定ヘルパー
+        const getStepDelay = (step, stepType) => {
+          if (stepType === 'debuff') {
+            return 750; // 呪いデバフ（重みのあるタメ）
+          }
+          if (stepType === 'multiplier_mult') {
+            return 950; // 倍率乗算（最大の見せ場のタメ）
+          }
+          if (stepType === 'multiplier_add') {
+            return 700; // 倍率加算（中程度のタメ）
+          }
+          // 基礎コンボ加算
+          const val = step.value || 0;
+          if (val >= 5) {
+            return 800; // 大きな加算（タメ）
+          }
+          return 650; // 小さな加算（表示時間を長くして認識しやすくする）
+        };
+
         // 初期描画
         el.innerHTML = `
-          <div class="combo-formula">
+          <div class="combo-formula is-step-mode">
             <div class="combo-formula-expr">
               <div class="combo-formula-part">
-                <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
+                <span class="combo-number" id="formula-base">${formatJapaneseNumber(currentBase)}</span>
                 <span class="combo-label">BASE</span>
               </div>
               <div class="combo-formula-op">×</div>
               <div class="combo-formula-part">
-                <span class="combo-number">${formatNum(currentMult)}</span>
+                <span class="combo-number" id="formula-mult">${formatNum(currentMult)}</span>
                 <span class="combo-label">MULT</span>
               </div>
             </div>
@@ -907,7 +936,7 @@ export const useGameState = () => {
         el.classList.remove('animate-combo-pop');
         void el.offsetWidth;
         el.classList.add('animate-combo-pop');
-        await new Promise(r => setTimeout(r, getAnimDelay(900)));
+        await new Promise(r => setTimeout(r, getAnimDelay(500))); // 初期ウェイトを500msに調整
 
         // 1. 基礎コンボ加算フェーズ
         for (const step of logData.bonusSteps) {
@@ -919,45 +948,34 @@ export const useGameState = () => {
           const sign = stepValue >= 0 ? '+' : '';
           currentBase += stepValue;
           
-          // ポップの瞬間は、変化した側の数値を黄色（text-yellow-300）にしてバウンドさせる
-          eEl.innerHTML = `
-            <div class="combo-formula">
-              <div class="combo-formula-expr">
-                <div class="combo-formula-part">
-                  <span class="combo-number text-yellow-300 animate-combo-pop">${formatJapaneseNumber(currentBase)}</span>
-                  <span class="combo-bonus-add">${sign}${formatJapaneseNumber(stepValue)}<span class="combo-step-label"> ${step.label}</span></span>
-                </div>
-                <div class="combo-formula-op">×</div>
-                <div class="combo-formula-part">
-                  <span class="combo-number">${formatNum(currentMult)}</span>
-                  <span class="combo-label">MULT</span>
-                </div>
-              </div>
-            </div>
-          `;
-          eEl.classList.remove('animate-combo-pop');
-          void eEl.offsetWidth;
-          eEl.classList.add('animate-combo-pop');
+          const baseEl = eEl.querySelector('#formula-base');
+          if (baseEl) {
+            baseEl.className = 'combo-number';
+            // 古い演出要素をすべて削除して重複を防ぐ
+            baseEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
+            
+            void baseEl.offsetWidth;
+            
+            baseEl.innerText = formatJapaneseNumber(currentBase);
+            baseEl.className = 'combo-number text-yellow-glow animate-number-bounce';
+            
+            const newBonus = document.createElement('span');
+            newBonus.className = 'combo-bonus-add';
+            newBonus.innerHTML = `${sign}${formatJapaneseNumber(stepValue)}<span class="combo-step-label"> ${step.label}</span>`;
+            baseEl.parentNode.appendChild(newBonus);
+          }
           
-          await new Promise(r => setTimeout(r, getAnimDelay(450)));
+          // 動的ディレイの適用
+          await new Promise(r => setTimeout(r, getAnimDelay(getStepDelay(step, 'bonus'))));
           if (!comboRef.current) break;
-
-          // 演出（待機）終了後、次のポップのために数値を白（通常色）に戻し、加算値を薄く（opacity-50）固定する
-          eEl.innerHTML = `
-            <div class="combo-formula">
-              <div class="combo-formula-expr">
-                <div class="combo-formula-part">
-                  <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
-                  <span class="combo-bonus-add opacity-50">${sign}${formatJapaneseNumber(stepValue)}<span class="combo-step-label"> ${step.label}</span></span>
-                </div>
-                <div class="combo-formula-op">×</div>
-                <div class="combo-formula-part">
-                  <span class="combo-number">${formatNum(currentMult)}</span>
-                  <span class="combo-label">MULT</span>
-                </div>
-              </div>
-            </div>
-          `;
+        }
+        {
+          const baseEl = comboRef.current?.querySelector('#formula-base');
+          if (baseEl) {
+            baseEl.className = 'combo-number';
+            // ループ終了時に残った演出要素を削除
+            baseEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
+          }
         }
 
         // 2. 呪い（デバフ）適用フェーズ
@@ -967,46 +985,32 @@ export const useGameState = () => {
             currentBase = Math.floor(currentBase * step.value);
             
             const eEl = comboRef.current;
+            const baseEl = eEl.querySelector('#formula-base');
             
-            // ポップの瞬間は、デバフ反映後の数値を赤色（text-red-500）にしてバウンドさせる
-            eEl.innerHTML = `
-              <div class="combo-formula">
-                <div class="combo-formula-expr">
-                  <div class="combo-formula-part">
-                    <span class="combo-number text-red-500 animate-combo-pop">${formatJapaneseNumber(currentBase)}</span>
-                    <span class="combo-bonus-mult text-red-400">×${step.value}<span class="combo-step-label"> ${step.label}</span></span>
-                  </div>
-                  <div class="combo-formula-op">×</div>
-                  <div class="combo-formula-part">
-                    <span class="combo-number">${formatNum(currentMult)}</span>
-                    <span class="combo-label">MULT</span>
-                  </div>
-                </div>
-              </div>
-            `;
-            eEl.classList.remove('animate-combo-pop');
-            void eEl.offsetWidth;
-            eEl.classList.add('animate-combo-pop');
+            if (baseEl) {
+              baseEl.className = 'combo-number';
+              // 古い演出要素をすべて削除して重複を防ぐ
+              baseEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
+              
+              void baseEl.offsetWidth;
+              
+              baseEl.innerText = formatJapaneseNumber(currentBase);
+              baseEl.className = 'combo-number text-red-glow animate-number-bounce';
+              
+              const newBonus = document.createElement('span');
+              newBonus.className = 'combo-bonus-mult text-red-400';
+              newBonus.innerHTML = `×${step.value}<span class="combo-step-label"> ${step.label}</span>`;
+              baseEl.parentNode.appendChild(newBonus);
+            }
             
-            await new Promise(r => setTimeout(r, getAnimDelay(450)));
+            // 呪い用の動的ディレイの適用
+            await new Promise(r => setTimeout(r, getAnimDelay(getStepDelay(step, 'debuff'))));
             if (!comboRef.current) break;
-
-            // 演出（待機）終了後、数値を通常色に戻し、デバフ表示を薄くする
-            eEl.innerHTML = `
-              <div class="combo-formula">
-                <div class="combo-formula-expr">
-                  <div class="combo-formula-part">
-                    <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
-                    <span class="combo-bonus-mult text-red-400 opacity-50">×${step.value}<span class="combo-step-label"> ${step.label}</span></span>
-                  </div>
-                  <div class="combo-formula-op">×</div>
-                  <div class="combo-formula-part">
-                    <span class="combo-number">${formatNum(currentMult)}</span>
-                    <span class="combo-label">MULT</span>
-                  </div>
-                </div>
-              </div>
-            `;
+          }
+          const baseEl = comboRef.current?.querySelector('#formula-base');
+          if (baseEl) {
+            baseEl.className = 'combo-number';
+            baseEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
           }
         }
 
@@ -1015,8 +1019,6 @@ export const useGameState = () => {
           if (!comboRef.current) break;
           if (step.tokenId) triggerPassive(step.tokenId);
           
-          const prevMult = currentMult;
-          const prevBase = currentBase;
           const eEl = comboRef.current;
           
           if (step.type === 'add') {
@@ -1024,92 +1026,68 @@ export const useGameState = () => {
             currentMult += addedVal;
             const sign = addedVal >= 0 ? '+' : '';
             
-            // 倍率の加算と同時に倍率数値を黄色にしてバウンドさせる
-            eEl.innerHTML = `
-              <div class="combo-formula">
-                <div class="combo-formula-expr">
-                  <div class="combo-formula-part">
-                    <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
-                    <span class="combo-label">BASE</span>
-                  </div>
-                  <div class="combo-formula-op">×</div>
-                  <div class="combo-formula-part">
-                    <span class="combo-number text-yellow-300 animate-combo-pop">${formatNum(currentMult)}</span>
-                    <span class="combo-bonus-add">${sign}${addedVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span></span>
-                  </div>
-                </div>
-              </div>
-            `;
-            eEl.classList.remove('animate-combo-pop');
-            void eEl.offsetWidth;
-            eEl.classList.add('animate-combo-pop');
+            const multEl = eEl.querySelector('#formula-mult');
+            if (multEl) {
+              multEl.className = 'combo-number';
+              // 古い演出要素をすべて削除して重複を防ぐ
+              multEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
+              
+              void multEl.offsetWidth;
+              
+              multEl.innerText = formatNum(currentMult);
+              multEl.className = 'combo-number text-yellow-glow animate-number-bounce';
+              
+              const newBonus = document.createElement('span');
+              newBonus.className = 'combo-bonus-add';
+              newBonus.innerHTML = `${sign}${addedVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span>`;
+              multEl.parentNode.appendChild(newBonus);
+            }
 
-            await new Promise(r => setTimeout(r, getAnimDelay(450)));
+            // 倍率加算用の動的ディレイの適用
+            await new Promise(r => setTimeout(r, getAnimDelay(getStepDelay(step, 'multiplier_add'))));
             if (!comboRef.current) break;
-
-            // 演出終了後、倍率数値を白に戻し、加算値表示を薄くする
-            eEl.innerHTML = `
-              <div class="combo-formula">
-                <div class="combo-formula-expr">
-                  <div class="combo-formula-part">
-                    <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
-                    <span class="combo-label">BASE</span>
-                  </div>
-                  <div class="combo-formula-op">×</div>
-                  <div class="combo-formula-part">
-                    <span class="combo-number">${formatNum(currentMult)}</span>
-                    <span class="combo-bonus-add opacity-50">${sign}${addedVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span></span>
-                  </div>
-                </div>
-              </div>
-            `;
           } else {
             const multVal = isNaN(step.value) ? 1.0 : step.value;
             currentBase = Math.floor(currentBase * multVal);
             
-            // 乗算反映と同時にベース数値を黄色にしてバウンドさせる
-            eEl.innerHTML = `
-              <div class="combo-formula">
-                <div class="combo-formula-expr">
-                  <div class="combo-formula-part">
-                    <span class="combo-number text-yellow-300 animate-combo-pop">${formatJapaneseNumber(currentBase)}</span>
-                    <span class="combo-bonus-mult">×${multVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span></span>
-                  </div>
-                  <div class="combo-formula-op">×</div>
-                  <div class="combo-formula-part">
-                    <span class="combo-number">${formatNum(currentMult)}</span>
-                    <span class="combo-label">MULT</span>
-                  </div>
-                </div>
-              </div>
-            `;
-            eEl.classList.remove('animate-combo-pop');
-            void eEl.offsetWidth;
-            eEl.classList.add('animate-combo-pop');
+            const baseEl = eEl.querySelector('#formula-base');
+            if (baseEl) {
+              baseEl.className = 'combo-number';
+              // 古い演出要素をすべて削除して重複を防ぐ
+              baseEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
+              
+              void baseEl.offsetWidth; // リフロー
+              
+              baseEl.innerText = formatJapaneseNumber(currentBase);
+              baseEl.className = 'combo-number text-yellow-glow animate-number-bounce';
+              
+              const newBonus = document.createElement('span');
+              newBonus.className = 'combo-bonus-mult';
+              newBonus.innerHTML = `×${multVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span>`;
+              baseEl.parentNode.appendChild(newBonus);
+            }
 
-            await new Promise(r => setTimeout(r, getAnimDelay(450)));
+            // 倍率乗算用の動的ディレイの適用
+            await new Promise(r => setTimeout(r, getAnimDelay(getStepDelay(step, 'multiplier_mult'))));
             if (!comboRef.current) break;
-
-            // 演出終了後、ベース数値を白に戻し、乗算表示を薄くする
-            eEl.innerHTML = `
-              <div class="combo-formula">
-                <div class="combo-formula-expr">
-                  <div class="combo-formula-part">
-                    <span class="combo-number">${formatJapaneseNumber(currentBase)}</span>
-                    <span class="combo-bonus-mult opacity-50">×${multVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span></span>
-                  </div>
-                  <div class="combo-formula-op">×</div>
-                  <div class="combo-formula-part">
-                    <span class="combo-number">${formatNum(currentMult)}</span>
-                    <span class="combo-label">MULT</span>
-                  </div>
-                </div>
-              </div>
-            `;
           }
         }
 
-        await new Promise(r => setTimeout(r, getAnimDelay(300)));
+        // すべてのループフェーズが完了したら、数値を通常色に戻し、すべての加算演出要素を削除
+        {
+          const baseEl = comboRef.current?.querySelector('#formula-base');
+          const multEl = comboRef.current?.querySelector('#formula-mult');
+          if (baseEl) {
+            baseEl.className = 'combo-number';
+            baseEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
+          }
+          if (multEl) {
+            multEl.className = 'combo-number';
+            multEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
+          }
+        }
+
+        await new Promise(r => setTimeout(r, getAnimDelay(200))); // 最終確定前のウェイトを200msに調整
         if (comboRef.current) {
           const safeCombo = isNaN(effectiveCombo) ? 0 : effectiveCombo;
           comboRef.current.innerHTML = `
@@ -1215,7 +1193,7 @@ export const useGameState = () => {
     }
 
     setLastTurnCombo(tc);
-    setLastErasedColorCounts(erasedColorCounts);
+    setLastErasedColorCounts(finalErasedColorCounts);
 
     let bonus = 0;
     let multiplier = 1;
@@ -1294,7 +1272,7 @@ export const useGameState = () => {
       tokens: effectiveTokens,
       matchedColors: Array.from(matchedColorSet),
       colorComboCounts,
-      erasedColorCounts,
+      erasedColorCounts: finalErasedColorCounts,
       turnCombo: tc,
       shapes,
       isAllClear,
@@ -1791,7 +1769,7 @@ export const useGameState = () => {
       if (t.effect === "color_count_bonus") {
         const color = t.params?.color;
         const requiredCount = t.params?.count || 0;
-        if (color && erasedColorCounts[color] >= requiredCount) {
+        if (color && finalErasedColorCounts[color] >= requiredCount) {
           const v = t.values?.[lv - 1] || 1;
           if (isInstant) triggerPassive(tId);
           addedMultiplier += (v - 1.0);
@@ -2148,7 +2126,7 @@ export const useGameState = () => {
       currentShapeRow: (prev.currentShapeRow || 0) + countRow,
       currentShapeLShape: (prev.currentShapeLShape || 0) + countLShape,
       currentShapeSquare: (prev.currentShapeSquare || 0) + countSquare,
-      totalHeartsErased: (prev.totalHeartsErased || 0) + (erasedColorCounts.heart || 0),
+      totalHeartsErased: (prev.totalHeartsErased || 0) + (finalErasedColorCounts.heart || 0),
       maxMoveDrop: Math.max(prev.maxMoveDrop || 0, maxMoveDropThisTurn),
       maxBombEraseOnce: Math.max(prev.maxBombEraseOnce || 0, erasedByBombTotal),
       maxRepeatOnce: Math.max(prev.maxRepeatOnce || 0, erasedByRepeatTotal),
@@ -2184,7 +2162,7 @@ export const useGameState = () => {
     if (totalStarsEarned > 0) {
       setStars((s) => s + totalStarsEarned);
       setCurrentRunStats(prev => ({ ...prev, totalStarsEarned: (prev.totalStarsEarned || 0) + totalStarsEarned }));
-      notify(`+ ${totalStarsEarned} STARS!`);
+      // コンボ数によるスター獲得の通知は不要なため非表示
       soundManager.playSE(SE_IDS.MATCH_STAR);
 
       tokens.forEach(t => {
@@ -2306,7 +2284,7 @@ export const useGameState = () => {
 
         if (nt.isCountPassive) {
           const attr = nt.attributes?.[0];
-          const erasedCount = erasedColorCounts[attr] || 0;
+          const erasedCount = finalErasedColorCounts[attr] || 0;
           nt.charge = (nt.charge || 0) + erasedCount;
         }
 
@@ -2436,14 +2414,14 @@ export const useGameState = () => {
       });
     }
 
-    const heartsErasedThisTurn = erasedColorCounts["heart"] || 0;
+    const heartsErasedThisTurn = finalErasedColorCounts["heart"] || 0;
     setCurrentRunStats(prev => {
       const nextHearts = (prev.totalHeartsErased || 0) + heartsErasedThisTurn;
 
       const nextDrops = { ...(prev.currentDropsErased || { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }) };
-      Object.keys(erasedColorCounts).forEach(color => {
+      Object.keys(finalErasedColorCounts).forEach(color => {
         if (nextDrops[color] !== undefined) {
-          nextDrops[color] += erasedColorCounts[color];
+          nextDrops[color] += finalErasedColorCounts[color];
         }
       });
 
@@ -2458,9 +2436,9 @@ export const useGameState = () => {
 
     setStats(prev => {
       const nextLifetimeDrops = { ...(prev.lifetimeDropsErased || { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }) };
-      Object.keys(erasedColorCounts).forEach(color => {
+      Object.keys(finalErasedColorCounts).forEach(color => {
         if (nextLifetimeDrops[color] !== undefined) {
-          nextLifetimeDrops[color] += erasedColorCounts[color];
+          nextLifetimeDrops[color] += finalErasedColorCounts[color];
         }
       });
       return { ...prev, lifetimeDropsErased: nextLifetimeDrops };
@@ -2831,6 +2809,38 @@ export const useGameState = () => {
     setShowStartOption(true);
   };
 
+  // 指定された個数だけランダムなトークンのレベルを上げるヘルパー関数
+  const levelUpRandomTokens = (count) => {
+    setTokens(prev => {
+      let next = [...prev];
+      for (let i = 0; i < count; i++) {
+        // 毎回フィルタリングして、その時点でレベルアップ可能なものを選ぶ
+        const upgradeable = next.filter(t =>
+          t &&
+          (t.level || 1) < 3 &&
+          t.effect !== 'copy_left' &&
+          !t.isCurse &&
+          t.type !== 'curse'
+        );
+        if (upgradeable.length === 0) break;
+        const target = upgradeable[Math.floor(Math.random() * upgradeable.length)];
+        const targetIdx = next.findIndex(t => t?.instanceId === target.instanceId);
+        if (targetIdx !== -1) {
+          const nextLevel = (next[targetIdx].level || 1) + 1;
+          const nextToken = {
+            ...next[targetIdx],
+            level: nextLevel
+          };
+          nextToken.desc = getTokenDescription(nextToken, nextLevel, currentRunStats, next, activeBuffs);
+          next[targetIdx] = nextToken;
+          notify(`${next[targetIdx].name} が Lv${nextLevel} に上がった！`);
+          soundManager.playSE(SE_IDS.EQUIP_TOKEN);
+        }
+      }
+      return next;
+    });
+  };
+
   // generateShop, buyItem, handleChoice 等は useShop フックへ移行されました
   const activateSkill = (token) => {
     if (!token || token.type !== "skill") return;
@@ -2902,6 +2912,116 @@ export const useGameState = () => {
         });
         break;
       }
+      case "erase_color":
+        if (engine) {
+          engine.eraseColor(token.params.color).then(({ erasedCount, rawCount }) => {
+            if (rawCount > 0) {
+              // 1. スキル使用で消去された生の個数を一時ステートに記録（ターン終了時にマージ）
+              setSkillErasedCounts(prev => ({
+                ...prev,
+                [token.params.color]: (prev[token.params.color] || 0) + rawCount
+              }));
+
+              // 2. このトークン個別の累積消去数を更新し、30個突破時効果を判定
+              setTokens(prev => prev.map(t => {
+                if (t && t.instanceId === token.instanceId) {
+                  const oldCount = t.erasedCount || 0;
+                  const newCount = oldCount + rawCount;
+
+                  const oldTriggers = Math.floor(oldCount / 30);
+                  const newTriggers = Math.floor(newCount / 30);
+                  const triggerTimes = newTriggers - oldTriggers;
+
+                  if (triggerTimes > 0) {
+                    const level = t.level || 1;
+                    const effectVal = t.effectValues?.[level - 1] || 1;
+
+                    for (let i = 0; i < triggerTimes; i++) {
+                      // 属性別の追加効果をトリガー
+                      switch (t.params.color) {
+                        case "fire":
+                          // 盤面を全てプラス炎にし、1ターンの間基礎コンボ数倍率アップ
+                          engine.changeBoardToEnhancedColor("fire");
+                          setActiveBuffs(prevBuffs => [
+                            ...prevBuffs,
+                            {
+                              id: Date.now() + Math.random(),
+                              action: "temp_mult",
+                              params: { multiplier: effectVal, duration: 1 },
+                              duration: 1,
+                              maxDuration: 1,
+                              tokenId: t.instanceId,
+                              name: `焔の滅尽 (基礎コンボx${effectVal})`
+                            }
+                          ]);
+                          notify(`追加効果発動！ 盤面をプラス炎ドロップにし、1ターン基礎コンボを${effectVal}倍！`);
+                          break;
+
+                        case "water":
+                          // 盤面を全てプラス雨にし、ランダムにリピートドロップ生成
+                          engine.changeBoardToEnhancedColor("water");
+                          engine.spawnRepeatRandom(effectVal);
+                          notify(`追加効果発動！ 盤面をプラス雨ドロップにし、リピートドロップを${effectVal}個生成！`);
+                          break;
+
+                        case "wood":
+                          // 盤面を全てプラス風にし、所持スター数を倍にする
+                          engine.changeBoardToEnhancedColor("wood");
+                          setStars(s => Math.floor(s * effectVal));
+                          notify(`追加効果発動！ 盤面をプラス風ドロップにし、所持スター数を${effectVal}倍に！`);
+                          break;
+
+                        case "light":
+                          // 盤面を全てプラス雷にし、ランダムなトークンのレベルを上げる
+                          engine.changeBoardToEnhancedColor("light");
+                          levelUpRandomTokens(effectVal);
+                          notify(`追加効果発動！ 盤面をプラス雷ドロップにし、ランダムなトークンを${effectVal}個レベルアップ！`);
+                          break;
+
+                        case "dark":
+                          // 盤面を全てプラス月にし、残り手番を増やす
+                          engine.changeBoardToEnhancedColor("dark");
+                          setTurn(prevTurn => Math.max(1, prevTurn - effectVal));
+                          notify(`追加効果発動！ 盤面をプラス月ドロップにし、今回のサイクルの手番を+${effectVal}回！`);
+                          break;
+
+                        default:
+                          break;
+                      }
+                    }
+                  }
+                  return { ...t, erasedCount: newCount };
+                }
+                return t;
+              }));
+
+              // 3. コンボ追加バフ（1ターン）の登録
+              // レベル別倍率: Lv1: 1倍, Lv2: 2倍, Lv3: 3倍
+              const level = token.level || 1;
+              const comboMultiplier = token.values?.[level - 1] || 1;
+              const comboBonus = erasedCount * comboMultiplier;
+
+              setActiveBuffs(prev => [
+                ...prev,
+                {
+                  id: Date.now() + Math.random(),
+                  action: "skill_combo_bonus",
+                  params: { value: comboBonus },
+                  duration: 1,
+                  name: `${token.name} (+${comboBonus}コンボ)`
+                }
+              ]);
+              notify(`${token.name}の効果により、次ターンのコンボ数 +${comboBonus}!`);
+            } else {
+              notify("消去対象のドロップがありませんでした");
+            }
+          });
+        }
+        break;
+
+      case "organize_color":
+        engine.organizeColor(token.params.color);
+        break;
       case "convert":
         engine.convertColor(token.params.from, token.params.to);
         break;

@@ -340,12 +340,12 @@ export const useShop = ({
       return notify("★が足りません");
     }
 
-    if (clickPos) {
-      spawnParticles(8, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
-    }
-    soundManager.playSE(SE_IDS.BUY_STAR);
-
     if (item.id === "time_ext") {
+      if (clickPos) {
+        spawnParticles(8, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
+      }
+      soundManager.playSE(SE_IDS.BUY_STAR);
+
       setSandsOfTimeSeconds(prev => prev + 2);
       setStars((s) => s - item.price);
       setTotalPurchases((p) => p + 1);
@@ -353,7 +353,6 @@ export const useShop = ({
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
-      soundManager.playSE(SE_IDS.BUY_STAR);
       return notify("操作時間が2秒延長されました！");
     }
 
@@ -379,6 +378,11 @@ export const useShop = ({
         desc: getTokenDescription({ ...gainBase, level: 1 }, 1, currentRunStats, tokens, activeBuffs)
       };
 
+      if (clickPos) {
+        spawnParticles(8, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
+      }
+      soundManager.playSE(SE_IDS.BUY_STAR);
+
       setTokens((prev) => {
         const next = [...prev];
         next[loseIdx] = gainItem;
@@ -399,6 +403,11 @@ export const useShop = ({
       const upgradeableTokens = tokens.filter(t => (t.level || 1) < 3 && t.effect !== 'copy_left');
 
       if (upgradeableTokens.length === 0) return notify("強化可能なトークンがありません");
+
+      if (clickPos) {
+        spawnParticles(8, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
+      }
+      soundManager.playSE(SE_IDS.BUY_STAR);
 
       const targetToken = upgradeableTokens[Math.floor(Math.random() * upgradeableTokens.length)];
       const targetIdx = tokens.findIndex(t => t.instanceId === targetToken.instanceId);
@@ -430,6 +439,11 @@ export const useShop = ({
     } else if (item.type === "enchant_random") {
       const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left');
       if (enchantableTokens.length === 0) return notify("付与可能なトークンがありません");
+
+      if (clickPos) {
+        spawnParticles(8, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
+      }
+      soundManager.playSE(SE_IDS.BUY_STAR);
 
       const targetToken = enchantableTokens[Math.floor(Math.random() * enchantableTokens.length)];
       const targetIdx = tokens.indexOf(targetToken);
@@ -464,6 +478,11 @@ export const useShop = ({
     } else if (item.type === "enchant_grant") {
       const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left');
       if (enchantableTokens.length === 0) return notify("付与可能なトークンがありません");
+
+      if (clickPos) {
+        spawnParticles(8, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
+      }
+      soundManager.playSE(SE_IDS.BUY_STAR);
 
       const targetToken = enchantableTokens[Math.floor(Math.random() * enchantableTokens.length)];
       const targetIdx = tokens.indexOf(targetToken);
@@ -509,6 +528,11 @@ export const useShop = ({
 
       if (isCurseActive && activeCount >= maxSlots) return notify(`アクティブ枠がいっぱいで呪いを受け取れません`);
       if (!isCurseActive && passiveCount >= maxSlots) return notify(`パッシブ枠がいっぱいで呪いを受け取れません`);
+
+      if (clickPos) {
+        spawnParticles(8, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
+      }
+      soundManager.playSE(SE_IDS.BUY_STAR);
 
       const curseItem = {
         ...randomCurseBase,
@@ -563,6 +587,11 @@ export const useShop = ({
         const maxSlotsCurrent = 5 + tokenSlotExpansionCount;
         if (isActive && activeCount >= maxSlotsCurrent) return notify(`アクティブスキルは${maxSlotsCurrent}個までです`);
         if (!isActive && passiveCount >= maxSlotsCurrent) return notify(`パッシブアイテムは${maxSlotsCurrent}個までです`);
+
+        if (clickPos) {
+          spawnParticles(8, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
+        }
+        soundManager.playSE(SE_IDS.BUY_STAR);
 
         const obtainedToken = {
           ...item,
@@ -732,6 +761,9 @@ export const useShop = ({
       }
     }
 
+    spawnParticles(8, window.innerWidth / 2, window.innerHeight / 2, window.innerWidth * 0.8, 50, 'star');
+    soundManager.playSE(SE_IDS.BUY_STAR);
+
     setStars((s) => s - item.price);
     setTotalPurchases((p) => p + 1);
     setTotalStarsSpent((prev) => prev + item.price);
@@ -740,7 +772,7 @@ export const useShop = ({
     if (updatedToken) {
       addTokenToast(updatedToken, actionText);
     }
-  }, [pendingShopItem, tokenSlotExpansionCount, tokens, setTokens, setStars, setTotalPurchases, setTotalStarsSpent, setShopItems, addTokenToast, notify, activeBuffs, currentRunStats]);
+  }, [pendingShopItem, tokenSlotExpansionCount, tokens, setTokens, setStars, setTotalPurchases, setTotalStarsSpent, setShopItems, addTokenToast, notify, activeBuffs, currentRunStats, spawnParticles]);
 
   /** ショップ画面を開く */
   const openShop = useCallback(() => {

@@ -315,6 +315,158 @@ describe('PuzzleEngine Headless Tests', () => {
             expect(repeatCount).toBe(3);
             expect(bombCount).toBe(2);
         });
+
+        it('organizeColor メソッドが指定された色のドロップを左上に整列させ、他のドロップを下・右に詰めることを検証', () => {
+            const testBoard = [
+                ['wood', 'water', 'fire', 'wood', 'water', 'fire'],
+                ['fire', 'wood', 'water', 'wood', 'water', 'wood'],
+                ['water', 'wood', 'fire', 'wood', 'water', 'fire'],
+                ['wood', 'water', 'wood', 'water', 'fire', 'wood'],
+                ['fire', 'water', 'wood', 'wood', 'water', 'water']
+            ];
+
+            testBoard.forEach((row, r) => {
+                row.forEach((type, c) => {
+                    engine.state[r][c] = {
+                        type,
+                        el: document.createElement('div'),
+                        r,
+                        c,
+                        baseTop: r * 50,
+                        baseLeft: c * 50
+                    };
+                    const inner = document.createElement('div');
+                    inner.className = 'orb-inner';
+                    engine.state[r][c].el.appendChild(inner);
+                });
+            });
+
+            let fireCount = 0;
+            let otherCount = 0;
+            testBoard.forEach(row => {
+                row.forEach(t => {
+                    if (t === 'fire') fireCount++;
+                    else otherCount++;
+                });
+            });
+
+            expect(fireCount).toBe(7);
+
+            engine.organizeColor('fire');
+
+            for (let c = 0; c < 6; c++) {
+                expect(engine.state[0][c].type).toBe('fire');
+            }
+            expect(engine.state[1][0].type).toBe('fire');
+
+            expect(engine.state[1][1].type).not.toBe('fire');
+            for (let r = 2; r < 5; r++) {
+                for (let c = 0; c < 6; c++) {
+                    expect(engine.state[r][c].type).not.toBe('fire');
+                }
+            }
+
+            let finalFireCount = 0;
+            let finalOtherCount = 0;
+            engine.state.forEach(row => {
+                row.forEach(orb => {
+                    if (orb) {
+                        if (orb.type === 'fire') finalFireCount++;
+                        else finalOtherCount++;
+                    }
+                });
+            });
+            expect(finalFireCount).toBe(fireCount);
+            expect(finalOtherCount).toBe(otherCount);
+        });
+
+        it('eraseColor メソッドが指定された色のドロップを削除し、再補充を行い、消去数を正しくカウントすることを検証', async () => {
+            const testBoard = [
+                ['wood', 'water', 'fire', 'wood', 'water', 'fire'],
+                ['fire', 'wood', 'water', 'wood', 'water', 'wood'],
+                ['water', 'wood', 'fire', 'wood', 'water', 'fire'],
+                ['wood', 'water', 'wood', 'water', 'fire', 'wood'],
+                ['fire', 'water', 'wood', 'wood', 'water', 'water']
+            ];
+
+            testBoard.forEach((row, r) => {
+                row.forEach((type, c) => {
+                    engine.state[r][c] = {
+                        type,
+                        el: document.createElement('div'),
+                        r,
+                        c,
+                        baseTop: r * 50,
+                        baseLeft: c * 50
+                    };
+                    const inner = document.createElement('div');
+                    inner.className = 'orb-inner';
+                    engine.state[r][c].el.appendChild(inner);
+                });
+            });
+
+            engine.state[0][2].isBomb = true;
+
+            const erasePromise = engine.eraseColor('fire');
+
+            // 非同期アニメーションの進行を待つ
+            await vi.advanceTimersByTimeAsync(1000);
+
+            const { erasedCount, rawCount } = await erasePromise;
+
+            expect(rawCount).toBe(7);
+            expect(erasedCount).toBe(8);
+
+            engine.state.forEach(row => {
+                row.forEach(orb => {
+                    expect(orb).not.toBeNull();
+                });
+            });
+        });
+
+        it('changeBoardToEnhancedColor メソッドが盤面上のすべての通常ドロップを指定色のプラス（強化）ドロップに変換することを検証', () => {
+            engine.changeBoardToEnhancedColor('fire');
+
+            engine.state.forEach(row => {
+                row.forEach(orb => {
+                    if (orb && !orb.isMoveDrop) {
+                        expect(orb.type).toBe('fire');
+                        expect(orb.isEnhanced).toBe(true);
+                    }
+                });
+            });
+        });
+
+        it('ムーブドロップにカウントが存在する際、ドラッグ開始時にリセットされず、ターン処理完了後にリセットされることを検証', async () => {
+            const orb = engine.state[0][0];
+            orb.isMoveDrop = true;
+            orb.moveCount = 20;
+            orb.moveSteps = 0;
+            orb.moveRequired = 5;
+            orb.type = "move";
+
+            const countSpan = document.createElement("span");
+            countSpan.className = "move-count-text";
+            countSpan.innerText = orb.moveCount;
+            orb.el.querySelector('.orb-inner').appendChild(countSpan);
+
+            const downEvent = new MouseEvent('mousedown');
+            orb.el.dispatchEvent(downEvent);
+
+            expect(orb.moveCount).toBe(20);
+
+            // 移動イベントを発生させてスワップ（ターン進行）を発生させる
+            const moveEvent = new MouseEvent('mousemove', { clientX: 100, clientY: 100 });
+            window.dispatchEvent(moveEvent);
+            vi.advanceTimersByTime(200);
+
+            const upEvent = new MouseEvent('mouseup');
+            window.dispatchEvent(upEvent);
+
+            await vi.advanceTimersByTimeAsync(3000);
+
+            expect(orb.moveCount).toBe(0);
+        });
     });
 });
 

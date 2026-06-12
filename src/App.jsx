@@ -285,7 +285,7 @@ const App = () => {
                     ))}
                   </div>
                   <button
-                    onClick={openShop}
+                    onClick={() => { openShop(); setShowShop(true); }}
                     className="flex items-center gap-1 bg-slate-800/50 hover:bg-slate-700/50 px-3 py-1 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-all text-sm font-bold text-white"
                   >
                     <span className="material-icons-round text-primary text-sm">storefront</span>
@@ -557,7 +557,7 @@ const App = () => {
                                     {t && !isLocked && (
                                       <>
                                         {/* 属性丸は削除 */}
-                                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
+                                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] leading-none text-white font-bold border-2 border-background-dark z-20">
                                           {t.level || 1}
                                         </div>
                                       </>
@@ -701,7 +701,7 @@ const App = () => {
                                     {t && !isLocked && (
                                       <>
                                         {/* 属性丸は削除 */}
-                                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20">
+                                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[8px] leading-none text-white font-bold border-2 border-background-dark z-20">
                                           {t.level || 1}
                                         </div>
                                         {isSkill && t.cost > 0 && (
@@ -715,7 +715,7 @@ const App = () => {
                                           </div>
                                         )}
                                         {stackCount > 1 && (
-                                          <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-cyan-600 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-background-dark z-20 shadow-sm">
+                                          <div className="absolute bottom-0 left-0 w-4 h-4 bg-cyan-600 rounded-full flex items-center justify-center text-[8px] leading-none text-white font-bold border-2 border-background-dark z-20 shadow-sm">
                                             x{stackCount}
                                           </div>
                                         )}
