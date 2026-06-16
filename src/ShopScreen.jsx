@@ -3,7 +3,7 @@ import { getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
 import { formatJapaneseNumber } from './utils/numberUtils';
-import { AWAKENING_TOKEN_SLOT_PRICES } from './constants/gameConstants';
+import { AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS } from './constants/gameConstants';
 
 // 通常アイテムの背景・ボーダー色を返すヘルパー
 
@@ -222,7 +222,7 @@ const ShopScreen = ({
     const tokenSlotExpCount = tokenSlotExpansionCount || 0;
     const isTokenSlotMaxed = tokenSlotExpCount >= 5;
     const tokenSlotExpandPrice = isTokenSlotMaxed ? 0 : (AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpCount, 4)] || 50000);
-    const currentMaxSlots = 5 + tokenSlotExpCount;
+    const currentMaxSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpCount;
     const nextMaxSlots = currentMaxSlots + 1;
 
     // アイテムをカテゴリごとに分類
@@ -497,9 +497,9 @@ const ShopScreen = ({
                                     stars={stars}
                                     onBuy={handleAwakeningBuy}
                                     disabled={isTokenSlotMaxed}
-                                    disabledReason={isTokenSlotMaxed ? "最大拡張済み (上限10枠)" : null}
+                                    disabledReason={isTokenSlotMaxed ? `最大拡張済み (上限${INITIAL_TOKEN_SLOTS + 5}枠)` : null}
                                     color="amber"
-                                    badgeText={isTokenSlotMaxed ? `最大拡張済 (10枠)` : `現在 ${currentMaxSlots} 枠`}
+                                    badgeText={isTokenSlotMaxed ? `最大拡張済 (${INITIAL_TOKEN_SLOTS + 5}枠)` : `現在 ${currentMaxSlots} 枠`}
                                     type="expand_token_slots"
                                     isBought={boughtItemId === 'expand_token_slots'}
                                 />

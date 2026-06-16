@@ -27,8 +27,14 @@ const getEffectiveCost = (token, currentRunStats = null, currentTokens = [], cur
     }
   }
 
+  let leadershipReduction = 0;
+  if (currentTokens[0] && currentTokens[0].effect === 'magical_leadership') {
+    const leaderLv = currentTokens[0].level || 1;
+    leadershipReduction = currentTokens[0].values?.[leaderLv - 1] || leaderLv;
+  }
+
   const minCost = 1;
-  return Math.max(minCost, baseCost - reduction - enchantReduction - resonanceReduction);
+  return Math.max(minCost, baseCost - reduction - enchantReduction - resonanceReduction - leadershipReduction);
 };
 
 const getTokenDescription = (item, level, currentRunStats = null, currentTokens = [], currentBuffs = []) => {
@@ -57,16 +63,15 @@ const getTokenDescription = (item, level, currentRunStats = null, currentTokens 
   }
 
   let valuesToUse = base.values;
-  const isMultiplierEffect = base.effect && (
-    [
-      "color_multiplier", "color_count_bonus", "min_match",
-      "clutch", "sniper", "berserk", "aftershock", "critical",
-      "shape_variety_mult", "desperate_stance", "stat_spend_star",
-      "stat_progress_clear", "stat_time_move", "no_attribute_multiplier",
-      "combo_if_ge"
-    ].includes(base.effect) ||
-    (base.effect === "shape_bonus" && base.params?.shape === "square")
-  );
+  const isMultiplierEffect = (base.effect && [
+    "color_multiplier", "color_count_bonus", "min_match",
+    "clutch", "sniper", "berserk", "aftershock", "critical",
+    "shape_variety_mult", "desperate_stance", "stat_spend_star",
+    "stat_progress_clear", "stat_time_move", "no_attribute_multiplier",
+    "combo_if_ge", "speed_of_light_thought", "last_turn_burst"
+  ].includes(base.effect)) ||
+  base.action === "gale_gravity" ||
+  (base.effect === "shape_bonus" && base.params?.shape === "square");
 
   if (base.values && isMultiplierEffect) {
     const isActuallyMultiplierDesc = d.includes("倍になる") || d.includes("倍される");
@@ -317,7 +322,7 @@ export const getTokenIcon = (token) => {
         const action = token.action;
         if (action === 'refresh' || action === 'force_refresh') return 'refresh';
         if (action === 'skyfall' || action === 'skyfall_limit') return 'cloud_download';
-        if (action === 'convert' || action === 'convert_multi') return 'swap_horiz';
+        if (action === 'convert' || action === 'convert_multi' || action === 'convert_pair') return 'swap_horiz';
         if (action === 'board_change') return 'grid_view';
         if (action === 'row_fix') return 'view_stream';
         if (action === 'col_fix') return 'view_column';

@@ -467,6 +467,32 @@ describe('PuzzleEngine Headless Tests', () => {
 
             expect(orb.moveCount).toBe(0);
         });
+
+        it('calmActive が true の場合に findCombos が空配列を返すことを検証', () => {
+            engine.setCalmActive(true);
+            for (let c = 0; c < 3; c++) {
+                engine.state[0][c].type = 'fire';
+                engine.state[0][c].isRainbow = false; // レインボーをクリア
+            }
+            const combos = engine.findCombos();
+            expect(combos.length).toBe(0);
+        });
+
+        it('fingerTransformConfig が設定されている際になぞり操作でドロップが変換されることを検証', () => {
+            engine.setFingerTransformConfig({ color: 'fire', limit: 4 });
+            const startOrb = engine.state[0][0];
+            const swappedOrb = engine.state[0][1];
+            
+            // ドラッグ開始
+            engine.onStart(new MouseEvent('mousedown'), startOrb);
+            expect(startOrb.type).toBe('fire');
+            expect(engine.fingerTransformHistory.length).toBe(1);
+
+            // ドラッグ中の入れ替え
+            engine.applyFingerTransform(swappedOrb);
+            expect(swappedOrb.type).toBe('fire');
+            expect(engine.fingerTransformHistory.length).toBe(2);
+        });
     });
 });
 

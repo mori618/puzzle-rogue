@@ -11,7 +11,7 @@ import StartOptionScreen from "./StartOptionScreen";
 import TokenEncyclopediaScreen from "./TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { getEnchantDescription } from './constants/enchantments.js';
-import { MAX_COMBO, MAX_TARGET, SAVE_KEY } from './constants/gameConstants.js';
+import { MAX_COMBO, MAX_TARGET, SAVE_KEY, INITIAL_TOKEN_SLOTS } from './constants/gameConstants.js';
 import { formatJapaneseNumber } from './utils/numberUtils.js';
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
@@ -121,7 +121,10 @@ const App = () => {
     handleDragStart,
     handleDragOver,
     handleDrop,
+    getTokenSlotExpandPrice,
   } = gameState;
+
+  const [showSlotExpandConfirm, setShowSlotExpandConfirm] = React.useState(false);
 
   if (!isLoaded) {
     return (
@@ -400,11 +403,13 @@ const App = () => {
           {/* Token/Skill Belt */}
           {(() => {
             const TOKENS_PER_PAGE = 5;
-            const maxSlots = 5 + (tokenSlotExpansionCount || 0);
+            const maxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
             const passiveTokens = tokens.filter(t => t && t.type !== 'skill');
             const activeTokens = tokens.filter(t => t && t.type === 'skill');
             const passivePages = Math.ceil(Math.max(maxSlots, passiveTokens.length) / TOKENS_PER_PAGE);
             const activePages = Math.ceil(Math.max(maxSlots, activeTokens.length) / TOKENS_PER_PAGE);
+            // スロット1のみ発動するエフェクト定義
+            const SLOT1_ONLY_EFFECTS = ['magical_leadership', 'element_lead', 'tyrant_decree'];
             const safePassivePage = Math.min(passiveTokenPage, passivePages - 1);
             const safeActivePage = Math.min(activeTokenPage, activePages - 1);
 
@@ -484,14 +489,26 @@ const App = () => {
                                 const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
                                 const t = passiveTokens[globalSlot];
                                 const isLocked = globalSlot >= maxSlots;
-                                let borderColor = isLocked ? 'border-slate-800' : (t ? (t.rarity === 4 ? 'border-red-500/60' : t.rarity === 3 ? 'border-yellow-400/60' : t.rarity === 2 ? 'border-sky-400/60' : 'border-white/20') : 'border-white/5');
+                                const isExpandable = isLocked && globalSlot === maxSlots && (tokenSlotExpansionCount < (isBeyondMode ? 10 : 5));
+                                const isSlot1OnlyToken = t && SLOT1_ONLY_EFFECTS.includes(t.effect);
+                                const isSlot1Active = isSlot1OnlyToken && globalSlot === 0;
+                                const isSlot1Inactive = isSlot1OnlyToken && globalSlot !== 0;
+                                let borderColor = isLocked ? (isExpandable ? 'border-amber-500/30' : 'border-slate-800') : (t ? (t.rarity === 4 ? 'border-red-500/60' : t.rarity === 3 ? 'border-yellow-400/60' : t.rarity === 2 ? 'border-sky-400/60' : 'border-white/20') : 'border-white/5');
                                 let shadowClass = '';
                                 let animClass = '';
+                                // スロット1のみ発動トークンの枠装飾
+                                if (isSlot1Active && !animClass) {
+                                  borderColor = 'border-amber-300';
+                                  shadowClass = 'shadow-[0_0_12px_rgba(251,191,36,0.7)] animate-pulse';
+                                } else if (isSlot1Inactive && !animClass) {
+                                  borderColor = 'border-orange-500/50 border-dashed';
+                                  shadowClass = '';
+                                }
                                 if (t && triggeredPassives.includes(t.instanceId || t.id)) {
                                   animClass = 'animate-bounce';
                                   shadowClass = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
                                 }
-                                if (t && !animClass) {
+                                if (t && !animClass && !isSlot1Active) {
                                   let conditionMet = false;
                                   switch (t.effect) {
                                     case 'color_count_bonus': {
@@ -517,13 +534,19 @@ const App = () => {
                                 return (
                                   <div
                                     key={`passive-p${pageIdx}-${slotIdx}`}
-                                    onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
+                                    onClick={() => {
+                                      if (isExpandable) {
+                                        setShowSlotExpandConfirm(true);
+                                      } else if (!isLocked && t) {
+                                        setSelectedTokenDetail({ token: t });
+                                      }
+                                    }}
                                     draggable={!!t && !isLocked}
                                     onDragStart={(e) => handleDragStart(e, t)}
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, globalSlot + 1, false)}
                                     onDragEnd={() => setDraggedToken(null)}
-                                    className={`w-full aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isLocked ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed' : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
+                                    className={`w-full aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isSlot1Inactive ? 'opacity-60' : ''} ${isLocked ? (isExpandable ? 'bg-slate-800/40 cursor-pointer hover:bg-amber-500/10 hover:border-amber-400/60 hover:scale-105' : 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed') : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
                                   >
 
                                     <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
@@ -536,7 +559,11 @@ const App = () => {
                                       )}
                                       {isLocked ? (
                                         <div className="absolute inset-0 flex items-center justify-center">
-                                          <span className="material-icons-round text-slate-700 text-lg">lock</span>
+                                          {isExpandable ? (
+                                            <span className="material-icons-round text-amber-500/80 hover:text-amber-400 text-xl animate-pulse">add</span>
+                                          ) : (
+                                            <span className="material-icons-round text-slate-700 text-lg">lock</span>
+                                          )}
                                         </div>
                                       ) : t ? (
                                         <div className="absolute inset-0 flex items-center justify-center">
@@ -630,6 +657,7 @@ const App = () => {
                                 const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
                                 const t = activeTokens[globalSlot];
                                 const isLocked = globalSlot >= maxSlots;
+                                const isExpandable = isLocked && globalSlot === maxSlots && (tokenSlotExpansionCount < (isBeyondMode ? 10 : 5));
                                 const isSkill = t?.type === 'skill';
                                 const charge = t?.charge || 0;
                                 const cost = getEffectiveCost(t, currentRunStats, tokens, activeBuffs);
@@ -639,35 +667,52 @@ const App = () => {
                                 const activeBuff = relatedBuffs.length > 0 ? relatedBuffs[0] : null;
                                 const stackCount = relatedBuffs.length;
                                 const buffProgress = activeBuff ? Math.min(100, (activeBuff.duration / activeBuff.maxDuration) * 100) : 0;
+                                const isCurse = t?.isCurse;
+                                const isActiveSlot1OnlyToken = t && SLOT1_ONLY_EFFECTS.includes(t.effect);
+                                const isActiveSlot1Active = isActiveSlot1OnlyToken && globalSlot === 0;
+                                const isActiveSlot1Inactive = isActiveSlot1OnlyToken && globalSlot !== 0;
                                 let animClass = '';
                                 let triggeredShadow = '';
                                 if (t && triggeredPassives.includes(t.instanceId || t.id)) {
                                   animClass = 'animate-bounce';
                                   triggeredShadow = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
                                 }
-                                const readyBorder = t?.isCurse
+                                const readyBorder = isCurse
                                   ? 'border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.35)]'
                                   : (t && t.rarity === 3 ? 'border-yellow-400/60 shadow-[0_0_10px_rgba(250,204,21,0.25)]' : t && t.rarity === 2 ? 'border-sky-400/60 shadow-[0_0_10px_rgba(56,189,248,0.25)]' : 'border-primary/50 shadow-[0_0_10px_rgba(91,19,236,0.25)]');
-                                const notReadyBorder = t?.isCurse
+                                const notReadyBorder = isCurse
                                   ? 'border-red-500/30'
                                   : (t && t.rarity === 3 ? 'border-yellow-400/30' : t && t.rarity === 2 ? 'border-sky-400/30' : 'border-white/10');
                                 const buffBorder = stackCount > 1 ? 'border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)] animate-pulse' : stackCount === 1 ? 'border-cyan-500/80 shadow-[0_0_10px_rgba(6,182,212,0.4)]' : '';
+                                // スロット1のみ発動トークンはスロット1時はゴールドグロー、それ以外はオレンジ警告枠
+                                let slot1OnlyExtraClass = '';
+                                if (isActiveSlot1Active && !triggeredShadow) {
+                                  slot1OnlyExtraClass = 'border-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.7)] animate-pulse';
+                                } else if (isActiveSlot1Inactive) {
+                                  slot1OnlyExtraClass = 'border-orange-500/50 border-dashed';
+                                }
                                 let containerClasses = isLocked
-                                  ? 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed'
+                                  ? (isExpandable ? 'bg-slate-800/40 border-amber-500/30 cursor-pointer hover:bg-amber-500/10 hover:border-amber-400/60 hover:scale-105' : 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed')
                                   : (t
-                                    ? (stackCount > 0 ? `bg-slate-800 ${buffBorder} cursor-pointer group hover:scale-105` : (isReady ? `bg-slate-800 ${readyBorder} cursor-pointer group hover:scale-105` : `bg-slate-900 ${notReadyBorder} opacity-80 cursor-pointer`))
+                                    ? (slot1OnlyExtraClass ? `bg-slate-800 ${slot1OnlyExtraClass} cursor-pointer group hover:scale-105` : stackCount > 0 ? `bg-slate-800 ${buffBorder} cursor-pointer group hover:scale-105` : (isReady ? `bg-slate-800 ${readyBorder} cursor-pointer group hover:scale-105` : `bg-slate-900 ${notReadyBorder} opacity-80 cursor-pointer`))
                                     : 'bg-slate-900/30 border-white/5 border-dashed');
                                 containerClasses = `${containerClasses} ${animClass} ${triggeredShadow}`;
                                 return (
                                   <div
                                     key={`active-p${pageIdx}-${slotIdx}`}
-                                    onClick={() => !isLocked && t && setSelectedTokenDetail({ token: t })}
+                                    onClick={() => {
+                                      if (isExpandable) {
+                                        setShowSlotExpandConfirm(true);
+                                      } else if (!isLocked && t) {
+                                        setSelectedTokenDetail({ token: t });
+                                      }
+                                    }}
                                     draggable={!!t && !isLocked}
                                     onDragStart={(e) => handleDragStart(e, t)}
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, globalSlot + 1, true)}
                                     onDragEnd={() => setDraggedToken(null)}
-                                    className={`w-full aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${containerClasses}`}
+                                    className={`w-full aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isActiveSlot1Inactive ? 'opacity-60' : ''} ${containerClasses}`}
                                   >
 
                                     <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
@@ -680,7 +725,11 @@ const App = () => {
                                       )}
                                       {isLocked ? (
                                         <div className="absolute inset-0 flex items-center justify-center">
-                                          <span className="material-icons-round text-slate-700 text-lg">lock</span>
+                                          {isExpandable ? (
+                                            <span className="material-icons-round text-amber-500/80 hover:text-amber-400 text-xl animate-pulse">add</span>
+                                          ) : (
+                                            <span className="material-icons-round text-slate-700 text-lg">lock</span>
+                                          )}
                                         </div>
                                       ) : t ? (
                                         <div className="absolute inset-0 flex items-center justify-center">
@@ -883,6 +932,8 @@ const App = () => {
               </div>
             )}
 
+
+
             {/* ======================================================== */}
             {/* 4. ゲームオーバー時のオーバーレイ (Layer 3)                 */}
             {/* ======================================================== */}
@@ -928,6 +979,60 @@ const App = () => {
 
 
           </section>
+
+          {showSlotExpandConfirm && (() => {
+            const price = getTokenSlotExpandPrice();
+            const hasEnoughStars = stars >= price;
+            const currentSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount;
+            const nextSlots = currentSlots + 1;
+            return (
+              <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                <div className="bg-slate-900 border-2 border-amber-500/50 rounded-2xl p-4 text-center max-w-[280px] w-full shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                  <span className="material-icons-round text-4xl text-amber-500 mb-2 block animate-pulse">add_box</span>
+                  <h2 className="text-base font-bold text-white mb-1">トークン所持枠の拡張</h2>
+                  <p className="text-slate-300 text-[11px] mb-3 leading-snug">
+                    スターを消費して、トークンの最大所持枠を拡張します。<br />
+                    <span className="text-amber-400 font-bold">{currentSlots} 枠 → {nextSlots} 枠</span>
+                  </p>
+                  
+                  <div className="bg-slate-950/50 rounded-xl p-2.5 mb-4 flex justify-around items-center border border-white/5">
+                    <div className="text-center">
+                      <span className="text-[9px] text-slate-500 block uppercase">必要スター</span>
+                      <span className="text-sm font-black text-amber-400 font-mono">★{price}</span>
+                    </div>
+                    <div className="w-[1px] h-6 bg-slate-800" />
+                    <div className="text-center">
+                      <span className="text-[9px] text-slate-500 block uppercase">所持スター</span>
+                      <span className={`text-sm font-black font-mono ${hasEnoughStars ? 'text-green-400' : 'text-red-400'}`}>★{stars}</span>
+                    </div>
+                  </div>
+
+                  {!hasEnoughStars && (
+                    <p className="text-red-400 text-[10px] mb-3 leading-none">★が足りないため購入できません</p>
+                  )}
+
+                  <div className="flex flex-col gap-2">
+                    <button
+                      disabled={!hasEnoughStars}
+                      onClick={() => {
+                        buyAwakeningItem('expand_token_slots');
+                        setShowSlotExpandConfirm(false);
+                      }}
+                      className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 font-bold py-2 px-4 rounded-xl text-xs transition-all active:scale-95"
+                    >
+                      購入する
+                    </button>
+                    <button
+                      onClick={() => setShowSlotExpandConfirm(false)}
+                      className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-2 px-4 rounded-xl text-xs transition-all active:scale-95"
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Shop Overlay */}
           {

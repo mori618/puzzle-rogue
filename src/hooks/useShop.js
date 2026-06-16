@@ -6,6 +6,7 @@ import {
   TOKEN_PRICE_GROWTH_FACTOR,
   SHOP_REROLL_GROWTH_FACTOR,
   AWAKENING_TOKEN_SLOT_PRICES,
+  INITIAL_TOKEN_SLOTS,
 } from "../constants/gameConstants.js";
 import { getTokenDescription } from "../utils/tokenUtils";
 import soundManager from "../utils/SoundManager";
@@ -518,7 +519,7 @@ export const useShop = ({
     } else if (item.type === "grant_random_curse") {
       const activeCount = tokens.filter(t => t?.type === 'skill' || t?.isCurse).length;
       const passiveCount = tokens.filter(t => t && t?.type !== 'skill' && !t?.isCurse).length;
-      const maxSlots = 5 + tokenSlotExpansionCount;
+      const maxSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount;
 
       const cursePool = ALL_TOKEN_BASES.filter(t => t.type === 'curse' || t.isCurse);
       if (cursePool.length === 0) return notify("呪いが見つかりません");
@@ -561,7 +562,7 @@ export const useShop = ({
       addTokenToast(curseItem, "の呪いを得た…！");
     } else {
       const isActive = item.type === 'skill';
-      const maxSlots = 5 + tokenSlotExpansionCount;
+      const maxSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount;
 
       const existingIdx = tokens.findIndex((t) => t?.id === item.id);
       if (existingIdx !== -1) {
@@ -584,7 +585,7 @@ export const useShop = ({
       } else {
         const activeCount = tokens.filter(t => t?.type === 'skill').length;
         const passiveCount = tokens.filter(t => t && t?.type !== 'skill').length;
-        const maxSlotsCurrent = 5 + tokenSlotExpansionCount;
+        const maxSlotsCurrent = INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount;
         if (isActive && activeCount >= maxSlotsCurrent) return notify(`アクティブスキルは${maxSlotsCurrent}個までです`);
         if (!isActive && passiveCount >= maxSlotsCurrent) return notify(`パッシブアイテムは${maxSlotsCurrent}個までです`);
 
@@ -677,7 +678,7 @@ export const useShop = ({
       }
       case 'expand_token_slots': {
         const beyondSlotMax = isBeyondMode ? 10 : 5;
-        if (tokenSlotExpansionCount >= beyondSlotMax) return notify(`これ以上拡張できません (最大${5 + beyondSlotMax}枠)`);
+        if (tokenSlotExpansionCount >= beyondSlotMax) return notify(`これ以上拡張できません (最大${INITIAL_TOKEN_SLOTS + beyondSlotMax}枠)`);
         const price = getTokenSlotExpandPrice();
         if (stars < price) {
           soundManager.playSE(SE_IDS.ERROR);
@@ -689,7 +690,7 @@ export const useShop = ({
         setTokenSlotExpansionCount(prev => prev + 1);
         setStars(s => s - price);
         soundManager.playSE(SE_IDS.AWAKEN_BUY);
-        notify(`トークン枠が ${5 + tokenSlotExpansionCount + 1} / ${5 + tokenSlotExpansionCount + 1} に拡張されました!`);
+        notify(`トークン枠が ${INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount + 1} / ${INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount + 1} に拡張されました!`);
         break;
       }
       default:
@@ -730,7 +731,7 @@ export const useShop = ({
       const isActive = item.type === 'skill';
       const activeCount = tokens.filter(t => t.type === 'skill').length;
       const passiveCount = tokens.filter(t => t.type !== 'skill').length;
-      const maxSlots = 5 + tokenSlotExpansionCount;
+      const maxSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount;
 
       if ((isActive && activeCount >= maxSlots) || (!isActive && passiveCount >= maxSlots)) {
         notify("スロットがいっぱいです。強制的に強化を適用します。");
