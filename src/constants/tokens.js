@@ -2453,6 +2453,90 @@ const ALL_TOKEN_BASES = [
     desc: "「増殖」によって生み出された呪い。効果はなく、使用もできない。",
     attributes: []
   },
+  {
+    id: "curse_roulette",
+    name: "死神のルーレット",
+    icon: "casino",
+    type: "curse",
+    rarity: 0,
+    price: 1,
+    isLocked: true,
+    desc: "ターン終了時、30%の確率でアクティブトークンが全て、エネルギーを失う。",
+    conditionDesc: "トークン所持枠を2つ増やす",
+    condition: "token_slot_expansion",
+    targetValue: 2,
+    attributes: []
+  },
+  {
+    id: "curse_decay",
+    name: "侵食する影",
+    icon: "trending_down",
+    type: "curse",
+    rarity: 0,
+    price: 1,
+    isLocked: true,
+    desc: "ターン終了時、25%の確率で現在所持しているランダムなトークンのレベルが1になる（最低Lv1まで）。",
+    conditionDesc: "レベル３トークンを4つ所持する",
+    condition: "level3_tokens_count",
+    targetValue: 4,
+    attributes: []
+  },
+  {
+    id: "curse_greed",
+    name: "強欲の呼び声",
+    icon: "monetization_on",
+    type: "curse",
+    rarity: 0,
+    price: 1,
+    isLocked: true,
+    desc: "ショップに並ぶ全商品の価格が1.5倍になる。",
+    conditionDesc: "ショップでアイテムを累計10回購入する",
+    condition: "shop_purchases",
+    targetValue: 10,
+    attributes: []
+  },
+  {
+    id: "curse_fake_seller",
+    name: "贋作の売り手",
+    icon: "storefront",
+    type: "curse",
+    rarity: 0,
+    price: 1,
+    isLocked: true,
+    desc: "ショップに「呪いトークン」が2つ必ず陳列される。",
+    conditionDesc: "ショップで「リロール」を累計10回行う",
+    condition: "rerolls_performed",
+    targetValue: 10,
+    attributes: []
+  },
+  {
+    id: "curse_level_fail_fire",
+    name: "焦熱の試練",
+    icon: "local_fire_department",
+    type: "curse",
+    rarity: 0,
+    price: 1,
+    isLocked: true,
+    desc: "火属性のトークンはレベルが上がる際に50％の確率で失敗するようになる。",
+    conditionDesc: "火ドロップを累計200個消去する",
+    condition: "fire_erase_count",
+    targetValue: 200,
+    attributes: ["fire"]
+  },
+  {
+    id: "curse_level_fail_light",
+    name: "閃光の試練",
+    icon: "flash_on",
+    type: "curse",
+    rarity: 0,
+    price: 1,
+    isLocked: true,
+    desc: "光属性のトークンはレベルが上がる際に50％の確率で失敗するようになる。",
+    conditionDesc: "光ドロップを累計200個消去する",
+    condition: "light_erase_count",
+    targetValue: 200,
+    attributes: ["light"]
+  },
 
   // --- パッシブ: 累積消去数トリガー ---
   {
@@ -3625,6 +3709,32 @@ const ALL_TOKEN_BASES = [
     price: 30,
     desc: "1手番、基礎コンボ数を10倍にする。しかし、正方形消しをしてなければ基礎コンボ数を4分の1にする。消費E:{cost}",
     attributes: []
+  },
+  {
+    id: "passive_star_gamble",
+    name: "星屑のダイス",
+    icon: "casino",
+    type: "passive",
+    effect: "turn_end_star_gamble",
+    values: [5, 7, 10],
+    rarity: 2,
+    price: 20,
+    desc: "ターン終了時、[5/7/10]%の確率で所持スターを1.5倍にする。ただし、1%の確率で所持スターが半分になる（確率操作の効果は悪い方には乗らない）。",
+    attributes: [],
+    canBeInitial: true
+  },
+  {
+    id: "passive_token_gamble",
+    name: "運命の研磨",
+    icon: "casino",
+    type: "passive",
+    effect: "turn_end_token_gamble",
+    values: [5, 7, 10],
+    rarity: 2,
+    price: 20,
+    desc: "ターン終了時、[5/7/10]%の確率でランダムなトークンのレベルを最大にする。ただし、1%の確率でランダムなトークンのレベルを1にする（確率操作の効果は悪い方には乗らない）。",
+    attributes: [],
+    canBeInitial: true
   }
 ];
 

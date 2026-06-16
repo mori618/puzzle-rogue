@@ -149,7 +149,10 @@ export const useGameState = () => {
         "turn_end_spawn_h", "turn_end_spawn_bomb_1", "turn_end_spawn_star_3",
         "turn_end_spawn_repeat_1", "turn_end_spawn_mixed_1", "turn_end_spawn_plus_5",
         "erosion_fire", "erosion_dark", "turn_end_convert_f_d", "turn_end_full_board_w"
-      ].includes(tok.id) || tok.effect === "turn_end_special_spawn" || tok.effect === "turn_end_spawn" || tok.effect === "turn_end_convert" || tok.effect === "erosion_color" || tok.effect === "turn_end_full_board";
+      ].includes(tok.id) || tok.effect === "turn_end_special_spawn" ||
+        tok.effect === "turn_end_spawn" || tok.effect === "turn_end_convert" ||
+        tok.effect === "erosion_color" || tok.effect === "turn_end_full_board" ||
+        tok.effect === "turn_end_star_gamble" || tok.effect === "turn_end_token_gamble";
 
       if (isProbabilityToken) {
         // 現在のターンで確率系が発動したかのフラグを立てる
@@ -277,6 +280,7 @@ export const useGameState = () => {
   const timerRef = useRef(null);
   const timerTextRef = useRef(null);
   const comboRef = useRef(null);
+  const tokenSlotExpansionCountRef = useRef(0);
 
   const getStatByCondition = useCallback((cond) => {
     switch (cond) {
@@ -287,9 +291,15 @@ export const useGameState = () => {
       case 'max_combo': return currentRunStats.maxCombo || 0;
       case 'tokens_sold': return currentRunStats.tokensSold || 0;
       case 'skips_performed': return currentRunStats.skipsPerformed || 0;
+      case 'token_slot_expansion': return tokenSlotExpansionCountRef.current;
+      case 'level3_tokens_count': return tokens.filter(t => t && t.level >= 3).length;
+      case 'shop_purchases': return totalPurchases || 0;
+      case 'rerolls_performed': return currentRunStats.currentShopRerolls || 0;
+      case 'fire_erase_count': return currentRunStats.currentDropsErased?.fire || 0;
+      case 'light_erase_count': return currentRunStats.currentDropsErased?.light || 0;
       default: return 0;
     }
-  }, [currentRunStats]);
+  }, [currentRunStats, tokens, totalPurchases]);
 
   const getCurseProgress = (t) => {
     // type:'curse' もしくは isCurse:true のトークンが対象
@@ -300,6 +310,8 @@ export const useGameState = () => {
     let current = 0;
     if (cond === 'skill_uses') {
       current = t.curseUses || 0;
+    } else if (cond === 'level3_tokens_count') {
+      current = getStatByCondition(cond); // レベル3トークン所持数は絶対値で判定
     } else {
       const currentRaw = getStatByCondition(cond);
       const startValue = t.startValue || 0;
@@ -386,6 +398,9 @@ export const useGameState = () => {
     refreshShop,
     getTokenSlotExpandPrice,
   } = shopHook;
+
+  // Refを最新の値に同期
+  tokenSlotExpansionCountRef.current = tokenSlotExpansionCount || 0;
 
 
   // rows, cols は usePuzzleBoard フックへ移行されました
@@ -2753,6 +2768,24 @@ export const useGameState = () => {
       }
     });
 
+    // --- ターン終了時の呪い処理 ---
+    const hasRoulette = tokens.some(t => t?.id === "curse_roulette") && !hasSaintToken;
+    const triggerRoulette = hasRoulette && Math.random() < 0.30;
+
+    const hasDecay = tokens.some(t => t?.id === "curse_decay") && !hasSaintToken;
+    const triggerDecay = hasDecay && Math.random() < 0.25;
+    let decayTargetInstanceId = null;
+    let decayTargetName = "";
+
+    if (triggerDecay) {
+      const upgradeable = tokens.filter(t => t && t.level > 1 && t.id !== "curse_decay");
+      if (upgradeable.length > 0) {
+        const chosen = upgradeable[Math.floor(Math.random() * upgradeable.length)];
+        decayTargetInstanceId = chosen.instanceId;
+        decayTargetName = chosen.name;
+      }
+    }
+
     setTokens(prevTokens => {
       let nextTokens = prevTokens.map(t => {
         if (!t) return t;
@@ -2782,6 +2815,16 @@ export const useGameState = () => {
 
         return nt;
       });
+
+      // 死神のルーレット発動：アクティブトークンのエネルギーを全て失う
+      if (triggerRoulette) {
+        nextTokens = nextTokens.map(t => (t && t.type === 'skill') ? { ...t, charge: 0 } : t);
+      }
+
+      // 侵食する影発動：ランダムなトークンのレベルを1にする
+      if (decayTargetInstanceId) {
+        nextTokens = nextTokens.map(t => (t && t.instanceId === decayTargetInstanceId) ? { ...t, level: 1 } : t);
+      }
 
       nextTokens.forEach(t => {
         if (t && t.isCountPassive) {
@@ -2843,8 +2886,21 @@ export const useGameState = () => {
                   const upgradeable = nextTokens.filter(tok => tok !== null && (tok.level || 1) < 3 && !tok.isCurse && tok.type !== 'curse' && tok.id !== "passive_dark_count");
                   if (upgradeable.length > 0) {
                     const target = upgradeable[Math.floor(Math.random() * upgradeable.length)];
-                    target.level = (target.level || 1) + 1;
-                    addTokenToast(target, `が Lv${target.level} に上がった！ (常月の供物)`);
+                    const isFire = (target.attributes || []).includes("fire");
+                    const isLight = (target.attributes || []).includes("light");
+                    const hasFireFail = tokens.some(t => t?.id === "curse_level_fail_fire") && !hasSaintToken;
+                    const hasLightFail = tokens.some(t => t?.id === "curse_level_fail_light") && !hasSaintToken;
+                    
+                    let success = true;
+                    if (isFire && hasFireFail && Math.random() < 0.50) success = false;
+                    if (isLight && hasLightFail && Math.random() < 0.50) success = false;
+
+                    if (success) {
+                      target.level = (target.level || 1) + 1;
+                      addTokenToast(target, `が Lv${target.level} に上がった！ (常月の供物)`);
+                    } else {
+                      notify(`レベルアップ失敗！呪いにより ${target.name} の強化に失敗しました。`);
+                    }
                   }
                   break;
                 }
@@ -2865,6 +2921,13 @@ export const useGameState = () => {
 
       return nextTokens;
     });
+
+    if (triggerRoulette) {
+      notify("死神のルーレット：アクティブトークンのエネルギーが全て失われた！");
+    }
+    if (decayTargetInstanceId && decayTargetName) {
+      notify(`侵食する影：${decayTargetName} のレベルが1になった！`);
+    }
 
     // --- 星塵の起爆剤: ボムとスターが同時消去された場合、ボムドロップを追加する ---
     if (bombSelfErased > 0 && starSelfErased > 0 && engineRef.current) {
@@ -3512,6 +3575,89 @@ export const useGameState = () => {
                 boardChanged = true;
               }
             });
+          }
+        });
+
+        // 6. スターのギャンブル (turn_end_star_gamble)
+        effectiveTokens.forEach(t => {
+          if (!t || t.effect !== 'turn_end_star_gamble') return;
+          const lv = t.level || 1;
+          const prob = getModifiedProbability(t.values[lv - 1], t.instanceId || t.id); // 5 / 7 / 10
+          
+          // 良い効果の判定 (確率操作系が乗る)
+          if (Math.random() * 100 < prob) {
+            triggerPassive(t.instanceId || t.id);
+            soundManager.playSE(SE_IDS.MATCH_STAR);
+            setStars(s => Math.floor(s * 1.5));
+            notify(`${t.name}発動！所持スターが1.5倍になった！`);
+          }
+          
+          // 悪い効果の判定 (確率操作系は乗らないので、素の 1%)
+          if (Math.random() * 100 < 1) {
+            triggerPassive(t.instanceId || t.id);
+            soundManager.playSE(SE_IDS.CURSE_GET);
+            setStars(s => Math.floor(s * 0.5));
+            notify(`${t.name}の厄災！所持スターが半分になってしまった…`);
+          }
+        });
+
+        // 7. トークンレベルのギャンブル (turn_end_token_gamble)
+        effectiveTokens.forEach(t => {
+          if (!t || t.effect !== 'turn_end_token_gamble') return;
+          const lv = t.level || 1;
+          const prob = getModifiedProbability(t.values[lv - 1], t.instanceId || t.id); // 5 / 7 / 10
+          
+          const targetTokens = tokens.filter(tok => tok !== null);
+          if (targetTokens.length > 0) {
+            // 良い効果 (確率操作系が乗る)
+            if (Math.random() * 100 < prob) {
+              const randIdx = Math.floor(Math.random() * targetTokens.length);
+              const targetToken = targetTokens[randIdx];
+              
+              triggerPassive(t.instanceId || t.id);
+              soundManager.playSE(SE_IDS.EQUIP_TOKEN);
+              
+              setTokens(prev => {
+                const next = prev.map(tok => {
+                  if (tok && tok.instanceId === targetToken.instanceId) {
+                    const newLevel = 3;
+                    return {
+                      ...tok,
+                      level: newLevel,
+                      desc: getTokenDescription({ ...tok, level: newLevel }, newLevel, currentRunStats, prev, activeBuffs)
+                    };
+                  }
+                  return tok;
+                });
+                return next;
+              });
+              notify(`${t.name}発動！[${targetToken.name}]のレベルが最大になった！`);
+            }
+            
+            // 悪い効果 (確率操作系は乗らないので、素の 1%)
+            if (Math.random() * 100 < 1) {
+              const randIdx = Math.floor(Math.random() * targetTokens.length);
+              const targetToken = targetTokens[randIdx];
+              
+              triggerPassive(t.instanceId || t.id);
+              soundManager.playSE(SE_IDS.CURSE_GET);
+              
+              setTokens(prev => {
+                const next = prev.map(tok => {
+                  if (tok && tok.instanceId === targetToken.instanceId) {
+                    const newLevel = 1;
+                    return {
+                      ...tok,
+                      level: newLevel,
+                      desc: getTokenDescription({ ...tok, level: newLevel }, newLevel, currentRunStats, prev, activeBuffs)
+                    };
+                  }
+                  return tok;
+                });
+                return next;
+              });
+              notify(`${t.name}の厄災！[${targetToken.name}]のレベルが1になってしまった…`);
+            }
           }
         });
       }

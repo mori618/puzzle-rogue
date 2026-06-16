@@ -56,6 +56,20 @@ export const useShop = ({
     return Math.max(1, dynamicPrice);
   }, []);
 
+  /** レベルアップ成功判定（炎・雷レベルアップ失敗の呪い効果） */
+  const checkLevelUpSuccess = useCallback((token) => {
+    if (!token || hasSaintToken) return true;
+    const isFire = (token.attributes || []).includes("fire");
+    const isLight = (token.attributes || []).includes("light");
+    if (isFire && tokens.some(t => t?.id === "curse_level_fail_fire")) {
+      if (Math.random() < 0.5) return false;
+    }
+    if (isLight && tokens.some(t => t?.id === "curse_level_fail_light")) {
+      if (Math.random() < 0.5) return false;
+    }
+    return true;
+  }, [tokens, hasSaintToken]);
+
   /** ショップアイテムの生成 */
   const generateShop = useCallback((overrideCycleCount = null) => {
     const isLuxury = totalPurchases >= 6;
@@ -230,6 +244,34 @@ export const useShop = ({
 
     const activeItems = Array.from({ length: baseActiveCount }).map(() => createTokenItem(activesPools));
 
+    // --- 贋作の売り手: 呪いトークンが2つ必ず陳列される ---
+    const hasFakeSeller = tokens.some(t => t?.id === "curse_fake_seller") && !hasSaintToken;
+    if (hasFakeSeller) {
+      const cursesPool = ALL_TOKEN_BASES.filter(t => 
+        (t.type === 'curse' || t.isCurse) && 
+        t.id !== 'curse_multiplied_p' && 
+        t.id !== 'curse_multiplied_a' &&
+        t.id !== 'curse_fake_seller'
+      );
+      if (cursesPool.length > 0) {
+        const curse1Base = cursesPool[Math.floor(Math.random() * cursesPool.length)];
+        const remainingPool = cursesPool.filter(t => t.id !== curse1Base.id);
+        const curse2Base = remainingPool.length > 0 ? remainingPool[Math.floor(Math.random() * remainingPool.length)] : curse1Base;
+
+        const curse1 = { ...curse1Base, level: 1, charge: 0, price: 1 };
+        const curse2 = { ...curse2Base, level: 1, charge: 0, price: 1 };
+        curse1.desc = getTokenDescription(curse1, 1, currentRunStats, tokens, activeBuffs);
+        curse2.desc = getTokenDescription(curse2, 1, currentRunStats, tokens, activeBuffs);
+
+        if (passiveItems.length > 0) {
+          passiveItems[0] = curse1;
+        }
+        if (activeItems.length > 0) {
+          activeItems[0] = curse2;
+        }
+      }
+    }
+
     const candidatesForSale = [...passiveItems, ...activeItems];
     const saleIndices = Array.from({ length: candidatesForSale.length }, (_, i) => i);
 
@@ -254,9 +296,19 @@ export const useShop = ({
       });
     }
 
+    // --- 強欲の呼び声: 全商品の価格が 1.5 倍になる ---
+    const hasGreed = tokens.some(t => t?.id === "curse_greed") && !hasSaintToken;
+    if (hasGreed) {
+      finalItems.forEach(item => {
+        if (item && item.price > 0) {
+          item.price = Math.floor(item.price * 1.5);
+        }
+      });
+    }
+
     setShopItems(finalItems);
     return finalItems;
-  }, [tokens, totalPurchases, currentRunStats, activeBuffs, getTokenDynamicPrice, setIsAwakeningLevelUpBought]);
+  }, [tokens, totalPurchases, currentRunStats, activeBuffs, getTokenDynamicPrice, setIsAwakeningLevelUpBought, hasSaintToken]);
 
   /** 呪いの解除 */
   const purifyCurse = useCallback((token) => {
@@ -414,6 +466,17 @@ export const useShop = ({
       const targetIdx = tokens.findIndex(t => t.instanceId === targetToken.instanceId);
 
       triggerLevelUp(targetToken.instanceId);
+
+      if (!checkLevelUpSuccess(targetToken)) {
+        notify(`レベルアップ失敗！呪いにより ${targetToken.name} の強化に失敗しました。`);
+        setStars((s) => s - item.price);
+        setTotalPurchases((p) => p + 1);
+        setTotalStarsSpent((prev) => prev + item.price);
+        setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
+        setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
+        setShopItems((prev) => prev.filter((i) => i !== item));
+        return;
+      }
 
       setTokens((prev) => {
         const next = [...prev];
@@ -634,6 +697,17 @@ export const useShop = ({
         soundManager.playSE(SE_IDS.AWAKEN_BUY);
         triggerLevelUp(targetToken.instanceId);
 
+        if (!checkLevelUpSuccess(targetToken)) {
+          notify(`レベルアップ失敗！呪いにより ${targetToken.name} の強化に失敗しました。`);
+          setStars(s => s - price);
+          setTotalPurchases(p => p + 1);
+          setTotalStarsSpent(prev => prev + price);
+          setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + price }));
+          setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + price }));
+          setIsAwakeningLevelUpBought(true);
+          return;
+        }
+
         const targetIdx = tokens.findIndex(t => t?.instanceId === targetToken.instanceId);
 
         setTokens(prev => {
@@ -706,27 +780,35 @@ export const useShop = ({
     let updatedToken = null;
     let actionText = "";
 
+    let isUpgradeSuccess = true;
     if (choice === "upgrade") {
-      setTokens((prev) => {
-        const next = [...prev];
-        const idx = next.findIndex((t) => t?.id === item.id);
-        if (idx !== -1) {
-          const currentLevel = next[idx].level || 1;
-          if (currentLevel >= 3) {
-            return next;
+      const targetToken = tokens.find(t => t?.id === item.id);
+      if (targetToken && !checkLevelUpSuccess(targetToken)) {
+        notify(`レベルアップ失敗！呪いにより ${targetToken.name} の強化に失敗しました。`);
+        isUpgradeSuccess = false;
+      }
+
+      if (isUpgradeSuccess) {
+        setTokens((prev) => {
+          const next = [...prev];
+          const idx = next.findIndex((t) => t?.id === item.id);
+          if (idx !== -1) {
+            const currentLevel = next[idx].level || 1;
+            if (currentLevel >= 3) {
+              return next;
+            }
+            const nextLevel = currentLevel + 1;
+            next[idx] = {
+              ...next[idx],
+              level: nextLevel,
+              desc: getTokenDescription(next[idx], nextLevel, currentRunStats, next, activeBuffs)
+            };
+            updatedToken = next[idx];
+            actionText = `強化されました！`;
           }
-          const nextLevel = currentLevel + 1;
-          next[idx] = {
-            ...next[idx],
-            level: nextLevel,
-            desc: getTokenDescription(next[idx], nextLevel, currentRunStats, next, activeBuffs)
-          };
-          updatedToken = next[idx];
-          actionText = `強化されました！`;
-        }
-        return next;
-      });
-      addTokenToast(item, "を強化した！");
+          return next;
+        });
+      }
     } else {
       const isActive = item.type === 'skill';
       const activeCount = tokens.filter(t => t.type === 'skill').length;
@@ -735,21 +817,29 @@ export const useShop = ({
 
       if ((isActive && activeCount >= maxSlots) || (!isActive && passiveCount >= maxSlots)) {
         notify("スロットがいっぱいです。強制的に強化を適用します。");
-        setTokens((prev) => {
-          const next = [...prev];
-          const idx = next.findIndex((t) => t?.id === item.id);
-          if (idx !== -1) {
-            const nextLevel = (next[idx].level || 1) + 1;
-            next[idx] = {
-              ...next[idx],
-              level: nextLevel,
-              desc: getTokenDescription(next[idx], nextLevel, currentRunStats, next, activeBuffs)
-            };
-            updatedToken = next[idx];
-            actionText = `スロット一杯のため自動強化されました！`;
-          }
-          return next;
-        });
+        const targetToken = tokens.find(t => t?.id === item.id);
+        if (targetToken && !checkLevelUpSuccess(targetToken)) {
+          notify(`レベルアップ失敗！呪いにより ${targetToken.name} の自動強化に失敗しました。`);
+          isUpgradeSuccess = false;
+        }
+
+        if (isUpgradeSuccess) {
+          setTokens((prev) => {
+            const next = [...prev];
+            const idx = next.findIndex((t) => t?.id === item.id);
+            if (idx !== -1) {
+              const nextLevel = (next[idx].level || 1) + 1;
+              next[idx] = {
+                ...next[idx],
+                level: nextLevel,
+                desc: getTokenDescription(next[idx], nextLevel, currentRunStats, next, activeBuffs)
+              };
+              updatedToken = next[idx];
+              actionText = `スロット一杯のため自動強化されました！`;
+            }
+            return next;
+          });
+        }
       } else {
         const newToken = { ...item, instanceId: Date.now() + Math.random() };
         setTokens((prev) => [

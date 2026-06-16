@@ -1658,7 +1658,7 @@ describe('31. パッシブトークンの全効果タイプ存在確認', () => 
       'stat_spend_star', 'stat_time_move', 'stat_time_skipper',
       'time_permanent', 'total_level_combo_add',
       'turn_end_convert', 'turn_end_full_board', 'turn_end_spawn',
-      'turn_end_special_spawn', 'tyrant_decree',
+      'turn_end_special_spawn', 'turn_end_star_gamble', 'turn_end_token_gamble', 'tyrant_decree',
       'vacation', 'zero_combo_charge',
     ];
 
@@ -1836,5 +1836,28 @@ describe('35. エンジン destroy / リセット', () => {
     expect(() => engine.init()).not.toThrow();
     vi.clearAllTimers();
     document.body.innerHTML = '';
+  });
+});
+
+// ======================================================
+// 36. ターン終了時ギャンブルトークンのテスト
+// ======================================================
+describe('36. ターン終了時ギャンブルトークンのテスト', () => {
+  it('星屑のダイス (passive_star_gamble) が正しく定義されている', () => {
+    const token = ALL_TOKEN_BASES.find(t => t.id === 'passive_star_gamble');
+    expect(token).toBeDefined();
+    expect(token.type).toBe('passive');
+    expect(token.effect).toBe('turn_end_star_gamble');
+    expect(token.values).toEqual([5, 7, 10]);
+    expect(token.rarity).toBe(2);
+  });
+
+  it('運命 of 研磨 (passive_token_gamble) が正しく定義されている', () => {
+    const token = ALL_TOKEN_BASES.find(t => t.id === 'passive_token_gamble');
+    expect(token).toBeDefined();
+    expect(token.type).toBe('passive');
+    expect(token.effect).toBe('turn_end_token_gamble');
+    expect(token.values).toEqual([5, 7, 10]);
+    expect(token.rarity).toBe(2);
   });
 });
