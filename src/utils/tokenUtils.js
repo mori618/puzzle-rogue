@@ -22,8 +22,9 @@ const getEffectiveCost = (token, currentRunStats = null, currentTokens = [], cur
 
   if (!isEnchantDisabled) {
     enchantReduction = token.enchantments?.filter(e => e.effect === "cost_down").length || 0;
-    if (currentRunStats && token.enchantments?.some(e => e.effect === "stat_skill_use")) {
-      resonanceReduction = Math.floor((currentRunStats.currentSkillsUsed || 0) / 10);
+    const resonanceEnc = token.enchantments?.find(e => e.effect === "stat_skill_use");
+    if (currentRunStats && resonanceEnc) {
+      resonanceReduction = Math.floor((currentRunStats.currentSkillsUsed || 0) / 10) * (resonanceEnc.value || 1);
     }
   }
 
@@ -110,6 +111,16 @@ const getTokenDescription = (item, level, currentRunStats = null, currentTokens 
         d = d.replace(/Lv分/g, `${formattedValue}`);
       }
     }
+  }
+
+  // {charge} の置換（累積カウント表示対応）
+  if (d.includes('{charge}')) {
+    d = d.replace(/{charge}/g, item?.charge || 0);
+  }
+
+  // {sublimationBonus} の置換（昇華のルーンのバフ表示用）
+  if (d.includes('{sublimationBonus}')) {
+    d = d.replace(/{sublimationBonus}/g, (item?.sublimationBonus || 0).toFixed(1));
   }
 
   return d;
@@ -264,6 +275,24 @@ const getTokenDynamicInfo = (item, level, currentRunStats = null, currentTokens 
         infoList.push({ label: '無属性(時の砂以外)', value: `${colorlessTokens.length} 個`, type: 'stat' });
         infoList.push({ label: '発動状態', value: '未発動', type: 'buff' });
       }
+    } else if (effect === 'l_shape_count') {
+      const threshold = base.values[targetLv - 1];
+      infoList.push({ label: 'L字消し累積', value: `${item?.charge || 0} / ${threshold} 回`, type: 'stat' });
+    } else if (effect === 'cross_count') {
+      const threshold = base.values[targetLv - 1];
+      infoList.push({ label: '十字消し累積', value: `${item?.charge || 0} / ${threshold} 回`, type: 'stat' });
+    } else if (effect === 'square_count') {
+      const threshold = base.values[targetLv - 1];
+      infoList.push({ label: '正方形消し累積', value: `${item?.charge || 0} / ${threshold} 回`, type: 'stat' });
+    } else if (effect === 'row_count') {
+      const threshold = base.values[targetLv - 1];
+      infoList.push({ label: '横一列消し累積', value: `${item?.charge || 0} / ${threshold} 回`, type: 'stat' });
+    } else if (effect === 'len4_count') {
+      const threshold = base.values[targetLv - 1];
+      infoList.push({ label: '4個消し累積', value: `${item?.charge || 0} / ${threshold} 回`, type: 'stat' });
+    } else if (effect === 'len5_count') {
+      const threshold = base.values[targetLv - 1];
+      infoList.push({ label: '5個以上連結消し累積', value: `${item?.charge || 0} / ${threshold} 回`, type: 'stat' });
     }
   }
 

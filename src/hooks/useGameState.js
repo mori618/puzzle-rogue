@@ -239,6 +239,56 @@ export const useGameState = () => {
     prevStarsRef.current = stars;
   }, [stars]);
 
+  // --- New: Sublimation Rune and Starfall Chance monitoring ---
+  useEffect(() => {
+    // 1. 昇華のルーンの発動監視
+    let changed = false;
+    const nextTokens = tokens.map(t => {
+      if (t && t.effect === "sublimation_rune") {
+        const enchCount = t.enchantments?.length || 0;
+        if (enchCount >= 3) {
+          const lv = t.level || 1;
+          const addVal = t.values?.[lv - 1] || 1.0;
+          changed = true;
+          // エンチャントを消費し、バフを永続加算
+          const prevBonus = t.sublimationBonus || 0;
+          const newBonus = prevBonus + addVal;
+          
+          soundManager.playSE(SE_IDS.EQUIP_TOKEN);
+          notify(`昇華のルーン発動！エンチャントを${enchCount}個消費し、コンボ倍率が永続的に+${addVal.toFixed(1)}（現在累計: +${newBonus.toFixed(1)}）！`);
+          
+          return {
+            ...t,
+            enchantments: [],
+            sublimationBonus: newBonus,
+            desc: getTokenDescription({ ...t, enchantments: [], sublimationBonus: newBonus }, lv, currentRunStats, tokens, activeBuffs)
+          };
+        }
+      }
+      return t;
+    });
+
+    if (changed) {
+      setTokens(nextTokens);
+    }
+
+    // 2. 星呼びの刻印 (starfall) の確率設定
+    let starfallChance = 0;
+    const isEnchantDisabled = activeBuffs.some(b => b?.action === "seal_of_power");
+    nextTokens.forEach(t => {
+      if (t && !isEnchantDisabled) {
+        (t.enchantments || []).forEach(e => {
+          if (e.id === "starfall") {
+            starfallChance += e.value || 0.05;
+          }
+        });
+      }
+    });
+    if (engineRef.current) {
+      engineRef.current.starfallChance = starfallChance;
+    }
+  }, [tokens, activeBuffs, currentRunStats]);
+
   useEffect(() => {
     if (cycleTotalCombo > prevComboRef.current) {
       const diff = cycleTotalCombo - prevComboRef.current;
@@ -300,6 +350,18 @@ export const useGameState = () => {
       default: return 0;
     }
   }, [currentRunStats, tokens, totalPurchases]);
+
+  const getInheritedAttribute = (tokenId, currentTokens) => {
+    const idx = currentTokens.findIndex(t => t && (t.instanceId === tokenId || t.id === tokenId));
+    if (idx <= 0) return null;
+    for (let i = idx - 1; i >= 0; i--) {
+      const prevTok = currentTokens[i];
+      if (prevTok && prevTok.attributes && prevTok.attributes.length > 0) {
+        return prevTok.attributes[0];
+      }
+    }
+    return null;
+  };
 
   const getCurseProgress = (t) => {
     // type:'curse' もしくは isCurse:true のトークンが対象
@@ -397,6 +459,8 @@ export const useGameState = () => {
     openShop,
     refreshShop,
     getTokenSlotExpandPrice,
+    freeRerolls,
+    setFreeRerolls,
   } = shopHook;
 
   // Refを最新の値に同期
@@ -406,7 +470,7 @@ export const useGameState = () => {
   // rows, cols は usePuzzleBoard フックへ移行されました
 
   const maxTurns = Math.max(1, 3
-    + tokens.reduce((acc, t) => acc + (t?.enchantments?.filter(e => e.effect === "add_turn").length || 0), 0)
+    + tokens.reduce((acc, t) => acc + (t?.enchantments?.filter(e => e.effect === "add_turn").reduce((sum, e) => sum + (e.value || 1), 0) || 0), 0)
     + tokens.reduce((acc, t) => {
       if (t?.effect === "picky_eater") return acc + (t.values[(t.level || 1) - 1] || 0);
       return acc;
@@ -869,10 +933,10 @@ export const useGameState = () => {
           if (enc.effect === 'color_combo' && enc.params?.color) {
             const color = enc.params.color;
             if (!bonuses.color_combo[color]) bonuses.color_combo[color] = [];
-            bonuses.color_combo[color].push({ value: 1, tokenId: tId, tokenName: t.name || '色コンボ' });
+            bonuses.color_combo[color].push({ value: enc.value || 1, tokenId: tId, tokenName: t.name || '色コンボ' });
           }
           if (enc.effect === 'bomb_burst_combo') {
-            bonuses.bomb_burst_combo = (bonuses.bomb_burst_combo || 0) + 3;
+            bonuses.bomb_burst_combo = (bonuses.bomb_burst_combo || 0) + (enc.value || 3);
           }
         });
       });
@@ -1491,23 +1555,40 @@ export const useGameState = () => {
           logData.bonuses.push(`opener:+${v}`);
           logData.bonusSteps.push({ label: tokenName || '先制の心得', value: v, tokenId });
         }
+        if (effect === "double_edged") {
+          if (isInstant) triggerPassive(tokenId);
+          const v = val || 4.0;
+          addedMultiplier += v;
+          logData.multipliers.push(`double_edged:+${v.toFixed(1)}`);
+          logData.multiplierSteps.push({ label: tokenName || '諸刃の刻印', value: 1.0 + v, addedValue: v, type: 'add', tokenId });
+        }
+        if (effect === "double_combo_chance") {
+          const prob = val || 0.05;
+          if (Math.random() < prob) {
+            if (isInstant) triggerPassive(tokenId);
+            multMultiplier *= 2.0;
+            logData.multipliers.push(`double_combo_chance:x2.0`);
+            logData.multiplierSteps.push({ label: tokenName || '強撃の刻印', value: 2.0, type: 'mult', tokenId });
+            notify("強撃の刻印発動！基礎コンボ数が2倍になった！");
+          }
+        }
         if (effect === "last_turn_mult" && turn === maxTurns) {
           if (isInstant) triggerPassive(tokenId);
-          const v = val || 1.5;
+          const v = val || 4.0;
           addedMultiplier += (v - 1.0);
           logData.multipliers.push(`clutch:+${(v - 1.0).toFixed(2)}`);
           logData.multiplierSteps.push({ label: tokenName || '土壇場の底力', value: v, addedValue: v - 1.0, type: 'add', tokenId });
         }
         if (effect === "multi_color" && matchedColorSet.size >= 4) {
           if (isInstant) triggerPassive(tokenId);
-          const v = val || 3;
+          const v = val || 7;
           bonus += v;
           logData.bonuses.push(`rainbow:+${v}`);
           logData.bonusSteps.push({ label: tokenName || '虹色の加護', value: v, tokenId });
         }
         if (effect === "single_color" && matchedColorSet.size > 0 && matchedColorSet.size <= 2) {
           if (isInstant) triggerPassive(tokenId);
-          const v = val || 1.3;
+          const v = val || 3.0;
           addedMultiplier += (v - 1.0);
           logData.multipliers.push(`sniper:+${(v - 1.0).toFixed(2)}`);
           logData.multiplierSteps.push({ label: tokenName || '一点突破', value: v, addedValue: v - 1.0, type: 'add', tokenId });
@@ -1549,14 +1630,14 @@ export const useGameState = () => {
         }
         if (effect === "berserk_mode") {
           if (isInstant) triggerPassive(tokenId);
-          const v = val || 1.5;
+          const v = val || 4.0;
           addedMultiplier += (v - 1.0);
           logData.multipliers.push(`berserk:+${(v - 1.0).toFixed(2)}`);
           logData.multiplierSteps.push({ label: tokenName || '狂戦士', value: v, addedValue: v - 1.0, type: 'add', tokenId });
         }
         if (effect === "skyfall_mult" && hasSkyfallCombo) {
           if (isInstant) triggerPassive(tokenId);
-          const v = val || 1.4;
+          const v = val || 4.0;
           addedMultiplier += (v - 1.0);
           logData.multipliers.push(`aftershock:+${(v - 1.0).toFixed(2)}`);
           logData.multiplierSteps.push({ label: tokenName || '追撃', value: v, addedValue: v - 1.0, type: 'add', tokenId });
@@ -1573,7 +1654,7 @@ export const useGameState = () => {
           const color = params?.color;
           if (color && matchedColorSet.has(color)) {
             if (isInstant) triggerPassive(tokenId);
-            const v = val || 1.2;
+            const v = val || 3.0;
             addedMultiplier += (v - 1.0);
             logData.multipliers.push(`color_enc_${color}:+${(v - 1.0).toFixed(2)}`);
             logData.multiplierSteps.push({ label: tokenName || `色別連舞(${color})`, value: v, addedValue: v - 1.0, type: 'add', tokenId });
@@ -1693,15 +1774,266 @@ export const useGameState = () => {
             logData.multiplierSteps.push({ label: tokenName || '空の神', value: 4.0, type: 'mult', tokenId });
           }
         }
+        // --- 特殊形状（L字・十字・正方形・列・4個・5個消し）の即時効果 ---
+        if (effect === "shape_double_l_mult") {
+          const lCount = shapes.filter(s => s === "l_shape").length;
+          if (lCount >= 2) {
+            if (isInstant) triggerPassive(tokenId);
+            baseMultiplier *= val;
+            logData.multipliers.push(`double_l_mult:x${val}`);
+            logData.multiplierSteps.push({ label: tokenName || "L字の共鳴", value: val, type: 'mult', tokenId });
+          }
+        }
+        if (effect === "l_shape_repeat") {
+          const lCount = shapes.filter(s => s === "l_shape").length;
+          if (lCount > 0 && engineRef.current) {
+            if (isInstant) triggerPassive(tokenId);
+            notify(`${tokenName || "L字の輪廻"}発動！リピートドロップを${val}個生成！`);
+            setTimeout(() => {
+              if (engineRef.current && !engineRef.current._isDestroyed) {
+                engineRef.current.spawnRepeatRandom(val);
+              }
+            }, 300);
+          }
+        }
+        if (effect === "l_shape_skill_max") {
+          const lCount = shapes.filter(s => s === "l_shape").length;
+          if (lCount > 0 && Math.random() < val) {
+            if (isInstant) triggerPassive(tokenId);
+            setTokens(prev => {
+              const skills = prev.filter(tok => tok && tok.type === 'skill');
+              if (skills.length === 0) return prev;
+              const targetSkill = skills[Math.floor(Math.random() * skills.length)];
+              notify(`${tokenName || "L字の脈動"}発動！「${targetSkill.name}」のエネルギーがMAXになった！`);
+              return prev.map(tok => {
+                if (tok && tok.instanceId === targetSkill.instanceId) {
+                  return { ...tok, charge: tok.cost || 0 };
+                }
+                return tok;
+              });
+            });
+          }
+        }
+        if (effect === "l_cross_mult") {
+          const hasL = shapes.includes("l_shape");
+          const hasCross = shapes.includes("cross");
+          if (hasL && hasCross) {
+            if (isInstant) triggerPassive(tokenId);
+            baseMultiplier *= val;
+            logData.multipliers.push(`l_cross_mult:x${val}`);
+            logData.multiplierSteps.push({ label: tokenName || "交差する秘技", value: val, type: 'mult', tokenId });
+          }
+        }
+        if (effect === "shape_double_cross_mult") {
+          const crossCount = shapes.filter(s => s === "cross").length;
+          if (crossCount >= 2) {
+            if (isInstant) triggerPassive(tokenId);
+            baseMultiplier *= val;
+            logData.multipliers.push(`double_cross_mult:x${val}`);
+            logData.multiplierSteps.push({ label: tokenName || "十字の結界", value: val, type: 'mult', tokenId });
+          }
+        }
+        if (effect === "cross_multiply_move_drop") {
+          const crossCount = shapes.filter(s => s === "cross").length;
+          if (crossCount > 0 && engineRef.current) {
+            if (isInstant) triggerPassive(tokenId);
+            notify(`${tokenName || "十字の加速"}発動！ムーブドロップのカウントを${val}倍にする！`);
+            setTimeout(() => {
+              if (engineRef.current && !engineRef.current._isDestroyed) {
+                engineRef.current.multiplyMoveDropCounts(val);
+              }
+            }, 300);
+          }
+        }
+        if (effect === "cross_enchant_self") {
+          const crossCount = shapes.filter(s => s === "cross").length;
+          if (crossCount > 0 && Math.random() < val) {
+            if (isInstant) triggerPassive(tokenId);
+            const randomEnc = ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
+            const newEnc = { ...randomEnc, instanceId: Date.now() + Math.random() };
+            setTokens(prev => prev.map(tok => {
+              if (tok && (tok.instanceId === tokenId || tok.id === tokenId)) {
+                notify(`${tokenName || "十字の加護"}発動！自身に「${randomEnc.name}」を付与した！`);
+                return {
+                  ...tok,
+                  enchantments: [...(tok.enchantments || []), newEnc]
+                };
+              }
+              return tok;
+            }));
+          }
+        }
+        if (effect === "square_repeat") {
+          const sCount = shapes.filter(s => s === "square").length;
+          if (sCount > 0 && engineRef.current) {
+            if (isInstant) triggerPassive(tokenId);
+            notify(`${tokenName || "方陣 of 輪廻"}発動！リピートドロップを${val}個生成！`);
+            setTimeout(() => {
+              if (engineRef.current && !engineRef.current._isDestroyed) {
+                engineRef.current.spawnRepeatRandom(val);
+              }
+            }, 300);
+          }
+        }
+        if (effect === "square_combo_add") {
+          const sCount = shapes.filter(s => s === "square").length;
+          if (sCount > 0) {
+            if (isInstant) triggerPassive(tokenId);
+            const v = val * sCount;
+            bonus += v;
+            logData.bonuses.push(`square_combo_add:+${v}`);
+            logData.bonusSteps.push({ label: tokenName || "方陣の極み", value: v, tokenId });
+          }
+        }
+        if (effect === "square_convert_left_bottom") {
+          const sCount = shapes.filter(s => s === "square").length;
+          if (sCount > 0 && Math.random() < val) {
+            if (isInstant) triggerPassive(tokenId);
+            extraStats.triggerSquareConvert = { tokenId };
+          }
+        }
+        if (effect === "shape_triple_row_mult") {
+          const rCount = shapes.filter(s => s === "row").length;
+          if (rCount >= 3) {
+            if (isInstant) triggerPassive(tokenId);
+            baseMultiplier *= val;
+            logData.multipliers.push(`triple_row_mult:x${val}`);
+            logData.multiplierSteps.push({ label: tokenName || "横列の共鳴", value: val, type: 'mult', tokenId });
+          }
+        }
+        if (effect === "row_star") {
+          const rCount = shapes.filter(s => s === "row").length;
+          if (rCount > 0 && engineRef.current) {
+            if (isInstant) triggerPassive(tokenId);
+            notify(`${tokenName || "横列の祝福"}発動！スタードロップを${val}個生成！`);
+            setTimeout(() => {
+              if (engineRef.current && !engineRef.current._isDestroyed) {
+                engineRef.current.spawnStarRandom(val);
+              }
+            }, 300);
+          }
+        }
+        if (effect === "row_free_reroll") {
+          const rCount = shapes.filter(s => s === "row").length;
+          if (rCount > 0 && Math.random() < val) {
+            if (isInstant) triggerPassive(tokenId);
+            setFreeRerolls(f => {
+              const nextFree = f + 1;
+              notify(`${tokenName || "横列 of 恩恵"}発動！ショップのリロールが1回無料になった！（現在蓄積: ${nextFree}回）`);
+              return nextFree;
+            });
+          }
+        }
+        if (effect === "shape_quad_len4_mult") {
+          const len4Count = shapes.filter(s => s === "len4").length;
+          if (len4Count >= 4) {
+            if (isInstant) triggerPassive(tokenId);
+            baseMultiplier *= val;
+            logData.multipliers.push(`quad_len4_mult:x${val}`);
+            logData.multiplierSteps.push({ label: tokenName || "4連の共鳴", value: val, type: 'mult', tokenId });
+          }
+        }
+        if (effect === "len4_plus") {
+          const len4Count = shapes.filter(s => s === "len4").length;
+          if (len4Count > 0 && engineRef.current) {
+            if (isInstant) triggerPassive(tokenId);
+            notify(`${tokenName || "4連の流星"}発動！プラスドロップを${val}個生成！`);
+            setTimeout(() => {
+              if (engineRef.current && !engineRef.current._isDestroyed) {
+                engineRef.current.spawnPlusRandom(val);
+              }
+            }, 300);
+          }
+        }
+        if (effect === "len4_token") {
+          const len4Count = shapes.filter(s => s === "len4").length;
+          if (len4Count > 0 && Math.random() < val) {
+            if (isInstant) triggerPassive(tokenId);
+            const maxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
+            const currentCount = tokens.filter(tok => tok !== null).length;
+            if (currentCount < maxSlots) {
+              const candidatePool = ALL_TOKEN_BASES.filter(b => b.type !== 'curse' && !b.isCurse);
+              if (candidatePool.length > 0) {
+                const randomBase = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+                const isSkill = randomBase.type === 'skill';
+                const newToken = {
+                  ...randomBase,
+                  instanceId: Date.now() + Math.random(),
+                  level: 1,
+                  charge: isSkill ? (randomBase.cost || 0) : 0,
+                  startValue: randomBase.condition ? getStatByCondition(randomBase.condition) : 0
+                };
+                setTokens(prev => {
+                  const nextTokens = [...prev];
+                  let emptySlotIdx = nextTokens.findIndex(tok => tok === null);
+                  if (emptySlotIdx !== -1) {
+                    nextTokens[emptySlotIdx] = newToken;
+                  } else {
+                    nextTokens.push(newToken);
+                  }
+                  return nextTokens;
+                });
+                addTokenToast(newToken, "を入手した！ (4連の錬金)");
+              }
+            } else {
+              notify("4連の錬金: トークン枠がいっぱいです！");
+            }
+          }
+        }
+        if (effect === "len5_enchant") {
+          const len5Count = detailedShapes.filter(ds => ds.length >= 5).length;
+          if (len5Count > 0 && Math.random() < val) {
+            if (isInstant) triggerPassive(tokenId);
+            const activeTokens = tokens.filter(tok => tok !== null);
+            if (activeTokens.length > 0) {
+              const targetToken = activeTokens[Math.floor(Math.random() * activeTokens.length)];
+              const randomEnc = ENCHANTMENTS[Math.floor(Math.random() * ENCHANTMENTS.length)];
+              const newEnc = { ...randomEnc, instanceId: Date.now() + Math.random() };
+              setTokens(prev => prev.map(tok => {
+                if (tok && tok.instanceId === targetToken.instanceId) {
+                  notify(`${tokenName || "5連の加護"}発動！「${targetToken.name}」に「${randomEnc.name}」を付与した！`);
+                  return {
+                    ...tok,
+                    enchantments: [...(tok.enchantments || []), newEnc]
+                  };
+                }
+                return tok;
+              }));
+            }
+          }
+        }
+
         let shapeType = null;
         if (effect === "shape_match4") shapeType = "len4";
         if (effect === "shape_cross") shapeType = "cross";
         if (effect === "shape_row") shapeType = "row";
         if (effect === "shape_l") shapeType = "l_shape";
         if (effect === "shape_square") shapeType = "square";
- 
+        if (effect === "shape_double_l_mult") shapeType = "l_shape";
+        if (effect === "l_shape_repeat") shapeType = "l_shape";
+        if (effect === "l_shape_skill_max") shapeType = "l_shape";
+        if (effect === "l_cross_mult") shapeType = "l_shape";
+        if (effect === "shape_double_cross_mult") shapeType = "cross";
+        if (effect === "cross_multiply_move_drop") shapeType = "cross";
+        if (effect === "cross_enchant_self") shapeType = "cross";
+        if (effect === "square_repeat") shapeType = "square";
+        if (effect === "square_combo_add") shapeType = "square";
+        if (effect === "square_convert_left_bottom") shapeType = "square";
+        if (effect === "shape_triple_row_mult") shapeType = "row";
+        if (effect === "row_star") shapeType = "row";
+        if (effect === "row_free_reroll") shapeType = "row";
+        if (effect === "shape_quad_len4_mult") shapeType = "len4";
+        if (effect === "len4_plus") shapeType = "len4";
+        if (effect === "len4_token") shapeType = "len4";
+        if (effect === "len5_enchant") shapeType = "len5_any";
+
         if (shapeType) {
-          const count = shapes.filter(s => s === shapeType).length;
+          let count = 0;
+          if (shapeType === "len5_any") {
+            count = detailedShapes.filter(ds => ds.length >= 5).length;
+          } else {
+            count = shapes.filter(s => s === shapeType).length;
+          }
           if (count > 0) {
             if (isInstant) {
               for (let i = 0; i < count; i++) {
@@ -1725,8 +2057,8 @@ export const useGameState = () => {
 
       enchList.forEach(enc => {
         if (enc.effect === "fixed_add") { const v = enc.value || 3; bonus += v; logData.bonuses.push(`fixed_add:${v}`); logData.bonusSteps.push({ label: t.name || '固定加算', value: v, tokenId: tId }); }
-        if (enc.effect === "star_add") { bonus += stars; logData.bonuses.push("star_add"); logData.bonusSteps.push({ label: t.name || 'スター加算', value: stars, tokenId: tId }); }
-        if (enc.effect === "skip_turn_combo") { bonus += skippedTurnsBonus; logData.bonuses.push("skip_add"); if (skippedTurnsBonus > 0) logData.bonusSteps.push({ label: t.name || 'スキップボーナス', value: skippedTurnsBonus, tokenId: tId }); }
+        if (enc.effect === "star_add") { const mult = enc.value || 1; const b = stars * mult; bonus += b; logData.bonuses.push("star_add"); logData.bonusSteps.push({ label: t.name || 'スター加算', value: b, tokenId: tId }); }
+        if (enc.effect === "skip_turn_combo") { const mult = enc.value || 1; const b = skippedTurnsBonus * mult; bonus += b; logData.bonuses.push("skip_add"); if (b > 0) logData.bonusSteps.push({ label: t.name || 'スキップボーナス', value: b, tokenId: tId }); }
         if (enc.effect === "rarity_down_combo") { bonus += 1; logData.bonuses.push("rarity_down_combo:1"); logData.bonusSteps.push({ label: t.name || 'レア度下げ', value: 1, tokenId: tId }); }
       });
       if (t.effect === "base_add") {
@@ -1847,6 +2179,29 @@ export const useGameState = () => {
           multMultiplier *= v;
           logData.multipliers.push(`enchant_mult_boost:x${v.toFixed(2)}`);
           logData.multiplierSteps.push({ label: t.name || 'エンチャント数倍率', value: v, type: 'mult', tokenId: tId });
+        }
+      }
+
+      if (t.effect === "magic_overload") {
+        const overloadCount = isEnchantDisabled ? 0 : tokens.filter(tok => (tok?.enchantments?.length || 0) >= 3).length;
+        const base = t.values?.[lv - 1] || 1.5;
+        let v = Math.pow(base, overloadCount);
+        v = applyMultiplierCap(v, t);
+        if (v > 1) {
+          if (isInstant) triggerPassive(tId);
+          multMultiplier *= v;
+          logData.multipliers.push(`magic_overload:x${v.toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || '魔導の過積載', value: v, type: 'mult', tokenId: tId });
+        }
+      }
+
+      if (t.effect === "sublimation_rune") {
+        const bonusVal = t.sublimationBonus || 0;
+        if (bonusVal > 0) {
+          if (isInstant) triggerPassive(tId);
+          addedMultiplier += bonusVal;
+          logData.multipliers.push(`sublimation_rune:+${bonusVal.toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || '昇華のルーン', value: 1.0 + bonusVal, addedValue: bonusVal, type: 'add', tokenId: tId });
         }
       }
 
@@ -1988,9 +2343,11 @@ export const useGameState = () => {
       }
       enchList.forEach(enc => {
         if (enc.effect === "lvl_mult") {
-          addedMultiplier += (lv - 1.0);
-          logData.multipliers.push(`lvl_mult:+${(lv - 1.0).toFixed(2)}`);
-          logData.multiplierSteps.push({ label: 'レベル倍率', value: lv, addedValue: lv - 1.0, type: 'add', tokenId: tId });
+          const mult = enc.value || 1.0;
+          const added = (lv - 1.0) * mult;
+          addedMultiplier += added;
+          logData.multipliers.push(`lvl_mult:+${added.toFixed(2)}`);
+          logData.multiplierSteps.push({ label: 'レベル倍率', value: 1.0 + added, addedValue: added, type: 'add', tokenId: tId });
         }
         if (enc.effect === "stat_shape_all") {
           const totalShape = (currentRunStats.currentShapeLen4 || 0) +
@@ -1999,7 +2356,7 @@ export const useGameState = () => {
             (currentRunStats.currentShapeCross || 0) +
             (currentRunStats.currentShapeSquare || 0) +
             (currentRunStats.currentShapeLen5 || 0);
-          const b = Math.floor(totalShape / 20) * 1;
+          const b = Math.floor(totalShape / 20) * (enc.value || 1);
           if (b > 0) {
             if (isInstant) triggerPassive(t.instanceId || t.id);
             bonus += b;
@@ -2010,7 +2367,8 @@ export const useGameState = () => {
         if (enc.effect === "curse_catalyst") {
           const curseCount = tokens.filter(tok => tok != null && (tok.type === 'curse' || tok.isCurse)).length;
           if (curseCount > 0) {
-            const v = Math.pow(1.5, curseCount);
+            const base = enc.value || 2.0;
+            const v = Math.pow(base, curseCount);
             addedMultiplier += (v - 1.0);
             logData.multipliers.push(`curse_catalyst:+${(v - 1.0).toFixed(2)}`);
             logData.multiplierSteps.push({ label: '呪力変換', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
@@ -2594,6 +2952,7 @@ export const useGameState = () => {
     const countRow = shapes.filter(s => s === 'row').length;
     const countLShape = shapes.filter(s => s === 'l_shape').length;
     const countSquare = shapes.filter(s => s === 'square').length;
+    const countLen5 = detailedShapes.filter(ds => ds.length >= 5).length;
 
     setStats(prev => {
       return {
@@ -2610,6 +2969,7 @@ export const useGameState = () => {
         lifetimeShapeRow: (prev.lifetimeShapeRow || 0) + countRow,
         lifetimeShapeLShape: (prev.lifetimeShapeLShape || 0) + countLShape,
         lifetimeShapeSquare: (prev.lifetimeShapeSquare || 0) + countSquare,
+        lifetimeShapeLen5: (prev.lifetimeShapeLen5 || 0) + countLen5,
         maxMoveDropAllTime: Math.max(prev.maxMoveDropAllTime || 0, maxMoveDropThisTurn),
         maxBombEraseOnceAllTime: Math.max(prev.maxBombEraseOnceAllTime || 0, erasedByBombTotal),
         maxRepeatOnceAllTime: Math.max(prev.maxRepeatOnceAllTime || 0, erasedByRepeatTotal),
@@ -2633,6 +2993,7 @@ export const useGameState = () => {
       currentShapeRow: (prev.currentShapeRow || 0) + countRow,
       currentShapeLShape: (prev.currentShapeLShape || 0) + countLShape,
       currentShapeSquare: (prev.currentShapeSquare || 0) + countSquare,
+      currentShapeLen5: (prev.currentShapeLen5 || 0) + countLen5,
       totalHeartsErased: (prev.totalHeartsErased || 0) + (finalErasedColorCounts.heart || 0),
       maxMoveDrop: Math.max(prev.maxMoveDrop || 0, maxMoveDropThisTurn),
       maxBombEraseOnce: Math.max(prev.maxBombEraseOnce || 0, erasedByBombTotal),
@@ -2808,9 +3169,23 @@ export const useGameState = () => {
         }
 
         if (nt.isCountPassive) {
-          const attr = nt.attributes?.[0];
-          const erasedCount = finalErasedColorCounts[attr] || 0;
-          nt.charge = (nt.charge || 0) + erasedCount;
+          if (nt.effect === "l_shape_count") {
+            nt.charge = (nt.charge || 0) + countLShape;
+          } else if (nt.effect === "cross_count") {
+            nt.charge = (nt.charge || 0) + countCross;
+          } else if (nt.effect === "square_count") {
+            nt.charge = (nt.charge || 0) + countSquare;
+          } else if (nt.effect === "row_count") {
+            nt.charge = (nt.charge || 0) + countRow;
+          } else if (nt.effect === "len4_count") {
+            nt.charge = (nt.charge || 0) + countLen4;
+          } else if (nt.effect === "len5_count") {
+            nt.charge = (nt.charge || 0) + countLen5;
+          } else {
+            const attr = nt.attributes?.[0];
+            const erasedCount = finalErasedColorCounts[attr] || 0;
+            nt.charge = (nt.charge || 0) + erasedCount;
+          }
         }
 
         return nt;
@@ -2826,6 +3201,21 @@ export const useGameState = () => {
         nextTokens = nextTokens.map(t => (t && t.instanceId === decayTargetInstanceId) ? { ...t, level: 1 } : t);
       }
 
+      // 左下の伝承発動：左下3x3のドロップを左隣のトークンの属性（またはランダム）に変換
+      if (extraStats && extraStats.triggerSquareConvert) {
+        const { tokenId } = extraStats.triggerSquareConvert;
+        const inheritedAttr = getInheritedAttribute(tokenId, nextTokens);
+        const color = inheritedAttr || ['fire', 'water', 'wood', 'light', 'dark'][Math.floor(Math.random() * 5)];
+        const colorNames = { fire: '炎', water: '雨', wood: '風', light: '雷', dark: '月', heart: '心' };
+        const colorName = colorNames[color] || 'ランダム';
+        notify(`左下の伝承発動！左下3x3のドロップを${colorName}ドロップに変換します！`);
+        setTimeout(() => {
+          if (engineRef.current && !engineRef.current._isDestroyed) {
+            engineRef.current.convertAreaToColor(rows - 3, 0, 3, 3, color);
+          }
+        }, 300);
+      }
+
       nextTokens.forEach(t => {
         if (t && t.isCountPassive) {
           const threshold = t.values?.[(t.level || 1) - 1] || 30;
@@ -2838,6 +3228,92 @@ export const useGameState = () => {
               soundManager.playSE(SE_IDS.SKILL_READY);
 
               switch (t.id) {
+                case "square_count_combo_mult": {
+                  const mult = t.effectValues?.[(t.level || 1) - 1] || 1.5;
+                  const addCombo = Math.floor(effectiveCombo * (mult - 1));
+                  if (addCombo > 0) {
+                    setCurrentRunTotalCombo(prev => prev + addCombo);
+                    setCycleTotalCombo(prev => prev + addCombo);
+                    notify(`方陣の残響: コンボ数が ${mult} 倍になり、+${addCombo} コンボ！`);
+                  }
+                  break;
+                }
+                case "row_count_convert_top": {
+                  const inheritedAttr = getInheritedAttribute(t.instanceId || t.id, nextTokens);
+                  const color = inheritedAttr || ['fire', 'water', 'wood', 'light', 'dark'][Math.floor(Math.random() * 5)];
+                  const colorNames = { fire: '炎', water: '雨', wood: '風', light: '雷', dark: '月', heart: '心' };
+                  const colorName = colorNames[color] || 'ランダム';
+                  notify(`上部の伝承: 最上部1列を${colorName}ドロップに変換！`);
+                  setTimeout(() => {
+                    if (engineRef.current && !engineRef.current._isDestroyed) {
+                      engineRef.current.convertAreaToColor(0, 0, 1, cols, color);
+                    }
+                  }, 300);
+                  break;
+                }
+                case "l_shape_count_star": {
+                  const starsEarned = t.effectValues?.[(t.level || 1) - 1] || 30;
+                  setStars(s => s + starsEarned);
+                  notify(`L字の財宝: スター+${starsEarned}を獲得！`);
+                  break;
+                }
+                case "cross_count_token": {
+                  const maxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
+                  const currentCount = nextTokens.filter(tok => tok !== null).length;
+                  if (currentCount < maxSlots) {
+                    const candidatePool = ALL_TOKEN_BASES.filter(b => b.type !== 'curse' && !b.isCurse && b.rarity === 3);
+                    if (candidatePool.length > 0) {
+                      const randomBase = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+                      const isSkill = randomBase.type === 'skill';
+                      const newToken = {
+                        ...randomBase,
+                        instanceId: Date.now() + Math.random(),
+                        level: 1,
+                        charge: isSkill ? (randomBase.cost || 0) : 0,
+                        startValue: randomBase.condition ? getStatByCondition(randomBase.condition) : 0
+                      };
+                      
+                      let emptySlotIdx = nextTokens.findIndex(tok => tok === null);
+                      if (emptySlotIdx !== -1) {
+                        nextTokens[emptySlotIdx] = newToken;
+                      } else {
+                        nextTokens.push(newToken);
+                      }
+                      addTokenToast(newToken, "を入手した！ (十字の福音)");
+                    }
+                  } else {
+                    notify("十字の福音: トークン枠がいっぱいです！");
+                  }
+                  break;
+                }
+                case "len4_count_all_plus": {
+                  notify("4連の奇跡: 盤面の全ドロップがプラスドロップに強化された！");
+                  setTimeout(() => {
+                    if (engineRef.current && !engineRef.current._isDestroyed) {
+                      engineRef.current.makeAllOrbsPlus();
+                    }
+                  }, 300);
+                  break;
+                }
+                case "len5_count_level_up": {
+                  const upgradeable = nextTokens.filter(tok => tok !== null && !tok.isCurse && tok.type !== 'curse' && (tok.level || 1) < 3);
+                  if (upgradeable.length > 0) {
+                    const targetToken = upgradeable[Math.floor(Math.random() * upgradeable.length)];
+                    const newLevel = (targetToken.level || 1) + 1;
+                    notify(`5連の成長発動！「${targetToken.name}」のレベルが ${newLevel} に上がった！`);
+                    const idx = nextTokens.findIndex(tok => tok && tok.instanceId === targetToken.instanceId);
+                    if (idx !== -1) {
+                      nextTokens[idx] = {
+                        ...targetToken,
+                        level: newLevel,
+                        desc: getTokenDescription({ ...targetToken, level: newLevel }, newLevel, currentRunStats, nextTokens, activeBuffs)
+                      };
+                    }
+                  } else {
+                    notify("5連の成長: レベルアップ可能なトークンがありません。");
+                  }
+                  break;
+                }
                 case "passive_fire_count": {
                   const maxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
                   const currentCount = nextTokens.filter(tok => tok !== null).length;
@@ -3660,6 +4136,333 @@ export const useGameState = () => {
             }
           }
         });
+
+        // --- 新規エンチャント効果および伝染の刻印の処理 ---
+        let doubleEdgedCount = 0;
+        let genColorDrops = []; // 配列： { color, count, name, tokenId }
+        let genRepeatCount = 0;
+        let genBombCount = 0;
+        let genPlusCount = 0;
+        let genStarCount = 0;
+        let genMoveCount = 0;
+        let convertColors = []; // 配列： { color, name, value, tokenId }
+        let refreshRates = [];  // 配列： 各refresh効果の確率値
+        let sortColors = []; // 配列： { color, name, value, tokenId }
+        let fullColors = []; // 配列： { color, name, value, tokenId }
+        let contagiousTokens = []; // 伝染の刻印トークンのリスト
+
+        effectiveTokens.forEach(tok => {
+          if (!tok) return;
+          
+          // 伝染の刻印トークンのチェック
+          if (tok.effect === "contagious_enchant") {
+            contagiousTokens.push(tok);
+          }
+
+          const enchList = isEnchantDisabled ? [] : (tok.enchantments || []);
+          enchList.forEach(enc => {
+            if (enc.disabled) return;
+            if (enc.id === 'double_edged') {
+              doubleEdgedCount++;
+            } else if (enc.effect === 'gen_drop_color') {
+              genColorDrops.push({ color: enc.params?.color || 'fire', count: 1, name: enc.name, tokenId: tok.instanceId || tok.id });
+            } else if (enc.effect === 'gen_drop_repeat') {
+              genRepeatCount++;
+            } else if (enc.effect === 'gen_drop_bomb') {
+              genBombCount++;
+            } else if (enc.effect === 'gen_drop_plus') {
+              genPlusCount += (enc.value || 2);
+            } else if (enc.effect === 'gen_drop_star') {
+              genStarCount += (enc.value || 2);
+            } else if (enc.effect === 'gen_drop_move') {
+              genMoveCount += (enc.value || 5);
+            } else if (enc.effect === 'convert_to_color') {
+              convertColors.push({ color: enc.params?.color || 'fire', name: enc.name, value: enc.value, tokenId: tok.instanceId || tok.id });
+            } else if (enc.effect === 'turn_end_refresh') {
+              refreshRates.push(enc.value || 0.10);
+            } else if (enc.effect === 'sort_drop_color') {
+              sortColors.push({ color: enc.params?.color || 'fire', name: enc.name, value: enc.value, tokenId: tok.instanceId || tok.id });
+            } else if (enc.effect === 'full_drop_color') {
+              fullColors.push({ color: enc.params?.color || 'fire', name: enc.name, value: enc.value, tokenId: tok.instanceId || tok.id });
+            }
+          });
+        });
+
+        // 1. 諸刃の刻印のスター消費
+        if (doubleEdgedCount > 0) {
+          const lostStars = doubleEdgedCount * 3;
+          setStars(s => Math.max(0, s - lostStars));
+          notify(`諸刃の刻印の効果により、スターを${lostStars}個失った。`);
+        }
+
+        // 2. 1属性ドロップ生成
+        genColorDrops.forEach(spec => {
+          const candidates = [];
+          engineRef.current.state.forEach(row => {
+            row.forEach(orb => {
+              if (orb && orb.type !== spec.color && !orb.isRainbow && !orb.isMoveDrop && !orb.isBomb && !orb.isRepeat && !orb.isStar) {
+                candidates.push(orb);
+              }
+            });
+          });
+          if (candidates.length > 0) {
+            triggerPassive(spec.tokenId);
+            const target = candidates[Math.floor(Math.random() * candidates.length)];
+            target.type = spec.color;
+            target.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${spec.color}`;
+            const inner = target.el.querySelector('.orb-inner');
+            if (inner) {
+              inner.className = `orb-inner orb-${spec.color} shadow-lg`;
+              const span = inner.querySelector('span');
+              if (span) span.innerText = engineRef.current.icons[spec.color] || '';
+            }
+            boardChanged = true;
+          }
+        });
+
+        // 3. リピートドロップ生成
+        if (genRepeatCount > 0) {
+          const candidates = [];
+          engineRef.current.state.forEach(row => {
+            row.forEach(orb => {
+              if (orb && !orb.isRainbow && !orb.isMoveDrop && !orb.isRepeat) {
+                candidates.push(orb);
+              }
+            });
+          });
+          if (candidates.length > 0) {
+            for (let i = candidates.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+            }
+            const targets = candidates.slice(0, genRepeatCount);
+            targets.forEach(target => {
+              target.isRepeat = true;
+              if (target.el) {
+                engineRef.current.addRepeatMark(target.el);
+              }
+            });
+            boardChanged = true;
+            notify(`反響生成の刻印により、リピートドロップが生成された。`);
+          }
+        }
+
+        // 4. ボムドロップ生成
+        if (genBombCount > 0) {
+          const candidates = [];
+          engineRef.current.state.forEach(row => {
+            row.forEach(orb => {
+              if (orb && !orb.isRainbow && !orb.isMoveDrop && !orb.isBomb) {
+                candidates.push(orb);
+              }
+            });
+          });
+          if (candidates.length > 0) {
+            for (let i = candidates.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+            }
+            const targets = candidates.slice(0, genBombCount);
+            targets.forEach(target => {
+              target.isBomb = true;
+              if (target.el) {
+                engineRef.current.addBombMark(target.el);
+              }
+            });
+            boardChanged = true;
+            notify(`爆発生成の刻印により、ボムドロップが生成された。`);
+          }
+        }
+
+        // 5. プラスドロップ生成
+        if (genPlusCount > 0) {
+          const candidates = [];
+          engineRef.current.state.forEach(row => {
+            row.forEach(orb => {
+              if (orb && !orb.isRainbow && !orb.isMoveDrop && !orb.isEnhanced) {
+                candidates.push(orb);
+              }
+            });
+          });
+          if (candidates.length > 0) {
+            for (let i = candidates.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+            }
+            const targets = candidates.slice(0, genPlusCount);
+            targets.forEach(target => {
+              target.isEnhanced = true;
+              if (target.el) {
+                engineRef.current.addPlusMark(target.el);
+              }
+            });
+            boardChanged = true;
+            notify(`強化生成の刻印により、プラスドロップが生成された。`);
+          }
+        }
+
+        // 6. スタードロップ生成
+        if (genStarCount > 0) {
+          const candidates = [];
+          engineRef.current.state.forEach(row => {
+            row.forEach(orb => {
+              if (orb && !orb.isRainbow && !orb.isMoveDrop && !orb.isStar) {
+                candidates.push(orb);
+              }
+            });
+          });
+          if (candidates.length > 0) {
+            for (let i = candidates.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+            }
+            const targets = candidates.slice(0, genStarCount);
+            targets.forEach(target => {
+              target.isStar = true;
+              if (target.el) {
+                engineRef.current.addStarMark(target.el);
+              }
+            });
+            boardChanged = true;
+            notify(`星屑生成の刻印により、スタードロップが生成された。`);
+          }
+        }
+
+        // 7. ムーブドロップカウント加算
+        if (genMoveCount > 0) {
+          let updatedAny = false;
+          engineRef.current.state.forEach(row => {
+            row.forEach(orb => {
+              if (orb && orb.isMoveDrop) {
+                orb.moveCount = (orb.moveCount || 0) + genMoveCount;
+                const countSpan = orb.el.querySelector('.move-count-text');
+                if (countSpan) {
+                  countSpan.innerText = orb.moveCount;
+                }
+                updatedAny = true;
+              }
+            });
+          });
+          if (updatedAny) {
+            notify(`加刻の刻印により、ムーブドロップのカウントが+${genMoveCount}された。`);
+          }
+        }
+
+        // 8. 確率ドロップ変換
+        convertColors.forEach(spec => {
+          if (Math.random() < (spec.value || 0.10)) {
+            const candidates = [];
+            engineRef.current.state.forEach(row => {
+              row.forEach(orb => {
+                if (orb && orb.type !== spec.color && !orb.isRainbow && !orb.isMoveDrop) {
+                  candidates.push(orb);
+                }
+              });
+            });
+            if (candidates.length > 0) {
+              triggerPassive(spec.tokenId);
+              const target = candidates[Math.floor(Math.random() * candidates.length)];
+              target.type = spec.color;
+              target.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${spec.color}`;
+              const inner = target.el.querySelector('.orb-inner');
+              if (inner) {
+                inner.className = `orb-inner orb-${spec.color} shadow-lg`;
+                const span = inner.querySelector('span');
+                if (span) span.innerText = engineRef.current.icons[spec.color] || '';
+              }
+              boardChanged = true;
+              notify(`${spec.name}発動！ドロップを${spec.color === 'heart' ? 'ハート' : spec.color}に変換した！`);
+            }
+          }
+        });
+
+        // 9. 確率ドロップ整列
+        sortColors.forEach(spec => {
+          if (Math.random() < (spec.value || 0.50)) {
+            triggerPassive(spec.tokenId);
+            engineRef.current.sortOrbs(spec.color);
+            notify(`${spec.name}発動！${spec.color === 'heart' ? 'ハート' : spec.color}ドロップを整列した！`);
+          }
+        });
+
+        // 10. 確率盤面単色染め
+        fullColors.forEach(spec => {
+          if (Math.random() < (spec.value || 0.05)) {
+            triggerPassive(spec.tokenId);
+            engineRef.current.state.forEach(row => {
+              row.forEach(orb => {
+                if (orb && !orb.isMoveDrop) {
+                  orb.type = spec.color;
+                  orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${spec.color}`;
+                  const inner = orb.el.querySelector('.orb-inner');
+                  if (inner) {
+                    inner.className = `orb-inner orb-${spec.color} shadow-lg`;
+                    const span = inner.querySelector('span');
+                    if (span) span.innerText = engineRef.current.icons[spec.color] || '';
+                  }
+                }
+              });
+            });
+            boardChanged = true;
+            notify(`${spec.name}発動！盤面が${spec.color === 'heart' ? 'ハート' : spec.color}ドロップに染まった！`);
+          }
+        });
+
+        // 11. 伝染の刻印コピー処理
+        contagiousTokens.forEach(t => {
+          const lv = t.level || 1;
+          const prob = getModifiedProbability(t.values?.[lv - 1] || 20, t.instanceId || t.id);
+          if (Math.random() * 100 < prob) {
+            const myIndex = tokens.findIndex(tok => tok && tok.instanceId === t.instanceId);
+            if (myIndex !== -1) {
+              const adjacentIndices = [myIndex - 1, myIndex + 1].filter(idx => idx >= 0 && idx < tokens.length);
+              const validTargets = adjacentIndices
+                .map(idx => ({ token: tokens[idx], index: idx }))
+                .filter(item => item.token !== null);
+
+              if (validTargets.length > 0) {
+                const myEnchants = (t.enchantments || []).filter(e => e.id !== 'contagious_enchant');
+                if (myEnchants.length > 0) {
+                  const randEnch = myEnchants[Math.floor(Math.random() * myEnchants.length)];
+                  const targetItem = validTargets[Math.floor(Math.random() * validTargets.length)];
+                  
+                  triggerPassive(t.instanceId || t.id);
+                  
+                  setTokens(prev => {
+                    const next = [...prev];
+                    const destToken = next[targetItem.index];
+                    if (destToken) {
+                      const newEnchants = [...(destToken.enchantments || []), { ...randEnch }];
+                      next[targetItem.index] = {
+                        ...destToken,
+                        enchantments: newEnchants,
+                        desc: getTokenDescription({ ...destToken, enchantments: newEnchants }, destToken.level || 1, currentRunStats, next, activeBuffs)
+                      };
+                    }
+                    return next;
+                  });
+                  notify(`${t.name}発動！[${randEnch.name}]のコピーを[${targetItem.token.name}]に付与した！`);
+                }
+              }
+            }
+          }
+        });
+
+        // 12. 確率盤面リフレッシュ（他のすべての効果の後）
+        if (refreshRates.length > 0) {
+          let refreshed = false;
+          for (const rate of refreshRates) {
+            if (Math.random() < rate) {
+              refreshed = true;
+              break;
+            }
+          }
+          if (refreshed) {
+            notify("再編の刻印発動！盤面をリフレッシュします。");
+            await engineRef.current.forceRefresh();
+            boardChanged = false; // forceRefreshで再描画されるため
+          }
+        }
       }
 
       if (boardChanged) {
@@ -3881,11 +4684,11 @@ export const useGameState = () => {
     notify("NEXT CYCLE STARTED!");
     const interestEnchants = tokens.flatMap(t => t?.enchantments || []).filter(e => e.effect === 'compound_interest');
     if (interestEnchants.length > 0) {
-      const interestRate = 0.05 * interestEnchants.length;
+      const interestRate = interestEnchants.reduce((sum, e) => sum + (e.value || 0.05), 0);
       const extraStars = Math.floor(stars * interestRate);
       if (extraStars > 0) {
         setStars(s => s + extraStars);
-        notify(`複利の導き: ★+${extraStars} (5%利子)`);
+        notify(`複利の導き: ★+${extraStars} (${Math.round(interestRate * 100)}%利子)`);
       }
     }
   };
@@ -4753,9 +5556,11 @@ export const useGameState = () => {
       if (t !== token) return t;
 
       // --- 魔力反響 (Magic Echo) ---
-      const hasMagicEcho = (t.enchantments || []).some(e => e.effect === 'magic_echo');
+      const magicEchoEnc = (t.enchantments || []).find(e => e.effect === 'magic_echo');
+      const hasMagicEcho = !!magicEchoEnc;
+      const echoChance = magicEchoEnc ? (magicEchoEnc.value || 0.25) : 0;
       const hasMagicalLeadership = tokens[0] && tokens[0].effect === 'magical_leadership';
-      const skipConsume = (hasMagicEcho && Math.random() < 0.25) || (hasMagicalLeadership && Math.random() < 0.10);
+      const skipConsume = (hasMagicEcho && Math.random() < echoChance) || (hasMagicalLeadership && Math.random() < 0.10);
       if (skipConsume) {
         if (hasMagicEcho && !hasMagicalLeadership) {
           notify("魔力反響！エネルギーを消費しませんでした。");
@@ -4861,6 +5666,7 @@ export const useGameState = () => {
     isAwakeningLevelUpBought, setIsAwakeningLevelUpBought,
     showMaxComboWarpDialog, setShowMaxComboWarpDialog,
     draggedToken, setDraggedToken,
+    freeRerolls, setFreeRerolls,
     
     // JSX から呼ばれるユーティリティ/状態/Ref
     getTokenDynamicInfo,

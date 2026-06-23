@@ -33,6 +33,7 @@ const App = () => {
     goalReached,
     shopItems,
     turn,
+    freeRerolls,
     cycleTotalCombo,
     shopRerollPrice,
     stars,
@@ -1051,6 +1052,7 @@ const App = () => {
                   tokenSlotExpansionCount={tokenSlotExpansionCount}
                   onAwakeningBuy={buyAwakeningItem}
                   isAwakeningLevelUpBought={isAwakeningLevelUpBought}
+                  freeRerolls={freeRerolls}
                 />
               </div>
             )

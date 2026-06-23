@@ -200,7 +200,7 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
 const ShopScreen = ({
     items, stars, onBuy, onClose, onRefresh, rerollPrice, onPause,
     isEnchantShopUnlocked, tokenSlotExpansionCount, onAwakeningBuy,
-    isAwakeningLevelUpBought,
+    isAwakeningLevelUpBought, freeRerolls,
 }) => {
     const [activeTab, setActiveTab] = React.useState('normal');
     const [boughtItemId, setBoughtItemId] = React.useState(null);
@@ -519,12 +519,22 @@ const ShopScreen = ({
                         style={{ touchAction: 'manipulation' }}
                         className="h-full aspect-square flex flex-col items-center justify-center bg-surface-dark border border-white/10 rounded-xl text-slate-400 transition-colors active:scale-95 relative"
                     >
-
+                        {freeRerolls > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-surface-dark animate-bounce">
+                                {freeRerolls}
+                            </span>
+                        )}
                         <span className="material-icons-round text-xl mb-0.5 transition-transform duration-500">sync</span>
                         <div className="flex flex-col items-center leading-none">
                             <span className="flex items-center bg-slate-800/80 px-1.5 rounded-full border border-white/5">
-                            <span className="text-[10px] font-mono">{formatJapaneseNumber(rerollPrice)}</span>
-                                <span className="material-icons-round text-gold text-[8px] ml-0.5">star</span>
+                                {freeRerolls > 0 ? (
+                                    <span className="text-[9px] font-bold text-green-400">FREE</span>
+                                ) : (
+                                    <>
+                                        <span className="text-[10px] font-mono">{formatJapaneseNumber(rerollPrice)}</span>
+                                        <span className="material-icons-round text-gold text-[8px] ml-0.5">star</span>
+                                    </>
+                                )}
                             </span>
                         </div>
                     </button>

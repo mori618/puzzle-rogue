@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 // パスの設定
 const tokensJsPath = path.join(__dirname, '../src/constants/tokens.js');
 const csvOutputPath = path.join(__dirname, 'token_balance_sheet.csv');
-const mdOutputPath = '/Users/mori/.gemini/antigravity/brain/bb2bec40-56cf-4281-b6a0-391586d3ba20/token_balance_sheet.md';
+const mdOutputPath = '/Users/mori/.gemini/antigravity/brain/8f9a107f-30e5-4bc8-a2b7-f4451351bfd6/token_balance_sheet.md';
 
 function main() {
   if (!fs.existsSync(tokensJsPath)) {

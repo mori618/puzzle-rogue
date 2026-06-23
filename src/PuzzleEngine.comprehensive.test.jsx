@@ -1218,7 +1218,7 @@ describe('23. エンチャント効果 (ENCHANTMENTS)', () => {
     const enc = ENCHANTMENTS.find(e => e.id === 'chain');
     expect(enc).toBeDefined();
     expect(enc.effect).toBe('fixed_add');
-    expect(enc.value).toBe(3);
+    expect(enc.value).toBe(5);
   });
 
   it('bomb_burst_combo エンチャントが存在する', () => {
@@ -1332,6 +1332,10 @@ describe('23. エンチャント効果 (ENCHANTMENTS)', () => {
       'color_multiplier_enc',
       'magic_echo', 'compound_interest', 'curse_catalyst',
       'bomb_burst_combo', 'stat_shape_all', 'stat_skill_use',
+      'starfall', 'double_edged', 'gen_drop_color', 'gen_drop_repeat',
+      'gen_drop_bomb', 'gen_drop_plus', 'gen_drop_star', 'gen_drop_move',
+      'convert_to_color', 'turn_end_refresh', 'sort_drop_color',
+      'full_drop_color', 'double_combo_chance'
     ];
     const usedEffects = new Set(ENCHANTMENTS.map(e => e.effect));
     for (const effect of usedEffects) {
@@ -1629,6 +1633,7 @@ describe('31. パッシブトークンの全効果タイプ存在確認', () => 
       'color_combo_multiplier', 'color_connection_multiplier',
       'color_count_bonus', 'color_multiplier', 'combo_if_ge', 'combo_if_le',
       'contract_of_void', 'copy_left', 'critical_strike',
+      'cross_count', 'cross_enchant_self', 'cross_multiply_move_drop',
       'curse_count_combo_mult', 'cursed_power',
       'desperate_stance', 'element_contract', 'element_lead',
       'empty_wallet', 'enchant_count_combo_mult', 'enchant_grant_boost',
@@ -1636,7 +1641,9 @@ describe('31. パッシブトークンの全効果タイプ存在確認', () => 
       'erosion_color', 'expand_board', 'extra_repeat_activations',
       'finger_transform_passive', 'forbidden', 'four_match_restriction',
       'greed_power', 'heart_combo_bonus', 'inugami', 'king',
-      'last_turn_burst', 'level3_count_combo_mult', 'limit_break',
+      'l_cross_mult', 'l_shape_count', 'l_shape_repeat', 'l_shape_skill_max',
+      'last_turn_burst', 'len4_count', 'len4_plus', 'len4_token', 'len5_count', 'len5_enchant',
+      'level3_count_combo_mult', 'limit_break',
       'magical_leadership', 'magician', 'medal_of_spendthrift', 'meteor_shower',
       'min_match', 'move_drop', 'move_drop_boost', 'move_drop_lucky',
       'move_repeater', 'no_attribute_multiplier',
@@ -1644,10 +1651,13 @@ describe('31. パッシブトークンの全効果タイプ存在確認', () => 
       'probability_trigger_add_combo', 'probability_trigger_multiplier',
       'random_add', 'repeat_chance_color', 'repeat_combo_mult',
       'repeat_erase_combo', 'repeat_regeneration', 'revive',
+      'row_free_reroll', 'row_count', 'row_star',
       'row_match_restriction', 'saint', 'sale_boost', 'shape_bonus',
+      'shape_double_cross_mult', 'shape_double_l_mult', 'shape_quad_len4_mult', 'shape_triple_row_mult',
       'shape_variety_mult', 'shop_attribute_weight', 'shop_expand',
       'shop_rarity_weight', 'skip_bonus_multiplier', 'sky_god',
       'skyfall_bonus', 'speed_of_light_thought',
+      'square_count', 'square_convert_left_bottom', 'square_repeat', 'square_combo_add',
       'star_chance_color', 'star_count_combo_add', 'star_count_combo_mult',
       'star_count_time_ext', 'star_cross_boost', 'star_earn_boost',
       'star_erase_mult', 'star_gain', 'stardust_catalyst',
@@ -1660,6 +1670,7 @@ describe('31. パッシブトークンの全効果タイプ存在確認', () => 
       'turn_end_convert', 'turn_end_full_board', 'turn_end_spawn',
       'turn_end_special_spawn', 'turn_end_star_gamble', 'turn_end_token_gamble', 'tyrant_decree',
       'vacation', 'zero_combo_charge',
+      'magic_overload', 'sublimation_rune', 'contagious_enchant',
     ];
 
     const passives = ALL_TOKEN_BASES.filter(t => t.type === 'passive');

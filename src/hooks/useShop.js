@@ -42,6 +42,7 @@ export const useShop = ({
   const [shopRerollPrice, setShopRerollPrice] = useState(2);
   const [pendingShopItem, setPendingShopItem] = useState(null);
   const [tokenSlotExpansionCount, setTokenSlotExpansionCount] = useState(0);
+  const [freeRerolls, setFreeRerolls] = useState(0);
 
   /** トークンの動的価格を取得するヘルパー関数 */
   const getTokenDynamicPrice = useCallback((baseToken, currentTokens) => {
@@ -875,7 +876,9 @@ export const useShop = ({
 
   /** ショップのリロール */
   const refreshShop = useCallback((clickPos) => {
-    if (stars < shopRerollPrice) {
+    const isFree = freeRerolls > 0;
+
+    if (!isFree && stars < shopRerollPrice) {
       soundManager.playSE(SE_IDS.ERROR);
       notify("★が足りません");
       return false;
@@ -885,19 +888,28 @@ export const useShop = ({
       spawnParticles(5, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
     }
 
-    setStars(s => s - shopRerollPrice);
+    if (isFree) {
+      setFreeRerolls(f => f - 1);
+      notify("無料リロールを使用しました！");
+    } else {
+      setStars(s => s - shopRerollPrice);
+      setTotalStarsSpent((prev) => prev + shopRerollPrice);
+      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + shopRerollPrice }));
+      setCurrentRunStats(prev => ({
+        ...prev,
+        currentStarsSpent: (prev.currentStarsSpent || 0) + shopRerollPrice,
+      }));
+      setShopRerollPrice(prev => Math.ceil(prev * SHOP_REROLL_GROWTH_FACTOR));
+    }
+
     soundManager.playSE(SE_IDS.SHOP_REFRESH);
-    setTotalStarsSpent((prev) => prev + shopRerollPrice);
-    setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + shopRerollPrice }));
     setCurrentRunStats(prev => ({
       ...prev,
-      currentStarsSpent: (prev.currentStarsSpent || 0) + shopRerollPrice,
       currentShopRerolls: (prev.currentShopRerolls || 0) + 1, // 浪費の勲章用リロール回数カウント
     }));
-    setShopRerollPrice(prev => Math.ceil(prev * SHOP_REROLL_GROWTH_FACTOR));
     generateShop();
     return true;
-  }, [stars, shopRerollPrice, setStars, setTotalStarsSpent, setStats, setCurrentRunStats, generateShop, notify, spawnParticles]);
+  }, [stars, shopRerollPrice, freeRerolls, setStars, setTotalStarsSpent, setStats, setCurrentRunStats, generateShop, notify, spawnParticles]);
 
   return {
     shopItems,
@@ -910,6 +922,8 @@ export const useShop = ({
     setPendingShopItem,
     tokenSlotExpansionCount,
     setTokenSlotExpansionCount,
+    freeRerolls,
+    setFreeRerolls,
     generateShop,
     purifyCurse,
     sellToken,

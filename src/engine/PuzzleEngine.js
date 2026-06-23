@@ -503,6 +503,11 @@ class PuzzleEngine {
       }
     }
 
+    // --- New: Starfall (星呼びの刻印) ---
+    if (!isStar && isNew && !savedData && this.starfallChance && Math.random() < this.starfallChance) {
+      isStar = true;
+    }
+
     // 基準位置を設定（top/leftは一度だけ設定し、以降transformで移動）
     const baseTop = (r * (this.orbSize + this.gap));
     const baseLeft = (c * (this.orbSize + this.gap));
@@ -1258,6 +1263,20 @@ class PuzzleEngine {
     }
   }
 
+  makeAllOrbsPlus() {
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const orb = this.state[r][c];
+        if (orb) {
+          orb.isEnhanced = true;
+          if (orb.el) {
+            this.addPlusMark(orb.el);
+          }
+        }
+      }
+    }
+  }
+
   // --- Star Drop Skills ---
   spawnStarRandom(count) {
     if (this.processing) return;
@@ -1280,6 +1299,32 @@ class PuzzleEngine {
     targets.forEach(orb => {
       orb.isStar = true;
       this.addStarMark(orb.el);
+    });
+  }
+
+  spawnPlusRandom(count) {
+    if (this.processing) return;
+    const normalOrbs = [];
+    this.state.forEach((row) => {
+      row.forEach((orb) => {
+        if (orb && !orb.isEnhanced && !orb.isBomb && !orb.isRepeat && !orb.isRainbow && !orb.isMoveDrop) {
+          normalOrbs.push(orb);
+        }
+      });
+    });
+
+    // Shuffle and pick
+    for (let i = normalOrbs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [normalOrbs[i], normalOrbs[j]] = [normalOrbs[j], normalOrbs[i]];
+    }
+
+    const targets = normalOrbs.slice(0, count);
+    targets.forEach(orb => {
+      orb.isEnhanced = true;
+      if (orb.el) {
+        this.addPlusMark(orb.el);
+      }
     });
   }
 
@@ -1611,6 +1656,51 @@ class PuzzleEngine {
 
     // this.processing = false; // process() にロック管理を委ねる
     this.process(); // Start natural combo sequence
+  }
+
+  sortOrbs(color) {
+    // 盤面全体の有効なオーブ（ムーブドロップや空きスロットを除く）を集める
+    const allOrbs = [];
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const orb = this.state[r][c];
+        if (orb && !orb.isMoveDrop) {
+          allOrbs.push(orb);
+        }
+      }
+    }
+
+    // color属性のオーブとそれ以外のオーブに分ける
+    const targetOrbs = allOrbs.filter(o => o.type === color);
+    const otherOrbs = allOrbs.filter(o => o.type !== color);
+
+    // ソートされた新しいオーブのリスト（対象オーブが先頭、残りはその後）
+    const sortedOrbs = [...targetOrbs, ...otherOrbs];
+
+    // 新しい配置を作成
+    let idx = 0;
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const currentOrb = this.state[r][c];
+        if (currentOrb && !currentOrb.isMoveDrop) {
+          const nextOrb = sortedOrbs[idx++];
+          this.state[r][c] = nextOrb;
+          nextOrb.r = r;
+          nextOrb.c = c;
+          
+          // ビジュアル上の位置（top/left）を更新
+          const baseTop = (r * (this.orbSize + this.gap));
+          const baseLeft = (c * (this.orbSize + this.gap));
+          nextOrb.baseTop = baseTop;
+          nextOrb.baseLeft = baseLeft;
+          if (nextOrb.el) {
+            nextOrb.el.style.top = `${baseTop}px`;
+            nextOrb.el.style.left = `${baseLeft}px`;
+          }
+        }
+      }
+    }
+    this.render();
   }
 
   async process() {
@@ -2572,6 +2662,47 @@ class PuzzleEngine {
       }
     });
   }
+
+  // ムーブドロップのカウントを乗算する
+  multiplyMoveDropCounts(multiplier) {
+    if (this.processing) return;
+    this.state.forEach((row) => {
+      row.forEach((orb) => {
+        if (orb && orb.isMoveDrop && orb.moveCount > 0) {
+          orb.moveCount = Math.floor(orb.moveCount * multiplier);
+          const textEl = orb.el?.querySelector('.move-count-text');
+          if (textEl) {
+            textEl.innerText = orb.moveCount;
+            // アニメーション効果を再適用して演出する
+            textEl.classList.remove('rainbow-hit-pulse');
+            void textEl.offsetWidth;
+            textEl.classList.add('rainbow-hit-pulse');
+          }
+        }
+      });
+    });
+  }
+
+  // 盤面上の指定範囲を特定の属性のドロップに変換する
+  convertAreaToColor(startRow, startCol, numRows, numCols, color) {
+    if (this.processing) return;
+    for (let r = startRow; r < Math.min(this.rows, startRow + numRows); r++) {
+      for (let c = startCol; c < Math.min(this.cols, startCol + numCols); c++) {
+        const orb = this.state[r][c];
+        if (orb && !orb.isRainbow && !orb.isMoveDrop) {
+          orb.type = color;
+          orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${color}`;
+          const inner = orb.el.querySelector(".orb-inner");
+          if (inner) inner.className = `orb-inner orb-${color} shadow-lg`;
+          const span = orb.el.querySelector("span");
+          if (span) span.innerText = this.icons[color];
+          this.applyAlchemyToOrb(orb, color);
+        }
+      }
+    }
+  }
+
+
 
   convertRepeatTargeted(count, targetType) {
     if (this.processing) return;
