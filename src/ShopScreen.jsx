@@ -6,8 +6,6 @@ import { formatJapaneseNumber } from './utils/numberUtils';
 import { AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS } from './constants/gameConstants';
 
 // 通常アイテムの背景・ボーダー色を返すヘルパー
-
-// 通常アイテムの背景・ボーダー色を返すヘルパー
 const getItemColors = (item) => {
     if (item.type === 'curse' || item.isCurse) {
         return { bg: 'from-red-500/20 to-red-900/20', border: 'border-red-500/30', iconColor: 'text-red-400' };
@@ -25,38 +23,42 @@ const getItemColors = (item) => {
     }
 };
 
-// エンチャントのレアリティに応じた色を返すヘルパー
+// エンチャントのレアリティに応じたデザインスタイルを返すヘルパー
 const getEnchantRarityStyle = (rarity) => {
-    if (rarity === 3) return {
-        cardBg: 'from-fuchsia-900/40 to-purple-900/40',
-        border: 'border-fuchsia-500/50',
-        iconBg: 'from-fuchsia-600/30 to-purple-900/30',
-        iconBorder: 'border-fuchsia-500/40',
-        iconColor: 'text-fuchsia-300',
-        badge: 'bg-fuchsia-700/50 text-fuchsia-200',
-        glow: 'shadow-fuchsia-900/50',
-    };
-    if (rarity === 2) return {
-        cardBg: 'from-blue-900/40 to-indigo-900/40',
-        border: 'border-blue-500/50',
-        iconBg: 'from-blue-600/30 to-indigo-900/30',
-        iconBorder: 'border-blue-500/40',
-        iconColor: 'text-blue-300',
-        badge: 'bg-blue-700/50 text-blue-200',
-        glow: 'shadow-blue-900/50',
-    };
-    return {
-        cardBg: 'from-purple-900/30 to-slate-900/30',
-        border: 'border-purple-500/40',
-        iconBg: 'from-purple-600/20 to-purple-900/20',
-        iconBorder: 'border-purple-500/30',
-        iconColor: 'text-purple-300',
-        badge: 'bg-purple-700/50 text-purple-200',
-        glow: 'shadow-purple-900/50',
-    };
+    if (rarity === 3) {
+        return {
+            cardBg: 'from-purple-950/80 to-slate-900/90',
+            border: 'border-fuchsia-500/40',
+            glow: 'shadow-fuchsia-500/10',
+            iconBg: 'from-fuchsia-500 to-purple-600',
+            iconBorder: 'border-fuchsia-400/50',
+            iconColor: 'text-white',
+            badge: 'bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30'
+        };
+    } else if (rarity === 2) {
+        return {
+            cardBg: 'from-blue-950/80 to-slate-900/90',
+            border: 'border-blue-500/40',
+            glow: 'shadow-blue-500/10',
+            iconBg: 'from-blue-500 to-indigo-600',
+            iconBorder: 'border-blue-400/50',
+            iconColor: 'text-white',
+            badge: 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+        };
+    } else {
+        return {
+            cardBg: 'from-slate-900/90 to-slate-950/90',
+            border: 'border-slate-800',
+            glow: '',
+            iconBg: 'from-slate-700 to-slate-800',
+            iconBorder: 'border-slate-600/30',
+            iconColor: 'text-slate-300',
+            badge: 'bg-slate-800 text-slate-400 border border-slate-700/30'
+        };
+    }
 };
 
-// 通常アイテムのカードを描画するコンポーネント（トップレベルで定義することでスマホの2タップ問題を解消）
+// 通常アイテムのカードを描画するコンポーネント
 const NormalItemCard = ({ item, stars, onBuy, isBought }) => {
     const styles = getItemColors(item);
     const isAffordable = stars >= item.price;
@@ -66,75 +68,78 @@ const NormalItemCard = ({ item, stars, onBuy, isBought }) => {
         onBuy(item, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
     };
     return (
-        <div className={`bg-surface-dark border border-white/5 rounded-xl p-3 flex items-center transition-all ${isBought ? 'animate-purchase-success z-50' : ''}`}>
-            <div className={`w-14 h-14 rounded-tr-lg rounded-br-lg bg-gradient-to-br ${styles.bg} border ${styles.border} flex items-center justify-center flex-shrink-0 relative`}>
-                <div className="absolute inset-0 rounded-tr-lg rounded-br-lg overflow-hidden flex items-center justify-center">
+        <div className={`game-panel-cyber rounded-xl p-3 flex items-center transition-all ${isBought ? 'animate-purchase-success z-50' : ''}`}>
+            <div className={`w-14 h-14 ${(item.type === 'curse' || item.isCurse) ? 'token-card-curse' : (item.type === 'skill' ? 'token-card-skill' : 'token-card-passive')} flex-shrink-0 relative`}>
+                <div className="absolute inset-0 overflow-hidden">
                     {/* 属性バー */}
                     <div 
-                        className="absolute left-0 top-0 bottom-0 w-1 z-30" 
+                        className="absolute left-0 top-0 bottom-0 w-1.5 z-30" 
                         style={getAttributeBarStyles(item.attributes)}
                     />
-                    <span className={`material-icons-round ${styles.iconColor} text-2xl relative z-10`}>{getTokenIcon(item)}</span>
-                    {/* 属性丸は削除 */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className={`material-icons-round ${styles.iconColor} text-2xl drop-shadow-md relative z-35 token-icon-wrap`}>
+                            {getTokenIcon(item)}
+                        </span>
+                    </div>
+                </div>
+                {/* レベルタグ（中央下に配置、初期レベルは1） */}
+                <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 token-level-tag-center">
+                    Lv.1
                 </div>
             </div>
-            <div className="ml-3 flex-1">
-                <div className="flex items-center space-x-2">
-                    <h3 className="font-bold text-white text-base">{item.name}</h3>
-                    <div className="flex text-gold text-[10px]">
+            <div className="ml-3 flex-1 min-w-0 mr-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="font-bold text-white text-sm md:text-base truncate">{item.name}</h3>
+                    <div className="flex text-gold text-[8px] md:text-[10px]">
                         {Array.from({ length: item.rarity || 1 }).map((_, i) => (
-                            <span key={i} className="material-icons-round">star</span>
+                            <span key={i} className="material-icons-round text-[10px] md:text-[12px]">star</span>
                         ))}
                     </div>
                     {item.isSale && (
-                        <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-500/30 px-1.5 py-0.5 rounded-full font-bold">SALE</span>
+                        <span className="text-[9px] bg-red-500/20 text-red-300 border border-red-500/30 px-1.5 py-0.2 rounded-full font-bold">SALE</span>
                     )}
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5 leading-tight">{item.desc}</p>
+                <p className="text-xs text-slate-400 mt-1 leading-tight">{item.desc}</p>
             </div>
             <button
                 onClick={handleBuyClick}
                 disabled={!isAffordable}
                 style={{ touchAction: 'manipulation' }}
-                className={`text-white px-3 py-2 rounded-lg flex flex-col items-center justify-center min-w-[70px] active:scale-95 transition-transform ${isAffordable ? 'bg-primary' : 'bg-surface-dark border border-white/10 opacity-50 cursor-not-allowed'}`}
+                className={`px-3 py-1.5 flex flex-col items-center justify-center min-w-[72px] ${isAffordable ? 'btn-game-primary' : 'btn-game-cyber'}`}
             >
-                <span className="text-xs font-bold flex items-center text-white">
-                    {item.price} <span className={`material-icons-round text-[10px] ml-1 ${isAffordable ? 'text-gold' : 'text-slate-500'}`}>star</span>
+                <span className="text-xs font-bold flex items-center gap-0.5">
+                    {item.price} <span className="material-icons-round text-[9px]">star</span>
                 </span>
-                <span className="text-[10px] uppercase font-medium opacity-80">{isAffordable ? 'Buy' : 'Locked'}</span>
+                <span className="text-[9px] uppercase font-bold opacity-80">{isAffordable ? 'Buy' : 'Locked'}</span>
             </button>
         </div>
     );
 };
 
-
-// 覚醒ショップのカードを描画するコンポーネント（トップレベルで定義することでスマホの2タップ問題を解消）
+// 覚醒ショップのカードを描画するコンポーネント
 const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disabled, disabledReason, badgeText, color, type, isBought }) => {
     const isAffordable = stars >= price && !disabled;
     const colorMap = {
         green: {
-            cardBg: 'from-emerald-900/40 to-teal-900/40',
-            border: disabled ? 'border-slate-700/50' : 'border-emerald-500/50',
-            iconBg: 'from-emerald-600/30 to-teal-900/30',
-            iconBorder: 'border-emerald-500/40',
+            cardBg: 'from-emerald-900/30 to-teal-900/30',
+            border: disabled ? 'border-slate-800' : 'border-emerald-500/40',
+            iconBg: 'from-emerald-600/20 to-teal-900/20',
+            iconBorder: 'border-emerald-500/30',
             iconColor: 'text-emerald-300',
-            btn: 'bg-emerald-600 active:bg-emerald-500 shadow-emerald-900/50',
         },
         amber: {
-            cardBg: 'from-amber-900/40 to-orange-900/40',
-            border: disabled ? 'border-slate-700/50' : 'border-amber-500/50',
-            iconBg: 'from-amber-600/30 to-orange-900/30',
-            iconBorder: 'border-amber-500/40',
+            cardBg: 'from-amber-900/30 to-orange-900/30',
+            border: disabled ? 'border-slate-800' : 'border-amber-500/40',
+            iconBg: 'from-amber-600/20 to-orange-900/20',
+            iconBorder: 'border-amber-500/30',
             iconColor: 'text-amber-300',
-            btn: 'bg-amber-600 active:bg-amber-500 shadow-amber-900/50',
         },
         indigo: {
-            cardBg: 'from-indigo-900/40 to-blue-900/40',
-            border: disabled ? 'border-slate-700/50' : 'border-indigo-500/50',
-            iconBg: 'from-indigo-600/30 to-blue-900/30',
-            iconBorder: 'border-indigo-500/40',
+            cardBg: 'from-indigo-900/30 to-blue-900/30',
+            border: disabled ? 'border-slate-800' : 'border-indigo-500/40',
+            iconBg: 'from-indigo-600/20 to-blue-900/20',
+            iconBorder: 'border-indigo-500/30',
             iconColor: 'text-indigo-300',
-            btn: 'bg-indigo-600 active:bg-indigo-500 shadow-indigo-900/50',
         },
     };
     const c = colorMap[color] || colorMap.green;
@@ -144,42 +149,39 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
         onCardBuy(type, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
     };
     return (
-        <div className={`rounded-2xl bg-gradient-to-br ${c.cardBg} border ${c.border} overflow-hidden transition-all ${disabled ? 'opacity-60' : ''} ${isBought ? 'animate-purchase-success z-50' : ''}`}>
+        <div className={`game-panel-cyber rounded-2xl bg-gradient-to-br ${c.cardBg} border ${c.border} overflow-hidden transition-all ${disabled ? 'opacity-50' : ''} ${isBought ? 'animate-purchase-success z-50' : ''}`}>
             <div className="px-4 pt-4 pb-3 flex items-center space-x-3">
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${c.iconBg} border ${c.iconBorder} flex items-center justify-center flex-shrink-0`}>
                     <span className={`material-icons-round ${c.iconColor} text-2xl`}>{icon}</span>
                 </div>
-                <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                        <h3 className="font-bold text-white text-base">{title}</h3>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 flex-wrap">
+                        <h3 className="font-bold text-white text-base truncate">{title}</h3>
                         {badgeText && (
-                            <span className="text-[10px] bg-emerald-700/50 text-emerald-200 px-2 py-0.5 rounded-full font-bold">{badgeText}</span>
+                            <span className="text-[9px] bg-emerald-700/40 text-emerald-200 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">{badgeText}</span>
                         )}
                         {disabled && (
-                            <span className="text-[10px] bg-slate-700/50 text-slate-400 px-2 py-0.5 rounded-full font-bold">購入済</span>
+                            <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-bold">購入済</span>
                         )}
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5 leading-tight">{disabledReason || desc}</p>
                 </div>
             </div>
             {/* 効果説明ボックス */}
-            <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl bg-black/25 border border-white/5">
+            <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl bg-black/35 border border-white/5">
                 <div className="flex items-center space-x-1.5 mb-1">
                     <span className="material-icons-round text-slate-400 text-xs">info</span>
-                    <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">効果</span>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">効果</span>
                 </div>
                 <p className="text-sm text-slate-200 leading-relaxed">{desc}</p>
             </div>
             {/* 購入ボタン */}
-            <div className="px-4 pb-4">
+            <div className="px-4 pb-4 font-game-cyber">
                 <button
                     onClick={handleBuyClick}
                     disabled={!isAffordable}
                     style={{ touchAction: 'manipulation' }}
-                    className={`w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 active:scale-95 transition-transform ${isAffordable
-                        ? `${c.btn} text-white shadow-md`
-                        : 'bg-surface-dark border border-white/10 text-slate-500 cursor-not-allowed'
-                        }`}
+                    className={`w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 ${isAffordable ? 'btn-game-primary' : 'btn-game-cyber'}`}
                 >
                     {disabled ? (
                         <span>購入済み</span>
@@ -257,41 +259,46 @@ const ShopScreen = ({
 
     return (
         <main
-            className="w-full h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden animate-fade-in"
+            className="w-full h-full flex flex-col relative bg-background-dark shadow-2xl overflow-hidden animate-fade-in font-game-cyber"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
         >
-            {/* Background effects matching main screen */}
-            <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+            {/* Cyber Grid Background */}
+            <div className="cyber-grid-bg"></div>
+
+            {/* Background effects overlay */}
+            <div className="absolute inset-0 z-0 opacity-25 pointer-events-none">
                 <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-primary/30 to-transparent"></div>
                 <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
             </div>
 
             {/* ヘッダー */}
-            <header className="flex-none px-6 py-4 z-20 relative bg-surface-dark/80 backdrop-blur-md border-b border-white/5">
+            <header className="flex-none px-6 py-4 z-20 relative bg-surface-dark/80 backdrop-blur-md border-b border-white/10">
                 <div className="flex items-center justify-between mb-4">
-                    <button onClick={onClose} style={{ touchAction: 'manipulation' }} className="p-2 -ml-2 rounded-full text-slate-400 transition-colors">
-                        <span className="material-icons-round">arrow_back</span>
+                    <button onClick={onClose} style={{ touchAction: 'manipulation' }} className="p-1 rounded-xl btn-game-cyber w-9 h-9 flex items-center justify-center text-slate-400">
+                        <span className="material-icons-round text-lg">arrow_back</span>
                     </button>
-                    <h1 className="text-sm font-medium tracking-widest uppercase text-slate-400">Merchant's Wares</h1>
-                    <div className="flex items-center space-x-1 p-2 -mr-2 text-white">
-                        <button onClick={onPause} style={{ touchAction: 'manipulation' }} className="p-2 mr-2 rounded-full text-slate-400 transition-colors flex items-center justify-center">
-                            <span className="material-icons-round">pause</span>
+                    <h1 className="text-sm font-game-header tracking-widest text-indigo-300">Merchant's Wares</h1>
+                    <div className="flex items-center space-x-1 text-white">
+                        <button onClick={onPause} style={{ touchAction: 'manipulation' }} className="p-1 mr-1 rounded-xl btn-game-cyber w-9 h-9 flex items-center justify-center text-slate-400">
+                            <span className="material-icons-round text-lg">pause</span>
                         </button>
-                        <span className="material-icons-round text-gold text-lg animate-pulse">star</span>
-                        <span className="text-lg font-bold tracking-wide">{formatJapaneseNumber(stars)}</span>
+                        <div className="flex items-center gap-1.5 bg-slate-950/60 border border-yellow-500/30 px-3 py-1.5 rounded-full relative shadow-inner text-yellow-400 font-bold text-sm">
+                            <span className="material-icons-round text-gold text-base animate-pulse">star</span>
+                            <span>{formatJapaneseNumber(stars)}</span>
+                        </div>
                     </div>
                 </div>
 
                 {/* タブUI */}
-                <div className="flex space-x-1 p-1 bg-black/20 rounded-xl">
+                <div className="flex space-x-1 p-1 bg-black/35 rounded-xl border border-white/5">
                     <button
                         onClick={() => {
                             setActiveTab('normal');
                             soundManager.playSE(SE_IDS.UI_CLICK);
                         }}
                         style={{ touchAction: 'manipulation' }}
-                        className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 ${activeTab === 'normal' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]' : 'text-slate-400'}`}
+                        className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 ${activeTab === 'normal' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]' : 'text-slate-400 hover:text-slate-200'}`}
                     >
                         <span className="material-icons-round text-sm">shopping_bag</span>
                         <span>ノーマル</span>
@@ -308,7 +315,7 @@ const ShopScreen = ({
                             ? 'text-slate-600 cursor-not-allowed bg-black/10'
                             : activeTab === 'enchant'
                                 ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/40 scale-[1.02]'
-                                : 'text-slate-400'
+                                : 'text-slate-400 hover:text-slate-200'
                             }`}
                     >
                         {isEnchantShopUnlocked ? (
@@ -329,7 +336,7 @@ const ShopScreen = ({
                             soundManager.playSE(SE_IDS.UI_CLICK);
                         }}
                         style={{ touchAction: 'manipulation' }}
-                        className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 ${activeTab === 'awakening' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40 scale-[1.02]' : 'text-slate-400'}`}
+                        className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 ${activeTab === 'awakening' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40 scale-[1.02]' : 'text-slate-400 hover:text-slate-200'}`}
                     >
                         <span className="material-icons-round text-sm">egg_alt</span>
                         <span>覚醒</span>
@@ -509,7 +516,7 @@ const ShopScreen = ({
             </div>
 
             {/* フッター */}
-            <footer className="absolute bottom-0 left-0 w-full p-6 glass-panel border-t border-white/10 z-30">
+            <footer className="absolute bottom-0 left-0 w-full p-6 glass-panel border-t border-white/10 z-30 font-game-cyber bg-slate-950/80 backdrop-blur-md">
                 <div className="flex space-x-3 h-14">
                     <button
                         onClick={(e) => {
@@ -517,21 +524,21 @@ const ShopScreen = ({
                             onRefresh({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
                         }}
                         style={{ touchAction: 'manipulation' }}
-                        className="h-full aspect-square flex flex-col items-center justify-center bg-surface-dark border border-white/10 rounded-xl text-slate-400 transition-colors active:scale-95 relative"
+                        className="h-full aspect-square flex flex-col items-center justify-center btn-game-cyber rounded-xl text-slate-300 relative"
                     >
                         {freeRerolls > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-surface-dark animate-bounce">
+                            <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-slate-900 animate-bounce">
                                 {freeRerolls}
                             </span>
                         )}
                         <span className="material-icons-round text-xl mb-0.5 transition-transform duration-500">sync</span>
                         <div className="flex flex-col items-center leading-none">
-                            <span className="flex items-center bg-slate-800/80 px-1.5 rounded-full border border-white/5">
+                            <span className="flex items-center bg-black/40 px-1.5 py-0.5 rounded-full border border-white/5">
                                 {freeRerolls > 0 ? (
-                                    <span className="text-[9px] font-bold text-green-400">FREE</span>
+                                    <span className="text-[8px] font-bold text-green-400">FREE</span>
                                 ) : (
                                     <>
-                                        <span className="text-[10px] font-mono">{formatJapaneseNumber(rerollPrice)}</span>
+                                        <span className="text-[9px] font-mono font-bold text-yellow-400">{formatJapaneseNumber(rerollPrice)}</span>
                                         <span className="material-icons-round text-gold text-[8px] ml-0.5">star</span>
                                     </>
                                 )}
@@ -541,10 +548,10 @@ const ShopScreen = ({
                     <button
                         onClick={onClose}
                         style={{ touchAction: 'manipulation' }}
-                        className="h-full flex-1 bg-gradient-to-r from-primary to-indigo-600 active:scale-[0.98] transition-all rounded-xl shadow-glow flex items-center justify-center space-x-2 text-white relative overflow-hidden"
+                        className="h-full flex-1 btn-game-primary flex items-center justify-center space-x-2 text-white relative overflow-hidden"
                     >
-                        <span className="text-lg font-bold tracking-wide relative z-10">Return</span>
-                        <span className="material-icons-round">arrow_forward</span>
+                        <span className="text-base font-bold tracking-wide relative z-10">Return</span>
+                        <span className="material-icons-round text-base">arrow_forward</span>
                     </button>
                 </div>
             </footer>

@@ -4,6 +4,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons+Round');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&display=swap');
 
 @source "../index.html";
 @source "../src/**/*.{js,ts,jsx,tsx}";
@@ -24,6 +26,8 @@
   --color-outline-stylish: #fbbf24;
 
   --font-display: "Spline Sans", sans-serif;
+  --font-game-cyber: "Outfit", sans-serif;
+  --font-game-header: "Dela Gothic One", sans-serif;
   --shadow-glow: 0 0 15px -3px rgba(91, 19, 236, 0.5);
 
   /* Attribute Colors */
@@ -154,6 +158,11 @@ body {
     opacity 0.3s ease;
   /* top/leftは初期配置用。アニメーションはtranslate3dで行う */
   transform: translate3d(0, 0, 0);
+  /* タッチ操作・選択防止: スクロールや長押しポップアップを完全無効化 */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* 形状定義（完全丸み対応版：border-radiusのみ使用） */
@@ -233,45 +242,71 @@ body {
 }
 
 /* Orb Type Colors */
+/* Orb Type Colors (3D Crystal Jewel upgrade) */
 .orb-inner {
   width: 100%;
   height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
+  /* ぷっくり感を出すインナーシャドウとハイライト */
+  box-shadow: 
+    inset 0 4px 6px rgba(255, 255, 255, 0.4),
+    inset 0 -4px 6px rgba(0, 0, 0, 0.4),
+    0 4px 8px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
+/* 3D感を追加するためのハイライト用擬似要素 (上部の光沢を非表示化) */
+/*
+.orb-inner::before {
+  content: "";
+  position: absolute;
+  top: 10%;
+  left: 15%;
+  width: 40%;
+  height: 25%;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  pointer-events: none;
+  filter: blur(0.5px);
+  z-index: 5;
+}
+*/
+
 .orb-inner.orb-fire {
-  background-color: var(--color-puzzle-red);
+  background: radial-gradient(circle at 45% 45%, #ff4b4b 20%, #b20a0a 100%);
 }
 
 .orb-inner.orb-water {
-  background-color: var(--color-puzzle-blue);
+  background: radial-gradient(circle at 45% 45%, #4fa3ff 20%, #0d469b 100%);
 }
 
 .orb-inner.orb-wood {
-  background-color: var(--color-puzzle-green);
+  background: radial-gradient(circle at 45% 45%, #42e873 20%, #0e722a 100%);
 }
 
 .orb-inner.orb-light {
-  background-color: var(--color-puzzle-yellow);
+  background: radial-gradient(circle at 45% 45%, #ffeb60 20%, #a07a00 100%);
 }
 
 .orb-inner.orb-dark {
-  background-color: var(--color-puzzle-purple);
+  background: radial-gradient(circle at 45% 45%, #cc75ff 20%, #5b13ec 100%);
 }
 
 .orb-inner.orb-heart {
-  background-color: var(--color-puzzle-pink);
+  background: radial-gradient(circle at 45% 45%, #ff7ea7 20%, #ab1c49 100%);
 }
 
 .orb-grabbing {
   z-index: 100;
-  transform: scale(1.2);
-  opacity: 0.85;
+  transform: scale(1.25);
+  opacity: 0.9;
   transition: none !important;
-  will-change: auto;
-  filter: brightness(1.15) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+  /* ドラッグ中の高い描画更新頻度に対応するため GPU アクセラレーションを維持 */
+  will-change: transform;
+  filter: brightness(1.15) drop-shadow(0 8px 16px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 12px rgba(255, 255, 255, 0.4));
 }
 
 .orb-matching>* {
@@ -1392,5 +1427,680 @@ body {
     padding-bottom: max(20px, env(safe-area-inset-bottom, 20px)) !important;
   }
 }
+
+/* ==========================================================================
+   モダンゲームUIスタイル（SFサイバー＆スタイリッシュRPG調）
+   ========================================================================== */
+
+/* 1. フォントクラス */
+.font-game-cyber {
+  font-family: var(--font-game-cyber), "Spline Sans", sans-serif;
+}
+
+.font-game-header {
+  font-family: var(--font-game-header), "Spline Sans", sans-serif;
+}
+
+/* 2. ゆっくりスクロールするサイバーグリッド背景 */
+.cyber-grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(139, 92, 246, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center;
+  animation: grid-scroll 25s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+@keyframes grid-scroll {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 40px 80px;
+  }
+}
+
+/* 3. SFサイバー風パネル & ダイアログ枠 */
+.game-panel-cyber {
+  background: rgba(22, 16, 34, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    inset 0 0 20px rgba(139, 92, 246, 0.15);
+  position: relative;
+}
+
+/* 角にアクセントラインをつける装飾 */
+.game-panel-cyber::before,
+.game-panel-cyber::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: #8b5cf6;
+  border-style: solid;
+  pointer-events: none;
+}
+.game-panel-cyber::before {
+  top: -1px;
+  left: -1px;
+  border-width: 2px 0 0 2px;
+}
+.game-panel-cyber::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 2px 2px 0;
+}
+
+/* 豪華なゴールド二重線枠（ボス・レアカード用） */
+.game-panel-gold {
+  background: rgba(22, 16, 34, 0.9);
+  backdrop-filter: blur(16px);
+  border: 2px double #fbbf24;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(251, 191, 36, 0.2);
+}
+
+/* 4. モダンゲームボタンのバリエーション */
+
+/* 立体ゴールド/パープルボタン（沈み込み付き） */
+.btn-game-primary {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  border: 1px solid #fef08a;
+  border-bottom: 4px solid #b45309;
+  border-radius: 12px;
+  color: #1e1b4b;
+  font-weight: 800;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: all 0.1s ease;
+  cursor: pointer;
+}
+.btn-game-primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.btn-game-primary:active:not(:disabled) {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* サイバーネオン調グローボタン */
+.btn-game-cyber {
+  background: rgba(91, 19, 236, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.6);
+  border-radius: 12px;
+  color: #ddd6fe;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.btn-game-cyber:hover:not(:disabled) {
+  background: rgba(91, 19, 236, 0.45);
+  border-color: #a78bfa;
+  color: #ffffff;
+  box-shadow: 
+    0 0 15px rgba(139, 92, 246, 0.5),
+    inset 0 0 8px rgba(139, 92, 246, 0.3);
+  transform: translateY(-1px);
+}
+.btn-game-cyber:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
+}
+
+/* キャンセル/危険操作用 3Dレッドボタン */
+.btn-game-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  border: 1px solid #fca5a5;
+  border-bottom: 4px solid #7f1d1d;
+  border-radius: 12px;
+  color: white;
+  font-weight: 800;
+  text-shadow: 0 -1px 1px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.1s ease;
+  cursor: pointer;
+}
+.btn-game-danger:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.btn-game-danger:active:not(:disabled) {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* 二次的な操作用 3Dグレーボタン */
+.btn-game-secondary {
+  background: linear-gradient(135deg, #475569 0%, #1e293b 100%);
+  border: 1px solid #64748b;
+  border-bottom: 4px solid #0f172a;
+  border-radius: 12px;
+  color: #e2e8f0;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.1s ease;
+  cursor: pointer;
+}
+.btn-game-secondary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.btn-game-secondary:active:not(:disabled) {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* ボタン無効化時の一貫した表示 */
+button:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  border-bottom-width: 4px !important;
+  box-shadow: none !important;
+  filter: grayscale(0.5) !important;
+}
+
+/* 3D感を追加するためのオーブアニメーション */
+.orb:hover .orb-inner {
+  transform: scale(1.05);
+  box-shadow: 
+    inset 0 6px 8px rgba(255, 255, 255, 0.5),
+    inset 0 -6px 8px rgba(0, 0, 0, 0.5),
+    0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* 5. トークン（スロット＆カード）のゲームスタイル化 */
+
+/* 共通の斜め面取り（サイバーオクタゴン）形状 */
+.token-card-skill,
+.token-card-passive,
+.token-card-curse,
+.token-card-empty,
+.token-card-empty-expandable {
+  clip-path: polygon(15% 0, 85% 0, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0 85%, 0 15%);
+  border: none !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* クリップパスにそって完璧な1pxの外枠線を描画するためのインナーマスク（疑似要素 ::before） */
+.token-card-skill::before,
+.token-card-passive::before,
+.token-card-curse::before,
+.token-card-empty::before,
+.token-card-empty-expandable::before {
+  content: "";
+  position: absolute;
+  inset: 1px; /* 1pxの外枠境界線 */
+  clip-path: polygon(15% 0, 85% 0, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0 85%, 0 15%);
+  z-index: 1;
+  transition: all 0.25s ease;
+}
+
+/* トークン内のすべての直接の子要素はくり抜き用の ::before（背景）の上に表示 */
+.token-card-skill > *,
+.token-card-passive > *,
+.token-card-curse > *,
+.token-card-empty > *,
+.token-card-empty-expandable > * {
+  z-index: 10;
+}
+
+/* スキルトークン（アクティブ）のサイバー表示 */
+.token-card-skill {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+.token-card-skill::before {
+  background: linear-gradient(135deg, rgba(20, 26, 42, 0.96) 0%, rgba(10, 13, 22, 0.98) 100%);
+}
+.token-card-skill:hover {
+  transform: translateY(-2px) scale(1.03);
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  box-shadow: 
+    0 0 15px rgba(59, 130, 246, 0.5),
+    0 6px 18px rgba(0, 0, 0, 0.5);
+}
+.token-card-skill:hover::before {
+  background: linear-gradient(135deg, rgba(24, 32, 52, 0.96) 0%, rgba(12, 16, 28, 0.98) 100%);
+}
+
+/* パッシブトークンのサイバー表示 */
+.token-card-passive {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+.token-card-passive::before {
+  background: linear-gradient(135deg, rgba(26, 20, 42, 0.96) 0%, rgba(13, 10, 22, 0.98) 100%);
+}
+.token-card-passive:hover {
+  transform: translateY(-2px) scale(1.03);
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+  box-shadow: 
+    0 0 15px rgba(139, 92, 246, 0.5),
+    0 6px 18px rgba(0, 0, 0, 0.5);
+}
+.token-card-passive:hover::before {
+  background: linear-gradient(135deg, rgba(32, 24, 52, 0.96) 0%, rgba(16, 12, 28, 0.98) 100%);
+}
+
+/* 呪いトークンのサイバー表示 */
+.token-card-curse {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  animation: curse-frame-pulse 3s infinite ease-in-out;
+}
+.token-card-curse::before {
+  background: linear-gradient(135deg, rgba(42, 20, 20, 0.98) 0%, rgba(22, 10, 10, 0.99) 100%);
+}
+.token-card-curse:hover {
+  transform: translateY(-2px) scale(1.03);
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  box-shadow: 
+    0 0 18px rgba(239, 68, 68, 0.55),
+    0 6px 18px rgba(0, 0, 0, 0.6);
+}
+.token-card-curse:hover::before {
+  background: linear-gradient(135deg, rgba(52, 24, 24, 0.98) 0%, rgba(18, 12, 12, 0.99) 100%);
+}
+
+@keyframes curse-frame-pulse {
+  0%, 100% {
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ef4444 100%);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.35), 0 4px 12px rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* 空スロット */
+.token-card-empty {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+.token-card-empty::before {
+  background: 
+    radial-gradient(circle at center, rgba(15, 23, 42, 0.96) 0%, rgba(8, 12, 21, 0.98) 100%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 2px, transparent 2px, transparent 8px);
+  background-blend-mode: overlay;
+}
+
+/* 拡張可能スロット */
+.token-card-empty-expandable {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15);
+  animation: expandable-frame-pulse 2.5s infinite ease-in-out;
+}
+.token-card-empty-expandable::before {
+  background: linear-gradient(135deg, rgba(28, 21, 7, 0.97) 0%, rgba(13, 10, 3, 0.99) 100%);
+}
+.token-card-empty-expandable:hover {
+  transform: scale(1.03);
+  background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
+  box-shadow: 
+    0 0 12px rgba(251, 191, 36, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+}
+.token-card-empty-expandable:hover::before {
+  background: linear-gradient(135deg, rgba(38, 28, 10, 0.97) 0%, rgba(18, 14, 5, 0.99) 100%);
+}
+
+@keyframes expandable-frame-pulse {
+  0%, 100% {
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  }
+  50% {
+    background: linear-gradient(135deg, #ffdb70 0%, #fbbf24 100%);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.3), 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* トークンアイコンコンテナ（枠線と背景を完全に排除し、中のアイコンを直接浮かび上がらせる） */
+.token-icon-wrap {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 0 6px currentColor);
+  clip-path: none !important;
+}
+
+/* トークンのレベルタグ（枠線を排除し、右下にさりげなく配置） */
+.token-level-tag {
+  font-family: var(--font-sans), sans-serif;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 0;
+  background: transparent !important;
+  border: none !important;
+  color: #fbbf24;
+  box-shadow: none !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 3px rgba(251, 191, 36, 0.4);
+  letter-spacing: 0.05em;
+  z-index: 40;
+}
+
+/* バフなどの動的ステートに応じた光彩エフェクト（インナーベベルを壊さず外周グローのみ付与） */
+.token-buff-cyan {
+  box-shadow: 
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 0 14px rgba(34, 211, 238, 0.6),
+    0 4px 10px rgba(0, 0, 0, 0.4) !important;
+  animation: buff-neon-pulse 1.5s infinite ease-in-out;
+}
+.token-ready-gold {
+  box-shadow: 
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.15),
+    0 0 14px rgba(251, 191, 36, 0.65),
+    0 4px 10px rgba(0, 0, 0, 0.4) !important;
+  animation: ready-neon-pulse 2s infinite ease-in-out;
+}
+.token-ready-sky {
+  box-shadow: 
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.15),
+    0 0 14px rgba(56, 189, 248, 0.65),
+    0 4px 10px rgba(0, 0, 0, 0.4) !important;
+}
+
+@keyframes buff-neon-pulse {
+  0%, 100% {
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 0 10px rgba(34, 211, 238, 0.4), 0 4px 10px rgba(0, 0, 0, 0.4) !important;
+  }
+  50% {
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 0 18px rgba(34, 211, 238, 0.8), 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  }
+}
+
+@keyframes ready-neon-pulse {
+  0%, 100% {
+    box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.15), 0 0 10px rgba(251, 191, 36, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4) !important;
+  }
+  50% {
+    box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.15), 0 0 18px rgba(251, 191, 36, 0.85), 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  }
+}
+
+/* 中央配置用レベルバッジ（台形デザイン） */
+.token-level-tag-center {
+  font-family: var(--font-sans), sans-serif;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 0;
+  background: transparent !important;
+  border: none !important;
+  color: #fbbf24;
+  box-shadow: none !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 3px rgba(251, 191, 36, 0.4);
+  letter-spacing: 0.05em;
+  z-index: 40;
+}
+
+/* Type 1: アクセントコーナー（左上の斜めカット境界）用の装飾 */
+.token-corner-fire::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  background: #ef4444;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  z-index: 15;
+  box-shadow: 0 0 6px #ef4444;
+}
+.token-corner-water::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  background: #3b82f6;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  z-index: 15;
+  box-shadow: 0 0 6px #3b82f6;
+}
+.token-corner-wood::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  background: #10b981;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  z-index: 15;
+  box-shadow: 0 0 6px #10b981;
+}
+.token-corner-light::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  background: #fbbf24;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  z-index: 15;
+  box-shadow: 0 0 6px #fbbf24;
+}
+.token-corner-dark::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  background: #8b5cf6;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  z-index: 15;
+  box-shadow: 0 0 6px #8b5cf6;
+}
+.token-corner-heart::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  background: #ec4899;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  z-index: 15;
+  box-shadow: 0 0 6px #ec4899;
+}
+
+/* Type 3: 属性シンクロプレート発光用（外枠とグロー色をエレメントと統合） */
+.token-element-fire {
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%) !important;
+}
+.token-element-fire::before {
+  background: linear-gradient(135deg, rgba(35, 15, 15, 0.96) 0%, rgba(18, 8, 8, 0.98) 100%) !important;
+}
+.token-element-fire:hover {
+  background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%) !important;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.6), 0 6px 18px rgba(0, 0, 0, 0.5) !important;
+}
+
+.token-element-water {
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%) !important;
+}
+.token-element-water::before {
+  background: linear-gradient(135deg, rgba(15, 25, 35, 0.96) 0%, rgba(8, 12, 18, 0.98) 100%) !important;
+}
+.token-element-water:hover {
+  background: linear-gradient(135deg, #7dd3fc 0%, #0369a1 100%) !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.6), 0 6px 18px rgba(0, 0, 0, 0.5) !important;
+}
+
+.token-element-wood {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%) !important;
+}
+.token-element-wood::before {
+  background: linear-gradient(135deg, rgba(15, 30, 20, 0.96) 0%, rgba(8, 15, 10, 0.98) 100%) !important;
+}
+.token-element-wood:hover {
+  background: linear-gradient(135deg, #6ee7b7 0%, #047857 100%) !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.6), 0 6px 18px rgba(0, 0, 0, 0.5) !important;
+}
+
+.token-element-light {
+  background: linear-gradient(135deg, #fbbf24 0%, #ca8a04 100%) !important;
+}
+.token-element-light::before {
+  background: linear-gradient(135deg, rgba(30, 25, 15, 0.96) 0%, rgba(15, 12, 8, 0.98) 100%) !important;
+}
+.token-element-light:hover {
+  background: linear-gradient(135deg, #fcd34d 0%, #eab308 100%) !important;
+  box-shadow: 0 0 16px rgba(251, 191, 36, 0.6), 0 6px 18px rgba(0, 0, 0, 0.5) !important;
+}
+
+.token-element-dark {
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%) !important;
+}
+.token-element-dark::before {
+  background: linear-gradient(135deg, rgba(25, 15, 35, 0.96) 0%, rgba(12, 8, 18, 0.98) 100%) !important;
+}
+.token-element-dark:hover {
+  background: linear-gradient(135deg, #c4b5fd 0%, #6d28d9 100%) !important;
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.6), 0 6px 18px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* --- トークンステータス（Ready, Active, CD, Charge）のゲーム調拡張 --- */
+
+/* ステータスタグの基本設計（極小サイバーHUDタグ） */
+.token-status-tag {
+  position: absolute;
+  font-size: 7px;
+  font-weight: 900;
+  padding: 1px 3.5px;
+  border-radius: 2px;
+  z-index: 45;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  box-shadow: 0 1.5px 3px rgba(0,0,0,0.65);
+  font-family: var(--font-game-cyber), sans-serif;
+  line-height: 1;
+}
+
+/* 左上配置 (ACTIVEバフ残りターン用) */
+.tag-pos-left {
+  top: 2px;
+  left: 2px;
+}
+
+/* 右上配置 (READYタグやチャージ進捗用) */
+.tag-pos-right {
+  top: 2px;
+  right: 2px;
+}
+
+/* READY: 発動可能（ゴールドネオン） */
+.token-status-tag.tag-ready {
+  background: #fbbf24;
+  color: #0f0f15;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.8);
+  font-weight: 950;
+  animation: tag-ready-pulse 1.2s infinite ease-in-out;
+}
+
+/* ACTIVE: 発動持続中（グリーンネオン） */
+.token-status-tag.tag-active {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+  animation: tag-active-pulse 1.5s infinite ease-in-out;
+}
+
+/* CHARGE: チャージ中（ブルー） */
+.token-status-tag.tag-charge {
+  background: #3b82f6;
+  color: #ffffff;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
+}
+
+@keyframes tag-ready-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 5px rgba(251, 191, 36, 0.55);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.95);
+  }
+}
+
+@keyframes tag-active-pulse {
+  0%, 100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.95);
+  }
+}
+
+/* チャージプログレスゲージ（カード下部） */
+.token-charge-gauge-container {
+  position: absolute;
+  bottom: 0px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 35;
+  overflow: hidden;
+}
+
+.token-charge-gauge-bar {
+  height: 100%;
+  background: linear-gradient(to right, #3b82f6, #60a5fa);
+  box-shadow: 0 0 6px #60a5fa;
+  transition: width 0.3s ease;
+}
+
+/* レベルタグを少し上に逃がす（チャージバーがあるため） */
+.token-card-has-gauge .token-level-tag-center {
+  bottom: 3.5px !important;
+}
+
+/* 回転ネオンマジックリング（Ready状態の背後でゆっくり回るサークル） */
+.token-magic-ring {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border: 1.5px dashed rgba(251, 191, 36, 0.45);
+  border-radius: 50%;
+  z-index: 5;
+  pointer-events: none;
+  animation: magic-ring-rotate 12s linear infinite;
+  filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.5));
+}
+
+@keyframes magic-ring-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
 
 

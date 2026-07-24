@@ -892,42 +892,42 @@ const HelpScreen = ({ onClose }) => {
 
     return (
         <div
-            className="w-full h-screen bg-background-dark/90 flex flex-col items-center justify-center p-4 animate-fade-in font-display"
+            className="w-full h-screen bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-fade-in font-game-cyber"
             onClick={onClose}
         >
             <div
-                className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md h-full max-h-[90vh] shadow-2xl flex flex-col overflow-hidden relative"
+                className="game-panel-cyber rounded-2xl w-full max-w-md h-full max-h-[90vh] flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* ヘッダー */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-surface-dark shrink-0">
-                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                        <span className="material-icons-round text-primary text-[22px]">menu_book</span>
+                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-slate-950/40 shrink-0">
+                    <h2 className="text-base font-game-header text-indigo-300 flex items-center gap-2">
+                        <span className="material-icons-round text-indigo-400 text-[20px]">menu_book</span>
                         ヘルプ・遊び方
                     </h2>
                     <button
                         onClick={onClose}
-                        className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors"
+                        className="btn-game-cyber rounded-xl w-8 h-8 p-0 flex items-center justify-center text-slate-400"
                     >
-                        <span className="material-icons-round text-[20px]">close</span>
+                        <span className="material-icons-round text-[18px]">close</span>
                     </button>
                 </div>
 
                 {/* タブナビゲーション */}
-                <div className="flex gap-0 border-b border-white/10 bg-slate-900 shrink-0 overflow-x-auto no-scrollbar">
+                <div className="flex gap-0 border-b border-white/10 bg-slate-950/20 shrink-0 overflow-x-auto no-scrollbar">
                     {TABS.map(({ id, label, icon }) => {
                         const isActive = activeTab === id;
                         return (
                             <button
                                 key={id}
                                 onClick={() => setActiveTab(id)}
-                                className={`flex flex-col items-center gap-0.5 px-3 py-2.5 text-[10px] font-bold whitespace-nowrap shrink-0 border-b-2 transition-all ${
+                                className={`flex flex-col items-center gap-0.5 px-3 py-2 text-[10px] font-bold whitespace-nowrap shrink-0 border-b-2 transition-all ${
                                     isActive
-                                        ? 'border-primary text-primary bg-primary/5'
-                                        : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                        ? 'border-indigo-500 text-indigo-300 bg-indigo-500/10'
+                                        : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
                                 }`}
                             >
-                                <span className={`material-icons-round text-[18px] ${isActive ? 'text-primary' : ''}`}>{icon}</span>
+                                <span className={`material-icons-round text-[16px] ${isActive ? 'text-indigo-300' : ''}`}>{icon}</span>
                                 {label}
                             </button>
                         );
@@ -940,10 +940,10 @@ const HelpScreen = ({ onClose }) => {
                 </div>
 
                 {/* フッター */}
-                <div className="p-3 border-t border-white/10 shrink-0 bg-slate-900">
+                <div className="p-3 border-t border-white/10 shrink-0 bg-slate-950/40">
                     <button
                         onClick={onClose}
-                        className="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-bold transition-colors shadow-lg"
+                        className="w-full btn-game-primary py-3 text-base"
                     >
                         ゲームに戻る
                     </button>

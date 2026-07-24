@@ -84,48 +84,48 @@ SOFTWARE.`
 
     return (
         <div 
-            className="w-full h-screen bg-background-dark flex flex-col items-center justify-center p-4 animate-fade-in font-display"
+            className="w-full h-screen bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-fade-in font-game-cyber"
             onClick={onClose}
         >
             <div 
-                className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md h-full max-h-[85vh] shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative"
+                className="game-panel-cyber rounded-2xl w-full max-w-md h-full max-h-[85vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
-
                 {/* ヘッダー */}
-                <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-900 shrink-0">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <span className="material-icons-round text-primary">info</span>
+                <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-950/40 shrink-0">
+                    <h2 className="text-base font-game-header text-indigo-300 flex items-center gap-2">
+                        <span className="material-icons-round text-indigo-400">info</span>
                         CREDITS
                     </h2>
                     <button
                         onClick={onClose}
-                        className="p-2 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors"
+                        className="btn-game-cyber rounded-xl w-8 h-8 p-0 flex items-center justify-center text-slate-400"
                     >
-                        <span className="material-icons-round">close</span>
+                        <span className="material-icons-round text-[18px]">close</span>
                     </button>
                 </div>
 
                 {/* スクロールエリア */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
-
                     {/* 開発者 */}
-                    <section className="text-center">
+                    <div className="text-center">
                         <h3 className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Developer</h3>
-                        <p className="text-xl font-black text-white italic">MORI</p>
-                    </section>
+                        <p className="text-xl font-game-header text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500 drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]">
+                            MORI
+                        </p>
+                    </div>
 
                     {/* 素材 */}
                     <section>
                         <h3 className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-widest text-center">Assets & Materials</h3>
                         <div className="space-y-3">
-                            <div className="bg-slate-800/50 p-3 rounded-xl border border-white/5">
+                            <div className="bg-slate-950/40 p-3 rounded-xl border border-white/5">
                                 <p className="text-xs font-bold text-slate-300">BGM・効果音</p>
-                                <p className="text-sm text-slate-400">魔王魂 / 効果音ラボ</p>
+                                <p className="text-sm text-slate-400 mt-1">魔王魂 / 効果音ラボ</p>
                             </div>
-                            <div className="bg-slate-800/50 p-3 rounded-xl border border-white/5">
+                            <div className="bg-slate-950/40 p-3 rounded-xl border border-white/5">
                                 <p className="text-xs font-bold text-slate-300">アイコン・フォント</p>
-                                <p className="text-sm text-slate-400">Material Icons / Google Fonts</p>
+                                <p className="text-sm text-slate-400 mt-1">Material Icons / Google Fonts</p>
                             </div>
                         </div>
                     </section>
@@ -137,7 +137,7 @@ SOFTWARE.`
                             {licenses.map((lib, i) => (
                                 <div key={i} className="bg-slate-950/50 p-4 rounded-xl border border-white/5">
                                     <div className="flex items-center justify-between mb-2">
-                                        <p className="text-sm font-bold text-primary">{lib.name}</p>
+                                        <p className="text-sm font-bold text-indigo-400">{lib.name}</p>
                                         <p className="text-[10px] text-slate-500">v{lib.version} / {lib.license}</p>
                                     </div>
                                     <pre className="text-[9px] text-slate-500 font-mono leading-relaxed overflow-x-auto p-2 bg-black/30 rounded-lg max-h-32">
@@ -154,15 +154,14 @@ SOFTWARE.`
                 </div>
 
                 {/* フッター */}
-                <div className="p-4 border-t border-white/10 shrink-0">
+                <div className="p-4 border-t border-white/10 shrink-0 bg-slate-950/40">
                     <button
                         onClick={onClose}
-                        className="w-full bg-primary hover:bg-primary-hover text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 active:scale-95"
+                        className="w-full btn-game-secondary py-3 text-sm"
                     >
                         閉じる
                     </button>
                 </div>
-
             </div>
         </div>
     );

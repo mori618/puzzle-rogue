@@ -9,6 +9,7 @@ import CreditsScreen from "./CreditsScreen";
 import SettingsScreen from "./SettingsScreen";
 import StartOptionScreen from "./StartOptionScreen";
 import TokenEncyclopediaScreen from "./TokenEncyclopediaScreen";
+import UIPreviewScreen from "./UIPreviewScreen";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { getEnchantDescription } from './constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, INITIAL_TOKEN_SLOTS } from './constants/gameConstants.js';
@@ -126,6 +127,14 @@ const App = () => {
   } = gameState;
 
   const [showSlotExpandConfirm, setShowSlotExpandConfirm] = React.useState(false);
+  const [showUIPreview, setShowUIPreview] = React.useState(false);
+  const [showComboDetails, setShowComboDetails] = React.useState(false);
+
+  if (showUIPreview) {
+    return (
+      <UIPreviewScreen onClose={() => setShowUIPreview(false)} />
+    );
+  }
 
   if (!isLoaded) {
     return (
@@ -193,6 +202,7 @@ const App = () => {
         onSettings={() => setShowSettings(true)}
         onEncyclopedia={() => setShowEncyclopedia(true)}
         onPractice={handleStartPractice}
+        onUIPreview={() => setShowUIPreview(true)}
       />
     );
   }
@@ -359,43 +369,45 @@ const App = () => {
               </div>
             </section>
           ) : (
-            <section className="relative z-10 px-4 py-1.5 flex-none w-full h-[9dvh] min-h-[64px] max-h-[80px] flex items-center">
-              <div className={`flex items-center w-full p-2.5 rounded-2xl border transition-all duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-950/40 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake-tension' : goalReached ? 'bg-green-950/20 border-green-500/30' : 'bg-slate-800/40 border-white/5 shadow-md'}`}>
-                {/* Target Combo テキスト表示 (左) */}
-                <div className="flex-1 flex items-center gap-2.5 min-w-0 pl-1 pr-2">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border shrink-0 shadow-inner transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-900 border-red-500/50 text-red-300' : goalReached ? 'bg-green-900/40 border-green-500/40 text-green-400' : 'bg-slate-800 border-white/10 text-primary'}`}>
-                    <span className="material-icons-round text-xl">flag</span>
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className={`text-[10px] uppercase font-bold text-left tracking-wider transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'text-red-400' : goalReached ? 'text-green-400' : 'text-slate-400'}`}>Target Combo</span>
-                    <span className={`text-lg font-mono font-bold truncate text-left leading-tight transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'text-red-300 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]' : goalReached ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : isBeyondMode ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' : 'text-slate-300'}`}>
-                      {formatJapaneseNumber(isBeyondMode ? target : effectiveTarget)}
+            <section className="relative z-10 px-4 py-1.5 flex-none w-full h-[9dvh] min-h-[64px] max-h-[80px] flex flex-col justify-center">
+              <div 
+                className="w-full relative cursor-pointer" 
+                onClick={() => setShowComboDetails(!showComboDetails)}
+              >
+                {/* テキスト情報 */}
+                <div className="flex justify-between items-end mb-1 px-1">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'text-red-400' : goalReached ? 'text-green-400' : 'text-slate-400'}`}>
+                    {goalReached ? 'Goal Reached!' : 'Combo Progress'}
+                  </span>
+                  <span className={`text-sm font-mono font-bold transition-all duration-300 flex items-baseline gap-1 ${goalReached ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'text-white'}`}>
+                    <span ref={targetComboRef} className={targetPulse ? 'animate-target-pulse text-yellow-300' : ''}>
+                      {showComboDetails ? formatJapaneseNumber(cycleTotalCombo) : `${Math.floor(Math.min(100, ((cycleTotalCombo / (isBeyondMode ? target : effectiveTarget)) * 100) || 0))}%`}
                     </span>
+                    {showComboDetails && (
+                      <span className="text-slate-500 text-[10px] animate-fade-in">/ {formatJapaneseNumber(isBeyondMode ? target : effectiveTarget)}</span>
+                    )}
+                  </span>
+                </div>
+                
+                {/* ゲージ本体 */}
+                <div className={`h-4 w-full rounded-full border overflow-hidden transition-all duration-300 relative ${turn === maxTurns && !goalReached ? 'bg-red-950/40 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake-tension' : goalReached ? 'bg-green-950/20 border-green-500/30' : 'bg-slate-800/40 border-white/10 shadow-inner'}`}>
+                  {/* 塗りつぶしバー */}
+                  <div 
+                    className={`h-full transition-all duration-500 ease-out rounded-full relative ${goalReached ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]' : 'bg-gradient-to-r from-orange-600 to-yellow-500'}`}
+                    style={{ width: `${Math.min(100, ((cycleTotalCombo / (isBeyondMode ? target : effectiveTarget)) * 100) || 0)}%` }}
+                  >
+                    {/* 光沢エフェクト */}
+                    <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/20 rounded-t-full"></div>
                   </div>
                 </div>
 
-                {/* 縦棒 (仕切り) 上下を少し開ける */}
-                <div className={`w-[1px] h-8 flex-shrink-0 mx-1 rounded-full transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'bg-red-500/30' : goalReached ? 'bg-green-500/30' : 'bg-white/10'}`}></div>
-
-                {/* Current Combo テキスト表示 (右) */}
-                <div className="flex-1 flex items-center gap-2.5 min-w-0 pl-2 pr-1 relative">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border shrink-0 shadow-inner transition-colors duration-300 ${goalReached ? 'bg-green-900/40 border-green-500/40 text-green-400' : 'bg-slate-800 border-white/10 text-orange-500'}`}>
-                    <span className="material-icons-round text-xl">whatshot</span>
-                  </div>
-                  <div className="flex flex-col min-w-0 relative">
-                    <span className={`text-[10px] uppercase font-bold text-left tracking-wider transition-colors duration-300 ${goalReached ? 'text-green-400' : 'text-slate-400'}`}>Current Combo</span>
-                    <span
-                      ref={targetComboRef}
-                      className={`text-lg font-mono font-bold truncate text-left leading-tight transition-colors duration-300 drop-shadow-sm ${targetPulse ? 'animate-target-pulse text-yellow-300' : goalReached ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'text-white'}`}
-                    >
-                      {formatJapaneseNumber(cycleTotalCombo)}
-                    </span>
-                    {comboPopups.map((p) => (
-                      <div key={p.id} className="value-popup text-orange-400 right-0 -top-2 animate-float-up-fade text-base">
-                        +{formatJapaneseNumber(p.diff)}
-                      </div>
-                    ))}
-                  </div>
+                {/* ポップアップ */}
+                <div className="absolute right-0 -top-4 w-full h-full pointer-events-none">
+                  {comboPopups.map((p) => (
+                    <div key={p.id} className="value-popup text-orange-400 absolute right-0 top-0 animate-float-up-fade text-base font-bold drop-shadow-md z-20">
+                      +{formatJapaneseNumber(p.diff)}
+                    </div>
+                  ))}
                 </div>
               </div>
             </section>
@@ -494,15 +506,12 @@ const App = () => {
                                 const isSlot1OnlyToken = t && SLOT1_ONLY_EFFECTS.includes(t.effect);
                                 const isSlot1Active = isSlot1OnlyToken && globalSlot === 0;
                                 const isSlot1Inactive = isSlot1OnlyToken && globalSlot !== 0;
-                                let borderColor = isLocked ? (isExpandable ? 'border-amber-500/30' : 'border-slate-800') : (t ? (t.rarity === 4 ? 'border-red-500/60' : t.rarity === 3 ? 'border-yellow-400/60' : t.rarity === 2 ? 'border-sky-400/60' : 'border-white/20') : 'border-white/5');
                                 let shadowClass = '';
                                 let animClass = '';
                                 // スロット1のみ発動トークンの枠装飾
                                 if (isSlot1Active && !animClass) {
-                                  borderColor = 'border-amber-300';
                                   shadowClass = 'shadow-[0_0_12px_rgba(251,191,36,0.7)] animate-pulse';
                                 } else if (isSlot1Inactive && !animClass) {
-                                  borderColor = 'border-orange-500/50 border-dashed';
                                   shadowClass = '';
                                 }
                                 if (t && triggeredPassives.includes(t.instanceId || t.id)) {
@@ -528,7 +537,6 @@ const App = () => {
                                       break;
                                   }
                                   if (conditionMet) {
-                                    borderColor = 'border-green-400/80';
                                     shadowClass = 'shadow-[0_0_15px_rgba(74,222,128,0.5)]';
                                   }
                                 }
@@ -547,14 +555,20 @@ const App = () => {
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, globalSlot + 1, false)}
                                     onDragEnd={() => setDraggedToken(null)}
-                                    className={`w-full aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isSlot1Inactive ? 'opacity-60' : ''} ${isLocked ? (isExpandable ? 'bg-slate-800/40 cursor-pointer hover:bg-amber-500/10 hover:border-amber-400/60 hover:scale-105' : 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed') : (t ? `bg-slate-800 ${borderColor} cursor-pointer hover:bg-white/5 hover:scale-105` : 'bg-slate-900/30 border-white/5 border-dashed')}`}
+                                    className={`w-full aspect-square relative ${draggedToken === t ? 'opacity-40 scale-95' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isSlot1Inactive ? 'opacity-60' : ''} ${
+                                      isLocked 
+                                        ? (isExpandable ? 'token-card-empty-expandable cursor-pointer' : 'token-card-empty opacity-40 cursor-not-allowed')
+                                        : (t 
+                                            ? `${(t.isCurse || t.type === 'curse') ? 'token-card-curse' : 'token-card-passive'} cursor-pointer` 
+                                            : 'token-card-empty'
+                                          )
+                                    }`}
                                   >
-
-                                    <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
+                                    <div className="absolute inset-0 overflow-hidden">
                                       {/* 属性バー */}
                                       {t && (
                                         <div
-                                          className="absolute left-0 top-0 bottom-0 w-1 z-30"
+                                          className="absolute left-0 top-0 bottom-0 w-1.5 z-30"
                                           style={getAttributeBarStyles(t?.attributes)}
                                         />
                                       )}
@@ -569,14 +583,14 @@ const App = () => {
                                       ) : t ? (
                                         <div className="absolute inset-0 flex items-center justify-center">
                                           {t.isCountPassive && (
-                                            <div className="absolute inset-0 bg-primary/5">
+                                            <div className="absolute inset-0 bg-primary/5 z-20">
                                               <div
-                                                className="absolute bottom-0 left-0 right-0 bg-primary/20 transition-all duration-500"
+                                                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-primary/30 to-indigo-500/10 transition-all duration-500 shadow-[inset_0_1px_0_rgba(99,102,241,0.4)]"
                                                 style={{ height: `${Math.min(100, ((t.charge || 0) / (t.values?.[(t.level || 1) - 1] || 30)) * 100)}%` }}
                                               />
                                             </div>
                                           )}
-                                          <span className={`material-icons-round text-2xl relative z-10 ${t?.type === 'curse' || t?.isCurse ? 'text-red-500' : animClass ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-slate-400'}`}>
+                                          <span className={`material-icons-round text-2xl relative z-35 ${t?.type === 'curse' || t?.isCurse ? 'text-red-500' : animClass ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-slate-400'}`}>
                                             {getTokenIcon(t)}
                                           </span>
                                         </div>
@@ -584,9 +598,8 @@ const App = () => {
                                     </div>
                                     {t && !isLocked && (
                                       <>
-                                        {/* 属性丸は削除 */}
-                                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center text-[8px] leading-none text-white font-bold border-2 border-background-dark z-20">
-                                          {t.level || 1}
+                                        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 token-level-tag-center">
+                                          Lv.{t.level || 1}
                                         </div>
                                       </>
                                     )}
@@ -678,25 +691,26 @@ const App = () => {
                                   animClass = 'animate-bounce';
                                   triggeredShadow = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
                                 }
-                                const readyBorder = isCurse
-                                  ? 'border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.35)]'
-                                  : (t && t.rarity === 3 ? 'border-yellow-400/60 shadow-[0_0_10px_rgba(250,204,21,0.25)]' : t && t.rarity === 2 ? 'border-sky-400/60 shadow-[0_0_10px_rgba(56,189,248,0.25)]' : 'border-primary/50 shadow-[0_0_10px_rgba(91,19,236,0.25)]');
-                                const notReadyBorder = isCurse
-                                  ? 'border-red-500/30'
-                                  : (t && t.rarity === 3 ? 'border-yellow-400/30' : t && t.rarity === 2 ? 'border-sky-400/30' : 'border-white/10');
-                                const buffBorder = stackCount > 1 ? 'border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)] animate-pulse' : stackCount === 1 ? 'border-cyan-500/80 shadow-[0_0_10px_rgba(6,182,212,0.4)]' : '';
-                                // スロット1のみ発動トークンはスロット1時はゴールドグロー、それ以外はオレンジ警告枠
+                                const readyClass = isCurse
+                                  ? 'token-buff-cyan shadow-[0_0_12px_rgba(239,68,68,0.4)]'
+                                  : (t && t.rarity === 3 ? 'token-ready-gold' : t && t.rarity === 2 ? 'token-ready-sky' : '');
+                                const notReadyClass = '';
+                                const buffClass = stackCount > 0 ? 'token-buff-cyan' : '';
+                                // スロット1のみ発動トークンはスロット1時はゴールドグロー、それ以外は半透明化
                                 let slot1OnlyExtraClass = '';
                                 if (isActiveSlot1Active && !triggeredShadow) {
-                                  slot1OnlyExtraClass = 'border-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.7)] animate-pulse';
+                                  slot1OnlyExtraClass = 'token-ready-gold';
                                 } else if (isActiveSlot1Inactive) {
-                                  slot1OnlyExtraClass = 'border-orange-500/50 border-dashed';
+                                  slot1OnlyExtraClass = 'opacity-50';
                                 }
+                                const activeTokenBaseClass = t 
+                                  ? ((t.isCurse || t.type === 'curse') ? 'token-card-curse' : 'token-card-skill') 
+                                  : 'token-card-empty';
                                 let containerClasses = isLocked
-                                  ? (isExpandable ? 'bg-slate-800/40 border-amber-500/30 cursor-pointer hover:bg-amber-500/10 hover:border-amber-400/60 hover:scale-105' : 'bg-slate-950/50 border-slate-800 opacity-40 cursor-not-allowed')
+                                  ? (isExpandable ? 'token-card-empty-expandable cursor-pointer' : 'token-card-empty opacity-40 cursor-not-allowed')
                                   : (t
-                                    ? (slot1OnlyExtraClass ? `bg-slate-800 ${slot1OnlyExtraClass} cursor-pointer group hover:scale-105` : stackCount > 0 ? `bg-slate-800 ${buffBorder} cursor-pointer group hover:scale-105` : (isReady ? `bg-slate-800 ${readyBorder} cursor-pointer group hover:scale-105` : `bg-slate-900 ${notReadyBorder} opacity-80 cursor-pointer`))
-                                    : 'bg-slate-900/30 border-white/5 border-dashed');
+                                    ? (slot1OnlyExtraClass ? `${activeTokenBaseClass} ${slot1OnlyExtraClass} cursor-pointer group` : stackCount > 0 ? `${activeTokenBaseClass} ${buffClass} cursor-pointer group` : (isReady ? `${activeTokenBaseClass} ${readyClass} cursor-pointer group` : `${activeTokenBaseClass} ${notReadyClass} opacity-80 cursor-pointer`))
+                                    : 'token-card-empty');
                                 containerClasses = `${containerClasses} ${animClass} ${triggeredShadow}`;
                                 return (
                                   <div
@@ -713,14 +727,14 @@ const App = () => {
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, globalSlot + 1, true)}
                                     onDragEnd={() => setDraggedToken(null)}
-                                    className={`w-full aspect-square rounded-tr-xl rounded-br-xl relative border transition-all duration-300 ${draggedToken === t ? 'opacity-40 scale-95 border-primary/50' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isActiveSlot1Inactive ? 'opacity-60' : ''} ${containerClasses}`}
+                                    className={`w-full aspect-square relative ${draggedToken === t ? 'opacity-40 scale-95' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isActiveSlot1Inactive ? 'opacity-60' : ''} ${containerClasses}`}
                                   >
 
-                                    <div className="absolute inset-0 rounded-tr-xl rounded-br-xl overflow-hidden">
+                                    <div className="absolute inset-0 overflow-hidden">
                                       {/* 属性バー */}
                                       {t && (
                                         <div
-                                          className="absolute left-0 top-0 bottom-0 w-1 z-30 transition-all"
+                                          className="absolute left-0 top-0 bottom-0 w-1.5 z-30 transition-all"
                                           style={getAttributeBarStyles(t?.attributes)}
                                         />
                                       )}
@@ -734,14 +748,22 @@ const App = () => {
                                         </div>
                                       ) : t ? (
                                         <div className="absolute inset-0 flex items-center justify-center">
-                                          <div className="absolute inset-0 bg-primary/10">
+                                          {/* 背景進捗ゲージ */}
+                                          <div className="absolute inset-0 bg-primary/5 z-20">
                                             {isSkill && <div
-                                              className={`absolute bottom-0 left-0 right-0 transition-all duration-500 ${t?.isCurse ? 'bg-red-500/30' : 'bg-primary/20'}`}
+                                              className={`absolute bottom-0 left-0 right-0 transition-all duration-500 ${t?.isCurse ? 'bg-gradient-to-t from-red-500/30 to-red-500/10 shadow-[inset_0_1px_0_rgba(239,68,68,0.4)]' : 'bg-gradient-to-t from-primary/30 to-indigo-500/10 shadow-[inset_0_1px_0_rgba(99,102,241,0.4)]'}`}
                                               style={{ height: `${progress}%` }}
                                             />}
-                                            {stackCount > 0 && activeBuff && <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cyan-500/60 to-blue-400/30 transition-all duration-500" style={{ height: `${buffProgress}%` }}></div>}
+                                            {stackCount > 0 && activeBuff && (
+                                              <div
+                                                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cyan-500/40 to-blue-400/10 transition-all duration-500 shadow-[inset_0_1px_0_rgba(34,211,238,0.4)]"
+                                                style={{ height: `${buffProgress}%` }}
+                                              />
+                                            )}
                                           </div>
-                                          <span className={`material-icons-round text-2xl drop-shadow-md relative z-10 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : (t?.isCurse || t?.type === 'curse') ? (isReady ? 'text-red-400' : 'text-red-700') : (isReady ? 'text-primary' : 'text-slate-500')}`}>
+                                          {/* Ready状態の回転ネオンマジックリング */}
+                                          {isReady && <div className="token-magic-ring z-25"></div>}
+                                          <span className={`material-icons-round text-2xl drop-shadow-md relative z-35 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : (t?.isCurse || t?.type === 'curse') ? (isReady ? 'text-red-400' : 'text-red-700') : (isReady ? 'text-primary' : 'text-slate-500')}`}>
                                             {getTokenIcon(t)}
                                           </span>
                                         </div>
@@ -750,24 +772,19 @@ const App = () => {
 
                                     {t && !isLocked && (
                                       <>
-                                        {/* 属性丸は削除 */}
-                                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[8px] leading-none text-white font-bold border-2 border-background-dark z-20">
-                                          {t.level || 1}
+                                        {/* レベルタグ（中央下に配置） */}
+                                        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 token-level-tag-center">
+                                          Lv.{t.level || 1}
                                         </div>
-                                        {isSkill && t.cost > 0 && (
-                                          <div className="absolute top-[-4px] right-1 z-20">
-                                            <span className="text-[10px] text-slate-300 font-mono font-bold drop-shadow-md">{charge}/{cost}</span>
-                                          </div>
+                                        {/* チャージ・Readyステータスタグ（チャージ中のみ表示、Ready時はエフェクトがあるため非表示） */}
+                                        {isSkill && t.cost > 0 && !isReady && (
+                                          <span className="token-status-tag tag-charge text-[7px] absolute top-1 right-1 z-40">{charge}/{cost}</span>
                                         )}
+                                        {/* バフ持続ターン数＆スタック数タグ（左上に統合して直接配置） */}
                                         {stackCount > 0 && activeBuff && (
-                                          <div className="absolute top-[-4px] left-1 z-20">
-                                            <span className="text-[10px] text-cyan-300 font-bold drop-shadow-md">{activeBuff.duration}t</span>
-                                          </div>
-                                        )}
-                                        {stackCount > 1 && (
-                                          <div className="absolute bottom-0 left-0 w-4 h-4 bg-cyan-600 rounded-full flex items-center justify-center text-[8px] leading-none text-white font-bold border-2 border-background-dark z-20 shadow-sm">
-                                            x{stackCount}
-                                          </div>
+                                          <span className="token-status-tag tag-active text-[7px] absolute top-1 left-1 z-40">
+                                            {activeBuff.duration}T{stackCount > 1 ? ` x${stackCount}` : ''}
+                                          </span>
                                         )}
                                       </>
                                     )}
@@ -1271,13 +1288,13 @@ const App = () => {
                       {selectedTokenDetail.actionText}
                     </div>
                   )}
-                  <div className="bg-slate-800 w-full max-w-xs rounded-2xl p-6 border border-primary/30 shadow-[0_0_40px_rgba(91,19,236,0.15)]" onClick={e => e.stopPropagation()}>
+                  <div className={`w-full max-w-xs rounded-2xl p-6 ${(t.isCurse || t.type === 'curse') ? 'token-card-curse' : isSkill ? 'token-card-skill' : 'token-card-passive'}`} style={{ clipPath: 'none' }} onClick={e => e.stopPropagation()}>
                     {/* ヘッダー */}
                     <div className="flex items-center gap-3 mb-4">
-                      <div className={`w-12 h-12 rounded-tr-xl rounded-br-xl relative flex items-center justify-center overflow-hidden ${(t.isCurse || t.type === 'curse') ? 'bg-red-500/20 border border-red-500/30' : isSkill ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-purple-500/20 border border-purple-500/30'}`}>
+                      <div className={`w-12 h-12 rounded-tr-xl rounded-br-xl relative flex items-center justify-center overflow-hidden token-icon-wrap`}>
                         {/* 属性バー */}
                         <div
-                          className="absolute left-0 top-0 bottom-0 w-1 z-30"
+                          className="absolute left-0 top-0 bottom-0 w-1.5 z-30"
                           style={getAttributeBarStyles(t?.attributes)}
                         />
                         <span className={`material-icons-round text-2xl ${(t.isCurse || t.type === 'curse') ? 'text-red-400' : isSkill ? 'text-blue-400' : 'text-purple-400'}`}>

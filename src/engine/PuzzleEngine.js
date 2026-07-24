@@ -88,6 +88,7 @@ class PuzzleEngine {
     this.erasedByBombColors = [];
 
     // 高速化（ファストフォワード）機能用ステートとバインド
+    this.activePointerId = null; // ドラッグ操作中の Pointer ID (マルチタッチ誤動作防止)
     this.isPointerDown = false;
     this.isFastForward = false;
     this.speedMultiplier = options.speedMultiplier || 3;
@@ -533,12 +534,21 @@ class PuzzleEngine {
     }
 
     const handler = (e) => {
-      if (e.type === "touchstart") e.preventDefault();
-      // 修正: クロージャの r, c ではなく、orb オブジェクトを直接渡す
-      this.onStart(e.type === "touchstart" ? e.touches[0] : e, orb);
+      if (this.processing) return;
+      if (this.activePointerId !== null) return;
+      // 左クリックまたはタッチ・ペン入力のみ受け付ける（従来マウスイベントもサポート）
+      if (e.type.startsWith('mouse') && e.button !== 0) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+      if (e.type.startsWith('touch') || e.pointerType === 'touch') {
+        e.preventDefault();
+      }
+
+      this.onStart(e, orb);
     };
-    el.onmousedown = handler;
-    el.ontouchstart = handler;
+    el.addEventListener('pointerdown', handler, { passive: false });
+    el.addEventListener('mousedown', handler);
+    el.addEventListener('touchstart', handler, { passive: false });
 
     // 強化ドロップ判定（新規生成時のみ）
     if (isNew && this.enhanceRates) {
@@ -681,6 +691,31 @@ class PuzzleEngine {
 
   onStart(e, orbOrR, c) {
     if (this.processing) return;
+    if (this.activePointerId !== null) return; // すでに操作中ならマルチタッチを無視
+
+    let target;
+    if (typeof orbOrR === 'object') {
+      target = orbOrR;
+    } else {
+      // Fallback (old signature support)
+      target = this.state[orbOrR][c];
+    }
+
+    if (!target) return;
+
+    // pointerId を取得（テスト等の MouseEvent では pointerId が undefined なので fallback-id とする）
+    const pid = e && typeof e.pointerId !== 'undefined' ? e.pointerId : 'fallback-id';
+    this.activePointerId = pid;
+
+    // 画面外ドラッグを追従するため pointer capture を設定
+    if (e && e.currentTarget && typeof e.currentTarget.setPointerCapture === 'function') {
+      try {
+        e.currentTarget.setPointerCapture(pid);
+      } catch (err) {
+        console.warn("setPointerCapture failed", err);
+      }
+    }
+
     this._boardRect = this.container.getBoundingClientRect(); // ボード位置をキャッシュ
     this.isPointerDown = false;
     this.updateFastForwardState();
@@ -702,16 +737,6 @@ class PuzzleEngine {
         }
       });
     });
-
-    let target;
-    if (typeof orbOrR === 'object') {
-      target = orbOrR;
-    } else {
-      // Fallback (old signature support)
-      target = this.state[orbOrR][c];
-    }
-
-    if (!target) return;
 
     this.fingerTransformHistory = [];
     if (this.fingerTransformConfig) {
@@ -738,25 +763,75 @@ class PuzzleEngine {
     this.moveStart = null;
     this._lastMovePoint = null; // rAF用
 
-    // クロノス・ストップ中はタイマーを起動しない
-    if (!this.chronosStopActive) {
-      // 通常モード
+    // pointer イベントがサポートされているか、またはテストの MouseEvent に応じて登録
+    if (e && e.type.startsWith('pointer')) {
+      window.addEventListener("pointermove", this.onMove);
+      window.addEventListener("pointerup", this.onEnd);
+      window.addEventListener("pointercancel", this.onEnd);
+    } else {
+      window.addEventListener("mousemove", this.onMove);
+      window.addEventListener("mouseup", this.onEnd);
+      window.addEventListener("touchmove", this.onMove, { passive: false });
+      window.addEventListener("touchend", this.onEnd);
+      window.addEventListener("touchcancel", this.onEnd);
     }
+  }
 
-    window.addEventListener("mousemove", this.onMove);
-    window.addEventListener("mouseup", this.onEnd);
-    window.addEventListener("touchmove", this.onMove, { passive: false });
-    window.addEventListener("touchend", this.onEnd);
+  getNearestGridCell(x, y) {
+    const cellSize = this.orbSize + this.gap;
+    
+    // 現在の座標に最も近いセルを Math.round で計算
+    const targetC = Math.max(0, Math.min(this.cols - 1, Math.round(x / cellSize - 0.5)));
+    const targetR = Math.max(0, Math.min(this.rows - 1, Math.round(y / cellSize - 0.5)));
+    
+    const currR = this.dragging.r;
+    const currC = this.dragging.c;
+    
+    if (targetR === currR && targetC === currC) {
+      return { r: currR, c: currC };
+    }
+    
+    // 現在位置とターゲット位置の中心座標
+    const ccX = (currC + 0.5) * cellSize;
+    const ccY = (currR + 0.5) * cellSize;
+    const tcX = (targetC + 0.5) * cellSize;
+    const tcY = (targetR + 0.5) * cellSize;
+    
+    const distToCurrent = Math.hypot(x - ccX, y - ccY);
+    const distToTarget = Math.hypot(x - tcX, y - tcY);
+    
+    // ヒステリシスしきい値設定
+    // 隣接（上下左右）の場合は少しの侵入でOKだが、斜め移動は意図的な操作を重視するため、より中心に近づく必要がある
+    const isDiagonal = targetR !== currR && targetC !== currC;
+    const thresholdRatio = isDiagonal ? 0.70 : 0.85; 
+    
+    if (distToTarget < distToCurrent * thresholdRatio) {
+      return { r: targetR, c: targetC };
+    }
+    
+    return { r: currR, c: currC };
   }
 
   onMove(e) {
     if (!this.dragging) return;
+    
+    // pointerId をチェック
+    const pid = e && typeof e.pointerId !== 'undefined' ? e.pointerId : 'fallback-id';
+    if (pid !== this.activePointerId) return;
+
     if (e.type === "touchmove") e.preventDefault();
 
-    const point =
-      e.type === "touchmove" || e.type === "touchstart" ? e.touches[0] : e;
+    const point = e.touches ? e.touches[0] : e;
+    const rect = this._boardRect || this.container.getBoundingClientRect(); // キャッシュ優先
+    const x = point.clientX - rect.left;
+    const y = point.clientY - rect.top;
 
-    // rAFでドラッグ位置を更新（フレームに同期して滑らかに追従）
+    // 1. ドラッグ中のオーブの位置を同期的に更新（描画ラグの解消、極上の追従性）
+    const dx = x - this.orbSize / 2 - this.dragging.baseLeft;
+    const dy = y - this.orbSize / 2 - this.dragging.baseTop;
+    this.dragging.el.style.transform = this.getOrbTransform(this.dragging, dx, dy, 1.25);
+
+    // 2. セルの入れ替え処理と盤面のレンダリングは rAF で非同期にスケジュールしてパフォーマンスを維持
     this._lastMovePoint = { clientX: point.clientX, clientY: point.clientY };
 
     if (!this._rafId) {
@@ -764,30 +839,19 @@ class PuzzleEngine {
         this._rafId = null;
         if (!this.dragging || !this._lastMovePoint) return;
 
-        const rect = this._boardRect || this.container.getBoundingClientRect(); // キャッシュ優先
-        const x = this._lastMovePoint.clientX - rect.left;
-        const y = this._lastMovePoint.clientY - rect.top;
+        const rectCached = this._boardRect || this.container.getBoundingClientRect(); // キャッシュ優先
+        const rx = this._lastMovePoint.clientX - rectCached.left;
+        const ry = this._lastMovePoint.clientY - rectCached.top;
 
-        // ドラッグ中のオーブの位置をtransformで直接設定
-        const dx = x - this.orbSize / 2 - this.dragging.baseLeft;
-        const dy = y - this.orbSize / 2 - this.dragging.baseTop;
-        this.dragging.el.style.transform = this.getOrbTransform(this.dragging, dx, dy, 1.2);
-
-        const nr = Math.max(
-          0,
-          Math.min(this.rows - 1, Math.floor(y / (this.orbSize + this.gap))),
-        );
-        const nc = Math.max(
-          0,
-          Math.min(this.cols - 1, Math.floor(x / (this.orbSize + this.gap))),
-        );
+        // 距離とヒステリシスに基づくセル判定
+        const { r: nr, c: nc } = this.getNearestGridCell(rx, ry);
 
         if (nr !== this.dragging.r || nc !== this.dragging.c) {
           const now = Date.now();
           this.timeSinceLastSwap = this.lastSwapTime ? (now - this.lastSwapTime) : 120;
           this.lastSwapTime = now;
 
-          // Start timer only when the orb is actually moved to another cell
+          // 最初の一歩でタイマーを起動
           if (!this.moveStart) {
             this.moveStart = Date.now();
             this.timerId = setInterval(this.updateTimer, 20);
@@ -797,7 +861,7 @@ class PuzzleEngine {
           if (this.hasOneStrokeSeal && this.oneStrokeVisited) {
             const visitKey = `${nr},${nc}`;
             if (this.oneStrokeVisited.has(visitKey)) {
-              return; // このマスは既に通過済みなので移動を拒否
+              return;
             }
             this.oneStrokeVisited.add(visitKey);
             this._createOneStrokeIndicator(nr, nc);
@@ -819,7 +883,7 @@ class PuzzleEngine {
           }
 
           soundManager.playSE(SE_IDS.DRAG_MOVE);
-          this.render(); // Update positions
+          this.render(); // 他オーブの位置関係を更新
         }
       });
     }
@@ -878,8 +942,23 @@ class PuzzleEngine {
     }
   }
 
-  onEnd() {
+  onEnd(e) {
+    if (e) {
+      const pid = e && typeof e.pointerId !== 'undefined' ? e.pointerId : 'fallback-id';
+      if (pid !== this.activePointerId) return;
+    }
     if (!this.dragging) return;
+
+    if (e && e.currentTarget && typeof e.currentTarget.releasePointerCapture === "function") {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch (err) {
+        // Ignore
+      }
+    }
+
+    this.activePointerId = null;
+
     soundManager.playSE(SE_IDS.DRAG_END);
     clearInterval(this.timerId);
     this.timerProgress = 1; // Reset progress
@@ -920,10 +999,15 @@ class PuzzleEngine {
     
     this.dragging = null;
 
+    // 全てのイベントハンドラをクリーンアップ
+    window.removeEventListener("pointermove", this.onMove);
+    window.removeEventListener("pointerup", this.onEnd);
+    window.removeEventListener("pointercancel", this.onEnd);
     window.removeEventListener("mousemove", this.onMove);
     window.removeEventListener("mouseup", this.onEnd);
     window.removeEventListener("touchmove", this.onMove);
     window.removeEventListener("touchend", this.onEnd);
+    window.removeEventListener("touchcancel", this.onEnd);
 
     // 一筆書きインジケーターのクリーンアップ
     this._clearOneStrokeIndicators();
@@ -970,7 +1054,6 @@ class PuzzleEngine {
       }
       
       // 修正: 動かしていない（スワップしていない）場合はターンを進めない
-      // hasMoved はスワップが発生した時点でセットされる
       if (!hasMoved) {
         return;
       }
@@ -3148,11 +3231,9 @@ class PuzzleEngine {
     if (this.resizeListener) {
       window.removeEventListener('resize', this.resizeListener);
     }
-    window.removeEventListener("mousemove", this.onMove);
-    window.removeEventListener("mouseup", this.onEnd);
-    window.removeEventListener("touchmove", this.onMove);
-    window.removeEventListener("touchend", this.onEnd);
-    window.removeEventListener("touchcancel", this.onEnd);
+    window.removeEventListener("pointermove", this.onMove);
+    window.removeEventListener("pointerup", this.onEnd);
+    window.removeEventListener("pointercancel", this.onEnd);
     window.removeEventListener('mousedown', this.onPointerDownForSpeed);
     window.removeEventListener('mouseup', this.onPointerUpForSpeed);
     window.removeEventListener('touchstart', this.onPointerDownForSpeed);
