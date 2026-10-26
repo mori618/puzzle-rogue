@@ -215,6 +215,7 @@ export const useShop = ({
 
     const passiveItems = Array.from({ length: basePassiveCount }).map(() => createTokenItem(passivesPools));
 
+    /* エンチャント機能廃止に伴いコメントアウト
     const enchantItems = [];
     {
       for (let i = 0; i < enchantCount; i++) {
@@ -242,6 +243,7 @@ export const useShop = ({
         });
       }
     }
+    */
 
     const activeItems = Array.from({ length: baseActiveCount }).map(() => createTokenItem(activesPools));
 
@@ -284,7 +286,8 @@ export const useShop = ({
       candidatesForSale[targetIdx].price = Math.floor(candidatesForSale[targetIdx].price / 2);
     }
 
-    const finalItems = [...passiveItems, ...enchantItems, ...activeItems];
+    // エンチャント廃止に伴い enchantItems を除外
+    const finalItems = [...passiveItems, ...activeItems];
 
     if (cycleCount >= 5 && Math.random() < 0.3) {
       finalItems.push({
@@ -501,6 +504,7 @@ export const useShop = ({
       const updatedToken = { ...targetToken, level: nextLevel, desc: getTokenDescription(targetToken, nextLevel, currentRunStats, tokens, activeBuffs) };
       addTokenToast(updatedToken, "が強化されました！");
 
+    /* エンチャント廃止に伴いコメントアウト
     } else if (item.type === "enchant_random") {
       const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left');
       if (enchantableTokens.length === 0) return notify("付与可能なトークンがありません");
@@ -580,6 +584,7 @@ export const useShop = ({
         enchantments: [...(targetToken.enchantments || []), { id: item.id, effect: item.effect, name: item.name, params: item.params }]
       };
       addTokenToast(updatedToken, `に「${item.name}」を付与しました！`);
+    */
     } else if (item.type === "grant_random_curse") {
       const activeCount = tokens.filter(t => t?.type === 'skill' || t?.isCurse).length;
       const passiveCount = tokens.filter(t => t && t?.type !== 'skill' && !t?.isCurse).length;
@@ -735,6 +740,7 @@ export const useShop = ({
         addTokenToast(updatedToken, "が覚醒強化されました！");
         break;
       }
+      /* エンチャント廃止に伴いコメントアウト
       case 'unlock_enchant_shop': {
         const price = 10;
         if (stars < price) {
@@ -751,6 +757,7 @@ export const useShop = ({
         notify('エンチャントショップが解放されました!');
         break;
       }
+      */
       case 'expand_token_slots': {
         const beyondSlotMax = isBeyondMode ? 10 : 5;
         if (tokenSlotExpansionCount >= beyondSlotMax) return notify(`これ以上拡張できません (最大${INITIAL_TOKEN_SLOTS + beyondSlotMax}枠)`);

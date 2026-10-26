@@ -578,7 +578,8 @@ const TabTokens = () => (
             </InfoCard>
         </section>
 
-        {/* エンチャント */}
+        {/* エンチャント（廃止に伴いコメントアウト） */}
+        {/*
         <section>
             <div className="flex items-center gap-2 mb-2.5">
                 <div className="w-8 h-8 bg-amber-600/80 rounded-lg flex items-center justify-center shrink-0">
@@ -596,6 +597,7 @@ const TabTokens = () => (
                 </div>
             </InfoCard>
         </section>
+        */}
     </div>
 );
 
@@ -776,7 +778,7 @@ const TabShop = () => (
                     { name: '陳列の極意', effect: '商品枠を +1〜3拡張' },
                     { name: '商談の極意', effect: 'セール（半額）枠 +1〜5' },
                     { name: '招福の鈴', effect: 'レア出現率アップ' },
-                    { name: '魔道の極意', effect: 'エンチャント枠 +1〜3' },
+                    // { name: '魔道の極意', effect: 'エンチャント枠 +1〜3' },
                 ].map(({ name, effect }) => (
                     <div key={name} className="bg-slate-800/40 border border-white/8 rounded-lg p-2">
                         <div className="text-xs font-bold text-white">{name}</div>

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
-import { ENCHANTMENTS, getEnchantDescription } from './constants/enchantments.js';
+// エンチャント廃止に伴いコメントアウト
+// import { ENCHANTMENTS, getEnchantDescription } from './constants/enchantments.js';
 import { getTokenIcon, getAttributeBarStyles, getTokenDescription } from './utils/tokenUtils.js';
 
 const TokenEncyclopediaScreen = ({ onClose }) => {
@@ -19,6 +20,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
             ...t,
             category: (t.type === 'curse' || t.isCurse) ? 'curse' : t.type
         }));
+        /* エンチャント廃止に伴いコメントアウト
         const enchants = ENCHANTMENTS.map(e => ({
             ...e,
             category: 'enchant',
@@ -28,6 +30,8 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
             canBeInitial: false // エンチャントは初期取得不可
         }));
         return [...tokens, ...enchants];
+        */
+        return tokens;
     }, []);
 
     // --- フィルタリング & 並び替え ---
@@ -141,7 +145,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
                         <option value="all">すべての種類</option>
                         <option value="skill">アクティブ</option>
                         <option value="passive">パッシブ</option>
-                        <option value="enchant">エンチャント</option>
+                        {/* <option value="enchant">エンチャント</option> */}
                         <option value="curse">呪い</option>
                     </select>
 

@@ -303,6 +303,7 @@ const ShopScreen = ({
                         <span className="material-icons-round text-sm">shopping_bag</span>
                         <span>ノーマル</span>
                     </button>
+                    {/* エンチャント機能廃止に伴いコメントアウト
                     <button
                         onClick={() => {
                             if (isEnchantShopUnlocked) {
@@ -330,6 +331,7 @@ const ShopScreen = ({
                             </>
                         )}
                     </button>
+                    */}
                     <button
                         onClick={() => {
                             setActiveTab('awakening');
@@ -382,10 +384,10 @@ const ShopScreen = ({
                     </>
                 )}
 
-                {/* エンチャントショップ */}
+                {/* エンチャントショップ（廃止に伴いコメントアウト） */}
+                {/*
                 {activeTab === 'enchant' && isEnchantShopUnlocked && (
                     <div className="space-y-4">
-                        {/* 注意書き */}
                         <div className="flex items-start space-x-2 bg-red-900/20 border border-red-500/30 rounded-xl px-4 py-3">
                             <span className="material-icons-round text-red-400 text-base flex-shrink-0 mt-0.5">warning</span>
                             <p className="text-red-300 text-xs font-semibold leading-relaxed">
@@ -452,6 +454,7 @@ const ShopScreen = ({
                         )}
                     </div>
                 )}
+                */}
 
                 {/* 覚醒ショップ */}
                 {activeTab === 'awakening' && (
@@ -480,7 +483,8 @@ const ShopScreen = ({
                                     isBought={boughtItemId === 'random_levelup'}
                                 />
         
-                                {/* 2. エンチャントショップの解放 */}
+                                {/* 2. エンチャントショップの解放（廃止に伴いコメントアウト） */}
+                                {/*
                                 <AwakeningCard
                                     icon="auto_fix_high"
                                     title="エンチャントショップ解放"
@@ -494,6 +498,7 @@ const ShopScreen = ({
                                     type="unlock_enchant_shop"
                                     isBought={boughtItemId === 'unlock_enchant_shop'}
                                 />
+                                */}
         
                                 {/* 3. トークン所持枠の解放 */}
                                 <AwakeningCard

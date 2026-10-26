@@ -372,7 +372,9 @@ const ALL_TOKEN_BASES = [
   { id: "chronos_master", name: "クロノス・マスター", icon: "timer", type: "skill", cost: 3, action: "op_time_boost", params: { extraTime: 20000, duration: 1 }, rarity: 1, price: 14, desc: "1ターンの間、操作時間+20秒。消費E:{cost}", attributes: [], canBeInitial: true },
   { id: "active_mult_1", name: "覚醒の鼓動", icon: "trending_up", type: "skill", cost: 6, costLevels: true, action: "temp_mult", params: { multiplier: 2, duration: 3 }, rarity: 2, price: 15, desc: "3手番、基礎コンボ数が2倍になる。消費E:{cost}", attributes: [], canBeInitial: true },
   { id: "active_mult_2", name: "一刃の極意", icon: "trending_up", type: "skill", cost: 6, costLevels: true, action: "temp_mult", params: { multiplier: 5, duration: 1 }, rarity: 3, price: 26, desc: "1手番、基礎コンボ数が5倍になる。消費E:{cost}", attributes: [] },
+  /* エンチャント廃止に伴いコメントアウト
   { id: "seal_of_power", name: "力の封印", icon: "dangerous", type: "skill", cost: 6, costLevels: true, action: "seal_of_power", params: { multiplier: 7, duration: 1 }, rarity: 3, price: 26, desc: "1手番、全エンチャント効果が無効になるが、基礎コンボ数が7倍になる。消費E:{cost}", attributes: [] },
+  */
   { id: "trial", name: "試練", icon: "offline_bolt", type: "skill", cost: 6, action: "trial_stage", params: { duration: 1 }, rarity: 3, price: 26, desc: "1手番プラス。使用後1ターン、特殊ドロップ・トークン・エンチャント効果が発動しない。このターンに8コンボ以上すると、ターン終了時に全ドロップがスタープラスリピート化、1ターン全てのトークン効果が2度発動＆確率系トークンの確率が+100%。消費E:{cost}", attributes: [] },
   { id: "gen_token_s1", name: "一星の招来", icon: "auto_awesome", type: "skill", cost: 3, action: "spawn_token_s1", rarity: 1, price: 14, desc: "自身以外のランダムな★1トークンを1つ生成する。消費E:{cost}", attributes: [] },
   { id: "gen_token_s2", name: "二星の招来", icon: "auto_awesome", type: "skill", cost: 5, action: "spawn_token_s2", rarity: 2, price: 20, desc: "自身以外のランダムな★2トークンを1つ生成する。消費E:{cost}", attributes: [] },
@@ -877,6 +879,7 @@ const ALL_TOKEN_BASES = [
     attributes: [],
     canBeInitial: true
   },
+  /* エンチャント廃止に伴いコメントアウト
   {
     id: "enchant_boost",
     name: "魔道の極意",
@@ -889,6 +892,7 @@ const ALL_TOKEN_BASES = [
     attributes: [],
     canBeInitial: true
   },
+  */
   {
     id: "shop_expand",
     name: "陳列の極意",
@@ -1443,12 +1447,14 @@ const ALL_TOKEN_BASES = [
     desc: "全てのドロップが強化（プラス）ドロップとして落ちてくる。",
     attributes: []
   },
+  /* エンチャント廃止に伴いコメントアウト
   {
     id: "legend_magician", name: "魔術師", icon: "auto_fix_high", type: "passive", effect: "magician",
     rarity: 4, price: 77, noLevelUp: true,
     desc: "他のトークンがエンチャントを入手した際、このトークンにも同じエンチャントが付与される。",
     attributes: []
   },
+  */
   {
     id: "legend_king", name: "キング", icon: "sports_martial_arts", type: "passive", effect: "king",
     rarity: 4, price: 77, noLevelUp: true,
@@ -1513,12 +1519,14 @@ const ALL_TOKEN_BASES = [
     desc: "所持している★3トークン1個につき、基礎コンボ数が{values}倍される。",
     attributes: []
   },
+  /* エンチャント廃止に伴いコメントアウト
   {
     id: "enchant_mult_boost", name: "魔導の共犯", icon: "auto_fix_normal", type: "passive", effect: "enchant_count_combo_mult",
     values: [2, 3, 4], maxMultipliers: [10, 20, 50], rarity: 3, price: 24,
     desc: "所持しているエンチャント1個につき、基礎コンボ数が{values}倍される。",
     attributes: []
   },
+  */
   {
     id: "total_level_boost", name: "全霊の共鳴", icon: "upgrade", type: "passive", effect: "total_level_combo_add",
     values: [1, 2, 4], rarity: 3, price: 31,
@@ -1783,6 +1791,7 @@ const ALL_TOKEN_BASES = [
     attributes: [],
     canBeInitial: true
   },
+  /* エンチャント廃止に伴いコメントアウト
   {
     id: "contract_of_void", name: "虚無の契約", icon: "history_edu", type: "passive", effect: "contract_of_void",
     values: [3, 4, 5], rarity: 3, price: 31,
@@ -1790,6 +1799,7 @@ const ALL_TOKEN_BASES = [
     attributes: [],
     canBeCurseReward: true
   },
+  */
   {
     id: "limit_breaker", name: "限界突破", icon: "rocket_launch", type: "passive", effect: "limit_break",
     values: [2, 5, 20], rarity: 3, price: 39,
@@ -2553,6 +2563,7 @@ const ALL_TOKEN_BASES = [
     attributes: ["fire"],
     canBeInitial: true
   },
+  /* エンチャント廃止に伴いコメントアウト
   {
     id: "passive_water_count",
     name: "蒼雨の供物",
@@ -2567,6 +2578,7 @@ const ALL_TOKEN_BASES = [
     attributes: ["water"],
     canBeInitial: true
   },
+  */
   {
     id: "passive_wood_count",
     name: "翠風の供物",
@@ -3845,6 +3857,7 @@ const ALL_TOKEN_BASES = [
     attributes: [],
     canBeInitial: true
   },
+  /* エンチャント廃止に伴いコメントアウト
   {
     id: "cross_enchant_self",
     name: "十字の加護",
@@ -3858,6 +3871,7 @@ const ALL_TOKEN_BASES = [
     attributes: [],
     canBeInitial: true
   },
+  */
   // --- 新規追加: 正方形消し関連トークン ---
   {
     id: "square_count_combo_mult",
@@ -4021,6 +4035,7 @@ const ALL_TOKEN_BASES = [
     attributes: [],
     canBeInitial: true
   },
+  /* エンチャント廃止に伴いコメントアウト
   {
     id: "len5_random_enchant",
     name: "5連の加護",
@@ -4034,6 +4049,7 @@ const ALL_TOKEN_BASES = [
     attributes: [],
     canBeInitial: true
   },
+  */
   {
     id: "len5_count_level_up",
     name: "5連 of 成長",
@@ -4048,6 +4064,7 @@ const ALL_TOKEN_BASES = [
     attributes: [],
     canBeInitial: true
   },
+  /* エンチャント廃止に伴いコメントアウト
   {
     id: "magic_overload",
     name: "魔導の過積載",
@@ -4084,6 +4101,7 @@ const ALL_TOKEN_BASES = [
     desc: "ターン終了時、このトークンに付与されているランダムなエンチャント（自身を除く）のコピーを、隣接する別のトークンに付与する（確率[20/40/60]%）。",
     attributes: []
   }
+  */
 ];
 
 

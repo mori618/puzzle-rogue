@@ -379,14 +379,16 @@ const App = () => {
                   <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'text-red-400' : goalReached ? 'text-green-400' : 'text-slate-400'}`}>
                     {goalReached ? 'Goal Reached!' : 'Combo Progress'}
                   </span>
-                  <span className={`text-sm font-mono font-bold transition-all duration-300 flex items-baseline gap-1 ${goalReached ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'text-white'}`}>
-                    <span ref={targetComboRef} className={targetPulse ? 'animate-target-pulse text-yellow-300' : ''}>
-                      {showComboDetails ? formatJapaneseNumber(cycleTotalCombo) : `${Math.floor(Math.min(100, ((cycleTotalCombo / (isBeyondMode ? target : effectiveTarget)) * 100) || 0))}%`}
+                  <div className={`text-sm font-mono font-bold transition-all duration-300 flex items-baseline gap-1.5 ${goalReached ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'text-white'}`}>
+                    <span ref={targetComboRef} className={`flex items-baseline gap-1 ${targetPulse ? 'animate-target-pulse text-yellow-300' : ''}`}>
+                      <span className="text-sm font-bold">{formatJapaneseNumber(cycleTotalCombo)}</span>
+                      <span className="text-slate-400 text-xs font-normal">/</span>
+                      <span className="text-xs text-slate-300 font-semibold">{formatJapaneseNumber(isBeyondMode ? target : effectiveTarget)}</span>
                     </span>
-                    {showComboDetails && (
-                      <span className="text-slate-500 text-[10px] animate-fade-in">/ {formatJapaneseNumber(isBeyondMode ? target : effectiveTarget)}</span>
-                    )}
-                  </span>
+                    <span className="text-[10px] font-normal text-slate-400 ml-0.5">
+                      ({Math.floor(Math.min(100, ((cycleTotalCombo / (isBeyondMode ? target : effectiveTarget)) * 100) || 0))}%)
+                    </span>
+                  </div>
                 </div>
                 
                 {/* ゲージ本体 */}
@@ -1421,7 +1423,8 @@ const App = () => {
                       </div>
                     )}
 
-                    {/* エンチャント情報（複数表示対応） */}
+                    {/* エンチャント情報（廃止に伴いコメントアウト） */}
+                    {/*
                     {enchList.length > 0 ? (
                       enchList.map((enc, encIdx) => {
                         const encIsDisabled = enc.disabled;
@@ -1445,6 +1448,7 @@ const App = () => {
                         <p className="text-[11px] text-slate-600 text-center">エンチャントなし</p>
                       </div>
                     )}
+                    */}
 
                     {/* 並び替えセクション */}
                     {(() => {
@@ -1574,12 +1578,12 @@ const App = () => {
             })()
           }
 
-          {/* Enchant Detail Modal */}
+          {/* Enchant Detail Modal（廃止に伴いコメントアウト） */}
+          {/*
           {
             selectedEnchantDetail && (() => {
               const t = tokens.find(tok => tok.instanceId === selectedEnchantDetail.tokenInstanceId);
               if (!t) {
-                // schedule close
                 setTimeout(() => setSelectedEnchantDetail(null), 0);
                 return null;
               }
@@ -1635,6 +1639,7 @@ const App = () => {
               );
             })()
           }
+          */}
 
           {/* Particle Layer */}
           <div className="fixed inset-0 pointer-events-none z-[2000] overflow-hidden">
