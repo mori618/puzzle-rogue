@@ -20,6 +20,7 @@ import { useGameSettings } from './useGameSettings';
 import { usePuzzleBoard } from './usePuzzleBoard';
 import { useShop } from './useShop';
 import { BGM_IDS, SE_IDS } from '../constants/sounds';
+import { PREFIX_TITLES, SUFFIX_TITLES, EVOLVED_TITLES, TITLE_SET_BONUSES, getSetBonus, getTitleDisplayName, getTitleProgress } from '../constants/titles.js';
 
 // 外部定数・ヘルパーの移行
 
@@ -36,6 +37,8 @@ export const useGameState = () => {
       return null;
     }
   })();
+
+  const TITLES_SAVE_KEY = 'puzzle_rogue_titles';
 
   // Game State
   const [isLoaded, setIsLoaded] = useState(false);
@@ -72,6 +75,31 @@ export const useGameState = () => {
   const [showCredits, setShowCredits] = useState(false);
   const [showStartOption, setShowStartOption] = useState(false);
   const [showEncyclopedia, setShowEncyclopedia] = useState(false);
+  const [showTitleEncyclopedia, setShowTitleEncyclopedia] = useState(false);
+
+  // 二つ名: 解放済みパーツ
+  const [unlockedTitles, setUnlockedTitles] = useState(() => {
+    try {
+      const saved = localStorage.getItem(TITLES_SAVE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.unlockedTitles || { prefixes: [], suffixes: [], evolved: [] };
+      }
+    } catch (e) {}
+    return { prefixes: [], suffixes: [], evolved: [] };
+  });
+
+  // 二つ名: 装備中パーツ
+  const [equippedTitle, setEquippedTitle] = useState(() => {
+    try {
+      const saved = localStorage.getItem(TITLES_SAVE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.equippedTitle || { prefixId: null, suffixId: null, evolvedId: null };
+      }
+    } catch (e) {}
+    return { prefixId: null, suffixId: null, evolvedId: null };
+  });
   const [savedBoard, setSavedBoard] = useState(() => savedData?.board || null);
 
 
@@ -203,6 +231,119 @@ export const useGameState = () => {
     setLevelUpTokenId(instanceId);
     setTimeout(() => setLevelUpTokenId(null), 1000);
   };
+
+  // 二つ名解放チェック
+  const checkTitleUnlocks = useCallback((checkStats, checkCurrentRunStats, checkTokens, checkStars, extraContext = {}) => {
+    const allPrefixes = [...PREFIX_TITLES, ...EVOLVED_TITLES.filter(e => e.slotType === 'prefix')];
+    const allSuffixes = [...SUFFIX_TITLES, ...EVOLVED_TITLES.filter(e => e.slotType === 'suffix')];
+    const allSpecial = EVOLVED_TITLES.filter(e => e.slotType === 'special');
+
+    const newlyUnlocked = [];
+
+    const checkList = [
+      { list: allPrefixes, pool: 'prefixes' },
+      { list: allSuffixes, pool: 'suffixes' },
+      { list: allSpecial, pool: 'evolved' },
+    ];
+
+    setUnlockedTitles(prev => {
+      let changed = false;
+      const next = { ...prev, prefixes: [...prev.prefixes], suffixes: [...prev.suffixes], evolved: [...prev.evolved] };
+
+      checkList.forEach(({ list, pool }) => {
+        list.forEach(title => {
+          if (next[pool].includes(title.id)) return; // already unlocked
+
+          // Check evolved prerequisites
+          if (title.requiredPrefix && !prev.prefixes.includes(title.requiredPrefix)) return;
+          if (title.requiredSuffix && !prev.suffixes.includes(title.requiredSuffix)) return;
+          if (title.requiredSet) {
+            // set bonus requires both prefix and suffix to be equipped
+            const setDef = TITLE_SET_BONUSES.find(s => s.id === title.requiredSet);
+            if (!setDef) return;
+            const currentEquipped = equippedTitle;
+            if (currentEquipped.prefixId !== setDef.prefixId || currentEquipped.suffixId !== setDef.suffixId) return;
+          }
+
+          const progress = getTitleProgress(title, checkStats, checkCurrentRunStats, equippedTitle);
+          if (progress.isAchieved) {
+            next[pool].push(title.id);
+            newlyUnlocked.push(title);
+            changed = true;
+          }
+        });
+      });
+
+      if (changed) {
+        return next;
+      }
+      return prev;
+    });
+
+    // Show toast notifications for newly unlocked titles
+    if (newlyUnlocked.length > 0) {
+      newlyUnlocked.forEach(title => {
+        setTimeout(() => {
+          addTokenToast(null, `✨ 二つ名解放：『${title.name}』を獲得！`);
+          soundManager.playSE(SE_IDS.EQUIP_TOKEN);
+        }, 300);
+      });
+    }
+  }, [equippedTitle, addTokenToast]);
+
+  // 二つ名パーツを装備する
+  const equipTitlePrefix = useCallback((prefixId) => {
+    setEquippedTitle(prev => ({ ...prev, prefixId: prefixId || null, evolvedId: null }));
+  }, []);
+
+  const equipTitleSuffix = useCallback((suffixId) => {
+    setEquippedTitle(prev => ({ ...prev, suffixId: suffixId || null, evolvedId: null }));
+  }, []);
+
+  const equipEvolvedTitle = useCallback((evolvedId) => {
+    const evo = EVOLVED_TITLES.find(e => e.id === evolvedId);
+    if (!evo) return;
+    if (evo.slotType === 'prefix') {
+      setEquippedTitle(prev => ({ ...prev, prefixId: evolvedId, evolvedId: null }));
+    } else if (evo.slotType === 'suffix') {
+      setEquippedTitle(prev => ({ ...prev, suffixId: evolvedId, evolvedId: null }));
+    } else {
+      // special / legendary
+      setEquippedTitle(prev => ({ ...prev, evolvedId }));
+    }
+  }, []);
+
+  // 現在装備中の二つ名の効果をまとめて取得
+  const activeTitleEffects = React.useMemo(() => {
+    const effects = [];
+    const { prefixId, suffixId, evolvedId } = equippedTitle;
+
+    // Evolved/special override
+    if (evolvedId) {
+      const evo = EVOLVED_TITLES.find(e => e.id === evolvedId);
+      if (evo) effects.push({ source: 'evolved', id: evo.id, ...evo.effect });
+    }
+
+    // Prefix
+    if (prefixId) {
+      const prefix = PREFIX_TITLES.find(p => p.id === prefixId) || EVOLVED_TITLES.find(e => e.id === prefixId);
+      if (prefix) effects.push({ source: 'prefix', id: prefix.id, ...prefix.effect });
+    }
+
+    // Suffix
+    if (suffixId) {
+      const suffix = SUFFIX_TITLES.find(s => s.id === suffixId) || EVOLVED_TITLES.find(e => e.id === suffixId);
+      if (suffix) effects.push({ source: 'suffix', id: suffix.id, ...suffix.effect });
+    }
+
+    // Set bonus
+    const setBonus = getSetBonus(prefixId, suffixId);
+    if (setBonus) {
+      effects.push({ source: 'set', id: setBonus.id, ...setBonus.effect });
+    }
+
+    return effects;
+  }, [equippedTitle]);
 
   const spawnParticles = (count, startX, startY, endX, endY, type = 'star') => {
     const newParticles = Array.from({ length: count }).map(() => ({
@@ -612,6 +753,12 @@ export const useGameState = () => {
     localStorage.setItem('puzzle_rogue_stats', JSON.stringify(stats));
   }, [stats, isLoaded]);
 
+  // 二つ名データの保存
+  useEffect(() => {
+    if (!isLoaded) return;
+    localStorage.setItem(TITLES_SAVE_KEY, JSON.stringify({ unlockedTitles, equippedTitle }));
+  }, [unlockedTitles, equippedTitle, isLoaded]);
+
   useEffect(() => {
     if (!engineRef.current) return;
     const weights = {};
@@ -648,6 +795,22 @@ export const useGameState = () => {
         });
       }
     });
+    // 二つ名効果: スカイフォール属性補正
+    activeTitleEffects.forEach(eff => {
+      if (eff.type === 'color_multiplier' && eff.color && eff.skyfallWeight) {
+        weights[eff.color] = (weights[eff.color] || 1) * eff.skyfallWeight;
+      }
+      if (eff.type === 'heart_boost' && eff.skyfallWeight) {
+        weights['heart'] = (weights['heart'] || 1) * eff.skyfallWeight;
+      }
+      if (eff.type === 'even_spawn_weights') {
+        const avg = Object.values(weights).reduce((a, b) => a + b, 0) / Object.keys(weights).length;
+        Object.keys(weights).forEach(c => { weights[c] = avg; });
+      }
+      if (eff.type === 'all_fire_plus' || eff.type === 'purgatory_board') {
+        // handled by engine special flag
+      }
+    });
     engineRef.current.setSpawnWeights(weights);
 
     // 錬金術パッシブと消去禁止設定の同期
@@ -669,7 +832,7 @@ export const useGameState = () => {
       }
     });
     engineRef.current.setNoEraseColors(noEraseColors);
-  }, [activeBuffs, tokens, hasSaintToken]);
+  }, [activeBuffs, tokens, hasSaintToken, activeTitleEffects]);
 
   const getTimeLimit = useCallback(() => {
     if (isPracticeMode) return practiceTimeLimit;
@@ -721,8 +884,14 @@ export const useGameState = () => {
     });
 
     base *= nextTurnTimeMultiplier;
+    // 二つ名効果: 操作時間加算
+    activeTitleEffects.forEach(eff => {
+      if (eff.type === 'time_add') base += eff.value || 0;
+      if (eff.type === 'berserk') base -= eff.time_sub || 0;
+      if (eff.type === 'desperate') base = eff.fixed_time || base;
+    });
     return Math.max(1000, base);
-  }, [tokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs, isPracticeMode, practiceTimeLimit, hasSaintToken]);
+  }, [tokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs, isPracticeMode, practiceTimeLimit, hasSaintToken, activeTitleEffects]);
 
   useEffect(() => {
     if (!boardRef.current || !timerRef.current) return;
@@ -2899,6 +3068,33 @@ export const useGameState = () => {
     }
 
     // コンボ倍率の計算
+    // 二つ名効果: コンボ倍率加算
+    activeTitleEffects.forEach(eff => {
+      if (eff.type === 'combo_multiplier_add') {
+        addedMultiplier += eff.value || 0;
+        logData.bonuses = logData.bonuses || [];
+        logData.multiplierSteps = logData.multiplierSteps || [];
+        logData.multiplierSteps.push({ label: '二つ名', value: eff.value, type: 'add', tokenId: null });
+      }
+      if (eff.type === 'color_multiplier' && eff.color) {
+        const colorCount = colorComboCounts?.[eff.color] || 0;
+        if (colorCount > 0) {
+          addedMultiplier += (eff.value || 0) * colorCount;
+          logData.multiplierSteps = logData.multiplierSteps || [];
+          logData.multiplierSteps.push({ label: `二つ名(${eff.color})`, value: (eff.value || 0) * colorCount, type: 'add', tokenId: null });
+        }
+      }
+      if (eff.type === 'zero_star_combo_mult' && stars === 0) {
+        addedMultiplier += eff.value || 0;
+        logData.multiplierSteps = logData.multiplierSteps || [];
+        logData.multiplierSteps.push({ label: '二つ名(からっぽ)', value: eff.value, type: 'add', tokenId: null });
+      }
+      if (eff.type === 'boss_turn_multiplier' && turn === maxTurns) {
+        addedMultiplier += eff.value || 0;
+        logData.multiplierSteps = logData.multiplierSteps || [];
+        logData.multiplierSteps.push({ label: '二つ名(討伐者)', value: eff.value, type: 'add', tokenId: null });
+      }
+    });
     const finalComboMultiplier = (1.0 + addedMultiplier) * multMultiplier;
     multiplier = finalComboMultiplier; // 念のため multiplier 変数にも入れておく
 
@@ -3003,6 +3199,9 @@ export const useGameState = () => {
       totalStarDropsErased: (prev.totalStarDropsErased || 0) + starSelfErased,
       totalRainbowsErased: (prev.totalRainbowsErased || 0) + rainbowSelfErased,
     }));
+
+    // 二つ名: 解放チェック
+    checkTitleUnlocks(stats, currentRunStats, tokens, stars);
 
     await showComboBreakdownLocal({
       tc, logData, turnCombo, bonus, effectiveCombo, MAX_COMBO,
@@ -5637,6 +5836,12 @@ export const useGameState = () => {
     showCredits, setShowCredits,
     showStartOption, setShowStartOption,
     showEncyclopedia, setShowEncyclopedia,
+    showTitleEncyclopedia, setShowTitleEncyclopedia,
+    unlockedTitles, setUnlockedTitles,
+    equippedTitle, setEquippedTitle,
+    equipTitlePrefix, equipTitleSuffix, equipEvolvedTitle,
+    activeTitleEffects,
+    checkTitleUnlocks,
     savedBoard, setSavedBoard,
     settings, setSettings,
     currentRunTotalCombo, setCurrentRunTotalCombo,
