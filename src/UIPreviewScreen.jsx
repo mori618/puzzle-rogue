@@ -148,9 +148,9 @@ const UIPreviewScreen = ({ onClose }) => {
 
                 {/* 3. 3Dクリスタル・ジュエルオーブ */}
                 <section className="game-panel-cyber rounded-2xl p-5">
-                    <h2 className="text-lg font-game-header text-indigo-300 mb-3">3. 3Dジュエルオーブ（パズルピース）</h2>
+                    <h2 className="text-lg font-game-header text-indigo-300 mb-3">3. フラットシェイプオーブ（パズルピース）</h2>
                     <p className="text-xs text-slate-400 mb-4 font-bold">
-                        ラジアルグラデーションと上部の光沢（ハイライト）により、ぷっくりとした宝石の質感に仕上げています。
+                        ドロップごとの形の違いを保ちつつ、平面的な図形の上に白いアイコンを配置した簡潔・クリーンなスタイルです。
                     </p>
                     <div className="grid grid-cols-4 sm:grid-cols-8 gap-4 justify-items-center">
                         {[
@@ -162,9 +162,9 @@ const UIPreviewScreen = ({ onClose }) => {
                             { type: 'heart', icon: 'favorite', label: '回復' },
                         ].map((orb) => (
                             <div key={orb.type} className="flex flex-col items-center gap-1.5">
-                                <div className="w-14 h-14 relative cursor-pointer group active:scale-95 transition-transform">
-                                    <div className={`orb-inner orb-${orb.type} w-full h-full rounded-2xl transition-all duration-200`}>
-                                        <span className="material-icons-round text-2xl text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)] z-10">
+                                <div className={`w-14 h-14 relative cursor-pointer group active:scale-95 transition-transform orb-shape-${orb.type}`}>
+                                    <div className={`orb-inner orb-${orb.type} w-full h-full transition-all duration-200`}>
+                                        <span className="material-icons-round text-2xl text-white z-10">
                                             {orb.icon}
                                         </span>
                                     </div>
@@ -175,9 +175,9 @@ const UIPreviewScreen = ({ onClose }) => {
 
                         {/* 特殊オーブ: Move Drop */}
                         <div className="flex flex-col items-center gap-1.5">
-                            <div className="w-14 h-14 relative cursor-pointer active:scale-95 transition-transform">
-                                <div className="orb-inner orb-move w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
-                                    <span className="text-green-500 font-black text-xl z-10 font-mono">5</span>
+                            <div className="w-14 h-14 relative cursor-pointer active:scale-95 transition-transform orb-shape-move">
+                                <div className="orb-inner orb-move w-full h-full flex items-center justify-center overflow-hidden">
+                                    <span className="move-count-text text-xl z-10 font-mono">5</span>
                                 </div>
                             </div>
                             <span className="text-[10px] font-bold text-slate-400">移動ドロップ</span>
@@ -185,9 +185,9 @@ const UIPreviewScreen = ({ onClose }) => {
 
                         {/* 特殊オーブ: Rainbow Drop */}
                         <div className="flex flex-col items-center gap-1.5">
-                            <div className="w-14 h-14 relative cursor-pointer active:scale-95 transition-transform">
-                                <div className="orb-inner orb-rainbow w-full h-full rounded-2xl bg-gradient-to-tr from-red-500 via-green-500 to-blue-500 flex items-center justify-center">
-                                    <span className="material-icons-round text-2xl text-white drop-shadow-md z-10 animate-pulse">
+                            <div className="w-14 h-14 relative cursor-pointer active:scale-95 transition-transform orb-shape-heart">
+                                <div className="orb-inner orb-rainbow w-full h-full flex items-center justify-center">
+                                    <span className="material-icons-round text-2xl text-white z-10">
                                         star
                                     </span>
                                 </div>

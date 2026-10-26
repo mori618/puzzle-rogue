@@ -126,7 +126,8 @@ body {
 }
 
 .orb-shadow {
-  box-shadow: inset 0 -4px 4px rgba(0, 0, 0, 0.2), 0 4px 6px rgba(0, 0, 0, 0.3);
+  /* 簡潔・平面的なソフトシャドウ（インナーシャドウは廃止） */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
 }
 
 .glow-text {
@@ -165,7 +166,7 @@ body {
   -webkit-touch-callout: none;
 }
 
-/* 形状定義（完全丸み対応版：border-radiusのみ使用） */
+/* 形状定義（完全丸み対応版：各ドロップ固有のシルエット） */
 .orb-shape-fire {
   border-radius: 50% 50% 50% 0%;
 }
@@ -195,40 +196,17 @@ body {
   border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
 }
 
-/* 親の形状に合わせて inner も整形する（overflow: hidden なしの対策） */
-.orb.orb-shape-fire .orb-inner {
-  border-radius: 10% 50% 50% 50%;
-}
-
-.orb.orb-shape-water .orb-inner {
-  border-radius: 50%;
-}
-
-.orb.orb-shape-wood .orb-inner {
-  border-radius: 35%;
-}
-
-.orb.orb-shape-light .orb-inner {
-  border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%;
-}
-
-.orb.orb-shape-dark .orb-inner {
-  border-radius: 50% 50% 50% 10%;
-}
-
-.orb.orb-shape-heart .orb-inner {
-  border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
-}
-
-/* 多少縦に膨らんだ円 (疑似ハート) */
-
-/* アイコンが傾かないように回転を打ち消す */
-.orb-shape-fire span {
-  transform: rotate(-45deg);
-}
-
-.orb-shape-dark span {
-  transform: rotate(180deg);
+/* 親の形状に合わせて inner も同一のボーダーラジアスを継承 */
+.orb-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  border-radius: inherit;
+  box-shadow: none !important;
+  overflow: hidden;
 }
 
 /* 入れ替え時のスナップ感を出すための短いtransition */
@@ -241,72 +219,52 @@ body {
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
 }
 
-/* Orb Type Colors */
-/* Orb Type Colors (3D Crystal Jewel upgrade) */
-.orb-inner {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  /* ぷっくり感を出すインナーシャドウとハイライト */
-  box-shadow: 
-    inset 0 4px 6px rgba(255, 255, 255, 0.4),
-    inset 0 -4px 6px rgba(0, 0, 0, 0.4),
-    0 4px 8px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
-}
-
-/* 3D感を追加するためのハイライト用擬似要素 (上部の光沢を非表示化) */
-/*
-.orb-inner::before {
-  content: "";
-  position: absolute;
-  top: 10%;
-  left: 15%;
-  width: 40%;
-  height: 25%;
-  background: rgba(255, 255, 255, 0.55);
-  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-  pointer-events: none;
-  filter: blur(0.5px);
-  z-index: 5;
-}
-*/
-
+/* Orb Type Colors (フラット・平面デザイン) */
 .orb-inner.orb-fire {
-  background: radial-gradient(circle at 45% 45%, #ff4b4b 20%, #b20a0a 100%);
+  background: var(--color-puzzle-red);
 }
 
 .orb-inner.orb-water {
-  background: radial-gradient(circle at 45% 45%, #4fa3ff 20%, #0d469b 100%);
+  background: var(--color-puzzle-blue);
 }
 
 .orb-inner.orb-wood {
-  background: radial-gradient(circle at 45% 45%, #42e873 20%, #0e722a 100%);
+  background: var(--color-puzzle-green);
 }
 
 .orb-inner.orb-light {
-  background: radial-gradient(circle at 45% 45%, #ffeb60 20%, #a07a00 100%);
+  background: var(--color-puzzle-yellow);
 }
 
 .orb-inner.orb-dark {
-  background: radial-gradient(circle at 45% 45%, #cc75ff 20%, #5b13ec 100%);
+  background: var(--color-puzzle-purple);
 }
 
 .orb-inner.orb-heart {
-  background: radial-gradient(circle at 45% 45%, #ff7ea7 20%, #ab1c49 100%);
+  background: var(--color-puzzle-pink);
+}
+
+/* ドロップ内の白いアイコン（ピクトグラム風フラット表示） */
+.orb span,
+.orb-inner span {
+  user-select: none;
+}
+
+.orb span.material-icons-round,
+.orb-inner span.material-icons-round {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
 }
 
 .orb-grabbing {
   z-index: 100;
   transform: scale(1.25);
-  opacity: 0.9;
+  opacity: 0.95;
   transition: none !important;
   /* ドラッグ中の高い描画更新頻度に対応するため GPU アクセラレーションを維持 */
   will-change: transform;
-  filter: brightness(1.15) drop-shadow(0 8px 16px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 12px rgba(255, 255, 255, 0.4));
+  filter: brightness(1.1) drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
 }
 
 .orb-matching>* {
@@ -795,7 +753,7 @@ body {
   animation: revive-ring 0.5s ease-out forwards;
 }
 
-/* --- Move Drop Styles --- */
+/* --- Move Drop Styles (フラットスタイル) --- */
 .orb-shape-move {
   border-radius: 50%;
 }
@@ -805,53 +763,35 @@ body {
 
 .orb-inner.orb-move {
   border-radius: 50%;
-  background: white;
+  background: #10b981;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  box-shadow: inset 0 0 5px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.4);
-}
-
-.orb-inner.orb-move::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: repeating-conic-gradient(
-    #22c55e 0deg 30deg,
-    #ffffff 30deg 60deg
-  );
-}
-
-.orb-inner.orb-move::after {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border-radius: 50%;
-  background: white;
-  box-shadow: inset 0 0 5px rgba(0,0,0,0.2), 0 0 3px rgba(0,0,0,0.3);
+  box-shadow: none !important;
 }
 
 .move-count-text {
   font-weight: 900;
-  color: #22c55e;
+  color: #ffffff;
   font-size: 1.8rem;
   z-index: 10;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
   user-select: none;
 }
 
-/* --- Rainbow Drop Styles --- */
+/* --- Rainbow Drop Styles (フラットスタイル) --- */
 .orb-inner.orb-rainbow {
-  background: conic-gradient(#ef4444 0deg 60deg,
-      #eab308 60deg 120deg,
-      #22c55e 120deg 180deg,
-      #3b82f6 180deg 240deg,
-      #5b13ec 240deg 300deg,
-      #ec4899 300deg 360deg);
-  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.4), 0 0 15px rgba(255, 255, 255, 0.6);
+  background: conic-gradient(
+    #ef4444 0deg 60deg,
+    #eab308 60deg 120deg,
+    #22c55e 120deg 180deg,
+    #3b82f6 180deg 240deg,
+    #5b13ec 240deg 300deg,
+    #ec4899 300deg 360deg
+  );
+  box-shadow: none !important;
   animation: rainbow-spin 4s linear infinite;
   display: flex;
   align-items: center;
@@ -1614,13 +1554,11 @@ button:disabled {
   filter: grayscale(0.5) !important;
 }
 
-/* 3D感を追加するためのオーブアニメーション */
+/* 平面デザインに合わせたホバーアニメーション */
 .orb:hover .orb-inner {
   transform: scale(1.05);
-  box-shadow: 
-    inset 0 6px 8px rgba(255, 255, 255, 0.5),
-    inset 0 -6px 8px rgba(0, 0, 0, 0.5),
-    0 8px 16px rgba(0, 0, 0, 0.4);
+  filter: brightness(1.1);
+  box-shadow: none !important;
 }
 
 /* 5. トークン（スロット＆カード）のゲームスタイル化 */

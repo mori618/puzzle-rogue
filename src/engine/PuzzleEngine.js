@@ -143,7 +143,7 @@ class PuzzleEngine {
         let iconSpan = inner.querySelector('.material-icons-round');
         if (!iconSpan) {
           iconSpan = document.createElement("span");
-          iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
+          iconSpan.className = "material-icons-round text-white text-3xl select-none";
           inner.appendChild(iconSpan);
         }
         iconSpan.innerText = this.icons[color];
@@ -434,7 +434,7 @@ class PuzzleEngine {
     }
 
     const iconSpan = document.createElement("span");
-    iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
+    iconSpan.className = "material-icons-round text-white text-3xl select-none";
     iconSpan.innerText = isRainbow || isMoveDrop ? "" : this.icons[type];
 
     if (isMoveDrop) {
@@ -444,7 +444,7 @@ class PuzzleEngine {
       inner.appendChild(countSpan);
     } else if (isRainbow) {
       const countSpan = document.createElement("span");
-      countSpan.className = "rainbow-count-text text-white font-bold text-xl drop-shadow-md select-none";
+      countSpan.className = "rainbow-count-text text-white font-bold text-xl select-none";
       countSpan.innerText = rainbowCount;
       inner.appendChild(countSpan);
     } else {
@@ -1315,7 +1315,7 @@ class PuzzleEngine {
           const starMark = inner.querySelector('.star-mark');
           inner.innerHTML = '';
           const iconSpan = document.createElement("span");
-          iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
+          iconSpan.className = "material-icons-round text-white text-3xl select-none";
           iconSpan.innerText = this.icons[type];
           inner.appendChild(iconSpan);
           if (star) inner.appendChild(star);
@@ -2578,13 +2578,13 @@ class PuzzleEngine {
             orb.isRainbow = true;
             orb.rainbowCount = 5; // By default rainbow_master sets count to 5
             const countSpan = document.createElement("span");
-            countSpan.className = "rainbow-count-text text-white font-bold text-xl drop-shadow-md select-none";
+            countSpan.className = "rainbow-count-text text-white font-bold text-xl select-none";
             countSpan.innerText = orb.rainbowCount;
             inner.appendChild(countSpan);
           } else {
             orb.isRainbow = false; // in case it was a rainbow, reset it
             const iconSpan = document.createElement("span");
-            iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
+            iconSpan.className = "material-icons-round text-white text-3xl select-none";
             iconSpan.innerText = this.icons[type];
             inner.appendChild(iconSpan);
           }
@@ -2637,7 +2637,7 @@ class PuzzleEngine {
             const star = inner.querySelector('.enhanced-mark');
             inner.innerHTML = '';
             const iconSpan = document.createElement("span");
-            iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
+            iconSpan.className = "material-icons-round text-white text-3xl select-none";
             iconSpan.innerText = this.icons[type];
             inner.appendChild(iconSpan);
             if (star) inner.appendChild(star);
@@ -2683,7 +2683,7 @@ class PuzzleEngine {
           const star = inner.querySelector('.enhanced-mark');
           inner.innerHTML = '';
           const iconSpan = document.createElement("span");
-          iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
+          iconSpan.className = "material-icons-round text-white text-3xl select-none";
           iconSpan.innerText = this.icons[type];
           inner.appendChild(iconSpan);
           if (star) inner.appendChild(star);
@@ -2844,7 +2844,7 @@ class PuzzleEngine {
           const star = inner.querySelector('.enhanced-mark');
           inner.innerHTML = '';
           const countSpan = document.createElement("span");
-          countSpan.className = "rainbow-count-text text-white font-bold text-xl drop-shadow-md select-none";
+          countSpan.className = "rainbow-count-text text-white font-bold text-xl select-none";
           countSpan.innerText = orb.rainbowCount;
           inner.appendChild(countSpan);
           if (star) inner.appendChild(star);
@@ -3128,7 +3128,7 @@ class PuzzleEngine {
           inner.className = `orb-inner orb-${orb.type} shadow-lg`;
           inner.innerHTML = ''; // span等をクリア
           const iconSpan = document.createElement("span");
-          iconSpan.className = "material-icons-round text-white text-3xl opacity-90 drop-shadow-md select-none";
+          iconSpan.className = "material-icons-round text-white text-3xl select-none";
           iconSpan.innerText = this.icons[orb.type];
           inner.appendChild(iconSpan);
         }
