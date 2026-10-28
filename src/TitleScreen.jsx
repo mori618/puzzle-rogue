@@ -1,8 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
+import TitleEncyclopediaScreen from './TitleEncyclopediaScreen';
+import { loadTitleState, getEquippedTitleInfo } from './utils/titleManager';
 
-const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCredits, onSettings, onEncyclopedia, onPractice, onUIPreview }) => {
+const TitleScreen = ({
+    onStart,
+    onHelp,
+    onStats,
+    hasSaveData,
+    onContinue,
+    onCredits,
+    onSettings,
+    onEncyclopedia,
+    onPractice,
+    onUIPreview
+}) => {
+    const [showTitleEncyclopedia, setShowTitleEncyclopedia] = useState(false);
+    const titleState = loadTitleState();
+    const equippedInfo = getEquippedTitleInfo(titleState.equippedTitle);
+
     return (
         <div className="w-full h-screen bg-background-dark flex flex-col items-center justify-center relative overflow-hidden font-game-cyber">
             {/* Cyber Grid Background */}
@@ -14,14 +31,34 @@ const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCred
                 <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
             </div>
 
+            {/* 二つ名図鑑モーダル */}
+            {showTitleEncyclopedia && (
+                <TitleEncyclopediaScreen onClose={() => setShowTitleEncyclopedia(false)} />
+            )}
+
             <div className="relative z-10 flex flex-col items-center w-full max-w-sm px-6 max-h-[95vh] overflow-y-auto no-scrollbar py-4">
-                <h1 className="text-5xl font-game-header text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 mb-2 tracking-widest drop-shadow-[0_0_20px_rgba(251,191,36,0.4)] flex items-center gap-2">
+                <h1 className="text-5xl font-game-header text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 mb-1 tracking-widest drop-shadow-[0_0_20px_rgba(251,191,36,0.4)] flex items-center gap-2">
                     <span className="material-icons-round text-yellow-400 text-5xl animate-pulse">auto_awesome</span>
                     PUZZLE
                 </h1>
-                <p className="text-indigo-300 font-bold tracking-[0.25em] uppercase text-xs mb-8">
+                <p className="text-indigo-300 font-bold tracking-[0.25em] uppercase text-xs mb-3">
                     ROGUE-LIKE
                 </p>
+
+                {/* 装備中二つ名バッジ */}
+                <div
+                    onClick={() => {
+                        soundManager.playSE(SE_IDS.UI_CLICK);
+                        setShowTitleEncyclopedia(true);
+                    }}
+                    className="mb-6 cursor-pointer group flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-amber-500/30 hover:border-amber-400 transition-all shadow-md active:scale-95"
+                >
+                    <span className="material-icons-round text-amber-400 text-sm group-hover:scale-110 transition-transform">military_tech</span>
+                    <span className="text-xs font-bold text-amber-200 tracking-wide">
+                        {equippedInfo.fullName !== '未設定' ? equippedInfo.fullName : '二つ名未設定'}
+                    </span>
+                    <span className="material-icons-round text-slate-500 text-xs">chevron_right</span>
+                </div>
 
                 <div className="w-full space-y-3 pb-4">
                     {hasSaveData ? (
@@ -59,6 +96,19 @@ const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCred
                             始める
                         </button>
                     )}
+                    
+                    {/* 二つ名（称号）ボタン */}
+                    <button
+                        onClick={() => {
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                            setShowTitleEncyclopedia(true);
+                        }}
+                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2 text-amber-300 border-amber-500/30 hover:border-amber-400/50"
+                    >
+                        <span className="material-icons-round text-lg text-amber-400">military_tech</span>
+                        二つ名（称号）
+                    </button>
+
                     <button
                         onClick={() => {
                             onHelp();
