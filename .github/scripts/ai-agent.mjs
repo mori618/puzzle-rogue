@@ -33,19 +33,21 @@ async function postIssueComment(body) {
   }
 }
 
-// Collect relevant files from repository
+// Helper to pause execution
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Collect relevant files from repository with size safety
 function getProjectFiles(dir, baseDir = dir) {
   let results = [];
   const list = readdirSync(dir);
   for (const file of list) {
-    if (file.startsWith('.') || file === 'node_modules' || file === 'dist') continue;
+    if (file.startsWith('.') || file === 'node_modules' || file === 'dist' || file === 'build') continue;
     const filePath = join(dir, file);
     const stat = statSync(filePath);
     if (stat && stat.isDirectory()) {
       results = results.concat(getProjectFiles(filePath, baseDir));
     } else {
       const relPath = relative(baseDir, filePath);
-      // Read common code/config files
       if (
         relPath.startsWith('src/') ||
         relPath === 'package.json' ||
@@ -53,7 +55,11 @@ function getProjectFiles(dir, baseDir = dir) {
         relPath === 'index.html'
       ) {
         try {
-          const content = readFileSync(filePath, 'utf-8');
+          let content = readFileSync(filePath, 'utf-8');
+          // 1ファイルあたり巨大すぎる場合はカットしてトークンを節約
+          if (content.length > 20000) {
+            content = content.slice(0, 20000) + '\n/* ...[ファイルサイズ超過のため省略]... */';
+          }
           results.push({ path: relPath, content });
         } catch {
           // ignore binary or unreadable files
@@ -64,34 +70,55 @@ function getProjectFiles(dir, baseDir = dir) {
   return results;
 }
 
-// Call Gemini API
-async function callGemini(prompt) {
+// Call Gemini API with Retry & Exponential Backoff for 429
+async function callGeminiWithRetry(prompt, maxRetries = 3) {
   const model = 'gemini-3.8-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.2,
-        responseMimeType: 'application/json',
-      },
-    }),
-  });
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.2,
+            responseMimeType: 'application/json',
+          },
+        }),
+      });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
-  }
+      if (response.status === 429) {
+        const errorText = await response.text();
+        console.warn(`Rate limit hit (429). Attempt ${attempt} of ${maxRetries}. Waiting before retry...`);
 
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error('Gemini returned empty response');
+        // 429発生時は60秒待機して枠のリセットを待つ
+        if (attempt < maxRetries) {
+          console.log('Waiting 60 seconds for token rate limit reset...');
+          await sleep(60000);
+          continue;
+        }
+        throw new Error(`Gemini API Rate Limit Exceeded (429): ${errorText}`);
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+        throw new Error('Gemini returned empty response');
+      }
+      return JSON.parse(text);
+    } catch (err) {
+      if (attempt >= maxRetries || !err.message.includes('429')) {
+        throw err;
+      }
+    }
   }
-  return JSON.parse(text);
 }
 
 async function main() {
@@ -103,9 +130,15 @@ async function main() {
     : `Issueタイトル: ${ISSUE_TITLE}\n\nIssue内容:\n${ISSUE_BODY}`;
 
   const files = getProjectFiles(process.cwd());
-  const filesContext = files
+  let filesContext = files
     .map(f => `--- FILE: ${f.path} ---\n${f.content}\n--- END FILE ---`)
     .join('\n\n');
+
+  // 全体トークン数が20万文字（約5万〜6万トークン相当）を超える場合は全体を縮小
+  if (filesContext.length > 200000) {
+    console.warn('Project context too large. Truncating context size...');
+    filesContext = filesContext.slice(0, 200000) + '\n\n/* ...[プロジェクト全体サイズが大きいため一部ファイルを省略]... */';
+  }
 
   let currentInstruction = userInstruction;
   let attempts = 0;
@@ -146,7 +179,7 @@ JSONスキーマ:
 
     let result;
     try {
-      result = await callGemini(prompt);
+      result = await callGeminiWithRetry(prompt);
     } catch (err) {
       console.error('Gemini API call failed:', err);
       await postIssueComment(`❌ **AI解析エラー**: Gemini APIの呼び出しに失敗しました。\n\`\`\`\n${err.message}\n\`\`\``);
