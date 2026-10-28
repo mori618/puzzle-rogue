@@ -41,12 +41,40 @@
       overflow: hidden;
       overscroll-behavior: none;
     }
-    /* パズル盤面およびドロップ操作時のタッチ挙動最適化 */
+    /* パズル盤面およびドロップ操作時のタッチ挙動・操作感最適化 */
+    .puzzle-board, #board, [class*="board"] {
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
     .orb, [class*="orb"] {
       touch-action: none;
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
+      -webkit-user-drag: none;
+      cursor: grab;
+      will-change: transform, left, top;
+    }
+
+    /* 非ドラッグ状態のドロップ：スワップ（入れ替え）時に滑らかに移動 */
+    .orb:not(.dragging):not(.is-dragging):not([data-dragging="true"]) {
+      transition: left 0.08s cubic-bezier(0.22, 1, 0.36, 1), top 0.08s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* ドラッグ操作中のドロップ：指やマウスへ即時追従し、浮遊感と視認性を強調 */
+    .orb:active,
+    .orb.dragging,
+    .orb.is-dragging,
+    .orb[data-dragging="true"],
+    [class*="orb"]:active {
+      cursor: grabbing;
+      z-index: 1000 !important;
+      transform: scale(1.16);
+      filter: brightness(1.15) drop-shadow(0 10px 18px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 12px rgba(255, 255, 255, 0.45));
+      transition: transform 0.08s ease-out, filter 0.08s ease-out !important;
     }
   </style>
 </head>
