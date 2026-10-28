@@ -70,7 +70,7 @@ function getProjectFiles(dir, baseDir = dir) {
   return results;
 }
 
-// Call Gemini API with Retry & Exponential Backoff for 429
+// Call Gemini API with Retry & JSON Parsing Error Protection
 async function callGeminiWithRetry(prompt, maxRetries = 3) {
   const model = 'gemini-3.8-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
@@ -83,23 +83,20 @@ async function callGeminiWithRetry(prompt, maxRetries = 3) {
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.2,
+            temperature: 0.1, // 温度を下げてフォーマット崩れを低減
             responseMimeType: 'application/json',
           },
         }),
       });
 
-      if (response.status === 429) {
+      if (response.status === 429 || response.status >= 500) {
         const errorText = await response.text();
-        console.warn(`Rate limit hit (429). Attempt ${attempt} of ${maxRetries}. Waiting before retry...`);
-
-        // 429発生時は60秒待機して枠のリセットを待つ
+        console.warn(`Gemini API Temporary Error (${response.status}). Attempt ${attempt} of ${maxRetries}. Waiting...`);
         if (attempt < maxRetries) {
-          console.log('Waiting 60 seconds for token rate limit reset...');
-          await sleep(60000);
+          await sleep(Math.pow(2, attempt) * 5000);
           continue;
         }
-        throw new Error(`Gemini API Rate Limit Exceeded (429): ${errorText}`);
+        throw new Error(`Gemini API Error (${response.status}): ${errorText}`);
       }
 
       if (!response.ok) {
@@ -108,15 +105,34 @@ async function callGeminiWithRetry(prompt, maxRetries = 3) {
       }
 
       const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) {
         throw new Error('Gemini returned empty response');
       }
-      return JSON.parse(text);
+
+      // JSON文字列の整形（Markdownの```json ... ``` が混ざっている場合を除去）
+      text = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+
+      try {
+        return JSON.parse(text);
+      } catch (jsonErr) {
+        console.warn(`JSON parse error on attempt ${attempt}: ${jsonErr.message}`);
+
+        // パース失敗時、最後の試行でなければ再試行
+        if (attempt < maxRetries) {
+          console.log('Retrying API call due to malformed JSON response...');
+          await sleep(3000);
+          continue;
+        }
+        throw new Error(`Failed to parse JSON response from Gemini: ${jsonErr.message}`);
+      }
+
     } catch (err) {
-      if (attempt >= maxRetries || !err.message.includes('429')) {
+      if (attempt >= maxRetries) {
         throw err;
       }
+      console.warn(`Attempt ${attempt} failed: ${err.message}. Retrying...`);
+      await sleep(5000);
     }
   }
 }
