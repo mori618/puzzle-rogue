@@ -17,7 +17,6 @@ import { SE_IDS } from './constants/sounds.js';
 const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) => {
   const [activeTab, setActiveTab] = useState('prefix'); // 'prefix' | 'suffix' | 'synergy'
   const [titleState, setTitleState] = useState(() => loadTitleState());
-  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     saveTitleState(titleState);
@@ -40,10 +39,9 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
     });
   };
 
-  // 全解放デバッグ用（長押し等ではなく確認しやすいように配置可能）
-  const isPrefixUnlocked = (id) => unlockedTitles.prefixes.includes(id);
-  const isSuffixUnlocked = (id) => unlockedTitles.suffixes.includes(id);
-  const isEvolvedUnlocked = (id) => unlockedTitles.evolved.includes(id);
+  const isPrefixUnlocked = (id) => unlockedTitles.prefixes?.includes(id);
+  const isSuffixUnlocked = (id) => unlockedTitles.suffixes?.includes(id);
+  const isEvolvedUnlocked = (id) => unlockedTitles.evolved?.includes(id);
 
   return (
     <div className="fixed inset-0 z-50 bg-background-dark font-game-cyber text-slate-100 flex flex-col animate-fade-in select-none">
@@ -62,10 +60,10 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
           <span className="material-icons-round text-amber-400 text-2xl">military_tech</span>
           <div>
             <h1 className="text-base font-game-header tracking-wider text-amber-300">
-              二つ名図鑑
+              二つ名図鑑 (全140種)
             </h1>
             <p className="text-[10px] text-slate-400 font-mono tracking-tight">
-              TITLE ENCYCLOPEDIA
+              TITLE ENCYCLOPEDIA (ALL 140 TITLES)
             </p>
           </div>
         </div>
@@ -132,7 +130,7 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
           }`}
         >
           <span className="material-icons-round text-sm">label</span>
-          <span>A枠（接頭辞）</span>
+          <span>A枠（接頭辞 全50種）</span>
         </button>
         <button
           onClick={() => {
@@ -146,7 +144,7 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
           }`}
         >
           <span className="material-icons-round text-sm">loyalty</span>
-          <span>B枠（接尾辞）</span>
+          <span>B枠（接尾辞 全50種）</span>
         </button>
         <button
           onClick={() => {
@@ -160,7 +158,7 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
           }`}
         >
           <span className="material-icons-round text-sm">flare</span>
-          <span>セット＆進化</span>
+          <span>シナジー＆進化 (40種)</span>
         </button>
       </div>
 
@@ -194,6 +192,7 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
                       }`}>
                         {unlocked ? (isEquipped ? 'check_circle' : 'sell') : 'lock'}
                       </span>
+                      <span className="text-xs font-mono text-slate-400">[{title.id}]</span>
                       <span className={`text-sm font-black ${
                         unlocked ? 'text-white' : 'text-slate-400'
                       }`}>
@@ -272,6 +271,7 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
                       }`}>
                         {unlocked ? (isEquipped ? 'check_circle' : 'loyalty') : 'lock'}
                       </span>
+                      <span className="text-xs font-mono text-slate-400">[{title.id}]</span>
                       <span className={`text-sm font-black ${
                         unlocked ? title.name : 'text-slate-400'
                       }`}>
@@ -329,7 +329,7 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
             <div>
               <h2 className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <span className="material-icons-round text-sm">flare</span>
-                隠しセット効果（シナジー）
+                隠しセット効果（シナジー 全20種）
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {TITLE_SET_BONUSES.map((set) => {
@@ -382,7 +382,7 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
             <div className="pt-2">
               <h2 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <span className="material-icons-round text-sm">account_tree</span>
-                派生・進化二つ名（アンロックツリー）
+                派生・進化二つ名（全20種）
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {EVOLVED_TITLES.map((evo) => {
@@ -413,9 +413,11 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
                       <p className="text-xs text-slate-300 mb-2 leading-relaxed font-sans">
                         {evo.desc}
                       </p>
-                      <div className="bg-slate-950/70 p-2 rounded-xl border border-white/5 text-[11px] text-slate-400 flex items-center gap-1.5">
-                        <span className="material-icons-round text-xs text-amber-400">flag</span>
-                        <span>{evo.conditionDesc}</span>
+                      <div className="bg-slate-950/70 p-2 rounded-xl border border-white/5 text-[11px] text-slate-400">
+                        <div className="flex items-center gap-1 text-amber-300">
+                          <span className="material-icons-round text-xs">flag</span>
+                          <span>{evo.challengeDesc}</span>
+                        </div>
                       </div>
                     </div>
                   );
