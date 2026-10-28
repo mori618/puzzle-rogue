@@ -66,9 +66,9 @@ function getProjectFiles(dir, baseDir = dir) {
 
 // Call Gemini API
 async function callGemini(prompt) {
-  const model = 'gemini-2.5-flash';
+  const model = 'gemini-3.8-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-  
+
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -175,7 +175,7 @@ JSONスキーマ:
       execSync('git config user.name "github-actions[bot]"');
       execSync('git config user.email "github-actions[bot]@users.noreply.github.com"');
       execSync('git add -A');
-      
+
       const commitMessage = `fix: ${ISSUE_TITLE || 'auto update from issue'} (#${ISSUE_NUMBER})\n\n${result.summary || ''}`;
       execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`);
       execSync('git push origin main');
