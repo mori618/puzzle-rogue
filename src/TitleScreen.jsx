@@ -4,6 +4,29 @@ import { SE_IDS } from './constants/sounds';
 import TitleEncyclopediaScreen from './TitleEncyclopediaScreen';
 import { loadTitleState, getEquippedTitleInfo } from './utils/titleManager';
 
+// --- 開発用更新情報設定（不要になったら false にするか本ブロックごと削除可能） ---
+const SHOW_DEV_UPDATE_INFO = true;
+const DEV_UPDATE_INFO = {
+    date: '2026/03/30',
+    time: '15:00',
+    summary: 'UIレイアウト調整 / 各種不具合の修正',
+};
+
+const DevUpdateInfo = () => {
+    if (!SHOW_DEV_UPDATE_INFO) return null;
+    return (
+        <div className="mt-4 pt-3 border-t border-white/10 w-full flex flex-col items-center text-center">
+            <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-amber-400">
+                <span className="material-icons-round text-[13px]">update</span>
+                <span>最終更新: {DEV_UPDATE_INFO.date} {DEV_UPDATE_INFO.time}</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5 leading-tight font-sans">
+                {DEV_UPDATE_INFO.summary}
+            </p>
+        </div>
+    );
+};
+
 const TitleScreen = ({
     onStart,
     onHelp,
@@ -134,10 +157,20 @@ const TitleScreen = ({
                             onEncyclopedia();
                             soundManager.playSE(SE_IDS.UI_CLICK);
                         }}
-                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2 font-japanese"
+                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2"
                     >
                         <span className="material-icons-round text-lg text-indigo-300">menu_book</span>
                         トークン図鑑
+                    </button>
+                    <button
+                        onClick={() => {
+                            onPractice();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
+                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2"
+                    >
+                        <span className="material-icons-round text-lg text-indigo-300">tune</span>
+                        練習モード
                     </button>
                     <button
                         onClick={() => {
@@ -151,38 +184,30 @@ const TitleScreen = ({
                     </button>
                     <button
                         onClick={() => {
-                            onPractice();
+                            onCredits();
                             soundManager.playSE(SE_IDS.UI_CLICK);
                         }}
                         className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2"
                     >
-                        <span className="material-icons-round text-lg text-indigo-300">extension</span>
-                        パズル練習
-                    </button>
-                    
-                    {/* UIプレビュー画面への遷移ボタン */}
-                    <button
-                        onClick={() => {
-                            onUIPreview();
-                            soundManager.playSE(SE_IDS.UI_CLICK);
-                        }}
-                        className="w-full bg-indigo-950/40 hover:bg-indigo-900/60 text-indigo-300 font-bold py-2.5 rounded-xl border border-indigo-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-                    >
-                        <span className="material-icons-round text-lg">palette</span>
-                        UIプレビュー画面
-                    </button>
-
-                    <button
-                        onClick={() => {
-                            onCredits();
-                            soundManager.playSE(SE_IDS.UI_CLICK);
-                        }}
-                        className="w-full btn-game-cyber py-2.5 text-slate-400 text-sm flex justify-center items-center gap-2"
-                    >
-                        <span className="material-icons-round text-base">info</span>
+                        <span className="material-icons-round text-lg text-indigo-300">info</span>
                         クレジット
                     </button>
+                    {onUIPreview && (
+                        <button
+                            onClick={() => {
+                                onUIPreview();
+                                soundManager.playSE(SE_IDS.UI_CLICK);
+                            }}
+                            className="w-full btn-game-cyber py-2 flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-slate-300 border-dashed"
+                        >
+                            <span className="material-icons-round text-sm">palette</span>
+                            UIプレビュー
+                        </button>
+                    )}
                 </div>
+
+                {/* 開発用更新情報表示 */}
+                <DevUpdateInfo />
             </div>
         </div>
     );
