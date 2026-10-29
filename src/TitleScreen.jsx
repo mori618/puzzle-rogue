@@ -37,7 +37,8 @@ const TitleScreen = ({
     onSettings,
     onEncyclopedia,
     onPractice,
-    onUIPreview
+    onUIPreview,
+    onEndless
 }) => {
     const [showTitleEncyclopedia, setShowTitleEncyclopedia] = useState(false);
     const titleState = loadTitleState();
@@ -119,6 +120,36 @@ const TitleScreen = ({
                             始める
                         </button>
                     )}
+
+                    {/* エンドレスモードボタン */}
+                    <button
+                        onClick={() => {
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                            if (onEndless) {
+                                onEndless();
+                            } else {
+                                onStart?.();
+                            }
+                        }}
+                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2 text-cyan-300 border-cyan-500/30 hover:border-cyan-400/50"
+                    >
+                        <span className="material-icons-round text-lg text-cyan-400">all_inclusive</span>
+                        エンドレスモード
+                    </button>
+
+                    {/* 練習モード */}
+                    {onPractice && (
+                        <button
+                            onClick={() => {
+                                soundManager.playSE(SE_IDS.UI_CLICK);
+                                onPractice();
+                            }}
+                            className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2 text-indigo-300 border-indigo-500/30 hover:border-indigo-400/50"
+                        >
+                            <span className="material-icons-round text-lg text-indigo-400">fitness_center</span>
+                            練習モード
+                        </button>
+                    )}
                     
                     {/* 二つ名（称号）ボタン */}
                     <button
@@ -132,82 +163,84 @@ const TitleScreen = ({
                         二つ名（称号）
                     </button>
 
+                    {/* ヘルプ */}
                     <button
                         onClick={() => {
-                            onHelp();
                             soundManager.playSE(SE_IDS.UI_CLICK);
+                            onHelp?.();
                         }}
-                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2"
+                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2 text-slate-300"
                     >
-                        <span className="material-icons-round text-lg text-indigo-300">help_outline</span>
-                        ヘルプ画面
+                        <span className="material-icons-round text-lg text-slate-400">help_outline</span>
+                        ヘルプ
                     </button>
+
+                    {/* トークン図鑑 */}
+                    {onEncyclopedia && (
+                        <button
+                            onClick={() => {
+                                soundManager.playSE(SE_IDS.UI_CLICK);
+                                onEncyclopedia();
+                            }}
+                            className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2 text-slate-300"
+                        >
+                            <span className="material-icons-round text-lg text-slate-400">menu_book</span>
+                            トークン図鑑
+                        </button>
+                    )}
+
+                    {/* 実績 (Stats) */}
                     <button
                         onClick={() => {
-                            onStats();
                             soundManager.playSE(SE_IDS.UI_CLICK);
+                            onStats?.();
                         }}
-                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2"
+                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2 text-slate-300"
                     >
-                        <span className="material-icons-round text-lg text-indigo-300">emoji_events</span>
-                        実績画面
+                        <span className="material-icons-round text-lg text-slate-400">emoji_events</span>
+                        実績 (Stats)
                     </button>
+
+                    {/* 設定 */}
                     <button
                         onClick={() => {
-                            onEncyclopedia();
                             soundManager.playSE(SE_IDS.UI_CLICK);
+                            onSettings?.();
                         }}
-                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2"
+                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2 text-slate-300"
                     >
-                        <span className="material-icons-round text-lg text-indigo-300">menu_book</span>
-                        トークン図鑑
-                    </button>
-                    <button
-                        onClick={() => {
-                            onPractice();
-                            soundManager.playSE(SE_IDS.UI_CLICK);
-                        }}
-                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2"
-                    >
-                        <span className="material-icons-round text-lg text-indigo-300">tune</span>
-                        練習モード
-                    </button>
-                    <button
-                        onClick={() => {
-                            onSettings();
-                            soundManager.playSE(SE_IDS.UI_CLICK);
-                        }}
-                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2"
-                    >
-                        <span className="material-icons-round text-lg text-indigo-300">settings</span>
+                        <span className="material-icons-round text-lg text-slate-400">settings</span>
                         設定
                     </button>
+
+                    {/* クレジット */}
                     <button
                         onClick={() => {
-                            onCredits();
                             soundManager.playSE(SE_IDS.UI_CLICK);
+                            onCredits?.();
                         }}
-                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2"
+                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2 text-slate-300"
                     >
-                        <span className="material-icons-round text-lg text-indigo-300">info</span>
+                        <span className="material-icons-round text-lg text-slate-400">info</span>
                         クレジット
                     </button>
+
+                    {/* UIプレビュー */}
                     {onUIPreview && (
                         <button
                             onClick={() => {
-                                onUIPreview();
                                 soundManager.playSE(SE_IDS.UI_CLICK);
+                                onUIPreview();
                             }}
-                            className="w-full btn-game-cyber py-2 flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-slate-300 border-dashed"
+                            className="w-full btn-game-cyber py-2 flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-slate-300"
                         >
-                            <span className="material-icons-round text-sm">palette</span>
+                            <span className="material-icons-round text-sm">visibility</span>
                             UIプレビュー
                         </button>
                     )}
-                </div>
 
-                {/* 開発用更新情報表示 */}
-                <DevUpdateInfo />
+                    <DevUpdateInfo />
+                </div>
             </div>
         </div>
     );
