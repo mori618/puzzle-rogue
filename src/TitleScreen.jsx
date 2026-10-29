@@ -129,44 +129,44 @@ const TitleScreen = ({
                                 soundManager.playSE(SE_IDS.UI_CLICK);
                                 if (onEndless) {
                                     onEndless();
-                                } else {
-                                    onStart?.();
                                 }
                             }}
-                            className="w-full btn-game-cyber py-2.5 flex items-center justify-center gap-2 text-cyan-300 border-cyan-500/30 hover:border-cyan-400/50 text-sm"
+                            className="w-full btn-game-cyber py-2.5 flex items-center justify-center gap-2 text-amber-300 border-amber-500/40 hover:border-amber-400"
                         >
-                            <span className="material-icons-round text-base text-cyan-400">all_inclusive</span>
+                            <span className="material-icons-round text-xl text-amber-400">all_inclusive</span>
                             エンドレスモード
                         </button>
 
-                        {/* 練習モード */}
-                        <button
-                            onClick={() => {
-                                soundManager.playSE(SE_IDS.UI_CLICK);
-                                onPractice?.();
-                            }}
-                            className="w-full btn-game-cyber py-2.5 flex items-center justify-center gap-2 text-indigo-300 text-sm"
-                        >
-                            <span className="material-icons-round text-base">school</span>
-                            練習モード
-                        </button>
-
-                        {/* サブボタングリッド */}
-                        <div className="grid grid-cols-2 gap-2 pt-0.5">
+                        {/* 練習モードボタン */}
+                        {onPractice && (
                             <button
                                 onClick={() => {
                                     soundManager.playSE(SE_IDS.UI_CLICK);
-                                    onEncyclopedia?.();
+                                    onPractice();
+                                }}
+                                className="w-full btn-game-cyber py-2.5 flex items-center justify-center gap-2"
+                            >
+                                <span className="material-icons-round text-xl text-indigo-400">fitness_center</span>
+                                練習モード
+                            </button>
+                        )}
+
+                        {/* サブボタングリッド */}
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                            <button
+                                onClick={() => {
+                                    soundManager.playSE(SE_IDS.UI_CLICK);
+                                    onEncyclopedia();
                                 }}
                                 className="btn-game-cyber py-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
                             >
-                                <span className="material-icons-round text-sm text-amber-400">menu_book</span>
-                                トークン図鑑
+                                <span className="material-icons-round text-sm text-indigo-400">menu_book</span>
+                                図鑑
                             </button>
                             <button
                                 onClick={() => {
                                     soundManager.playSE(SE_IDS.UI_CLICK);
-                                    onStats?.();
+                                    onStats();
                                 }}
                                 className="btn-game-cyber py-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
                             >
@@ -176,54 +176,62 @@ const TitleScreen = ({
                             <button
                                 onClick={() => {
                                     soundManager.playSE(SE_IDS.UI_CLICK);
-                                    onHelp?.();
+                                    onHelp();
                                 }}
                                 className="btn-game-cyber py-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
                             >
-                                <span className="material-icons-round text-sm text-indigo-300">help_outline</span>
+                                <span className="material-icons-round text-sm text-blue-400">help_outline</span>
                                 ヘルプ
                             </button>
                             <button
                                 onClick={() => {
                                     soundManager.playSE(SE_IDS.UI_CLICK);
-                                    onSettings?.();
+                                    onSettings();
                                 }}
                                 className="btn-game-cyber py-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
                             >
-                                <span className="material-icons-round text-sm text-indigo-300">settings</span>
+                                <span className="material-icons-round text-sm text-slate-400">settings</span>
                                 設定
                             </button>
-                            <button
-                                onClick={() => {
-                                    soundManager.playSE(SE_IDS.UI_CLICK);
-                                    onCredits?.();
-                                }}
-                                className="btn-game-cyber py-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
-                            >
-                                <span className="material-icons-round text-sm text-indigo-300">info</span>
-                                クレジット
-                            </button>
+                        </div>
+
+                        {/* その他補助ボタン */}
+                        <div className="flex gap-2 pt-1">
+                            {onCredits && (
+                                <button
+                                    onClick={() => {
+                                        soundManager.playSE(SE_IDS.UI_CLICK);
+                                        onCredits();
+                                    }}
+                                    className="flex-1 py-1.5 rounded-xl border border-white/5 bg-slate-950/40 hover:bg-slate-900/60 text-slate-400 hover:text-slate-200 text-[11px] font-bold transition-all flex items-center justify-center gap-1"
+                                >
+                                    <span className="material-icons-round text-xs">info</span>
+                                    クレジット
+                                </button>
+                            )}
                             {onUIPreview && (
                                 <button
                                     onClick={() => {
                                         soundManager.playSE(SE_IDS.UI_CLICK);
                                         onUIPreview();
                                     }}
-                                    className="btn-game-cyber py-2 flex items-center justify-center gap-1.5 text-xs text-slate-400"
+                                    className="flex-1 py-1.5 rounded-xl border border-white/5 bg-slate-950/40 hover:bg-slate-900/60 text-slate-400 hover:text-slate-200 text-[11px] font-bold transition-all flex items-center justify-center gap-1"
                                 >
-                                    <span className="material-icons-round text-sm text-purple-400">palette</span>
+                                    <span className="material-icons-round text-xs">visibility</span>
                                     UIプレビュー
                                 </button>
                             )}
                         </div>
                     </div>
+
+                    <DevUpdateInfo />
                 </div>
             </div>
 
-            {/* 画面最下部: 開発用更新情報（Pages公開時やスマホ画面でも隠れない固定表示） */}
-            <div className="relative z-10 w-full max-w-sm shrink-0">
-                <DevUpdateInfo />
-            </div>
+            {/* フッター */}
+            <footer className="relative z-10 text-[10px] text-slate-500 font-mono tracking-wider pt-2">
+                © 2026 PAZURU ROGUELIKE
+            </footer>
         </div>
     );
 };
