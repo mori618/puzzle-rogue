@@ -4,7 +4,7 @@ import { SE_IDS } from './constants/sounds';
 import TitleEncyclopediaScreen from './TitleEncyclopediaScreen';
 import { loadTitleState, getEquippedTitleInfo } from './utils/titleManager';
 
-// --- 開発用更新情報設定（不要になったら false にするか本ブロックごと削除可能） ---
+// --- 開発用更新情報設定（不要になったら false に変更、または本ブロックごと削除可能） ---
 const SHOW_DEV_UPDATE_INFO = true;
 const DEV_UPDATE_INFO = {
     date: '2026/03/30',
@@ -86,7 +86,7 @@ const TitleScreen = ({
                         <span className="material-icons-round text-slate-500 text-xs">chevron_right</span>
                     </div>
 
-                    <div className="w-full space-y-2.5 pb-1">
+                    <div className="w-full space-y-2 pb-1">
                         {hasSaveData ? (
                             <>
                                 <button
@@ -107,7 +107,7 @@ const TitleScreen = ({
                                     className="w-full btn-game-secondary py-2.5 flex items-center justify-center gap-2"
                                 >
                                     <span className="material-icons-round text-xl">refresh</span>
-                                    初めから
+                                    初めから (スタート)
                                 </button>
                             </>
                         ) : (
@@ -119,23 +119,23 @@ const TitleScreen = ({
                                 className="w-full btn-game-primary py-3 flex items-center justify-center gap-2 text-base"
                             >
                                 <span className="material-icons-round text-xl">play_arrow</span>
-                                始める
+                                GAME START
                             </button>
                         )}
 
                         {/* エンドレスモードボタン */}
-                        <button
-                            onClick={() => {
-                                soundManager.playSE(SE_IDS.UI_CLICK);
-                                if (onEndless) {
+                        {onEndless && (
+                            <button
+                                onClick={() => {
+                                    soundManager.playSE(SE_IDS.UI_CLICK);
                                     onEndless();
-                                }
-                            }}
-                            className="w-full btn-game-cyber py-2.5 flex items-center justify-center gap-2 text-amber-300 border-amber-500/40 hover:border-amber-400"
-                        >
-                            <span className="material-icons-round text-xl text-amber-400">all_inclusive</span>
-                            エンドレスモード
-                        </button>
+                                }}
+                                className="w-full btn-game-cyber py-2 flex items-center justify-center gap-2 text-amber-300"
+                            >
+                                <span className="material-icons-round text-lg">all_inclusive</span>
+                                エンドレスモード
+                            </button>
+                        )}
 
                         {/* 練習モードボタン */}
                         {onPractice && (
@@ -144,94 +144,102 @@ const TitleScreen = ({
                                     soundManager.playSE(SE_IDS.UI_CLICK);
                                     onPractice();
                                 }}
-                                className="w-full btn-game-cyber py-2.5 flex items-center justify-center gap-2"
+                                className="w-full btn-game-cyber py-2 flex items-center justify-center gap-2 text-indigo-300"
                             >
-                                <span className="material-icons-round text-xl text-indigo-400">fitness_center</span>
+                                <span className="material-icons-round text-lg">school</span>
                                 練習モード
                             </button>
                         )}
 
-                        {/* サブボタングリッド */}
+                        {/* 図鑑・サブメニュー等のボタングリッド */}
                         <div className="grid grid-cols-2 gap-2 pt-1">
+                            {onEncyclopedia && (
+                                <button
+                                    onClick={() => {
+                                        soundManager.playSE(SE_IDS.UI_CLICK);
+                                        onEncyclopedia();
+                                    }}
+                                    className="btn-game-cyber py-2 px-2 flex items-center justify-center gap-1.5 text-xs text-indigo-300"
+                                >
+                                    <span className="material-icons-round text-base">menu_book</span>
+                                    トークン図鑑
+                                </button>
+                            )}
                             <button
                                 onClick={() => {
                                     soundManager.playSE(SE_IDS.UI_CLICK);
-                                    onEncyclopedia();
+                                    setShowTitleEncyclopedia(true);
                                 }}
-                                className="btn-game-cyber py-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
+                                className="btn-game-cyber py-2 px-2 flex items-center justify-center gap-1.5 text-xs text-amber-300"
                             >
-                                <span className="material-icons-round text-sm text-indigo-400">menu_book</span>
-                                図鑑
-                            </button>
-                            <button
-                                onClick={() => {
-                                    soundManager.playSE(SE_IDS.UI_CLICK);
-                                    onStats();
-                                }}
-                                className="btn-game-cyber py-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
-                            >
-                                <span className="material-icons-round text-sm text-yellow-400">emoji_events</span>
-                                実績
+                                <span className="material-icons-round text-base">military_tech</span>
+                                二つ名図鑑
                             </button>
                             <button
                                 onClick={() => {
                                     soundManager.playSE(SE_IDS.UI_CLICK);
                                     onHelp();
                                 }}
-                                className="btn-game-cyber py-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
+                                className="btn-game-cyber py-2 px-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
                             >
-                                <span className="material-icons-round text-sm text-blue-400">help_outline</span>
+                                <span className="material-icons-round text-base">help_outline</span>
                                 ヘルプ
+                            </button>
+                            <button
+                                onClick={() => {
+                                    soundManager.playSE(SE_IDS.UI_CLICK);
+                                    onStats();
+                                }}
+                                className="btn-game-cyber py-2 px-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
+                            >
+                                <span className="material-icons-round text-base">emoji_events</span>
+                                実績
                             </button>
                             <button
                                 onClick={() => {
                                     soundManager.playSE(SE_IDS.UI_CLICK);
                                     onSettings();
                                 }}
-                                className="btn-game-cyber py-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
+                                className="btn-game-cyber py-2 px-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
                             >
-                                <span className="material-icons-round text-sm text-slate-400">settings</span>
+                                <span className="material-icons-round text-base">settings</span>
                                 設定
+                            </button>
+                            <button
+                                onClick={() => {
+                                    soundManager.playSE(SE_IDS.UI_CLICK);
+                                    onCredits();
+                                }}
+                                className="btn-game-cyber py-2 px-2 flex items-center justify-center gap-1.5 text-xs text-slate-300"
+                            >
+                                <span className="material-icons-round text-base">info</span>
+                                クレジット
                             </button>
                         </div>
 
-                        {/* その他補助ボタン */}
-                        <div className="flex gap-2 pt-1">
-                            {onCredits && (
-                                <button
-                                    onClick={() => {
-                                        soundManager.playSE(SE_IDS.UI_CLICK);
-                                        onCredits();
-                                    }}
-                                    className="flex-1 py-1.5 rounded-xl border border-white/5 bg-slate-950/40 hover:bg-slate-900/60 text-slate-400 hover:text-slate-200 text-[11px] font-bold transition-all flex items-center justify-center gap-1"
-                                >
-                                    <span className="material-icons-round text-xs">info</span>
-                                    クレジット
-                                </button>
-                            )}
-                            {onUIPreview && (
-                                <button
-                                    onClick={() => {
-                                        soundManager.playSE(SE_IDS.UI_CLICK);
-                                        onUIPreview();
-                                    }}
-                                    className="flex-1 py-1.5 rounded-xl border border-white/5 bg-slate-950/40 hover:bg-slate-900/60 text-slate-400 hover:text-slate-200 text-[11px] font-bold transition-all flex items-center justify-center gap-1"
-                                >
-                                    <span className="material-icons-round text-xs">visibility</span>
-                                    UIプレビュー
-                                </button>
-                            )}
-                        </div>
+                        {onUIPreview && (
+                            <button
+                                onClick={() => {
+                                    soundManager.playSE(SE_IDS.UI_CLICK);
+                                    onUIPreview();
+                                }}
+                                className="w-full btn-game-cyber py-1.5 flex items-center justify-center gap-1.5 text-[11px] text-slate-400 mt-1"
+                            >
+                                <span className="material-icons-round text-sm">palette</span>
+                                UI Preview
+                            </button>
+                        )}
                     </div>
-
-                    <DevUpdateInfo />
                 </div>
             </div>
 
-            {/* フッター */}
-            <footer className="relative z-10 text-[10px] text-slate-500 font-mono tracking-wider pt-2">
-                © 2026 PAZURU ROGUELIKE
-            </footer>
+            {/* 画面下部: 開発用更新情報 & コピーライト */}
+            <div className="relative z-10 w-full max-w-sm flex flex-col items-center">
+                <DevUpdateInfo />
+                <p className="text-[10px] text-slate-600 font-mono tracking-widest mt-2">
+                    © 2026 MORI
+                </p>
+            </div>
         </div>
     );
 };
