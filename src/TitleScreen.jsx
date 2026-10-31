@@ -6,11 +6,11 @@ import { loadTitleState, getEquippedTitleInfo } from './utils/titleManager';
 
 // --- 開発用更新情報設定（不要になったら false に変更、または本ブロックごと削除可能） ---
 const SHOW_DEV_UPDATE_INFO = true;
-const DEV_UPDATE_INFO = {
-    date: '2026/03/30',
-    time: '15:00',
-    summary: 'UIレイアウト調整 / 各種不具合の修正',
-};
+// 日時・概要はビルド時に最新コミットから自動生成される（vite.config.js の getLastUpdateInfo）
+/* global __LAST_UPDATE_INFO__ */
+const DEV_UPDATE_INFO = typeof __LAST_UPDATE_INFO__ !== 'undefined'
+    ? __LAST_UPDATE_INFO__
+    : { date: '', time: '', summary: '' };
 
 const DevUpdateInfo = () => {
     if (!SHOW_DEV_UPDATE_INFO) return null;
@@ -20,9 +20,11 @@ const DevUpdateInfo = () => {
                 <span className="material-icons-round text-[13px]">update</span>
                 <span>最終更新: {DEV_UPDATE_INFO.date} {DEV_UPDATE_INFO.time}</span>
             </div>
-            <p className="text-[10px] text-slate-300 mt-0.5 leading-tight font-sans">
-                {DEV_UPDATE_INFO.summary}
-            </p>
+            {DEV_UPDATE_INFO.summary && (
+                <p className="text-[10px] text-slate-300 mt-0.5 leading-tight font-sans line-clamp-2">
+                    {DEV_UPDATE_INFO.summary}
+                </p>
+            )}
         </div>
     );
 };
