@@ -1670,7 +1670,8 @@ button:disabled {
 
 /* 空スロット */
 .token-card-empty {
-  background: rgba(255, 255, 255, 0.08);
+  /* 外枠線を他スロットと同程度に視認できる色にする（薄すぎると内側だけが見え、枠が小さく切り取られて見える） */
+  background: rgba(148, 163, 184, 0.35);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 .token-card-empty::before {
@@ -1708,6 +1709,23 @@ button:disabled {
     background: linear-gradient(135deg, #ffdb70 0%, #fbbf24 100%);
     box-shadow: 0 0 10px rgba(251, 191, 36, 0.3), 0 2px 8px rgba(0, 0, 0, 0.4);
   }
+}
+
+/* トークン詳細モーダル用カード: 八角形クリップと内側マスクの被りを解除 */
+.token-detail-card {
+  clip-path: none !important;
+  overflow: visible;
+  isolation: isolate;
+  border: 1px solid transparent;
+}
+.token-detail-card::before {
+  inset: 1px;
+  clip-path: none;
+  border-radius: calc(1rem - 1px);
+  z-index: -1; /* 本文より背面に描画して文字を覆わないようにする */
+}
+.token-detail-card:hover {
+  transform: none;
 }
 
 /* トークンアイコンコンテナ（枠線と背景を完全に排除し、中のアイコンを直接浮かび上がらせる） */

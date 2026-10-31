@@ -1290,7 +1290,7 @@ const App = () => {
                       {selectedTokenDetail.actionText}
                     </div>
                   )}
-                  <div className={`w-full max-w-xs rounded-2xl p-6 ${(t.isCurse || t.type === 'curse') ? 'token-card-curse' : isSkill ? 'token-card-skill' : 'token-card-passive'}`} style={{ clipPath: 'none' }} onClick={e => e.stopPropagation()}>
+                  <div className={`w-full max-w-xs rounded-2xl p-6 ${(t.isCurse || t.type === 'curse') ? 'token-card-curse' : isSkill ? 'token-card-skill' : 'token-card-passive'} token-detail-card`} onClick={e => e.stopPropagation()}>
                     {/* ヘッダー */}
                     <div className="flex items-center gap-3 mb-4">
                       <div className={`w-12 h-12 rounded-tr-xl rounded-br-xl relative flex items-center justify-center overflow-hidden token-icon-wrap`}>
