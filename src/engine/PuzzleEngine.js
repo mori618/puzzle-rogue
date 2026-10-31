@@ -2560,6 +2560,7 @@ class PuzzleEngine {
       [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
     }
     // Select
+    const targets = candidates.slice(0, count);
     targets.forEach(({ r, c }) => {
       const orb = this.state[r][c];
       orb.type = type;

@@ -41,7 +41,6 @@ describe('新規追加された4つ消し・5つ消しトークンの定義テ�
     'len4_spawn_plus',
     'len4_spawn_token',
     'len4_count_all_plus',
-    'len5_random_enchant',
     'len5_count_level_up'
   ];
 

@@ -540,7 +540,20 @@ export const useGameState = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 練習モード開始前の本編の状態（練習モード終了時に復元する）
+  const prePracticeSnapshotRef = useRef(null);
+
   const handleStartPractice = useCallback(() => {
+    prePracticeSnapshotRef.current = {
+      turn,
+      target,
+      goalReached,
+      tokens,
+      activeBuffs,
+      maxCombo: currentRunStats.maxCombo || 0,
+      board: savedBoard,
+      exiting: false,
+    };
     setIsPracticeMode(true);
     setShowTitle(false);
     setTurn(1);
@@ -551,6 +564,23 @@ export const useGameState = () => {
     setCurrentRunStats(prev => ({ ...prev, maxCombo: 0 }));
     if (engineRef.current) {
       engineRef.current.init(null);
+    }
+  }, [turn, target, goalReached, tokens, activeBuffs, currentRunStats.maxCombo, savedBoard]);
+
+  // 練習モード（またはゲームオーバー画面）からタイトルへ戻る
+  const exitPracticeMode = useCallback(() => {
+    const snap = prePracticeSnapshotRef.current;
+    setIsPracticeMode(false);
+    if (snap) {
+      // 練習モードで上書きした本編の状態を復元
+      setTurn(snap.turn);
+      setTarget(snap.target);
+      setGoalReached(snap.goalReached);
+      setTokens(snap.tokens);
+      setActiveBuffs(snap.activeBuffs);
+      setCurrentRunStats(prev => ({ ...prev, maxCombo: snap.maxCombo }));
+      // 盤面はエンジン破棄時のクリーンアップで復元する
+      snap.exiting = true;
     }
   }, []);
 
@@ -573,6 +603,9 @@ export const useGameState = () => {
 
   useEffect(() => {
     if (!isLoaded) return;
+
+    // 練習モード中は本編のセーブデータを上書きしない
+    if (isPracticeMode) return;
 
     if (isGameOver) {
       localStorage.removeItem(SAVE_KEY);
@@ -599,13 +632,14 @@ export const useGameState = () => {
       tokenSlotExpansionCount,
       isAwakeningLevelUpBought,
       currentRunStats,
-      board: engineRef.current ? engineRef.current.getState() : (savedBoard || null)
+      // タイトル画面ではエンジンが破棄済みのため、クリーンアップで保存された savedBoard を使う
+      board: (!showTitle && engineRef.current) ? engineRef.current.getState() : (savedBoard || null)
     };
 
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveObj));
     setHasSaveData(true);
 
-  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, isAwakeningLevelUpBought, currentRunStats]);
+  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, isAwakeningLevelUpBought, currentRunStats, isPracticeMode, showTitle]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -758,7 +792,14 @@ export const useGameState = () => {
 
     return () => {
       if (engineRef.current) {
-        setSavedBoard(engineRef.current.getState());
+        const snap = prePracticeSnapshotRef.current;
+        if (snap?.exiting) {
+          // 練習モード終了時は練習前の本編の盤面に戻す
+          setSavedBoard(snap.board);
+          prePracticeSnapshotRef.current = null;
+        } else {
+          setSavedBoard(engineRef.current.getState());
+        }
       }
       engine.destroy();
     };
@@ -5659,6 +5700,7 @@ export const useGameState = () => {
     tokenMoveInput, setTokenMoveInput,
     showGameClear, setShowGameClear,
     isPracticeMode, setIsPracticeMode,
+    exitPracticeMode,
     practiceTimeLimit, setPracticeTimeLimit,
     isPureMode, setIsPureMode,
     isEnchantShopUnlocked, setIsEnchantShopUnlocked,

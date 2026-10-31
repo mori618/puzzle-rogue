@@ -193,9 +193,14 @@ describe('0. トークン定義の完全性チェック', () => {
     }
   });
 
-  it('重複 ID が存在しない（legend_saint を除く）', () => {
-    const ids = ALL_TOKEN_BASES.map(t => t.id).filter(id => id !== 'legend_saint');
+  it('重複 ID が存在しない', () => {
+    const ids = ALL_TOKEN_BASES.map(t => t.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('有効なトークンの説明文に廃止済みの「エンチャント」が含まれない', () => {
+    const withEnchant = ALL_TOKEN_BASES.filter(t => (t.desc || '').includes('エンチャント')).map(t => t.id);
+    expect(withEnchant).toEqual([]);
   });
 });
 
@@ -259,6 +264,13 @@ describe('2. スキルアクション: 1色変換 (convert / convert_multi / con
   afterEach(() => {
     vi.clearAllTimers();
     document.body.innerHTML = '';
+  });
+
+  it('spawnRandom: 指定数だけ指定色のドロップが生成される', () => {
+    engine.state.forEach(row => row.forEach(orb => orb && (orb.type = 'wood')));
+    engine.spawnRandom('fire', 5);
+    const fireCount = engine.state.flat().filter(orb => orb && orb.type === 'fire').length;
+    expect(fireCount).toBe(5);
   });
 
   it('convertColor: 木→炎に全変換される', () => {
@@ -1769,12 +1781,6 @@ describe('33. 特殊スキルアクション', () => {
       expect(t.params.multiplier, `${t.id}: multiplier`).toBeGreaterThan(0);
       expect(t.params.duration, `${t.id}: duration`).toBeGreaterThan(0);
     });
-  });
-
-  it('seal_of_power トークンが存在し multiplier が 7 である', () => {
-    const token = ALL_TOKEN_BASES.find(t => t.action === 'seal_of_power');
-    expect(token).toBeDefined();
-    expect(token.params.multiplier).toBe(7);
   });
 
   it('charge_boost トークンが存在する', () => {

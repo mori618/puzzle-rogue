@@ -105,10 +105,6 @@ const StatsScreen = ({ currentRunStats, onClose }) => {
                             <span className="font-bold text-sm">ベース最大倍率</span>
                             <span className="font-black font-mono">x{Math.round((displayData.maxBaseComboMultiplier) * 100) / 100}</span>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="font-bold text-sm">最大エンチャント数</span>
-                            <span className="font-black text-white font-mono text-base">{displayData.maxEnchants} <span className="text-xs font-normal">個</span></span>
-                        </div>
 
                         <div className="border-t border-white/10 my-1"></div>
 

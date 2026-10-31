@@ -55,7 +55,6 @@ const App = () => {
     settings,
     currentRunTotalCombo,
     currentRunStats,
-    setCurrentRunStats,
     triggeredPassives,
     targetPulse,
     starPopups,
@@ -68,7 +67,8 @@ const App = () => {
     selectedEnchantDetail, setSelectedEnchantDetail,
     tokenMoveInput, setTokenMoveInput,
     showGameClear, setShowGameClear,
-    isPracticeMode, setIsPracticeMode,
+    isPracticeMode,
+    exitPracticeMode,
     practiceTimeLimit, setPracticeTimeLimit,
     isPureMode, setIsPureMode,
     isEnchantShopUnlocked,
@@ -982,9 +982,8 @@ const App = () => {
                     onClick={() => {
                       setIsGameOver(false);
                       setShowShop(false);
-                      setIsPracticeMode(false);
+                      exitPracticeMode();
                       setShowTitle(true);
-                      setCurrentRunStats(prev => ({ ...prev, maxCombo: 0 }));
                     }}
                     className="w-full bg-slate-800 text-slate-300 py-4 rounded-2xl font-bold text-sm active:scale-95 hover:bg-slate-700 transition-colors border border-white/5 flex items-center justify-center gap-1"
                   >
@@ -1085,10 +1084,9 @@ const App = () => {
                   onTitle={() => {
                     setShowPause(false);
                     setShowShop(false);
-                    setIsPracticeMode(false);
+                    // 練習モードの場合は練習前の本編の状態（最大コンボ含む）を復元
+                    exitPracticeMode();
                     setShowTitle(true);
-                    // 練習モード離脱時などに最大コンボをクリア
-                    setCurrentRunStats(prev => ({ ...prev, maxCombo: 0 }));
                   }}
                   onHelp={() => setShowHelp(true)}
                   onStats={() => setShowStats(true)}

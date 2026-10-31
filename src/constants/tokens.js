@@ -375,7 +375,7 @@ const ALL_TOKEN_BASES = [
   /* エンチャント廃止に伴いコメントアウト
   { id: "seal_of_power", name: "力の封印", icon: "dangerous", type: "skill", cost: 6, costLevels: true, action: "seal_of_power", params: { multiplier: 7, duration: 1 }, rarity: 3, price: 26, desc: "1手番、全エンチャント効果が無効になるが、基礎コンボ数が7倍になる。消費E:{cost}", attributes: [] },
   */
-  { id: "trial", name: "試練", icon: "offline_bolt", type: "skill", cost: 6, action: "trial_stage", params: { duration: 1 }, rarity: 3, price: 26, desc: "1手番プラス。使用後1ターン、特殊ドロップ・トークン・エンチャント効果が発動しない。このターンに8コンボ以上すると、ターン終了時に全ドロップがスタープラスリピート化、1ターン全てのトークン効果が2度発動＆確率系トークンの確率が+100%。消費E:{cost}", attributes: [] },
+  { id: "trial", name: "試練", icon: "offline_bolt", type: "skill", cost: 6, action: "trial_stage", params: { duration: 1 }, rarity: 3, price: 26, desc: "1手番プラス。使用後1ターン、特殊ドロップ・トークン効果が発動しない。このターンに8コンボ以上すると、ターン終了時に全ドロップがスタープラスリピート化、1ターン全てのトークン効果が2度発動＆確率系トークンの確率が+100%。消費E:{cost}", attributes: [] },
   { id: "gen_token_s1", name: "一星の招来", icon: "auto_awesome", type: "skill", cost: 3, action: "spawn_token_s1", rarity: 1, price: 14, desc: "自身以外のランダムな★1トークンを1つ生成する。消費E:{cost}", attributes: [] },
   { id: "gen_token_s2", name: "二星の招来", icon: "auto_awesome", type: "skill", cost: 5, action: "spawn_token_s2", rarity: 2, price: 20, desc: "自身以外のランダムな★2トークンを1つ生成する。消費E:{cost}", attributes: [] },
   { id: "gen_token_s3", name: "三星の代償", icon: "auto_awesome", type: "skill", cost: 6, action: "spawn_token_s3", rarity: 3, price: 31, desc: "ランダムな★3トークンを1つ生成する。30%の確率で呪いトークンが生成される。消費E:{cost}", attributes: [] },
@@ -1424,12 +1424,6 @@ const ALL_TOKEN_BASES = [
     attributes: []
   },
   {
-    id: "legend_saint", name: "聖女", icon: "healing", type: "passive", effect: "saint",
-    rarity: 4, price: 77, noLevelUp: true,
-    desc: "呪いトークンの負の効果が発動しなくなる（ロックのカウントは進み、解除は可能）。",
-    attributes: []
-  },
-  {
     id: "legend_inugami", name: "犬神", icon: "pets", type: "passive", effect: "inugami",
     rarity: 4, price: 77, noLevelUp: true,
     desc: "基礎コンボ数が100以上の時、基礎コンボ数が10倍になる。",
@@ -1549,7 +1543,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "copy_token", name: "模倣の魔鏡", icon: "content_copy", type: "passive", effect: "copy_left",
     values: [1], rarity: 3, price: 26,
-    desc: "左隣のトークンの効果とエンチャントをコピーする。自身はレベルアップせず、エンチャントも付与されない。",
+    desc: "左隣のトークンの効果をコピーする。自身はレベルアップしない。",
     attributes: [],
     canBeCurseReward: true
   },

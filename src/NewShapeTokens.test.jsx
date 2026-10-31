@@ -44,8 +44,7 @@ describe('新規追加されたL字消し・十字消しトークンの定義テ
     'l_cross_simultaneous_mult',
     'cross_double_base_mult',
     'cross_count_token',
-    'cross_multiply_move_drop',
-    'cross_enchant_self'
+    'cross_multiply_move_drop'
   ];
 
   it('新規トークンがすべて ALL_TOKEN_BASES に正しく定義されていること', () => {
