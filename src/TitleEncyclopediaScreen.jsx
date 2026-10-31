@@ -18,9 +18,10 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState('prefix'); // 'prefix' | 'suffix' | 'synergy'
   const [titleState, setTitleState] = useState(() => loadTitleState());
 
+  // 装備の変更のみを最新の保存状態へ反映する（進捗・解放状況は上書きしない）
   useEffect(() => {
-    saveTitleState(titleState);
-  }, [titleState]);
+    saveTitleState({ ...loadTitleState(), equippedTitle: titleState.equippedTitle });
+  }, [titleState.equippedTitle]);
 
   const { unlockedTitles, equippedTitle } = titleState;
   const equippedInfo = useMemo(() => getEquippedTitleInfo(equippedTitle), [equippedTitle]);
@@ -42,6 +43,7 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
   const isPrefixUnlocked = (id) => unlockedTitles.prefixes?.includes(id);
   const isSuffixUnlocked = (id) => unlockedTitles.suffixes?.includes(id);
   const isEvolvedUnlocked = (id) => unlockedTitles.evolved?.includes(id);
+  const unlockedCount = (unlockedTitles.prefixes?.length || 0) + (unlockedTitles.suffixes?.length || 0) + (unlockedTitles.evolved?.length || 0);
 
   return (
     <div className="fixed inset-0 z-50 bg-background-dark font-game-cyber text-slate-100 flex flex-col animate-fade-in select-none">
@@ -60,7 +62,7 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
           <span className="material-icons-round text-amber-400 text-2xl">military_tech</span>
           <div>
             <h1 className="text-base font-game-header tracking-wider text-amber-300">
-              二つ名図鑑 (全140種)
+              二つ名図鑑 (全140種・解放 {unlockedCount}/{PREFIX_TITLES.length + SUFFIX_TITLES.length + EVOLVED_TITLES.length})
             </h1>
             <p className="text-[10px] text-slate-400 font-mono tracking-tight">
               TITLE ENCYCLOPEDIA (ALL 140 TITLES)
@@ -224,7 +226,7 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
                       </span>
                       {!unlocked && (
                         <span className="font-mono font-bold text-amber-300">
-                          {progress} / {title.targetValue}
+                          {progress.toLocaleString()} / {title.targetValue.toLocaleString()}
                         </span>
                       )}
                     </div>
@@ -303,7 +305,7 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
                       </span>
                       {!unlocked && (
                         <span className="font-mono font-bold text-amber-300">
-                          {progress} / {title.targetValue}
+                          {progress.toLocaleString()} / {title.targetValue.toLocaleString()}
                         </span>
                       )}
                     </div>
@@ -337,7 +339,7 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
                   const suff = SUFFIX_TITLES.find(s => s.id === set.suffixId);
                   const isPrefUnlocked = isPrefixUnlocked(set.prefixId);
                   const isSuffUnlocked = isSuffixUnlocked(set.suffixId);
-                  const isActive = equippedTitle.prefixId === set.prefixId && equippedTitle.suffixId === set.suffixId;
+                  const isActive = equippedInfo.activeSet?.id === set.id;
 
                   return (
                     <div
@@ -387,37 +389,75 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {EVOLVED_TITLES.map((evo) => {
                   const unlocked = isEvolvedUnlocked(evo.id);
+                  const slot = evo.slot;
+                  const isEquipped = (slot === 'prefix' ? equippedTitle.prefixId : equippedTitle.suffixId) === evo.id;
+                  const baseTitle = slot === 'prefix'
+                    ? PREFIX_TITLES.find(p => p.id === evo.requiredTitleId)
+                    : SUFFIX_TITLES.find(p => p.id === evo.requiredTitleId);
+                  const baseUnlocked = slot === 'prefix' ? isPrefixUnlocked(evo.requiredTitleId) : isSuffixUnlocked(evo.requiredTitleId);
+                  const progress = getTitleProgressValue(evo, titleState.progress);
+                  const isCounter = !evo.trigger; // 累計系（進捗バーを表示）
+                  const percent = Math.min(100, Math.floor((progress / evo.targetValue) * 100)) || 0;
 
                   return (
                     <div
                       key={evo.id}
+                      onClick={() => unlocked && handleEquip(evo, slot)}
                       className={`p-3.5 rounded-2xl border transition-all relative overflow-hidden ${
-                        unlocked
-                          ? 'bg-indigo-950/40 border-indigo-400/50 shadow-md'
+                        isEquipped
+                          ? 'bg-indigo-900/50 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.3)] cursor-pointer'
+                          : unlocked
+                          ? 'bg-indigo-950/40 border-indigo-400/50 shadow-md cursor-pointer hover:border-amber-400/60'
                           : 'bg-slate-950/60 border-white/5 opacity-80'
                       }`}
                     >
-                      <div className="flex justify-between items-center mb-1.5">
-                        <div className="flex items-center gap-2">
+                      <div className="flex justify-between items-center mb-1.5 gap-2">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
                           <span className="material-icons-round text-base text-amber-400">
-                            {unlocked ? 'verified' : 'lock'}
+                            {unlocked ? (isEquipped ? 'check_circle' : 'verified') : 'lock'}
                           </span>
                           <span className="text-sm font-black text-white">
                             【{evo.name}】
                           </span>
                           <span className="text-[9px] bg-indigo-900/50 border border-indigo-500/30 px-1.5 py-0.5 rounded text-indigo-300 font-bold">
-                            {evo.category}
+                            {slot === 'prefix' ? 'A枠' : 'B枠'}・{baseTitle ? `${baseTitle.name}の進化` : evo.category}
                           </span>
                         </div>
+                        {unlocked && (
+                          <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            isEquipped ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                          }`}>
+                            {isEquipped ? '装着中' : '装着する'}
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-slate-300 mb-2 leading-relaxed font-sans">
                         {evo.desc}
                       </p>
-                      <div className="bg-slate-950/70 p-2 rounded-xl border border-white/5 text-[11px] text-slate-400">
+                      <div className="bg-slate-950/70 p-2 rounded-xl border border-white/5 text-[11px] text-slate-400 space-y-1">
                         <div className="flex items-center gap-1 text-amber-300">
                           <span className="material-icons-round text-xs">flag</span>
                           <span>{evo.challengeDesc}</span>
                         </div>
+                        {!unlocked && !baseUnlocked && (
+                          <div className="flex items-center gap-1 text-slate-500">
+                            <span className="material-icons-round text-xs">lock</span>
+                            <span>前提: 元の二つ名を先に解放してください</span>
+                          </div>
+                        )}
+                        {!unlocked && isCounter && (
+                          <>
+                            <div className="text-right font-mono font-bold text-amber-300">
+                              {progress.toLocaleString()} / {evo.targetValue.toLocaleString()}
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5">
+                              <div
+                                className="h-full bg-gradient-to-r from-indigo-500 to-amber-500 rounded-full transition-all duration-300"
+                                style={{ width: `${percent}%` }}
+                              />
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   );
