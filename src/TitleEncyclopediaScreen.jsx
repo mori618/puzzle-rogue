@@ -273,7 +273,7 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
                       </span>
                       <span className="text-xs font-mono text-slate-400">[{title.id}]</span>
                       <span className={`text-sm font-black ${
-                        unlocked ? title.name : 'text-slate-400'
+                        unlocked ? 'text-white' : 'text-slate-400'
                       }`}>
                         {unlocked ? title.name : '？？？'}
                       </span>
@@ -352,7 +352,7 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
                         <span className={`text-sm font-black ${
                           isActive ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]' : 'text-white'
                         }`}>
-                          {set.titleName}
+                          {isPrefUnlocked && isSuffUnlocked ? set.titleName : '【？？？？？】'}
                         </span>
                         {isActive && (
                           <span className="text-[9px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full font-black animate-pulse">
@@ -370,7 +370,7 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
                         </span>
                       </div>
                       <p className="text-xs text-slate-200 leading-relaxed font-sans bg-slate-950/50 p-2 rounded-xl border border-white/5">
-                        {set.desc}
+                        {isPrefUnlocked && isSuffUnlocked ? set.desc : '対応するA枠・B枠の二つ名を両方解放すると効果が判明します。'}
                       </p>
                     </div>
                   );

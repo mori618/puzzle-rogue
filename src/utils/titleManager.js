@@ -22,8 +22,9 @@ export const loadTitleState = () => {
           evolved: parsed.unlockedTitles?.evolved || [],
         },
         equippedTitle: {
-          prefixId: parsed.equippedTitle?.prefixId ?? 'A01',
-          suffixId: parsed.equippedTitle?.suffixId ?? 'B01',
+          // 明示的に外した状態 (null) を保持するため、キーが存在しない場合のみ既定値を使う
+          prefixId: parsed.equippedTitle && 'prefixId' in parsed.equippedTitle ? parsed.equippedTitle.prefixId : 'A01',
+          suffixId: parsed.equippedTitle && 'suffixId' in parsed.equippedTitle ? parsed.equippedTitle.suffixId : 'B01',
         },
       };
     }
@@ -57,6 +58,15 @@ export const saveTitleState = (titleState) => {
 };
 
 /**
+ * 接頭辞と接尾辞を連結する。接頭辞が「の」で終わらない場合（例: 紅蓮の詠唱）は「・」で区切る
+ */
+export const joinTitleName = (prefixName, suffixName) => {
+  if (!prefixName) return suffixName || '';
+  if (!suffixName) return prefixName;
+  return prefixName.endsWith('の') ? `${prefixName}${suffixName}` : `${prefixName}・${suffixName}`;
+};
+
+/**
  * 装備中の二つ名とシナジー情報を取得
  */
 export const getEquippedTitleInfo = (equippedTitle = {}) => {
@@ -72,9 +82,9 @@ export const getEquippedTitleInfo = (equippedTitle = {}) => {
   if (activeSet) {
     fullName = activeSet.titleName;
   } else if (prefix && suffix) {
-    fullName = `${prefix.name}${suffix.name}`;
+    fullName = joinTitleName(prefix.name, suffix.name);
   } else if (prefix) {
-    fullName = `${prefix.name}――`;
+    fullName = joinTitleName(prefix.name, '――');
   } else if (suffix) {
     fullName = `――の${suffix.name}`;
   }
@@ -96,7 +106,8 @@ export const getTitleProgressValue = (title, stats = {}, currentRunStats = {}) =
     case 'time_left':
       return currentRunStats.lastRemainingTimeSec || 0;
     case 'time_left_less':
-      return currentRunStats.lastRemainingTimeSec || 0;
+      // 「N秒以下」条件: 残り時間が目標以下なら達成値 (targetValue) を返す
+      return (currentRunStats.lastRemainingTimeSec ?? Infinity) <= title.targetValue ? title.targetValue : 0;
     case 'cycle_clear':
       return (currentRunStats.currentClears || 0);
     case 'drop_erase_fire':

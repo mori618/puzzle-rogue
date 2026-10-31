@@ -132,7 +132,7 @@ export const PREFIX_TITLES = [
     category: '経済・逆境',
     desc: '所持スター0の時、コンボ倍率 +3.0',
     conditionType: 'zero_star_clear',
-    targetValue: 0,
+    targetValue: 1,
     conditionDesc: '所持スター0でサイクルクリア',
     effectType: 'zero_star_multiplier',
     effectValue: 3.0,
