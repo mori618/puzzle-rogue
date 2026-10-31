@@ -36,7 +36,7 @@ const App = () => {
     turn,
     freeRerolls,
     cycleTotalCombo,
-    shopRerollPrice,
+    effectiveRerollPrice,
     stars,
     activeBuffs,
     lastTurnCombo,
@@ -1064,7 +1064,7 @@ const App = () => {
                   onClose={() => setShowShop(false)}
                   onRefresh={refreshShop}
                   goalReached={goalReached}
-                  rerollPrice={shopRerollPrice}
+                  rerollPrice={effectiveRerollPrice}
                   onPause={() => setShowPause(true)}
                   isEnchantShopUnlocked={isEnchantShopUnlocked}
                   tokenSlotExpansionCount={tokenSlotExpansionCount}

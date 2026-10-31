@@ -95,8 +95,12 @@ export const loadTitleState = () => {
  * ローカルストレージに二つ名状態を保存
  */
 export const saveTitleState = (titleState) => {
+  const prevEquipped = cachedState ? JSON.stringify(cachedState.equippedTitle) : null;
   cachedState = normalizeState(titleState);
-  cachedEffects = null;
+  // 効果は装備内容のみに依存するため、装備が変わった時だけ再計算する（参照の安定化）
+  if (prevEquipped !== JSON.stringify(cachedState.equippedTitle)) {
+    cachedEffects = null;
+  }
   try {
     localStorage.setItem(TITLE_STORAGE_KEY, JSON.stringify(cachedState));
   } catch (e) {
