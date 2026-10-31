@@ -14,7 +14,7 @@ import {
 import soundManager from './utils/SoundManager.js';
 import { SE_IDS } from './constants/sounds.js';
 
-const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) => {
+const TitleEncyclopediaScreen = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState('prefix'); // 'prefix' | 'suffix' | 'synergy'
   const [titleState, setTitleState] = useState(() => loadTitleState());
 
@@ -170,7 +170,7 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
             {PREFIX_TITLES.map((title) => {
               const unlocked = isPrefixUnlocked(title.id);
               const isEquipped = equippedTitle.prefixId === title.id;
-              const progress = getTitleProgressValue(title, stats, currentRunStats);
+              const progress = getTitleProgressValue(title, titleState.progress);
               const percent = Math.min(100, Math.floor((progress / title.targetValue) * 100)) || 0;
 
               return (
@@ -249,7 +249,7 @@ const TitleEncyclopediaScreen = ({ onClose, currentRunStats = {}, stats = {} }) 
             {SUFFIX_TITLES.map((title) => {
               const unlocked = isSuffixUnlocked(title.id);
               const isEquipped = equippedTitle.suffixId === title.id;
-              const progress = getTitleProgressValue(title, stats, currentRunStats);
+              const progress = getTitleProgressValue(title, titleState.progress);
               const percent = Math.min(100, Math.floor((progress / title.targetValue) * 100)) || 0;
 
               return (
