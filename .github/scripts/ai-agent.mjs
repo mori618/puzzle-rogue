@@ -1,6 +1,6 @@
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -33,6 +33,16 @@ async function postIssueComment(body) {
   }
 }
 
+// AIが書き込んでよいパスか判定する（src/ 配下と index.html のみ許可）
+function isWritablePath(p) {
+  if (typeof p !== 'string' || p.length === 0) return false;
+  const root = process.cwd();
+  const abs = resolve(root, p);
+  const rel = relative(root, abs);
+  if (rel.startsWith('..') || rel.includes(`..${sep}`)) return false;
+  return rel === 'index.html' || rel.startsWith(`src${sep}`);
+}
+
 // Helper to pause execution
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -56,11 +66,13 @@ function getProjectFiles(dir, baseDir = dir) {
       ) {
         try {
           let content = readFileSync(filePath, 'utf-8');
+          let truncated = false;
           // 1ファイルあたり巨大すぎる場合はカットしてトークンを節約
           if (content.length > 20000) {
             content = content.slice(0, 20000) + '\n/* ...[ファイルサイズ超過のため省略]... */';
+            truncated = true;
           }
-          results.push({ path: relPath, content });
+          results.push({ path: relPath, content, truncated });
         } catch {
           // ignore binary or unreadable files
         }
@@ -146,15 +158,34 @@ async function main() {
     : `Issueタイトル: ${ISSUE_TITLE}\n\nIssue内容:\n${ISSUE_BODY}`;
 
   const files = getProjectFiles(process.cwd());
-  let filesContext = files
-    .map(f => `--- FILE: ${f.path} ---\n${f.content}\n--- END FILE ---`)
-    .join('\n\n');
 
-  // 全体トークン数が20万文字（約5万〜6万トークン相当）を超える場合は全体を縮小
-  if (filesContext.length > 200000) {
-    console.warn('Project context too large. Truncating context size...');
-    filesContext = filesContext.slice(0, 200000) + '\n\n/* ...[プロジェクト全体サイズが大きいため一部ファイルを省略]... */';
+  // 全体が20万文字（約5万〜6万トークン相当）を超えないようにファイル単位で詰める。
+  // AIが全文を見られたファイルだけを「上書き可能」として記録する
+  // （一部しか見ていないファイルを「完全な内容」で書き直させると、残りが消えてしまうため）。
+  const CONTEXT_LIMIT = 200000;
+  const fullyVisiblePaths = new Set();
+  const existingPaths = new Set(files.map(f => resolve(process.cwd(), f.path)));
+  const contextParts = [];
+  const omittedPaths = [];
+  let contextLength = 0;
+  for (const f of files) {
+    const part = `--- FILE: ${f.path} ---\n${f.content}\n--- END FILE ---`;
+    if (contextLength + part.length > CONTEXT_LIMIT) {
+      omittedPaths.push(f.path);
+      continue;
+    }
+    contextParts.push(part);
+    contextLength += part.length + 2;
+    if (!f.truncated) fullyVisiblePaths.add(resolve(process.cwd(), f.path));
   }
+  if (omittedPaths.length > 0) {
+    console.warn(`Project context too large. Omitted files: ${omittedPaths.join(', ')}`);
+    contextParts.push(`/* ...[プロジェクト全体サイズが大きいため以下のファイルを省略: ${omittedPaths.join(', ')}]... */`);
+  }
+  const filesContext = contextParts.join('\n\n');
+  const notEditablePaths = files
+    .filter(f => !fullyVisiblePaths.has(resolve(process.cwd(), f.path)))
+    .map(f => f.path);
 
   let currentInstruction = userInstruction;
   let attempts = 0;
@@ -164,6 +195,12 @@ async function main() {
   while (attempts < maxAttempts) {
     attempts++;
     console.log(`Attempt ${attempts} / ${maxAttempts}`);
+
+    // 前回の試行で書き込んだ変更を破棄してから再試行する
+    if (attempts > 1) {
+      execFileSync('git', ['checkout', '--', '.']);
+      execFileSync('git', ['clean', '-fd', '--', 'src']);
+    }
 
     const prompt = `あなたは熟練のフロントエンドエンジニアです。
 ユーザーから以下の修正リクエストが届きました。
@@ -190,6 +227,8 @@ JSONスキーマ:
 }
 注意:
 - 変更が必要なファイルのみを配列に含めてください。
+- 変更できるのは src/ 配下のファイルと index.html のみです。
+- 次のファイルは内容の一部しか提示されていないため、変更対象に含めないでください: ${notEditablePaths.length ? notEditablePaths.join(', ') : 'なし'}
 - 各ファイルの内容は一部の省略（...など）をせず、完全な全体コードを記述してください。
 - 構文エラーや未定義の変数・import漏れがないように注意してください。`;
 
@@ -208,26 +247,45 @@ JSONスキーマ:
       return;
     }
 
+    // 書き込み先の検証（すべて問題ない場合のみ書き込む）
+    const invalidFiles = result.files.filter((file) => {
+      if (typeof file.content !== 'string' || !isWritablePath(file.path)) return true;
+      const abs = resolve(process.cwd(), file.path);
+      // 既存ファイルはAIが全文を見ていたものだけ上書きを許可する
+      return existsSync(abs) && (!existingPaths.has(abs) || !fullyVisiblePaths.has(abs));
+    });
+    if (invalidFiles.length > 0) {
+      lastBuildError = `次のファイルは変更できません（src/ 配下・index.html 以外、または全文が提示されていないファイル）: ${invalidFiles.map(f => f.path).join(', ')}`;
+      console.warn(lastBuildError);
+      if (attempts >= maxAttempts) {
+        await postIssueComment(`⚠️ **変更できないファイルが指定されたため中止しました**\n${lastBuildError}`);
+        process.exit(1);
+      }
+      continue;
+    }
+
     // Apply file changes
     for (const file of result.files) {
       console.log(`Writing file: ${file.path}`);
-      writeFileSync(file.path, file.content, 'utf-8');
+      writeFileSync(resolve(process.cwd(), file.path), file.content, 'utf-8');
     }
 
-    // Try building
-    console.log('Testing build: npm run build');
+    // Try building and testing
+    console.log('Testing build: npm run build && npm test');
     try {
-      execSync('npm run build', { stdio: 'pipe' });
+      execFileSync('npm', ['run', 'build'], { stdio: 'pipe' });
       console.log('Build succeeded!');
+      execFileSync('npm', ['test'], { stdio: 'pipe' });
+      console.log('Tests passed!');
 
-      // Commit and push
-      execSync('git config user.name "github-actions[bot]"');
-      execSync('git config user.email "github-actions[bot]@users.noreply.github.com"');
-      execSync('git add -A');
+      // Commit and push（シェルを介さず引数で渡し、Issueタイトル等によるコマンド注入を防ぐ）
+      execFileSync('git', ['config', 'user.name', 'github-actions[bot]']);
+      execFileSync('git', ['config', 'user.email', 'github-actions[bot]@users.noreply.github.com']);
+      execFileSync('git', ['add', '--', ...result.files.map(f => f.path)]);
 
       const commitMessage = `fix: ${ISSUE_TITLE || 'auto update from issue'} (#${ISSUE_NUMBER})\n\n${result.summary || ''}`;
-      execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`);
-      execSync('git push origin main');
+      execFileSync('git', ['commit', '-m', commitMessage]);
+      execFileSync('git', ['push', 'origin', 'main']);
 
       const successComment = `✅ **修正が完了し、mainブランチに反映されました！**
 
@@ -243,10 +301,12 @@ ${result.files.map(f => `- \`${f.path}\``).join('\n')}
       await postIssueComment(successComment);
       return;
     } catch (buildErr) {
-      lastBuildError = buildErr.stderr ? buildErr.stderr.toString() : buildErr.message;
+      const stdout = buildErr.stdout ? buildErr.stdout.toString() : '';
+      const stderr = buildErr.stderr ? buildErr.stderr.toString() : '';
+      lastBuildError = (stderr + '\n' + stdout).trim().slice(-8000) || buildErr.message;
       console.warn(`Build failed on attempt ${attempts}:`, lastBuildError);
       if (attempts >= maxAttempts) {
-        await postIssueComment(`⚠️ **ビルドエラーが発生しました（${maxAttempts}回試行）**\n自動修復できませんでした。エラー内容:\n\`\`\`\n${lastBuildError.slice(0, 1000)}\n\`\`\``);
+        await postIssueComment(`⚠️ **ビルドまたはテストが失敗しました（${maxAttempts}回試行）**\n自動修復できませんでした。エラー内容:\n\`\`\`\n${lastBuildError.slice(0, 1000)}\n\`\`\``);
         process.exit(1);
       }
     }

@@ -16,10 +16,18 @@ concurrency:
 
 jobs:
   solve-issue:
-    # bot自身によるコメント（無限ループ防止）を除外
+    # - リポジトリのオーナー・メンバー・コラボレーター以外からの依頼は無視する
+    #   （第三者がIssueを立てるだけでmainへpush・デプロイされるのを防ぐ）
+    # - bot自身によるコメント（無限ループ防止）を除外
+    # - PRへのコメントは対象外
     if: |
-      github.event_name == 'issues' ||
-      (github.event_name == 'issue_comment' && github.event.comment.user.type != 'Bot' && !endsWith(github.actor, '[bot]'))
+      (github.event_name == 'issues' &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)) ||
+      (github.event_name == 'issue_comment' &&
+        !github.event.issue.pull_request &&
+        github.event.comment.user.type != 'Bot' &&
+        !endsWith(github.actor, '[bot]') &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

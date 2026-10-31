@@ -10,7 +10,8 @@
     "deploy": "gh-pages -d dist",
     "lint": "eslint .",
     "preview": "vite preview",
-    "export:notebooklm": "node scripts/export-notebooklm.mjs"
+    "export:notebooklm": "node scripts/export-notebooklm.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.18",
