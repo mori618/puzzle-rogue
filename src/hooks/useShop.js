@@ -3,7 +3,7 @@ import { useState, useCallback } from "react";
 import { ALL_TOKEN_BASES } from "../constants/tokens.js";
 import { ENCHANTMENTS, getEnchantDescription } from "../constants/enchantments.js";
 import {
-  TOKEN_PRICE_TIERS,
+  TOKEN_PRICE_TIER,
   SHOP_REROLL_GROWTH_FACTOR,
   AWAKENING_TOKEN_SLOT_PRICES,
   INITIAL_TOKEN_SLOTS,
@@ -48,8 +48,11 @@ export const useShop = ({
   const getTokenDynamicPrice = useCallback((baseToken, currentTokens) => {
     // 所持トークンの総数（パッシブ・スキル・呪いすべて）で段階的に上昇
     const possessionCount = currentTokens.filter(Boolean).length;
-    const tier = TOKEN_PRICE_TIERS.find(t => possessionCount >= t.minOwned);
-    const multiplier = tier ? tier.multiplier : 1;
+    const { startOwned, stepOwned, multiplierPerStep } = TOKEN_PRICE_TIER;
+    const tierLevel = possessionCount >= startOwned
+      ? Math.floor((possessionCount - startOwned) / stepOwned) + 1
+      : 0;
+    const multiplier = 1 + multiplierPerStep * tierLevel;
 
     const dynamicPrice = Math.floor(baseToken.price * multiplier);
     return Math.max(1, dynamicPrice);
