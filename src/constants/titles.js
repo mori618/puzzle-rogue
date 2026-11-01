@@ -1,6 +1,6 @@
 /**
  * 二つ名（称号）システム 全マスターデータ
- * A枠パーツ(50種) + B枠パーツ(50種) + 隠しセットシナジー(20種) + 派生進化(20種) = 全140件
+ * A枠パーツ(55種) + B枠パーツ(56種) + 隠しセットシナジー(39種) + 派生進化(26種) = 全176件
  *
  * ■ 解放条件
  *   conditionType : 進捗キー（titleManager の progress に記録される値）
@@ -10,6 +10,7 @@
  *   宣言的な効果リスト。titleManager.js の computeTitleComboModifiers / getTitleEffectTotal 等で解釈される。
  *   - when : 発動条件（複数キーは AND）。例 { color: 'fire' }, { first_turn: true, stars_le: 0 }
  *   - per  : 「〜1つにつき」の数え方。例 'curse', 'time_left_sec'
+ *            'attr_token'（effect.attribute のトークン数）, 'color_erased'（effect.color の消去数）
  *   - max  : per のカウント上限
  *
  *   コンボ計算系:
@@ -28,7 +29,7 @@
  *         skill_refund_chance, skill_charge_add, levelup_on_cycle_start, max_turns_add, curse_null
  */
 
-// 1. A枠パーツ（接頭辞）マスターデータ（全50種）
+// 1. A枠パーツ（接頭辞）マスターデータ（全55種）
 export const PREFIX_TITLES = [
   {
     id: 'A01', name: '神速の', category: '操作時間',
@@ -380,9 +381,44 @@ export const PREFIX_TITLES = [
     conditionDesc: '累計100サイクルクリア',
     effects: [{ type: 'final_mult', value: 2.0, when: { last_turn: true } }],
   },
+  {
+    id: 'A51', name: '深翠の詠唱', category: 'スキル（風）',
+    desc: '風属性スキルの消費エネルギーが常時 -1',
+    conditionType: 'skills_used_wood', targetValue: 30,
+    conditionDesc: '風属性スキルを累計30回使用',
+    effects: [{ type: 'skill_cost_sub', attribute: 'wood', value: 1 }],
+  },
+  {
+    id: 'A52', name: '迅雷の詠唱', category: 'スキル（雷）',
+    desc: '雷属性スキルの消費エネルギーが常時 -1',
+    conditionType: 'skills_used_light', targetValue: 30,
+    conditionDesc: '雷属性スキルを累計30回使用',
+    effects: [{ type: 'skill_cost_sub', attribute: 'light', value: 1 }],
+  },
+  {
+    id: 'A53', name: '常月の詠唱', category: 'スキル（月）',
+    desc: '月属性スキルの消費エネルギーが常時 -1',
+    conditionType: 'skills_used_dark', targetValue: 30,
+    conditionDesc: '月属性スキルを累計30回使用',
+    effects: [{ type: 'skill_cost_sub', attribute: 'dark', value: 1 }],
+  },
+  {
+    id: 'A54', name: '慈愛の詠唱', category: 'スキル（回復）',
+    desc: 'ハート属性スキルの消費エネルギーが常時 -1',
+    conditionType: 'skills_used_heart', targetValue: 30,
+    conditionDesc: 'ハート属性スキルを累計30回使用',
+    effects: [{ type: 'skill_cost_sub', attribute: 'heart', value: 1 }],
+  },
+  {
+    id: 'A55', name: '三彩の', category: '多色',
+    desc: 'ちょうど3属性を消した手番、コンボ倍率 +2.0',
+    conditionType: 'three_color_combo_max', targetValue: 7,
+    conditionDesc: '3属性のみで1手7コンボを達成',
+    effects: [{ type: 'add_mult', value: 2.0, when: { colors_ge: 3, colors_le: 3 } }],
+  },
 ];
 
-// 2. B枠パーツ（接尾辞）マスターデータ（全50種）
+// 2. B枠パーツ（接尾辞）マスターデータ（全56種）
 export const SUFFIX_TITLES = [
   {
     id: 'B01', name: '覇王', category: '火力',
@@ -734,9 +770,51 @@ export const SUFFIX_TITLES = [
     conditionDesc: '二つ名（A枠・B枠・進化）を合計50種解放',
     effects: [{ type: 'add_mult', value: 1.0 }, { type: 'final_mult', value: 1.5 }],
   },
+  {
+    id: 'B51', name: '炎帝', category: '属性（炎）',
+    desc: '炎属性トークン1個につき、炎を消した手番のコンボ倍率 +0.5（最大+4.0）',
+    conditionType: 'attr_tokens_fire_max', targetValue: 4,
+    conditionDesc: '炎属性のトークンを4個同時に所持',
+    effects: [{ type: 'add_mult', value: 0.5, per: 'attr_token', attribute: 'fire', max: 8, when: { color: 'fire' } }],
+  },
+  {
+    id: 'B52', name: '水神', category: '属性（雨）',
+    desc: '雨属性トークン1個につき、雨を消した手番のコンボ倍率 +0.5（最大+4.0）',
+    conditionType: 'attr_tokens_water_max', targetValue: 4,
+    conditionDesc: '雨属性のトークンを4個同時に所持',
+    effects: [{ type: 'add_mult', value: 0.5, per: 'attr_token', attribute: 'water', max: 8, when: { color: 'water' } }],
+  },
+  {
+    id: 'B53', name: '風神', category: '属性（風）',
+    desc: '風属性トークン1個につき、風を消した手番のコンボ倍率 +0.5（最大+4.0）',
+    conditionType: 'attr_tokens_wood_max', targetValue: 4,
+    conditionDesc: '風属性のトークンを4個同時に所持',
+    effects: [{ type: 'add_mult', value: 0.5, per: 'attr_token', attribute: 'wood', max: 8, when: { color: 'wood' } }],
+  },
+  {
+    id: 'B54', name: '雷神', category: '属性（雷）',
+    desc: '雷属性トークン1個につき、雷を消した手番のコンボ倍率 +0.5（最大+4.0）',
+    conditionType: 'attr_tokens_light_max', targetValue: 4,
+    conditionDesc: '雷属性のトークンを4個同時に所持',
+    effects: [{ type: 'add_mult', value: 0.5, per: 'attr_token', attribute: 'light', max: 8, when: { color: 'light' } }],
+  },
+  {
+    id: 'B55', name: '月影', category: '属性（月）',
+    desc: '月属性トークン1個につき、月を消した手番のコンボ倍率 +0.5（最大+4.0）',
+    conditionType: 'attr_tokens_dark_max', targetValue: 4,
+    conditionDesc: '月属性のトークンを4個同時に所持',
+    effects: [{ type: 'add_mult', value: 0.5, per: 'attr_token', attribute: 'dark', max: 8, when: { color: 'dark' } }],
+  },
+  {
+    id: 'B56', name: '癒し手', category: '属性（回復）',
+    desc: 'ハート属性トークン1個につき、ハートを消した手番のコンボ倍率 +0.5（最大+4.0）',
+    conditionType: 'attr_tokens_heart_max', targetValue: 4,
+    conditionDesc: 'ハート属性のトークンを4個同時に所持',
+    effects: [{ type: 'add_mult', value: 0.5, per: 'attr_token', attribute: 'heart', max: 8, when: { color: 'heart' } }],
+  },
 ];
 
-// 3. 隠しセットシナジー（全20種）
+// 3. 隠しセットシナジー（全39種）
 // A枠・B枠の特定の組み合わせを装備すると、各パーツの効果に加えて発動する（進化版を装備していても元の二つ名として扱う）
 export const TITLE_SET_BONUSES = [
   {
@@ -839,9 +917,104 @@ export const TITLE_SET_BONUSES = [
     desc: 'エンチャント1つにつきコンボ倍率 +0.3、Lv2以上トークン1つにつきさらに +0.3。',
     effects: [{ type: 'add_mult', value: 0.3, per: 'enchant', max: 20 }, { type: 'add_mult', value: 0.3, per: 'lv2plus' }],
   },
+  {
+    id: 'S21', prefixId: 'A05', suffixId: 'B01', titleName: '【真・蒼海覇王】',
+    desc: '【激流の覚醒】降ってくる雨ドロップがすべて強化（プラス）ドロップになる。',
+    effects: [{ type: 'enhance_color', color: 'water', value: 1.0 }],
+  },
+  {
+    id: 'S22', prefixId: 'A06', suffixId: 'B01', titleName: '【真・深翠覇王】',
+    desc: '【烈風の覚醒】降ってくる風ドロップがすべて強化（プラス）ドロップになる。',
+    effects: [{ type: 'enhance_color', color: 'wood', value: 1.0 }],
+  },
+  {
+    id: 'S23', prefixId: 'A07', suffixId: 'B01', titleName: '【真・迅雷覇王】',
+    desc: '【轟雷の覚醒】降ってくる雷ドロップがすべて強化（プラス）ドロップになる。',
+    effects: [{ type: 'enhance_color', color: 'light', value: 1.0 }],
+  },
+  {
+    id: 'S24', prefixId: 'A08', suffixId: 'B01', titleName: '【真・常月覇王】',
+    desc: '【月蝕の覚醒】降ってくる月ドロップがすべて強化（プラス）ドロップになる。',
+    effects: [{ type: 'enhance_color', color: 'dark', value: 1.0 }],
+  },
+  {
+    id: 'S25', prefixId: 'A09', suffixId: 'B01', titleName: '【真・慈愛覇王】',
+    desc: '【聖光の覚醒】降ってくるハートがすべて強化（プラス）ドロップになる。',
+    effects: [{ type: 'enhance_color', color: 'heart', value: 1.0 }],
+  },
+  {
+    id: 'S26', prefixId: 'A05', suffixId: 'B16', titleName: '【蒼海の即応陣】',
+    desc: '各サイクルの1手目に雨を消すと、コンボ倍率 +5.0。',
+    effects: [{ type: 'add_mult', value: 5.0, when: { first_turn: true, color: 'water' } }],
+  },
+  {
+    id: 'S27', prefixId: 'A06', suffixId: 'B16', titleName: '【深翠の即応陣】',
+    desc: '各サイクルの1手目に風を消すと、コンボ倍率 +5.0。',
+    effects: [{ type: 'add_mult', value: 5.0, when: { first_turn: true, color: 'wood' } }],
+  },
+  {
+    id: 'S28', prefixId: 'A07', suffixId: 'B16', titleName: '【迅雷の即応陣】',
+    desc: '各サイクルの1手目に雷を消すと、コンボ倍率 +5.0。',
+    effects: [{ type: 'add_mult', value: 5.0, when: { first_turn: true, color: 'light' } }],
+  },
+  {
+    id: 'S29', prefixId: 'A08', suffixId: 'B16', titleName: '【常月の即応陣】',
+    desc: '各サイクルの1手目に月を消すと、コンボ倍率 +5.0。',
+    effects: [{ type: 'add_mult', value: 5.0, when: { first_turn: true, color: 'dark' } }],
+  },
+  {
+    id: 'S30', prefixId: 'A09', suffixId: 'B16', titleName: '【慈愛の即応陣】',
+    desc: '各サイクルの1手目にハートを消すと、コンボ倍率 +5.0。',
+    effects: [{ type: 'add_mult', value: 5.0, when: { first_turn: true, color: 'heart' } }],
+  },
+  {
+    id: 'S31', prefixId: 'A04', suffixId: 'B39', titleName: '【焦熱の錬成炉】',
+    desc: '炎を消した手番、消した強化ドロップ1個につきコンボ倍率 +0.2（最大+4.0）。',
+    effects: [{ type: 'add_mult', value: 0.2, per: 'enhanced_erased', max: 20, when: { color: 'fire' } }],
+  },
+  {
+    id: 'S32', prefixId: 'A05', suffixId: 'B24', titleName: '【蒼海の水時計】',
+    desc: '雨を消した手番、残り操作時間1秒につきコンボ倍率 +0.5（最大+4.0）。',
+    effects: [{ type: 'add_mult', value: 0.5, per: 'time_left_sec', max: 8, when: { color: 'water' } }],
+  },
+  {
+    id: 'S33', prefixId: 'A06', suffixId: 'B41', titleName: '【深翠の旋風】',
+    desc: '風を消した手番、移動2マスにつきコンボ +1（最大+40）。',
+    effects: [{ type: 'combo_add', value: 0.5, per: 'move_steps', max: 80, when: { color: 'wood' } }],
+  },
+  {
+    id: 'S34', prefixId: 'A08', suffixId: 'B26', titleName: '【常月の呪月】',
+    desc: '月を消した手番、所持中の呪い1つにつきコンボ倍率 +1.0（最大+5.0）。',
+    effects: [{ type: 'add_mult', value: 1.0, per: 'curse', max: 5, when: { color: 'dark' } }],
+  },
+  {
+    id: 'S35', prefixId: 'A09', suffixId: 'B48', titleName: '【慈愛の星海】',
+    desc: 'ハートを消した手番、コンボ +15、コンボによる★獲得量 1.5倍。',
+    effects: [{ type: 'combo_add', value: 15, when: { color: 'heart' } }, { type: 'star_gain_mult', value: 1.5, when: { color: 'heart' } }],
+  },
+  {
+    id: 'S36', prefixId: 'A48', suffixId: 'B15', titleName: '【一色の軍勢】',
+    desc: '1属性のみを消した手番、最終コンボ倍率 2倍。',
+    effects: [{ type: 'final_mult', value: 2.0, when: { colors_le: 1 } }],
+  },
+  {
+    id: 'S37', prefixId: 'A22', suffixId: 'B20', titleName: '【二律の支配】',
+    desc: 'ちょうど2属性を消した手番、最終コンボ倍率 1.75倍。',
+    effects: [{ type: 'final_mult', value: 1.75, when: { colors_ge: 2, colors_le: 2 } }],
+  },
+  {
+    id: 'S38', prefixId: 'A55', suffixId: 'B19', titleName: '【三色の真理】',
+    desc: 'スキルを使用した手番にちょうど3属性を消すと、最終コンボ倍率 1.5倍。',
+    effects: [{ type: 'final_mult', value: 1.5, when: { skill_used: true, colors_ge: 3, colors_le: 3 } }],
+  },
+  {
+    id: 'S39', prefixId: 'A33', suffixId: 'B46', titleName: '【七色の架け橋】',
+    desc: '6属性すべてを消した手番、最終コンボ倍率 2倍。',
+    effects: [{ type: 'final_mult', value: 2.0, when: { colors_ge: 6 } }],
+  },
 ];
 
-// 4. 派生・進化二つ名（全20種）
+// 4. 派生・進化二つ名（全26種）
 // 元の二つ名（requiredTitleId）が解放済みで、trigger 条件を満たすと解放される。
 // 解放後は元の二つ名と同じ枠に装備でき、セットシナジーでは元の二つ名として扱われる。
 //   trigger.event : 'turn'（手番終了時）| 'clear'（サイクルクリア時）| 'state'（所持状態の変化時）
@@ -908,15 +1081,15 @@ export const EVOLVED_TITLES = [
     id: 'E09', requiredTitleId: 'A05', name: '蒼溟の', category: 'A枠上位',
     challengeDesc: '「蒼海の」を装備して、1手で雨ドロップを30個以上消去',
     trigger: { event: 'turn', requireEquipped: true, when: { erased_ge: { color: 'water', n: 30 } } },
-    desc: '雨ドロップ出現率 2倍、雨を消した手番のコンボ倍率 +6.0。',
-    effects: [{ type: 'spawn_weight', color: 'water', value: 2.0 }, { type: 'add_mult', value: 6.0, when: { color: 'water' } }],
+    desc: '雨ドロップ出現率 3倍、雨を消した手番のコンボ倍率 +10.0、操作時間 +1秒。',
+    effects: [{ type: 'spawn_weight', color: 'water', value: 3.0 }, { type: 'add_mult', value: 10.0, when: { color: 'water' } }, { type: 'time_add', value: 1000 }],
   },
   {
     id: 'E10', requiredTitleId: 'A07', name: '神鳴の', category: 'A枠上位',
     challengeDesc: '「迅雷の」を装備して、1手で雷ドロップを30個以上消去',
     trigger: { event: 'turn', requireEquipped: true, when: { erased_ge: { color: 'light', n: 30 } } },
-    desc: '雷ドロップ出現率 2倍、雷を消した手番のコンボ倍率 +6.0。',
-    effects: [{ type: 'spawn_weight', color: 'light', value: 2.0 }, { type: 'add_mult', value: 6.0, when: { color: 'light' } }],
+    desc: '雷ドロップ出現率 3倍、雷を消した手番のコンボ倍率 +10.0。各サイクルの1手目に雷を消すと、さらに最終コンボ倍率 2倍。',
+    effects: [{ type: 'spawn_weight', color: 'light', value: 3.0 }, { type: 'add_mult', value: 10.0, when: { color: 'light' } }, { type: 'final_mult', value: 2.0, when: { first_turn: true, color: 'light' } }],
   },
   {
     id: 'E11', requiredTitleId: 'A15', name: '先見の', category: 'A枠上位',
@@ -987,6 +1160,48 @@ export const EVOLVED_TITLES = [
     trigger: { event: 'turn', requireEquipped: true, when: { base_combo_ge: 60 } },
     desc: '基礎コンボ数 2.0倍。',
     effects: [{ type: 'base_mult', value: 2.0 }],
+  },
+  {
+    id: 'E21', requiredTitleId: 'A06', name: '翠嵐の', category: 'A枠上位',
+    challengeDesc: '「深翠の」を装備して、1手で風ドロップを30個以上消去',
+    trigger: { event: 'turn', requireEquipped: true, when: { erased_ge: { color: 'wood', n: 30 } } },
+    desc: '風ドロップ出現率 3倍、風を消した手番のコンボ倍率 +10.0。さらに風を消した手番、移動4マスにつきコンボ +1（最大+30）。',
+    effects: [{ type: 'spawn_weight', color: 'wood', value: 3.0 }, { type: 'add_mult', value: 10.0, when: { color: 'wood' } }, { type: 'combo_add', value: 0.25, per: 'move_steps', max: 120, when: { color: 'wood' } }],
+  },
+  {
+    id: 'E22', requiredTitleId: 'A08', name: '朔月の', category: 'A枠上位',
+    challengeDesc: '「常月の」を装備して、1手で月ドロップを30個以上消去',
+    trigger: { event: 'turn', requireEquipped: true, when: { erased_ge: { color: 'dark', n: 30 } } },
+    desc: '月ドロップ出現率 3倍、月を消した手番のコンボ倍率 +10.0。さらに月を消した手番、所持中の呪い1つにつきコンボ倍率 +2.0（最大5個分）。',
+    effects: [{ type: 'spawn_weight', color: 'dark', value: 3.0 }, { type: 'add_mult', value: 10.0, when: { color: 'dark' } }, { type: 'add_mult', value: 2.0, per: 'curse', max: 5, when: { color: 'dark' } }],
+  },
+  {
+    id: 'E23', requiredTitleId: 'A09', name: '聖母の', category: 'A枠上位',
+    challengeDesc: '「慈愛の」を装備して、1手でハートを30個以上消去',
+    trigger: { event: 'turn', requireEquipped: true, when: { erased_ge: { color: 'heart', n: 30 } } },
+    desc: 'ハート出現率 3倍、ハートを消した手番のコンボ倍率 +10.0、コンボによる★獲得量 1.5倍。',
+    effects: [{ type: 'spawn_weight', color: 'heart', value: 3.0 }, { type: 'add_mult', value: 10.0, when: { color: 'heart' } }, { type: 'star_gain_mult', value: 1.5, when: { color: 'heart' } }],
+  },
+  {
+    id: 'E24', requiredTitleId: 'A48', name: '無垢の', category: 'A枠上位',
+    challengeDesc: '「純色の」を装備して、1属性のみで1手10コンボを達成',
+    trigger: { event: 'turn', requireEquipped: true, when: { colors_le: 1, tc_ge: 10 } },
+    desc: '累計で最も多く消した属性の出現率 2倍、1属性のみを消した手番のコンボ倍率 +7.0。',
+    effects: [{ type: 'spawn_top_colors', count: 1, value: 2.0 }, { type: 'add_mult', value: 7.0, when: { colors_le: 1 } }],
+  },
+  {
+    id: 'E25', requiredTitleId: 'B20', name: '双極の覇者', category: 'B枠上位',
+    challengeDesc: '「二極化」を装備して、2属性のみで1手12コンボを達成',
+    trigger: { event: 'turn', requireEquipped: true, when: { colors_ge: 2, colors_le: 2, tc_ge: 12 } },
+    desc: '累計で最も多く消した2属性の出現率 3倍、ちょうど2属性を消した手番のコンボ倍率 +5.5。',
+    effects: [{ type: 'spawn_top_colors', count: 2, value: 3.0 }, { type: 'add_mult', value: 5.5, when: { colors_ge: 2, colors_le: 2 } }],
+  },
+  {
+    id: 'E26', requiredTitleId: 'A55', name: '三界の', category: 'A枠上位',
+    challengeDesc: '「三彩の」を装備して、3属性のみで1手14コンボを達成',
+    trigger: { event: 'turn', requireEquipped: true, when: { colors_ge: 3, colors_le: 3, tc_ge: 14 } },
+    desc: '累計で最も多く消した3属性の出現率 2倍、ちょうど3属性を消した手番のコンボ倍率 +4.0。',
+    effects: [{ type: 'spawn_top_colors', count: 3, value: 2.0 }, { type: 'add_mult', value: 4.0, when: { colors_ge: 3, colors_le: 3 } }],
   },
 ];
 

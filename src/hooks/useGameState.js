@@ -3232,6 +3232,7 @@ export const useGameState = () => {
           colors_turn_max: colorCount,
           two_color_combo_max: colorCount === 2 ? tc : 0,
           mono_color_combo_max: colorCount === 1 ? tc : 0,
+          three_color_combo_max: colorCount === 3 ? tc : 0,
           heart_turn_max: finalErasedColorCounts.heart || 0,
           single_color_board_max: singleColorBoardMax,
           skills_turn_max: skillsThisTurnRef.current,
@@ -4883,6 +4884,7 @@ export const useGameState = () => {
         same_attr_max: counts.sameAttrMax,
         skill_tokens_max: counts.skill,
         enchant_max: counts.enchant,
+        ...Object.fromEntries(ALL_DROP_COLORS.map(c => [`attr_tokens_${c}_max`, counts.attrCounts[c] || 0])),
       },
     });
     recordTitleTrigger('state', { stars, tokenCounts: counts });

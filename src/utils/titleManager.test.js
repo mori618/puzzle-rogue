@@ -36,10 +36,25 @@ const unlockAndEquip = ({ prefixes = [], suffixes = [], evolved = [], prefixId =
 };
 
 describe('二つ名マスターデータ', () => {
-  it('全140件・ID重複なし', () => {
+  it('全176件・ID重複なし', () => {
     const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...TITLE_SET_BONUSES, ...EVOLVED_TITLES];
-    expect(all).toHaveLength(140);
-    expect(new Set(all.map(t => t.id)).size).toBe(140);
+    expect(all).toHaveLength(176);
+    expect(new Set(all.map(t => t.id)).size).toBe(176);
+  });
+
+  it('6属性すべてが同じ構成（A枠・詠唱・B枠・進化・セット3種）を持つ', () => {
+    const colors = ['fire', 'water', 'wood', 'light', 'dark', 'heart'];
+    const mentions = (t, c) => JSON.stringify([t.effects, t.trigger]).includes(`"${c}"`);
+    const prefixOf = Object.fromEntries(colors.map(c => [c, PREFIX_TITLES.find(t => t.effects.some(e => e.type === 'spawn_weight' && e.color === c))]));
+    colors.forEach(c => {
+      expect(prefixOf[c], c).toBeTruthy();
+      expect(PREFIX_TITLES.filter(t => t.effects.some(e => e.type === 'skill_cost_sub' && e.attribute === c)), c).toHaveLength(1);
+      expect(SUFFIX_TITLES.filter(t => t.effects.some(e => e.per === 'attr_token' && e.attribute === c)), c).toHaveLength(1);
+      const evo = EVOLVED_TITLES.filter(t => t.requiredTitleId === prefixOf[c].id);
+      expect(evo, c).toHaveLength(1);
+      expect(evo[0].effects.some(e => e.type === 'add_mult' && e.value === 10.0 && e.when?.color === c), c).toBe(true);
+      expect(TITLE_SET_BONUSES.filter(st => st.prefixId === prefixOf[c].id && mentions(st, c) || st.prefixId === prefixOf[c].id && st.suffixId === 'B01'), c).toHaveLength(3);
+    });
   });
 
   it('仮置きデータが残っていない', () => {
@@ -247,7 +262,32 @@ describe('装備と効果', () => {
       { type: 'curse', isCurse: true, level: 3 },
       null,
     ]);
-    expect(counts).toEqual({ token: 3, curse: 1, lv3: 1, lv2plus: 2, passive: 1, skill: 1, enchant: 2, sameAttrMax: 2 });
+    expect(counts).toEqual({ token: 3, curse: 1, lv3: 1, lv2plus: 2, passive: 1, skill: 1, enchant: 2, sameAttrMax: 2, attrCounts: { fire: 2 } });
+  });
+
+  it('per: 属性トークン数・属性別消去数', () => {
+    const effects = [
+      { type: 'add_mult', value: 0.5, per: 'attr_token', attribute: 'wood', max: 8, when: { color: 'wood' } },
+      { type: 'combo_add', value: 1, per: 'color_erased', color: 'dark' },
+    ];
+    const ctx = { matchedColors: new Set(['wood']), tokenCounts: { attrCounts: { wood: 10, fire: 3 } }, erasedColorCounts: { dark: 7 } };
+    const mods = computeTitleComboModifiers(ctx, effects);
+    expect(mods.addedMult).toBeCloseTo(4.0);
+    expect(mods.comboAdd).toBe(7);
+    expect(computeTitleComboModifiers({ ...ctx, matchedColors: new Set(['fire']) }, effects).addedMult).toBe(0);
+  });
+
+  it('属性B枠は属性トークン所持数で解放される', () => {
+    unlockAndEquip({});
+    recordTitleProgress({ max: { attr_tokens_dark_max: 4 } });
+    expect(loadTitleState().unlockedTitles.suffixes).toContain('B55');
+  });
+
+  it('ちょうどN属性の判定', () => {
+    const when = { colors_ge: 3, colors_le: 3 };
+    expect(evaluateTitleWhen(when, { matchedColors: new Set(['fire', 'water', 'wood']) })).toBe(true);
+    expect(evaluateTitleWhen(when, { matchedColors: new Set(['fire', 'water']) })).toBe(false);
+    expect(evaluateTitleWhen(when, { matchedColors: new Set(['fire', 'water', 'wood', 'dark']) })).toBe(false);
   });
 
   it('when 条件の組み合わせ (AND)', () => {

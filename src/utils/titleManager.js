@@ -245,6 +245,7 @@ export const getTokenTitleCounts = (tokens = []) => {
     skill: list.filter(t => t.type === 'skill').length,
     enchant: list.reduce((sum, t) => sum + (t.enchantments?.length || 0), 0),
     sameAttrMax: Object.values(attrCounts).reduce((m, v) => Math.max(m, v), 0),
+    attrCounts,
   };
 };
 
@@ -293,7 +294,7 @@ export const evaluateTitleWhen = (when, ctx = {}) => {
 /**
  * 「〜1つにつき」(per) のカウント
  */
-export const getTitlePerCount = (per, ctx = {}) => {
+export const getTitlePerCount = (per, ctx = {}, effect = {}) => {
   const counts = ctx.tokenCounts || {};
   const colors = ctx.matchedColors instanceof Set ? ctx.matchedColors : new Set(ctx.matchedColors || []);
   switch (per) {
@@ -311,6 +312,8 @@ export const getTitlePerCount = (per, ctx = {}) => {
     case 'rainbow_erased': return ctx.rainbowErased || 0;
     case 'enhanced_erased': return ctx.enhancedErased || 0;
     case 'heart_erased': return (ctx.erasedColorCounts || {}).heart || 0;
+    case 'color_erased': return (ctx.erasedColorCounts || {})[effect.color] || 0;
+    case 'attr_token': return (counts.attrCounts || {})[effect.attribute] || 0;
     case 'color_count': return colors.size;
     case 'clears': return ctx.clears || 0;
     case 'move_steps': return ctx.moveSteps || 0;
@@ -323,7 +326,7 @@ export const getTitlePerCount = (per, ctx = {}) => {
 const getEffectCount = (effect, ctx) => {
   if (!evaluateTitleWhen(effect.when, ctx)) return 0;
   if (!effect.per) return 1;
-  const count = getTitlePerCount(effect.per, ctx);
+  const count = getTitlePerCount(effect.per, ctx, effect);
   return effect.max != null ? Math.min(count, effect.max) : count;
 };
 
