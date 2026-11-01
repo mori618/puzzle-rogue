@@ -138,6 +138,7 @@ export const useGameState = () => {
     totalStarsEarned: 0,
     tokensSold: 0,
     skipsPerformed: 0,
+    skippedTurns: 0,
     currentCursesRemoved: 0,  // 今回の呪い解除数
     currentDropsErased: { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }, // 今回の各ドロップ消去数
     maxBaseCombo: 0,
@@ -394,6 +395,8 @@ export const useGameState = () => {
     let current = 0;
     if (cond === 'skill_uses') {
       current = t.curseUses || 0;
+    } else if (cond === 'max_combo') {
+      current = t.bestTurnCombo || 0; // 所持してからの1手番最高コンボ（絶対値で判定）
     } else if (cond === 'level3_tokens_count') {
       current = getStatByCondition(cond); // レベル3トークン所持数は絶対値で判定
     } else {
@@ -2344,7 +2347,7 @@ export const useGameState = () => {
         }
       }
       if (t.effect === "stat_time_skipper") {
-        const skipCount = currentRunStats.skipsPerformed || 0;
+        const skipCount = currentRunStats.skippedTurns || 0; // スキップしたターン数の累計
         const count = Math.floor(skipCount / 5);
         const base = t.values?.[lv - 1] || 1.3;
         if (count > 0) {
@@ -2922,7 +2925,8 @@ export const useGameState = () => {
     }
 
     // デバフである「半減の呪い」は基礎コンボに掛ける
-    if (tokens.some(t => t?.id === "curse_half") && !hasSaintToken) {
+    const isCurseHalfActive = tokens.some(t => t?.id === "curse_half") && !hasSaintToken;
+    if (isCurseHalfActive) {
       debuffMultiplier *= 0.5;
       logData.debuffMultiplier = debuffMultiplier;
       logData.debuffSteps = logData.debuffSteps || [];
@@ -3076,6 +3080,13 @@ export const useGameState = () => {
       effectiveCombo = (tc > 0) ? Math.min(Math.floor(finalBaseCombo * finalComboMultiplier), MAX_COMBO) : 0;
     }
 
+    // 「脆弱の断層」の解除判定用: 半減効果がかかる前のコンボ数（他のトークン効果は全て反映済み）
+    let comboBeforeCurseHalf = effectiveCombo;
+    if (isCurseHalfActive && !isZeroComboDueToDevotion && tc > 0) {
+      const baseWithoutHalf = Math.floor(finalBaseComboBeforeDebuff * (debuffMultiplier / 0.5) * baseMultiplier * devotionMultiplier * restrictionMultiplier);
+      comboBeforeCurseHalf = Math.min(Math.floor(baseWithoutHalf * finalComboMultiplier), MAX_COMBO);
+    }
+
     if (effectiveCombo >= MAX_COMBO) {
       setCurrentRunStats(prev => {
         if (!prev.hasReachedMaxCombo && !isPracticeMode) {
@@ -3201,6 +3212,17 @@ export const useGameState = () => {
         lifetimeRainbowsErased: (prev.lifetimeRainbowsErased || 0) + rainbowSelfErased,
       };
     });
+    // 「1手番で〇コンボ」系の呪い: 所持してからの1手番最高コンボを呪いトークン自身に記録する
+    // （半減の呪いは自身の半減効果がかかる前の値で判定する）
+    if (tokens.some(t => (t?.type === 'curse' || t?.isCurse) && t?.condition === 'max_combo')) {
+      setTokens(prev => prev.map(tok => {
+        if (tok && (tok.type === 'curse' || tok.isCurse) && tok.condition === 'max_combo') {
+          const turnValue = tok.id === 'curse_half' ? comboBeforeCurseHalf : effectiveCombo;
+          if (turnValue > (tok.bestTurnCombo || 0)) return { ...tok, bestTurnCombo: turnValue };
+        }
+        return tok;
+      }));
+    }
     setCurrentRunStats(prev => ({
       ...prev,
       currentTotalCombo: (prev.currentTotalCombo || 0) + effectiveCombo,
@@ -5302,7 +5324,11 @@ export const useGameState = () => {
     setStars((s) => s + bonus);
     notify(`SKIP BONUS: +${bonus} STARS! (+${starsPerTurn}/回)`);
     setSkippedTurnsBonus(prev => prev + remainingTurns);
-    setCurrentRunStats(prev => ({ ...prev, skipsPerformed: (prev.skipsPerformed || 0) + 1 }));
+    setCurrentRunStats(prev => ({
+      ...prev,
+      skipsPerformed: (prev.skipsPerformed || 0) + 1,
+      skippedTurns: (prev.skippedTurns || 0) + remainingTurns,
+    }));
     recordTitleProgress({ add: { skips: 1 } });
 
     setTurn(maxTurns + 1);

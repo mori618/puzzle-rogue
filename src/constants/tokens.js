@@ -1590,7 +1590,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "time_skipper", name: "早送りの極意", icon: "fast_forward", type: "passive", effect: "stat_time_skipper",
     values: [2, 3, 4], rarity: 2, price: 24,
-    desc: "スキップ5回ごとに加算値が{values}倍に増え、コンボ倍率にプラス（{values}^(スキップ回数÷5) − 1）。例: Lv1は5回で+1／10回で+3／15回で+7。",
+    desc: "スキップしたターン数5ターンごとに加算値が{values}倍に増え、コンボ倍率にプラス（{values}^(スキップしたターン数÷5) − 1）。例: Lv1は5ターンで+1／10ターンで+3／15ターンで+7。",
     attributes: [],
     canBeInitial: true
   },
@@ -2342,7 +2342,7 @@ const ALL_TOKEN_BASES = [
     price: 1,
     isLocked: true,
     desc: "コンボ数が半分になる（倍率0.5）。",
-    conditionDesc: "所持してから1手番で30コンボ達成する",
+    conditionDesc: "所持してから1手番で30コンボ達成する（この呪いの半減効果がかかる前のコンボ数で判定）",
     condition: "max_combo",
     targetValue: 30,
     attributes: []

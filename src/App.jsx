@@ -279,14 +279,15 @@ const App = () => {
                 <>
                   <EquippedTitleChip equippedTitle={equippedTitle} onClick={() => setShowTitleInfo(true)} />
                   <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-white whitespace-nowrap">
-                      <span className="text-[10px] uppercase text-slate-400 mr-1">Cycle</span>
-                      {(currentRunStats?.currentClears || 0) + 1}
-                    </span>
-                    <span className="text-primary font-bold">/</span>
+                    {/* ターンを左・サイクルを右に表示（例: TURN 3 / CYCLE 6） */}
                     <span className="text-lg font-bold text-white whitespace-nowrap">
                       <span className="text-[10px] uppercase text-slate-400 mr-1">Turn</span>
                       {turn}{isEndlessMode ? ' ∞' : ''}
+                    </span>
+                    <span className="text-primary font-bold">/</span>
+                    <span className="text-lg font-bold text-white whitespace-nowrap">
+                      <span className="text-[10px] uppercase text-slate-400 mr-1">Cycle</span>
+                      {(currentRunStats?.currentClears || 0) + 1}
                     </span>
                   </div>
                 </>
