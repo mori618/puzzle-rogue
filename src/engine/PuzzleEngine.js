@@ -19,6 +19,8 @@ class PuzzleEngine {
     this.onCombo = options.onCombo || (() => { });
     this.onPassiveTrigger = options.onPassiveTrigger || null;
     this.onStarErase = options.onStarErase || null;
+    // 操作（ドロップ移動）開始時のコールバック
+    this.onMoveStart = options.onMoveStart || null;
     this.totalMoveTimeRef = options.totalMoveTimeRef || { current: 0 }; // 操作時間加算用Ref
     this.timerText = options.timerText || null; // 残り時間表示用要素
     this.pureMode = options.pureMode || false; // 特殊消しボーナス無効モード
@@ -859,6 +861,7 @@ class PuzzleEngine {
           if (!this.moveStart) {
             this.moveStart = Date.now();
             this.timerId = setInterval(this.updateTimer, 20);
+            if (this.onMoveStart) this.onMoveStart();
           }
 
           // 一筆書きの誓約: 通過済みセルへの移動をブロック

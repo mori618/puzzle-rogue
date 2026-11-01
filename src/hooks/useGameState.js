@@ -74,6 +74,8 @@ export const useGameState = () => {
   const [nextTurnTimeMultiplier, setNextTurnTimeMultiplier] = useState(1);
   const [lastTurnCombo, setLastTurnCombo] = useState(0);
   const [lastErasedColorCounts, setLastErasedColorCounts] = useState({});
+  // 直前の手番結果による「条件達成（緑）」表示を出すかどうか。次の操作開始・次サイクル開始で消す
+  const [showLastTurnConditions, setShowLastTurnConditions] = useState(false);
   const [hasUsedActiveSkillThisTurn, setHasUsedActiveSkillThisTurn] = useState(false);
   // スキル使用によって消去されたドロップ数をターン終了時にマージするための一時的な状態
   const [skillErasedCounts, setSkillErasedCounts] = useState({});
@@ -828,6 +830,9 @@ export const useGameState = () => {
         onPassiveTrigger: (tokenId) => {
           if (onPassiveTriggerRef.current) onPassiveTriggerRef.current(tokenId);
         },
+        onMoveStart: () => {
+          setShowLastTurnConditions(false);
+        },
         onStarErase: (count) => {
           if (onStarEraseRef.current) onStarEraseRef.current(count);
         }
@@ -1510,6 +1515,7 @@ export const useGameState = () => {
 
     setLastTurnCombo(tc);
     setLastErasedColorCounts(finalErasedColorCounts);
+    setShowLastTurnConditions(true);
 
     let bonus = 0;
     let multiplier = 1;
@@ -5151,6 +5157,7 @@ export const useGameState = () => {
 
   const startNextCycle = (warpToCycle = null) => {
     setTurn(1);
+    setShowLastTurnConditions(false);
     setCycleTotalCombo(0);
 
     let baseClears = currentRunStats.currentClears || 0;
@@ -6285,6 +6292,7 @@ export const useGameState = () => {
     nextTurnTimeMultiplier, setNextTurnTimeMultiplier,
     lastTurnCombo, setLastTurnCombo,
     lastErasedColorCounts, setLastErasedColorCounts,
+    showLastTurnConditions,
     pendingShopItem, setPendingShopItem,
     showTitle, setShowTitle,
     showHelp, setShowHelp,
