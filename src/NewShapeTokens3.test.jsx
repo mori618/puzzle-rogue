@@ -99,6 +99,24 @@ describe('PuzzleEngine - spawnPlusRandom と makeAllOrbsPlus メソッドのテ�
     expect(enhancedCount).toBe(3);
   });
 
+  it('盤面処理中に要求されたプラス/リピート生成は破棄されず、処理完了後に適用されること', () => {
+    engine.state.forEach(row => row.forEach(orb => { if (orb) { orb.isEnhanced = false; orb.isRepeat = false; } }));
+    const count = (key) => engine.state.flat().filter(orb => orb && orb[key]).length;
+
+    // ターン終了処理（onTurnEnd の await 中）を模擬
+    engine.processing = true;
+    engine.spawnPlusRandom(2);
+    engine.spawnRepeatRandom(1);
+    expect(count('isEnhanced')).toBe(0);
+    expect(count('isRepeat')).toBe(0);
+
+    engine.processing = false;
+    engine._flushPendingBoardOps();
+    expect(count('isEnhanced')).toBe(2);
+    expect(count('isRepeat')).toBe(1);
+    expect(engine._pendingBoardOps.length).toBe(0);
+  });
+
   it('makeAllOrbsPlus が盤面の全ドロップをプラスドロップにすること', () => {
     // 全オーブを非Enhancedにする
     engine.state.forEach(row => row.forEach(orb => { if (orb) orb.isEnhanced = false; }));

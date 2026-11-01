@@ -503,6 +503,8 @@ export const useGameState = () => {
       if (t?.effect === "picky_eater") return acc + (t.values[(t.level || 1) - 1] || 0);
       return acc;
     }, 0)
+    // 呪い「不運の枷」: 1サイクルの手番が1減る（聖者系の呪い無効化があれば無効）
+    - (hasSaintToken ? 0 : tokens.filter(t => t?.id === "curse_turns").length)
   );
 
   const prevMaxTurnsRef = useRef(maxTurns);
@@ -1968,7 +1970,7 @@ export const useGameState = () => {
           const sCount = shapes.filter(s => s === "square").length;
           if (sCount > 0 && engineRef.current) {
             if (isInstant) triggerPassive(tokenId);
-            notify(`${tokenName || "方陣 of 輪廻"}発動！リピートドロップを${val}個生成！`);
+            notify(`${tokenName || "方陣の輪廻"}発動！リピートドロップを${val}個生成！`);
             setTimeout(() => {
               if (engineRef.current && !engineRef.current._isDestroyed) {
                 engineRef.current.spawnRepeatRandom(val);
@@ -2395,13 +2397,6 @@ export const useGameState = () => {
         logData.multiplierSteps.push({ label: t.name || `${t.params.combo}コンボ以上`, value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
       }
 
-      if (t.action === "skill_combo_bonus") {
-        const val = t.params?.value || 0;
-        bonus += val;
-        logData.bonuses.push(`skill_lv3_bonus:+${val}`);
-        if (val > 0) logData.bonusSteps.push({ label: t.name || 'スキルボーナス', value: val, tokenId: tId });
-      }
-
       if (t.effect === "shape_bonus" && shapes.length > 0) {
         const shape = t.params?.shape;
         const v = t.values?.[lv - 1] || 0;
@@ -2784,7 +2779,15 @@ export const useGameState = () => {
     setNextTurnTimeMultiplier(timeMultiplier);
 
     activeBuffs.forEach(buff => {
-      if (buff.action === "temp_mult") {
+      if (buff.action === "skill_combo_bonus") {
+        // 消滅スキル・スキルLv3ボーナスによる基礎コンボ加算（バフとして登録される）
+        const val = buff.params?.value || 0;
+        if (val > 0) {
+          bonus += val;
+          logData.bonuses.push(`skill_combo_bonus:+${val}`);
+          logData.bonusSteps.push({ label: buff.name || 'スキルボーナス', value: val });
+        }
+      } else if (buff.action === "temp_mult") {
         multMultiplier *= buff.params.multiplier;
         logData.multipliers.push(`temp_mult:x${buff.params.multiplier.toFixed(2)}`);
         logData.multiplierSteps.push({ label: 'スキル倍率', value: buff.params.multiplier, type: 'mult' });
@@ -5395,7 +5398,12 @@ export const useGameState = () => {
       addTokenToast(pToken, "を獲得した！");
       addTokenToast(aToken, "を獲得した！");
     } else if (option === 'challenge') {
-      const cursePool = ALL_TOKEN_BASES.filter(t => t.type === 'curse' || t.isCurse === true);
+      // 「増殖された呪い」は「増殖」からのみ生成されるため、初期呪いの候補から除外する
+      const cursePool = ALL_TOKEN_BASES.filter(t =>
+        (t.type === 'curse' || t.isCurse === true) &&
+        t.id !== 'curse_multiplied_p' &&
+        t.id !== 'curse_multiplied_a'
+      );
       const randomCurse = cursePool[Math.floor(Math.random() * cursePool.length)];
       const initToken = {
         ...randomCurse,
@@ -6102,7 +6110,7 @@ export const useGameState = () => {
         const isCurseTriggered = (token.action === "spawn_token_s3" && Math.random() < 0.30);
 
         if (isCurseTriggered) {
-          const cursePool = ALL_TOKEN_BASES.filter(b => b.type === 'curse' || b.isCurse);
+          const cursePool = ALL_TOKEN_BASES.filter(b => (b.type === 'curse' || b.isCurse) && b.id !== 'curse_multiplied_p' && b.id !== 'curse_multiplied_a');
           selectedBase = cursePool[Math.floor(Math.random() * cursePool.length)];
         } else {
           // 「招来」系スキル自身を除外したプールから抽選

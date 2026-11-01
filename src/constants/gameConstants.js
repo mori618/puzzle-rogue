@@ -29,7 +29,7 @@ const TOKEN_PRICE_TIER = {
 const SHOP_REROLL_GROWTH_FACTOR = 1.3;
 
 /** 覚醒ショップでのトークン枠拡張に必要なスター数 */
-const AWAKENING_TOKEN_SLOT_PRICES = [100, 500, 2000, 10000, 50000];
+const AWAKENING_TOKEN_SLOT_PRICES = [50, 500, 2000, 10000, 50000];
 
 /** 初期トークン枠（スロット）数 */
 const INITIAL_TOKEN_SLOTS = 4;

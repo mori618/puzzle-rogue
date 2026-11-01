@@ -94,7 +94,7 @@ const ALL_TOKEN_BASES = [
     effectValues: [1, 2, 3],
     rarity: 3,
     price: 31,
-    desc: "盤面上の月ドロップを全て削除し、削除分コンボ追加（特殊は2倍、Lvに応じて1/2/3倍）。累計30個消去ごとに、盤面を全てプラス月にしサイクルの手番を[+1/+2/+3]回する。消費E:{cost}",
+    desc: "盤面上の月ドロップを全て削除し、削除分コンボ追加（特殊は2倍、Lvに応じて1/2/3倍）。累計30個消去ごとに、盤面を全てプラス月にし、このサイクルの残り手番を[+1/+2/+3]する。消費E:{cost}",
     attributes: ["dark"]
   },
 
@@ -1590,7 +1590,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "time_skipper", name: "早送りの極意", icon: "fast_forward", type: "passive", effect: "stat_time_skipper",
     values: [2, 3, 4], rarity: 2, price: 24,
-    desc: "スキップしたターン数5回につき、コンボ倍率にプラス{values}。",
+    desc: "スキップ5回ごとに加算値が{values}倍に増え、コンボ倍率にプラス（{values}^(スキップ回数÷5) − 1）。例: Lv1は5回で+1／10回で+3／15回で+7。",
     attributes: [],
     canBeInitial: true
   },

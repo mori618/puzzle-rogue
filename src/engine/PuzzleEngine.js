@@ -46,6 +46,8 @@ class PuzzleEngine {
     this.moveStart = null;
     this.timerId = null;
     this.processing = false;
+    // 盤面処理中に要求された特殊ドロップ生成を、処理完了後に適用するためのキュー
+    this._pendingBoardOps = [];
     this.currentCombo = 0;
     this.noSkyfall = false;
     this.noSpecialEffects = false;
@@ -1180,6 +1182,7 @@ class PuzzleEngine {
     if (this._isDestroyed) return { erasedCount, rawCount };
 
     this.processing = false;
+    this._flushPendingBoardOps();
     return { erasedCount, rawCount };
   }
 
@@ -1389,7 +1392,10 @@ class PuzzleEngine {
   }
 
   spawnPlusRandom(count) {
-    if (this.processing) return;
+    if (this.processing) {
+      this._pendingBoardOps.push(() => this.spawnPlusRandom(count));
+      return;
+    }
     const normalOrbs = [];
     this.state.forEach((row) => {
       row.forEach((orb) => {
@@ -1787,6 +1793,14 @@ class PuzzleEngine {
       }
     }
     this.render();
+  }
+
+  // 処理中に保留された盤面操作（プラス/リピート生成など）をまとめて適用する
+  _flushPendingBoardOps() {
+    if (this._isDestroyed || this.processing || !this._pendingBoardOps?.length) return;
+    const ops = this._pendingBoardOps;
+    this._pendingBoardOps = [];
+    ops.forEach(op => op());
   }
 
   async process() {
@@ -2362,6 +2376,7 @@ class PuzzleEngine {
     });
 
     this.processing = false;
+    this._flushPendingBoardOps();
   }
 
   findCombos() {
@@ -2729,7 +2744,10 @@ class PuzzleEngine {
   }
 
   spawnRepeatRandom(count) {
-    if (this.processing) return;
+    if (this.processing) {
+      this._pendingBoardOps.push(() => this.spawnRepeatRandom(count));
+      return;
+    }
     const candidates = [];
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
