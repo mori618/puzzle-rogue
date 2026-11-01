@@ -133,6 +133,7 @@ const App = () => {
   } = gameState;
 
   const [showSlotExpandConfirm, setShowSlotExpandConfirm] = React.useState(false);
+  const [sellConfirmToken, setSellConfirmToken] = React.useState(null); // 売却確認ダイアログ対象
   const [showUIPreview, setShowUIPreview] = React.useState(false);
   // ゲームプレイ中の二つ名表示・切り替え
   const [equippedTitle, setEquippedTitle] = React.useState(() => loadTitleState().equippedTitle);
@@ -1602,7 +1603,7 @@ const App = () => {
 
                         return (
                           <button
-                            onClick={() => sellToken(t)}
+                            onClick={() => (t.isLocked ? sellToken(t) : setSellConfirmToken(t))}
                             className={`w-full text-center py-3 rounded-lg font-bold transition-all ${t.isLocked ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed border border-white/5' : 'bg-red-600/20 hover:bg-red-600/40 text-red-300'}`}
                           >
                             {t.isLocked ? (
@@ -1625,6 +1626,45 @@ const App = () => {
               );
             })()
           }
+
+          {/* Sell Confirm Modal */}
+          {sellConfirmToken && (() => {
+            const t = sellConfirmToken;
+            const price = Math.floor(t.price * (t.enchantments?.some(e => e.effect === "high_sell") ? 3.0 : 0.5));
+            return (
+              <div className="fixed inset-0 z-[460] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSellConfirmToken(null)}>
+                <div className="bg-slate-900 border-2 border-red-500/50 rounded-2xl p-4 text-center max-w-[280px] w-full shadow-[0_0_30px_rgba(239,68,68,0.2)]" onClick={e => e.stopPropagation()}>
+                  <span className="material-icons-round text-4xl text-red-400 mb-2 block">sell</span>
+                  <h2 className="text-base font-bold text-white mb-1">トークンの売却</h2>
+                  <p className="text-slate-300 text-[11px] mb-3 leading-snug">
+                    <span className="text-white font-bold">{t.name}</span> を売却します。<br />
+                    よろしいですか？
+                  </p>
+                  <div className="bg-slate-950/50 rounded-xl p-2.5 mb-4 border border-white/5">
+                    <span className="text-[9px] text-slate-500 block uppercase">獲得スター</span>
+                    <span className="text-sm font-black text-amber-400 font-mono">+{price} ★</span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => {
+                        sellToken(t);
+                        setSellConfirmToken(null);
+                      }}
+                      className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-xl text-xs transition-all active:scale-95"
+                    >
+                      売却する
+                    </button>
+                    <button
+                      onClick={() => setSellConfirmToken(null)}
+                      className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-2 px-4 rounded-xl text-xs transition-all active:scale-95"
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Enchant Detail Modal（廃止に伴いコメントアウト） */}
           {/*
