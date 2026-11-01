@@ -52,7 +52,7 @@ describe('二つ名マスターデータ', () => {
       expect(SUFFIX_TITLES.filter(t => t.effects.some(e => e.per === 'attr_token' && e.attribute === c)), c).toHaveLength(1);
       const evo = EVOLVED_TITLES.filter(t => t.requiredTitleId === prefixOf[c].id);
       expect(evo, c).toHaveLength(1);
-      expect(evo[0].effects.some(e => e.type === 'add_mult' && e.value === 10.0 && e.when?.color === c), c).toBe(true);
+      expect(evo[0].effects.some(e => e.type === 'add_mult' && e.value === 5.0 && e.when?.color === c), c).toBe(true);
       expect(TITLE_SET_BONUSES.filter(st => st.prefixId === prefixOf[c].id && mentions(st, c) || st.prefixId === prefixOf[c].id && st.suffixId === 'B01'), c).toHaveLength(3);
       const chant = PREFIX_TITLES.find(t => t.effects.some(e => e.type === 'skill_cost_sub' && e.attribute === c));
       expect(TITLE_SET_BONUSES.filter(st => mentions(st, c)), c).toHaveLength(4);
@@ -155,10 +155,11 @@ describe('進捗記録と解放', () => {
   });
 
   it('最大値系の進捗は最大値のみ保持する', () => {
-    recordTitleProgress({ max: { combo_turn_max: 30 } });
+    recordTitleProgress({ max: { combo_turn_max: 30000 } });
     recordTitleProgress({ max: { combo_turn_max: 10 } });
-    expect(loadTitleState().progress.combo_turn_max).toBe(30);
-    recordTitleProgress({ max: { combo_turn_max: 50 } });
+    expect(loadTitleState().progress.combo_turn_max).toBe(30000);
+    expect(loadTitleState().unlockedTitles.suffixes).not.toContain('B01');
+    recordTitleProgress({ max: { combo_turn_max: 50000 } });
     expect(loadTitleState().unlockedTitles.suffixes).toContain('B01');
   });
 
@@ -212,11 +213,15 @@ describe('装備と効果', () => {
   it('コンボ補正: 条件・回数・上限を考慮する', () => {
     unlockAndEquip({ prefixes: ['A04'], suffixes: ['B01'], prefixId: 'A04', suffixId: 'B01' });
     const effects = getActiveTitleEffects();
-    // 紅蓮の(炎消し時+1.5) + 覇王(+2.0) + 真・紅蓮覇王(強化出現)
+    // 紅蓮の(ショップ・出現率のみ) + 覇王(+1.5) + 真・紅蓮覇王(強化出現)
+    expect(effects.some(e => e.type === 'shop_attr_weight' && e.attribute === 'fire')).toBe(true);
     const withFire = computeTitleComboModifiers({ matchedColors: new Set(['fire']), tc: 5 }, effects);
-    expect(withFire.addedMult).toBeCloseTo(3.5);
-    const withoutFire = computeTitleComboModifiers({ matchedColors: new Set(['water']), tc: 5 }, effects);
-    expect(withoutFire.addedMult).toBeCloseTo(2.0);
+    expect(withFire.addedMult).toBeCloseTo(1.5);
+    // 炎帝: 炎トークン数 × 炎を消した手番のみ
+    const enTei = SUFFIX_TITLES.find(t => t.id === 'B51').effects;
+    const ctx = { tokenCounts: { attrCounts: { fire: 3 } }, tc: 5 };
+    expect(computeTitleComboModifiers({ ...ctx, matchedColors: new Set(['fire']) }, enTei).addedMult).toBeCloseTo(0.75);
+    expect(computeTitleComboModifiers({ ...ctx, matchedColors: new Set(['water']) }, enTei).addedMult).toBeCloseTo(0);
   });
 
   it('per と max', () => {
@@ -337,6 +342,6 @@ describe('装備と効果', () => {
     const info = getEquippedTitleInfo(loadTitleState().equippedTitle);
     expect(info.activeSet?.id).toBe('S44');
     const mods = computeTitleComboModifiers({ tokenCounts: { token: 0 }, tc: 3 }, getActiveTitleEffects());
-    expect(mods.finalMult).toBeCloseTo(12.5);
+    expect(mods.finalMult).toBeCloseTo(5.4);
   });
 });
