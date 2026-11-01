@@ -605,7 +605,7 @@ const App = () => {
                                               />
                                             </div>
                                           )}
-                                          <span className={`material-icons-round text-2xl relative z-35 ${t?.type === 'curse' || t?.isCurse ? 'text-red-500' : animClass ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-slate-400'}`}>
+                                          <span className={`material-icons-round text-2xl relative z-35 ${t?.type === 'curse' || t?.isCurse ? 'text-red-500' : animClass ? 'text-white drop-shadow-[0_0_3px_rgba(255,255,255,0.45)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_3px_rgba(74,222,128,0.45)]' : 'text-slate-400'}`}>
                                             {getTokenIcon(t)}
                                           </span>
                                         </div>
@@ -778,7 +778,7 @@ const App = () => {
                                           </div>
                                           {/* Ready状態の回転ネオンマジックリング */}
                                           {isReady && <div className="token-magic-ring z-25"></div>}
-                                          <span className={`material-icons-round text-2xl drop-shadow-md relative z-35 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : (t?.isCurse || t?.type === 'curse') ? (isReady ? 'text-red-400' : 'text-red-700') : (isReady ? 'text-primary' : 'text-slate-500')}`}>
+                                          <span className={`material-icons-round text-2xl drop-shadow-md relative z-35 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_3px_rgba(34,211,238,0.45)]' : (t?.isCurse || t?.type === 'curse') ? (isReady ? 'text-red-400' : 'text-red-700') : (isReady ? 'text-primary' : 'text-slate-500')}`}>
                                             {getTokenIcon(t)}
                                           </span>
                                         </div>
@@ -1120,9 +1120,9 @@ const App = () => {
               <TitleInfoPanel
                 equippedTitle={equippedTitle}
                 onClose={() => setShowTitleInfo(false)}
-                onChangeTitle={() => {
+                onChangeTitle={(tab = 'prefix') => {
                   setShowTitleInfo(false);
-                  setShowTitleSwitcher(true);
+                  setShowTitleSwitcher(tab);
                 }}
               />
             )
@@ -1133,6 +1133,7 @@ const App = () => {
             showTitleSwitcher && (
               <div className="absolute inset-0 z-[430]">
                 <TitleEncyclopediaScreen
+                  initialTab={typeof showTitleSwitcher === 'string' ? showTitleSwitcher : 'prefix'}
                   currentRunStats={currentRunStats}
                   onClose={() => {
                     setEquippedTitle(loadTitleState().equippedTitle);

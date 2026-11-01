@@ -31,25 +31,36 @@ export const EquippedTitleChip = ({ equippedTitle, onClick, className = '' }) =>
   );
 };
 
-const EffectRow = ({ slotLabel, title, emptyText }) => (
-  <div className="p-3 rounded-xl bg-slate-950/60 border border-white/10">
-    <div className="flex items-center justify-between mb-1">
-      <span className="text-[10px] font-bold text-slate-400 tracking-widest">{slotLabel}</span>
-      {title?.category && (
-        <span className="text-[9px] text-indigo-300 bg-indigo-500/10 border border-indigo-400/20 px-1.5 py-0.5 rounded-full">
-          {title.category}
-        </span>
+const EffectRow = ({ slotLabel, title, emptyText, onClick }) => (
+  <button
+    type="button"
+    onClick={() => {
+      soundManager.playSE(SE_IDS.UI_CLICK);
+      onClick();
+    }}
+    aria-label={`${slotLabel}の二つ名を入れ替える`}
+    className="w-full text-left p-3 rounded-xl bg-slate-950/60 border border-white/10 hover:border-indigo-400/50 active:scale-[0.98] transition-all flex items-center gap-2"
+  >
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] font-bold text-slate-400 tracking-widest">{slotLabel}</span>
+        {title?.category && (
+          <span className="text-[9px] text-indigo-300 bg-indigo-500/10 border border-indigo-400/20 px-1.5 py-0.5 rounded-full">
+            {title.category}
+          </span>
+        )}
+      </div>
+      {title ? (
+        <>
+          <div className="text-sm font-black text-white">{title.name}</div>
+          <div className="text-xs text-slate-300 mt-0.5">{title.desc}</div>
+        </>
+      ) : (
+        <div className="text-xs text-slate-500">{emptyText}（タップで設定）</div>
       )}
     </div>
-    {title ? (
-      <>
-        <div className="text-sm font-black text-white">{title.name}</div>
-        <div className="text-xs text-slate-300 mt-0.5">{title.desc}</div>
-      </>
-    ) : (
-      <div className="text-xs text-slate-500">{emptyText}</div>
-    )}
-  </div>
+    <span className="material-icons-round text-lg text-slate-500 shrink-0">chevron_right</span>
+  </button>
 );
 
 /**
@@ -109,14 +120,14 @@ const TitleInfoPanel = ({ equippedTitle, onClose, onChangeTitle }) => {
           </div>
         )}
 
-        <EffectRow slotLabel="A枠（接頭辞）" title={info.prefix} emptyText="A枠未設定" />
-        <EffectRow slotLabel="B枠（接尾辞）" title={info.suffix} emptyText="B枠未設定" />
+        <EffectRow slotLabel="A枠（接頭辞）" title={info.prefix} emptyText="A枠未設定" onClick={() => onChangeTitle('prefix')} />
+        <EffectRow slotLabel="B枠（接尾辞）" title={info.suffix} emptyText="B枠未設定" onClick={() => onChangeTitle('suffix')} />
 
         <button
           type="button"
           onClick={() => {
             soundManager.playSE(SE_IDS.UI_CLICK);
-            onChangeTitle();
+            onChangeTitle('prefix');
           }}
           className="w-full btn-game-primary py-3 mt-1 flex justify-center items-center gap-2 text-sm"
         >
