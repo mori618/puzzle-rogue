@@ -366,13 +366,21 @@ export const useShop = ({
     setStats(prev => ({ ...prev, lifetimeCursesRemoved: (prev.lifetimeCursesRemoved || 0) + 1 }));
     recordTitleProgress({ add: { curses_removed: 1 } });
 
+    // 二つ名: 解呪ボーナス
+    const curseRemoveBonus = Math.floor(getTitleEffectTotal('curse_remove_bonus', {}, getActiveTitleEffects()));
+    if (curseRemoveBonus > 0) {
+      setStars(s => s + curseRemoveBonus);
+      setCurrentRunStats(prev => ({ ...prev, totalStarsEarned: (prev.totalStarsEarned || 0) + curseRemoveBonus }));
+      notify(`解呪ボーナス: ★+${curseRemoveBonus}`);
+    }
+
     setSelectedTokenDetail(null);
     if (isLegendary) {
       addTokenToast(rewardToken, "を獲得しました！ (呪い解除報酬・伝説！)");
     } else {
       addTokenToast(rewardToken, "を獲得しました！ (呪い解除報酬)");
     }
-  }, [setTokens, setCurrentRunStats, setStats, setSelectedTokenDetail, addTokenToast]);
+  }, [setTokens, setStars, setCurrentRunStats, setStats, setSelectedTokenDetail, addTokenToast, notify]);
 
   /** トークンの売却 */
   const sellToken = useCallback((token) => {
@@ -409,13 +417,17 @@ export const useShop = ({
     soundManager.playSE(SE_IDS.SELL_STAR);
 
     setTokens(prev => prev.filter(t => t.instanceId !== token.instanceId));
+    // 二つ名「継承者」: 売却した Lv3 トークンを次サイクル開始時に Lv2 で戻す（戻ったトークンは対象外）
+    const isLv3 = !isCurseToken && (token.level || 1) >= 3;
+    const shouldInherit = isLv3 && !token.isInherited && getTitleEffectTotal('inherit_lv3', {}, titleEffects) > 0;
     setCurrentRunStats(prev => ({
       ...prev,
       tokensSold: (prev.tokensSold || 0) + 1,
-      totalStarsEarned: (prev.totalStarsEarned || 0) + sellPrice
+      totalStarsEarned: (prev.totalStarsEarned || 0) + sellPrice,
+      ...(shouldInherit ? { inheritQueue: [...(prev.inheritQueue || []), token.id] } : {}),
     }));
 
-    recordTitleProgress({ add: { tokens_sold: 1, curses_sold: isCurseToken ? 1 : 0 } });
+    recordTitleProgress({ add: { tokens_sold: 1, curses_sold: isCurseToken ? 1 : 0, lv3_sold: isLv3 ? 1 : 0 } });
 
     setSelectedTokenDetail(null);
     notify(`${token.name} を売却しました (+${sellPrice} ★)`);

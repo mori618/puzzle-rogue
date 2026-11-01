@@ -36,10 +36,10 @@ const unlockAndEquip = ({ prefixes = [], suffixes = [], evolved = [], prefixId =
 };
 
 describe('二つ名マスターデータ', () => {
-  it('全176件・ID重複なし', () => {
+  it('全196件・ID重複なし', () => {
     const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...TITLE_SET_BONUSES, ...EVOLVED_TITLES];
-    expect(all).toHaveLength(176);
-    expect(new Set(all.map(t => t.id)).size).toBe(176);
+    expect(all).toHaveLength(196);
+    expect(new Set(all.map(t => t.id)).size).toBe(196);
   });
 
   it('6属性すべてが同じ構成（A枠・詠唱・B枠・進化・セット3種）を持つ', () => {
@@ -54,6 +54,9 @@ describe('二つ名マスターデータ', () => {
       expect(evo, c).toHaveLength(1);
       expect(evo[0].effects.some(e => e.type === 'add_mult' && e.value === 10.0 && e.when?.color === c), c).toBe(true);
       expect(TITLE_SET_BONUSES.filter(st => st.prefixId === prefixOf[c].id && mentions(st, c) || st.prefixId === prefixOf[c].id && st.suffixId === 'B01'), c).toHaveLength(3);
+      const chant = PREFIX_TITLES.find(t => t.effects.some(e => e.type === 'skill_cost_sub' && e.attribute === c));
+      expect(TITLE_SET_BONUSES.filter(st => mentions(st, c)), c).toHaveLength(4);
+      expect(TITLE_SET_BONUSES.filter(st => st.prefixId === chant.id && st.suffixId === 'B03'), c).toHaveLength(1);
     });
   });
 
@@ -295,5 +298,45 @@ describe('装備と効果', () => {
     expect(evaluateTitleWhen(when, { turn: 1, matchedColors: new Set(['fire']) })).toBe(true);
     expect(evaluateTitleWhen(when, { turn: 2, matchedColors: new Set(['fire']) })).toBe(false);
     expect(evaluateTitleWhen({ last_turn: true }, { turn: 3, maxTurns: 3 })).toBe(true);
+  });
+
+  it('操作時間: 倍率（刹那の・時間停止）', () => {
+    expect(applyTitleTimeLimit(6000, false, [{ type: 'time_scale', value: 0.5 }])).toBe(3000);
+    expect(applyTitleTimeLimit(6000, false, [{ type: 'time_scale', value: 0.5 }, { type: 'time_scale', value: 2.0 }])).toBe(6000);
+    expect(applyTitleTimeLimit(6000, false, [{ type: 'time_scale', value: 0.5 }, { type: 'time_add', value: 1000 }])).toBe(4000);
+  });
+
+  it('賭博師: 勝ち ×2 / 負け ×0.5', () => {
+    const effects = [{ type: 'final_mult_gamble', value: 2.0 }];
+    expect(computeTitleComboModifiers({ random: () => 0.1 }, effects).finalMult).toBe(2);
+    expect(computeTitleComboModifiers({ random: () => 0.9 }, effects).finalMult).toBe(0.5);
+  });
+
+  it('残響の・守銭奴の per', () => {
+    const effects = [
+      { type: 'combo_add', value: 0.1, per: 'prev_combo', max: 1000 },
+      { type: 'add_mult', value: 0.5, per: 'stars_100', max: 10 },
+    ];
+    expect(computeTitleComboModifiers({ prevCombo: 255, stars: 350 }, effects)).toMatchObject({ comboAdd: 25, addedMult: 1.5 });
+    expect(computeTitleComboModifiers({ prevCombo: 999999, stars: 99999 }, effects)).toMatchObject({ comboAdd: 100, addedMult: 5 });
+  });
+
+  it('逆転の・無欲の・静と動の条件', () => {
+    expect(evaluateTitleWhen({ behind: true }, { turn: 3, maxTurns: 4, goalProgress: 0.3 })).toBe(true);
+    expect(evaluateTitleWhen({ behind: true }, { turn: 2, maxTurns: 4, goalProgress: 0.3 })).toBe(false);
+    expect(evaluateTitleWhen({ behind: true }, { turn: 4, maxTurns: 4, goalProgress: 0.6 })).toBe(false);
+    expect(evaluateTitleWhen({ no_purchase: true }, { purchasesThisCycle: 0 })).toBe(true);
+    expect(evaluateTitleWhen({ no_purchase: true }, { purchasesThisCycle: 2 })).toBe(false);
+    const when = { prev_skill_used: true, skill_used: false };
+    expect(evaluateTitleWhen(when, { prevSkillUsed: true, skillUsed: false })).toBe(true);
+    expect(evaluateTitleWhen(when, { prevSkillUsed: true, skillUsed: true })).toBe(false);
+  });
+
+  it('独りの極地: 刹那の/隠者のセットが発動する', () => {
+    unlockAndEquip({ prefixes: ['A16'], suffixes: ['B57'], prefixId: 'A16', suffixId: 'B57' });
+    const info = getEquippedTitleInfo(loadTitleState().equippedTitle);
+    expect(info.activeSet?.id).toBe('S44');
+    const mods = computeTitleComboModifiers({ tokenCounts: { token: 0 }, tc: 3 }, getActiveTitleEffects());
+    expect(mods.finalMult).toBeCloseTo(12.5);
   });
 });

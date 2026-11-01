@@ -25,6 +25,7 @@ import {
   hasTitleEffect,
   getTitleEffectTotal,
   getTitleEffectProduct,
+  evaluateTitleWhen,
   getTitleEffects,
   computeTitleComboModifiers,
   applyTitleTimeLimit,
@@ -3001,6 +3002,10 @@ export const useGameState = () => {
       erasedColorCounts: finalErasedColorCounts,
       clears: currentRunStats.currentClears || 0,
       cycle: (currentRunStats.currentClears || 0) + 1,
+      prevCombo: currentRunStats.lastTurnCombo || 0,
+      prevSkillUsed: !!currentRunStats.lastTurnSkillUsed,
+      goalProgress: effectiveTarget > 0 ? cycleTotalCombo / effectiveTarget : 0,
+      purchasesThisCycle: Math.max(0, totalPurchases - (currentRunStats.cyclePurchaseBase || 0)),
     };
     if (!isPracticeMode && tc > 0) {
       const titleMods = computeTitleComboModifiers(titleCtx, titleEffects);
@@ -3238,6 +3243,7 @@ export const useGameState = () => {
           skills_turn_max: skillsThisTurnRef.current,
         },
       });
+      if (tc > 0 && !hasUsedActiveSkillThisTurn) recordTitleProgress({ add: { no_skill_turns: 1 } });
       const triggerCtx = { ...titleCtx, effectiveCombo, baseCombo: turnBaseCombo };
       recordTitleTrigger('turn', triggerCtx);
 
@@ -3247,8 +3253,11 @@ export const useGameState = () => {
         const cycleNum = (currentRunStats.currentClears || 0) + 1;
         const starsAtClear = stars + totalStarsEarned;
         const tokenCount = titleCtx.tokenCounts.token;
+        const noBuyStreak = titleCtx.purchasesThisCycle === 0 ? (currentRunStats.noBuyStreak || 0) + 1 : 0;
+        setCurrentRunStats(prev => ({ ...prev, noBuyStreak }));
         recordTitleProgress({
           add: {
+            berserk_clears_total: remainingTimeMs <= 2000 ? 1 : 0,
             clears_total: 1,
             last_turn_clears: turn === maxTurns ? 1 : 0,
             first_turn_clears: turn === 1 ? 1 : 0,
@@ -3259,12 +3268,17 @@ export const useGameState = () => {
             cycle1_one_turn_clear: cycleNum === 1 && turn === 1 ? 1 : 0,
             low_token_cycle: tokenCount <= 3 ? cycleNum : 0,
             cycle_cleared_max: cycleNum,
+            hermit_cycle: tokenCount <= 1 ? cycleNum : 0,
+            comeback_clear: evaluateTitleWhen({ behind: true }, titleCtx) ? 1 : 0,
+            no_buy_streak: noBuyStreak,
           },
         });
         recordTitleTrigger('clear', { ...triggerCtx, stars: starsAtClear });
       }
     }
     skillsThisTurnRef.current = 0;
+    // 二つ名（残響の・静と動）用: 前の手番の結果を保持
+    setCurrentRunStats(prev => ({ ...prev, lastTurnCombo: effectiveCombo, lastTurnSkillUsed: !!hasUsedActiveSkillThisTurn }));
 
     setCycleTotalCombo(prev => {
       const updated = prev + effectiveCombo;
@@ -3274,7 +3288,8 @@ export const useGameState = () => {
             setShopRerollPrice(shopRerollBasePrice);
             soundManager.playSE(SE_IDS.GOAL_REACHED);
             const rewardMult = getRewardMultiplier();
-            const rewardAmount = Math.floor(3 * rewardMult) + getTitleEffectTotal('clear_reward_add', {}, titleEffects);
+            const clearRewardMult = getTitleEffectProduct('clear_reward_mult', titleCtx, titleEffects);
+            const rewardAmount = Math.floor((Math.floor(3 * rewardMult) + getTitleEffectTotal('clear_reward_add', {}, titleEffects)) * clearRewardMult);
             setStars(s => s + rewardAmount);
             setCurrentRunStats(prevStats => ({
               ...prevStats,
@@ -4996,7 +5011,7 @@ export const useGameState = () => {
     setTarget(newTarget);
     setGoalReached(false);
     setSkippedTurnsBonus(0);
-    setCurrentRunStats(prev => ({ ...prev, currentClears: baseClears + 1 }));
+    setCurrentRunStats(prev => ({ ...prev, currentClears: baseClears + 1, cyclePurchaseBase: totalPurchases, lastTurnCombo: 0, lastTurnSkillUsed: false }));
     setStarProgress(0);
 
     const nextBase = Math.ceil(shopRerollBasePrice * SHOP_REROLL_GROWTH_FACTOR);
@@ -5040,13 +5055,47 @@ export const useGameState = () => {
     }
     const chargeEffects = getTitleEffects('skill_charge_cycle_start', {}, titleEffects);
     if (chargeEffects.length > 0) {
-      const chargeFull = chargeEffects.some(e => e.value === 'full');
-      const chargeAmount = chargeEffects.reduce((sum, e) => sum + (typeof e.value === 'number' ? e.value : 0), 0);
       setTokens(prev => prev.map(t => {
         if (!t || t.type !== 'skill') return t;
+        // attribute 指定の効果は、その属性を持つスキルにのみ適用
+        const attrs = t.attributes || [];
+        const applicable = chargeEffects.filter(e => !e.attribute || attrs.includes(e.attribute));
+        if (applicable.length === 0) return t;
+        const chargeFull = applicable.some(e => e.value === 'full');
+        const chargeAmount = applicable.reduce((sum, e) => sum + (typeof e.value === 'number' ? e.value : 0), 0);
         const maxCharge = t.cost || 0;
         return { ...t, charge: chargeFull ? maxCharge : Math.min(maxCharge, (t.charge || 0) + chargeAmount) };
       }));
+    }
+    // 二つ名「継承者」: 売却した Lv3 トークンを Lv2 で戻す（空き枠がある分のみ）
+    const inheritQueue = currentRunStats.inheritQueue || [];
+    if (inheritQueue.length > 0) {
+      const maxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
+      const freeSlots = Math.max(0, maxSlots - tokens.filter(t => t !== null).length);
+      const returning = inheritQueue
+        .slice(0, freeSlots)
+        .map(id => ALL_TOKEN_BASES.find(b => b.id === id))
+        .filter(Boolean)
+        .map(base => ({
+          ...base,
+          instanceId: Date.now() + Math.random(),
+          level: 2,
+          charge: base.type === 'skill' ? (base.cost || 0) : 0,
+          startValue: base.condition ? getStatByCondition(base.condition) : 0,
+          isInherited: true,
+        }));
+      if (returning.length > 0) {
+        setTokens(prev => {
+          const next = [...prev];
+          returning.forEach(tok => {
+            const idx = next.findIndex(t => t === null);
+            if (idx !== -1) next[idx] = tok; else next.push(tok);
+          });
+          return next;
+        });
+        returning.forEach(tok => addTokenToast(tok, "が戻ってきた！ (継承者)"));
+      }
+      setCurrentRunStats(prev => ({ ...prev, inheritQueue: [] }));
     }
     const titleLevelUps = Math.floor(getTitleEffectTotal('levelup_on_cycle_start', {}, titleEffects));
     if (titleLevelUps > 0) {

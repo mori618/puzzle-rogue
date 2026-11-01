@@ -1,6 +1,6 @@
 /**
  * 二つ名（称号）システム 全マスターデータ
- * A枠パーツ(55種) + B枠パーツ(56種) + 隠しセットシナジー(39種) + 派生進化(26種) = 全176件
+ * A枠パーツ(60種) + B枠パーツ(61種) + 隠しセットシナジー(49種) + 派生進化(26種) = 全196件
  *
  * ■ 解放条件
  *   conditionType : 進捗キー（titleManager の progress に記録される値）
@@ -20,16 +20,18 @@
  *     base_mult_step  : 基礎コンボ ×(1 + value × count)
  *     final_mult      : 最終コンボ倍率 ×value
  *     combo_add_scale : すべてのコンボ加算(+N)の合計 ×value
- *   操作時間: time_add (ms), time_fixed (ms)
+ *   操作時間: time_add (ms), time_fixed (ms), time_scale (倍率・積)
+ *   ランダム: final_mult_gamble（50%で ×value / 50%で ×1/value）
  *   盤面: spawn_weight {color}, spawn_top_colors {count}, spawn_equalize, spawn_only {colors}, no_skyfall,
  *         enhance_rate, enhance_color {color}, star_rate
  *   スター: start_stars, star_threshold_sub, star_gain_mult, cycle_interest, clear_reward_add, reward_mult
  *   ショップ: shop_slot_add, shop_discount, reroll_fixed, sale_add, free_reroll, sell_rate, sell_bonus, curse_sell_bonus
- *   トークン/スキル: start_token_level, skill_cost_sub {attribute?}, skill_charge_cycle_start (数値 or 'full'),
+ *   トークン/スキル: start_token_level, skill_cost_sub {attribute?}, skill_charge_cycle_start (数値 or 'full', {attribute?}),
  *         skill_refund_chance, skill_charge_add, levelup_on_cycle_start, max_turns_add, curse_null
+ *   その他: clear_reward_mult, curse_remove_bonus, inherit_lv3
  */
 
-// 1. A枠パーツ（接頭辞）マスターデータ（全55種）
+// 1. A枠パーツ（接頭辞）マスターデータ（全60種）
 export const PREFIX_TITLES = [
   {
     id: 'A01', name: '神速の', category: '操作時間',
@@ -416,9 +418,44 @@ export const PREFIX_TITLES = [
     conditionDesc: '3属性のみで1手7コンボを達成',
     effects: [{ type: 'add_mult', value: 2.0, when: { colors_ge: 3, colors_le: 3 } }],
   },
+  {
+    id: 'A56', name: '刹那の', category: 'リスク・火力',
+    desc: '操作時間が半分になる。最終コンボ倍率 1.8倍',
+    conditionType: 'berserk_clears_total', targetValue: 10,
+    conditionDesc: '操作時間の残りが2秒以下の手番でサイクルクリアを累計10回',
+    effects: [{ type: 'time_scale', value: 0.5 }, { type: 'final_mult', value: 1.8 }],
+  },
+  {
+    id: 'A57', name: '残響の', category: 'コンボ加算',
+    desc: '前の手番の最終コンボの 10% をコンボに加算（最大+100）',
+    conditionType: 'combo_total', targetValue: 100000,
+    conditionDesc: '最終コンボの累計 100,000 を達成',
+    effects: [{ type: 'combo_add', value: 0.1, per: 'prev_combo', max: 1000 }],
+  },
+  {
+    id: 'A58', name: '逆転の', category: '逆境',
+    desc: '残り手番が半分以下で、目標達成率が50%未満の手番、コンボ倍率 +5.0',
+    conditionType: 'comeback_clear', targetValue: 1,
+    conditionDesc: '残り手番が半分以下・目標達成率50%未満の状態から、その手番でサイクルクリア',
+    effects: [{ type: 'add_mult', value: 5.0, when: { behind: true } }],
+  },
+  {
+    id: 'A59', name: '無欲の', category: 'ショップ・逆境',
+    desc: 'サイクル中にショップで購入していない間、コンボ倍率 +2.0、クリア報酬 2倍',
+    conditionType: 'no_buy_streak', targetValue: 3,
+    conditionDesc: 'ショップで購入せずに3サイクル連続でクリア',
+    effects: [{ type: 'add_mult', value: 2.0, when: { no_purchase: true } }, { type: 'clear_reward_mult', value: 2.0, when: { no_purchase: true } }],
+  },
+  {
+    id: 'A60', name: '静寂の', category: 'スキル',
+    desc: 'スキルを使用しなかった手番、コンボ倍率 +2.0',
+    conditionType: 'no_skill_turns', targetValue: 200,
+    conditionDesc: 'スキルを使用せずに手番を終える（累計200回）',
+    effects: [{ type: 'add_mult', value: 2.0, when: { skill_used: false } }],
+  },
 ];
 
-// 2. B枠パーツ（接尾辞）マスターデータ（全56種）
+// 2. B枠パーツ（接尾辞）マスターデータ（全61種）
 export const SUFFIX_TITLES = [
   {
     id: 'B01', name: '覇王', category: '火力',
@@ -812,9 +849,44 @@ export const SUFFIX_TITLES = [
     conditionDesc: 'ハート属性のトークンを4個同時に所持',
     effects: [{ type: 'add_mult', value: 0.5, per: 'attr_token', attribute: 'heart', max: 8, when: { color: 'heart' } }],
   },
+  {
+    id: 'B57', name: '隠者', category: '少数精鋭',
+    desc: 'トークン所持数1個以下で最終コンボ倍率 2.5倍',
+    conditionType: 'hermit_cycle', targetValue: 5,
+    conditionDesc: 'トークン1個以下の状態でサイクル5をクリア',
+    effects: [{ type: 'final_mult', value: 2.5, when: { tokens_le: 1 } }],
+  },
+  {
+    id: 'B58', name: '賭博師', category: 'ギャンブル',
+    desc: '毎手番、50%で最終コンボ倍率 2倍、50%で 0.5倍',
+    conditionType: 'rerolls', targetValue: 30,
+    conditionDesc: 'ショップでリロールを累計30回実行',
+    effects: [{ type: 'final_mult_gamble', value: 2.0 }],
+  },
+  {
+    id: 'B59', name: '守銭奴', category: '経済',
+    desc: '所持スター100につきコンボ倍率 +0.5（最大+5.0）',
+    conditionType: 'stars_held_max', targetValue: 300,
+    conditionDesc: '所持スター300以上を達成',
+    effects: [{ type: 'add_mult', value: 0.5, per: 'stars_100', max: 10 }],
+  },
+  {
+    id: 'B60', name: '解呪師', category: '呪い',
+    desc: '呪いを解呪したとき、追加で +20スター獲得',
+    conditionType: 'curses_removed', targetValue: 30,
+    conditionDesc: '呪いを累計30回解呪',
+    effects: [{ type: 'curse_remove_bonus', value: 20 }],
+  },
+  {
+    id: 'B61', name: '継承者', category: '成長',
+    desc: 'Lv3トークンを売却すると、次のサイクル開始時に Lv2 で戻ってくる（戻ったトークンは再継承されない）',
+    conditionType: 'lv3_sold', targetValue: 5,
+    conditionDesc: 'Lv3トークンを累計5個売却',
+    effects: [{ type: 'inherit_lv3', value: 1 }],
+  },
 ];
 
-// 3. 隠しセットシナジー（全39種）
+// 3. 隠しセットシナジー（全49種）
 // A枠・B枠の特定の組み合わせを装備すると、各パーツの効果に加えて発動する（進化版を装備していても元の二つ名として扱う）
 export const TITLE_SET_BONUSES = [
   {
@@ -1011,6 +1083,56 @@ export const TITLE_SET_BONUSES = [
     id: 'S39', prefixId: 'A33', suffixId: 'B46', titleName: '【七色の架け橋】',
     desc: '6属性すべてを消した手番、最終コンボ倍率 2倍。',
     effects: [{ type: 'final_mult', value: 2.0, when: { colors_ge: 6 } }],
+  },
+  {
+    id: 'S40', prefixId: 'A51', suffixId: 'B03', titleName: '【嵐の大魔導】',
+    desc: '各サイクル開始時、風属性スキルのエネルギーが満タンになる。',
+    effects: [{ type: 'skill_charge_cycle_start', attribute: 'wood', value: 'full' }],
+  },
+  {
+    id: 'S41', prefixId: 'A55', suffixId: 'B14', titleName: '【森羅の律】',
+    desc: '消した属性1種類につきコンボ倍率 +1.0。',
+    effects: [{ type: 'add_mult', value: 1.0, per: 'color_count' }],
+  },
+  {
+    id: 'S42', prefixId: 'A56', suffixId: 'B40', titleName: '【時間停止】',
+    desc: '「刹那の」の操作時間半減を打ち消し、さらに最終コンボ倍率 1.5倍。',
+    effects: [{ type: 'time_scale', value: 2.0 }, { type: 'final_mult', value: 1.5 }],
+  },
+  {
+    id: 'S43', prefixId: 'A60', suffixId: 'B19', titleName: '【静と動】',
+    desc: 'スキルを使用した手番の次の手番、スキルを使わなければコンボ倍率 +3.0。',
+    effects: [{ type: 'add_mult', value: 3.0, when: { prev_skill_used: true, skill_used: false } }],
+  },
+  {
+    id: 'S44', prefixId: 'A16', suffixId: 'B57', titleName: '【独りの極地】',
+    desc: 'トークンを1つも所持していない時、最終コンボ倍率 5倍。',
+    effects: [{ type: 'final_mult', value: 5.0, when: { tokens_le: 0 } }],
+  },
+  {
+    id: 'S45', prefixId: 'A17', suffixId: 'B03', titleName: '【業火の大魔導】',
+    desc: '各サイクル開始時、炎属性スキルのエネルギーが満タンになる。',
+    effects: [{ type: 'skill_charge_cycle_start', attribute: 'fire', value: 'full' }],
+  },
+  {
+    id: 'S46', prefixId: 'A18', suffixId: 'B03', titleName: '【激流の大魔導】',
+    desc: '各サイクル開始時、雨属性スキルのエネルギーが満タンになる。',
+    effects: [{ type: 'skill_charge_cycle_start', attribute: 'water', value: 'full' }],
+  },
+  {
+    id: 'S47', prefixId: 'A52', suffixId: 'B03', titleName: '【雷霆の大魔導】',
+    desc: '各サイクル開始時、雷属性スキルのエネルギーが満タンになる。',
+    effects: [{ type: 'skill_charge_cycle_start', attribute: 'light', value: 'full' }],
+  },
+  {
+    id: 'S48', prefixId: 'A53', suffixId: 'B03', titleName: '【闇夜の大魔導】',
+    desc: '各サイクル開始時、月属性スキルのエネルギーが満タンになる。',
+    effects: [{ type: 'skill_charge_cycle_start', attribute: 'dark', value: 'full' }],
+  },
+  {
+    id: 'S49', prefixId: 'A54', suffixId: 'B03', titleName: '【癒光の大魔導】',
+    desc: '各サイクル開始時、ハート属性スキルのエネルギーが満タンになる。',
+    effects: [{ type: 'skill_charge_cycle_start', attribute: 'heart', value: 'full' }],
   },
 ];
 
