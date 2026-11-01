@@ -272,6 +272,11 @@ export const evaluateTitleWhen = (when, ctx = {}) => {
       case 'time_left_lt': return ctx.timeLeftMs != null && ctx.timeLeftMs < val;
       case 'move_steps_ge': return (ctx.moveSteps ?? 0) >= val;
       case 'skill_used': return !!ctx.skillUsed === val;
+      case 'prev_skill_used': return !!ctx.prevSkillUsed === val;
+      // 手番の後半（残り手番が半分以下）で、目標達成率が50%未満
+      case 'behind': return (ctx.turn != null && ctx.maxTurns != null && ctx.goalProgress != null
+        && ctx.turn > ctx.maxTurns / 2 && ctx.goalProgress < 0.5) === val;
+      case 'no_purchase': return (ctx.purchasesThisCycle === 0) === val;
       case 'skills_this_turn_ge': return (ctx.skillsThisTurn ?? 0) >= val;
       case 'colors_ge': return colors.size >= val;
       case 'colors_le': return colors.size >= 1 && colors.size <= val;
@@ -318,6 +323,8 @@ export const getTitlePerCount = (per, ctx = {}, effect = {}) => {
     case 'clears': return ctx.clears || 0;
     case 'move_steps': return ctx.moveSteps || 0;
     case 'tc': return ctx.tc || 0;
+    case 'prev_combo': return ctx.prevCombo || 0;
+    case 'stars_100': return Math.floor((ctx.stars || 0) / 100);
     default: return 0;
   }
 };
@@ -407,6 +414,15 @@ export const computeTitleComboModifiers = (ctx = {}, effects = getActiveTitleEff
       case 'combo_add_scale':
         result.comboAddScale *= Math.pow(v, count);
         break;
+      case 'final_mult_gamble': {
+        // 50% で ×value、50% で ×(1/value)
+        const rand = typeof ctx.random === 'function' ? ctx.random : Math.random;
+        const win = rand() < 0.5;
+        const mult = win ? v : 1 / v;
+        result.finalMult *= mult;
+        result.steps.push({ kind: 'mult', label: `${label}（${win ? '勝ち' : '負け'}）`, value: mult, type: 'mult' });
+        break;
+      }
       default:
         break;
     }
@@ -423,7 +439,8 @@ export const applyTitleTimeLimit = (baseMs, isOverridden = false, effects = getA
   if (isOverridden) return baseMs;
   const fixed = effects.filter(e => e.type === 'time_fixed').map(e => e.value);
   if (fixed.length > 0) return Math.min(...fixed);
-  return baseMs + getTitleEffectTotal('time_add', {}, effects);
+  const scale = getTitleEffectProduct('time_scale', {}, effects);
+  return baseMs * scale + getTitleEffectTotal('time_add', {}, effects);
 };
 
 /**
