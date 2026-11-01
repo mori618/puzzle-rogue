@@ -20,6 +20,22 @@ import { useGameSettings } from './useGameSettings';
 import { usePuzzleBoard } from './usePuzzleBoard';
 import { useShop } from './useShop';
 import { BGM_IDS, SE_IDS } from '../constants/sounds';
+import {
+  getActiveTitleEffects,
+  hasTitleEffect,
+  getTitleEffectTotal,
+  getTitleEffectProduct,
+  getTitleEffects,
+  computeTitleComboModifiers,
+  applyTitleTimeLimit,
+  applyTitleSpawnWeights,
+  getTokenTitleCounts,
+  recordTitleProgress,
+  recordTitleTrigger,
+  subscribeTitleUnlock,
+  getTitleKindLabel,
+  ALL_DROP_COLORS,
+} from '../utils/titleManager';
 
 // 外部定数・ヘルパーの移行
 
@@ -387,10 +403,14 @@ export const useGameState = () => {
   const onPassiveTriggerRef = useRef(null);
   const onStarEraseRef = useRef(null);
   const totalMoveTimeRef = useRef(0);
+  // 二つ名判定用: この手番に使用したスキル数
+  const skillsThisTurnRef = useRef(0);
   const skipTurnProgressRef = useRef(false);
 
   // hasGiantDomain は usePuzzleBoard フックへ移行されました
-  const hasSaintToken = tokens.some((t) => t?.id === "legend_saint");
+  // 二つ名の効果（装備は二つ名図鑑でのみ変更されるため参照は安定している）
+  const titleEffects = getActiveTitleEffects();
+  const hasSaintToken = tokens.some((t) => t?.id === "legend_saint") || hasTitleEffect('curse_null', {}, titleEffects);
   const hasDoubleTargetCurse = tokens.some((t) => t?.id === "curse_double_target") && !hasSaintToken;
   const effectiveTarget = hasDoubleTargetCurse ? target * 2 : target;
 
@@ -446,6 +466,7 @@ export const useGameState = () => {
     setShopRerollBasePrice,
     shopRerollPrice,
     setShopRerollPrice,
+    effectiveRerollPrice,
     pendingShopItem,
     setPendingShopItem,
     tokenSlotExpansionCount,
@@ -470,6 +491,7 @@ export const useGameState = () => {
   // rows, cols は usePuzzleBoard フックへ移行されました
 
   const maxTurns = Math.max(1, 3
+    + getTitleEffectTotal('max_turns_add', {}, titleEffects)
     + tokens.reduce((acc, t) => acc + (t?.enchantments?.filter(e => e.effect === "add_turn").reduce((sum, e) => sum + (e.value || 1), 0) || 0), 0)
     + tokens.reduce((acc, t) => {
       if (t?.effect === "picky_eater") return acc + (t.values[(t.level || 1) - 1] || 0);
@@ -682,6 +704,10 @@ export const useGameState = () => {
         });
       }
     });
+    // 二つ名: 出現率補正（盤面属性の偏り・均等化・限定）
+    if (!isPracticeMode) {
+      applyTitleSpawnWeights(weights, undefined, titleEffects);
+    }
     engineRef.current.setSpawnWeights(weights);
 
     // 錬金術パッシブと消去禁止設定の同期
@@ -703,7 +729,7 @@ export const useGameState = () => {
       }
     });
     engineRef.current.setNoEraseColors(noEraseColors);
-  }, [activeBuffs, tokens, hasSaintToken]);
+  }, [activeBuffs, tokens, hasSaintToken, titleEffects, isPracticeMode]);
 
   const getTimeLimit = useCallback(() => {
     if (isPracticeMode) return practiceTimeLimit;
@@ -754,9 +780,16 @@ export const useGameState = () => {
       }
     });
 
+    // 二つ名: 操作時間の加算・固定（固定の場合はそのまま返す）
+    const titleFixed = getTitleEffects('time_fixed', {}, titleEffects);
+    if (titleFixed.length > 0) {
+      return Math.max(1000, applyTitleTimeLimit(base, false, titleEffects));
+    }
+    base = applyTitleTimeLimit(base, false, titleEffects);
+
     base *= nextTurnTimeMultiplier;
     return Math.max(1000, base);
-  }, [tokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs, isPracticeMode, practiceTimeLimit, hasSaintToken]);
+  }, [tokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs, isPracticeMode, practiceTimeLimit, hasSaintToken, titleEffects]);
 
   useEffect(() => {
     if (!boardRef.current || !timerRef.current) return;
@@ -855,7 +888,8 @@ export const useGameState = () => {
 
       const hasForbiddenLiteral = effectiveTokens.some((t) => t?.id === "forbidden" || t?.effect === "forbidden");
       const hasCurseSkyfall = effectiveTokens.some((t) => (t?.id === "curse_skyfall" || t?.effect === "curse_skyfall") && !hasSaintToken);
-      engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall;
+      const hasTitleNoSkyfall = !isPracticeMode && hasTitleEffect('no_skyfall', {}, titleEffects);
+      engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall || hasTitleNoSkyfall;
 
       const hasVacation = effectiveTokens.some((t) => t?.effect === "vacation");
       engineRef.current.vacationMode = hasVacation;
@@ -1030,6 +1064,15 @@ export const useGameState = () => {
           }
         });
       });
+      // 二つ名: 強化ドロップ出現率
+      if (!isPracticeMode) {
+        const titleEnhance = getTitleEffectTotal('enhance_rate', {}, titleEffects);
+        if (titleEnhance > 0) rates.global.push({ value: titleEnhance, tokenId: null });
+        getTitleEffects('enhance_color', {}, titleEffects).forEach(e => {
+          if (!rates.colors[e.color]) rates.colors[e.color] = [];
+          rates.colors[e.color].push({ value: e.value, tokenId: null });
+        });
+      }
       engineRef.current.setEnhanceRates(rates);
 
       const bombRates = { colors: {} };
@@ -1072,6 +1115,14 @@ export const useGameState = () => {
           starRates.colors[color].push({ value: t.values[lv - 1] || 0, tokenId });
         }
       });
+      // 二つ名: スタードロップ出現率
+      const titleStarRate = isPracticeMode ? 0 : getTitleEffectTotal('star_rate', {}, titleEffects);
+      if (titleStarRate > 0) {
+        ALL_DROP_COLORS.forEach(color => {
+          if (!starRates.colors[color]) starRates.colors[color] = [];
+          starRates.colors[color].push({ value: titleStarRate, tokenId: null });
+        });
+      }
       engineRef.current.starRates = starRates;
 
       let rainbowRate = [];
@@ -1124,7 +1175,7 @@ export const useGameState = () => {
       engineRef.current.setFingerTransformConfig(fingerConfig);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokens, getTimeLimit, minMatchLength, activeBuffs, settings?.speedMultiplier]);
+  }, [tokens, getTimeLimit, minMatchLength, activeBuffs, settings?.speedMultiplier, titleEffects, isPracticeMode]);
 
   const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0, erasedByRepeatTotal = 0, erasedByStarTotal = 0, isAllClear = false, extraStats = {}, detailedShapes = [], remainingTimeMs = 0) => {
     // スキルによって消去されたドロップ数をマージ
@@ -2926,6 +2977,54 @@ export const useGameState = () => {
       }
     }
 
+    // --- 二つ名の効果（コンボ加算・倍率） ---
+    const tokenAddedBonus = bonus; // 進捗記録用: 二つ名分を含まないコンボ加算
+    const titleCtx = {
+      matchedColors: matchedColorSet,
+      turn,
+      maxTurns,
+      stars,
+      tokenCounts: getTokenTitleCounts(tokens),
+      timeLeftMs: remainingTimeMs,
+      moveSteps: extraStats.moveSteps || 0,
+      skillUsed: hasUsedActiveSkillThisTurn,
+      skillsThisTurn: skillsThisTurnRef.current,
+      tc,
+      shapes,
+      len5Count: detailedShapes.filter(ds => ds.length >= 5).length,
+      isAllClear,
+      bombErased: bombSelfErased,
+      repeatErased: repeatSelfErased,
+      rainbowErased: rainbowSelfErased,
+      starErased: starSelfErased,
+      enhancedErased: extraStats.enhancedSelfErased || 0,
+      erasedColorCounts: finalErasedColorCounts,
+      clears: currentRunStats.currentClears || 0,
+      cycle: (currentRunStats.currentClears || 0) + 1,
+    };
+    if (!isPracticeMode && tc > 0) {
+      const titleMods = computeTitleComboModifiers(titleCtx, titleEffects);
+      titleMods.steps.forEach(step => {
+        if (step.kind === 'bonus') {
+          logData.bonuses.push(`title:+${step.value}`);
+          logData.bonusSteps.push({ label: step.label, value: step.value });
+        } else {
+          logData.multipliers.push(`title:${step.type === 'add' ? '+' + step.addedValue.toFixed(2) : 'x' + step.value.toFixed(2)}`);
+          logData.multiplierSteps.push({ label: step.label, value: step.value, addedValue: step.addedValue, type: step.type });
+        }
+      });
+      bonus += titleMods.comboAdd;
+      if (titleMods.comboAddScale !== 1 && bonus > 0) {
+        const scaledBonus = Math.floor(bonus * titleMods.comboAddScale);
+        logData.bonuses.push(`title_scale:x${titleMods.comboAddScale.toFixed(2)}`);
+        logData.bonusSteps.push({ label: `二つ名: コンボ加算 ×${titleMods.comboAddScale.toFixed(2)}`, value: scaledBonus - bonus });
+        bonus = scaledBonus;
+      }
+      addedMultiplier += titleMods.addedMult;
+      baseMultiplier *= titleMods.baseMult;
+      multMultiplier *= titleMods.finalMult;
+    }
+
     // 指示に基づき、マイナス倍率は基礎コンボのほうに掛け算する
     const finalBaseComboBeforeDebuff = tc + bonus;
     const finalBaseCombo = (tc > 0) ? Math.floor(finalBaseComboBeforeDebuff * debuffMultiplier * baseMultiplier * devotionMultiplier * restrictionMultiplier) : 0;
@@ -3058,12 +3157,17 @@ export const useGameState = () => {
         totalReduction += (5 - threshold);
       }
     });
+    // 二つ名: ★獲得に必要なコンボ数の軽減
+    totalReduction += getTitleEffectTotal('star_threshold_sub', titleCtx, titleEffects);
     const isCurseInitActive = tokens.some(t => t?.id === "curse_init") && !hasSaintToken;
     const baseStarThreshold = Math.max(1, 5 - totalReduction);
     const starThreshold = isCurseInitActive ? baseStarThreshold + 1 : baseStarThreshold;
 
     const currentProgress = starProgress + effectiveCombo;
-    const totalStarsEarned = starThreshold > 0 ? Math.floor(currentProgress / starThreshold) : 0;
+    const rawStarsEarned = starThreshold > 0 ? Math.floor(currentProgress / starThreshold) : 0;
+    // 二つ名: コンボによるスター獲得量の倍率
+    const titleStarGainMult = getTitleEffectProduct('star_gain_mult', titleCtx, titleEffects);
+    const totalStarsEarned = Math.floor(rawStarsEarned * titleStarGainMult);
     const nextProgress = starThreshold > 0 ? currentProgress % starThreshold : 0;
 
     setStarProgress(nextProgress);
@@ -3081,6 +3185,86 @@ export const useGameState = () => {
       });
     }
 
+    // --- 二つ名: 手番終了時の進捗記録 ---
+    {
+      const countShape = (name) => shapes.filter(sh => sh === name).length;
+      const erasedTotal = ALL_DROP_COLORS.reduce((sum, c) => sum + (finalErasedColorCounts[c] || 0), 0);
+      const colorCount = matchedColorSet.size;
+      const moved = (extraStats.moveSteps || 0) > 0 && tc > 0;
+      let singleColorBoardMax = 0;
+      if (engineRef.current?.state) {
+        const boardCounts = {};
+        engineRef.current.state.forEach(row => row.forEach(orb => {
+          if (orb?.type) boardCounts[orb.type] = (boardCounts[orb.type] || 0) + 1;
+        }));
+        singleColorBoardMax = Object.values(boardCounts).reduce((m, v) => Math.max(m, v), 0);
+      }
+      const add = {
+        turns_played: 1,
+        erase_total: erasedTotal,
+        no_skyfall_combo: hasSkyfallCombo ? 0 : tc,
+        combo_total: effectiveCombo,
+        combo_add_total: Math.max(0, tokenAddedBonus),
+        special_shapes: countLen4 + countCross + countRow + countLShape + countSquare,
+        shape_cross: countCross,
+        shape_square: countSquare,
+        shape_l_shape: countShape('l_shape'),
+        shape_row: countRow,
+        shape_len4: countLen4,
+        shape_len5: countLen5,
+        enhanced_erased: extraStats.enhancedSelfErased || 0,
+        star_drops_erased: starSelfErased,
+        bomb_erased: bombSelfErased,
+        repeat_erased: repeatSelfErased,
+        rainbow_erased: rainbowSelfErased,
+        all_clears: isAllClear && tc > 0 ? 1 : 0,
+      };
+      ALL_DROP_COLORS.forEach(c => { add[`erase_${c}`] = finalErasedColorCounts[c] || 0; });
+      recordTitleProgress({
+        add,
+        max: {
+          time_left_max: moved ? Math.floor(remainingTimeMs / 1000) : 0,
+          move_steps_max: moved ? extraStats.moveSteps : 0,
+          combo_add_turn_max: tokenAddedBonus,
+          combo_turn_max: effectiveCombo,
+          raw_combo_turn_max: tc,
+          base_combo_turn_max: turnBaseCombo,
+          colors_turn_max: colorCount,
+          two_color_combo_max: colorCount === 2 ? tc : 0,
+          mono_color_combo_max: colorCount === 1 ? tc : 0,
+          heart_turn_max: finalErasedColorCounts.heart || 0,
+          single_color_board_max: singleColorBoardMax,
+          skills_turn_max: skillsThisTurnRef.current,
+        },
+      });
+      const triggerCtx = { ...titleCtx, effectiveCombo, baseCombo: turnBaseCombo };
+      recordTitleTrigger('turn', triggerCtx);
+
+      // サイクルクリア（目標達成）時の記録
+      const isClearingTurn = !goalReached && !isEndlessMode && (cycleTotalCombo + effectiveCombo) >= effectiveTarget;
+      if (isClearingTurn) {
+        const cycleNum = (currentRunStats.currentClears || 0) + 1;
+        const starsAtClear = stars + totalStarsEarned;
+        const tokenCount = titleCtx.tokenCounts.token;
+        recordTitleProgress({
+          add: {
+            clears_total: 1,
+            last_turn_clears: turn === maxTurns ? 1 : 0,
+            first_turn_clears: turn === 1 ? 1 : 0,
+          },
+          max: {
+            berserk_clear: remainingTimeMs <= 2000 ? 1 : 0,
+            zero_star_clear: starsAtClear <= 0 ? 1 : 0,
+            cycle1_one_turn_clear: cycleNum === 1 && turn === 1 ? 1 : 0,
+            low_token_cycle: tokenCount <= 3 ? cycleNum : 0,
+            cycle_cleared_max: cycleNum,
+          },
+        });
+        recordTitleTrigger('clear', { ...triggerCtx, stars: starsAtClear });
+      }
+    }
+    skillsThisTurnRef.current = 0;
+
     setCycleTotalCombo(prev => {
       const updated = prev + effectiveCombo;
       if (updated >= effectiveTarget) {
@@ -3089,7 +3273,7 @@ export const useGameState = () => {
             setShopRerollPrice(shopRerollBasePrice);
             soundManager.playSE(SE_IDS.GOAL_REACHED);
             const rewardMult = getRewardMultiplier();
-            const rewardAmount = Math.floor(3 * rewardMult);
+            const rewardAmount = Math.floor(3 * rewardMult) + getTitleEffectTotal('clear_reward_add', {}, titleEffects);
             setStars(s => s + rewardAmount);
             setCurrentRunStats(prevStats => ({
               ...prevStats,
@@ -3157,7 +3341,8 @@ export const useGameState = () => {
       });
     }
 
-    let extraAutoCharge = 0;
+    // 二つ名: 毎手番のエネルギー獲得量の加算
+    let extraAutoCharge = Math.floor(getTitleEffectTotal('skill_charge_add', titleCtx, titleEffects));
     tokens.forEach(t => {
       if (!t) return;
       const lv = t.level || 1;
@@ -3746,7 +3931,8 @@ export const useGameState = () => {
     if (engineRef.current) {
       const hasForbiddenLiteral = tokens.some((t) => t?.id === "forbidden" || t?.effect === "forbidden");
       const hasCurseSkyfall = tokens.some((t) => (t?.id === "curse_skyfall" || t?.effect === "curse_skyfall") && !hasSaintToken);
-      engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall;
+      const hasTitleNoSkyfall = !isPracticeMode && hasTitleEffect('no_skyfall', {}, titleEffects);
+      engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall || hasTitleNoSkyfall;
       // 重力逆転バフや烈風の重力バフがターン終了で失效した場合は重力方向をリセット
       const gravityOverdriveBuff = activeBuffs.find(b => b.action === 'gravity_overdrive' && b.duration > 1);
       const galeGravityBuff = activeBuffs.find(b => b.action === 'gale_gravity' && b.duration > 1);
@@ -4658,6 +4844,113 @@ export const useGameState = () => {
     if (currentPos > 0) setTokenMoveInput(String(currentPos));
   }, [selectedTokenDetail, tokens, setTokenMoveInput]);
 
+  // =========================================================================
+  // 二つ名: 解放通知と状態変化に応じた進捗記録
+  // =========================================================================
+  useEffect(() => {
+    return subscribeTitleUnlock((titles) => {
+      titles.forEach(title => {
+        notify(`🏅 二つ名解放【${getTitleKindLabel(title)}】「${title.name}」`);
+      });
+      soundManager.playSE(SE_IDS.GOAL_REACHED);
+    });
+  }, [notify]);
+
+  const isTitleTrackingActive = isLoaded && !isPracticeMode && !showTitle;
+
+  // トークン構成（所持数・呪い・Lv3・属性・エンチャント）とレベルアップ回数
+  const prevTokenLevelsRef = useRef(null);
+  useEffect(() => {
+    const levels = new Map();
+    let levelUps = 0;
+    tokens.forEach(t => {
+      if (!t?.instanceId) return;
+      const lv = t.level || 1;
+      levels.set(t.instanceId, lv);
+      const prevLv = prevTokenLevelsRef.current?.get(t.instanceId);
+      if (prevLv != null && lv > prevLv) levelUps += lv - prevLv;
+    });
+    prevTokenLevelsRef.current = levels;
+    if (!isTitleTrackingActive) return;
+
+    const counts = getTokenTitleCounts(tokens);
+    recordTitleProgress({
+      add: { token_levelups: levelUps },
+      max: {
+        curses_held_max: counts.curse,
+        tokens_held_max: counts.token,
+        lv3_held_max: counts.lv3,
+        same_attr_max: counts.sameAttrMax,
+        skill_tokens_max: counts.skill,
+        enchant_max: counts.enchant,
+      },
+    });
+    recordTitleTrigger('state', { stars, tokenCounts: counts });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokens, isTitleTrackingActive]);
+
+  // 所持スター
+  useEffect(() => {
+    if (!isTitleTrackingActive) return;
+    recordTitleProgress({ max: { stars_held_max: stars } });
+    recordTitleTrigger('state', { stars, tokenCounts: getTokenTitleCounts(tokens) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stars, isTitleTrackingActive]);
+
+  // 獲得・消費スター（currentRunStats の増分を累計に加算）
+  const prevStarsEarnedRef = useRef(currentRunStats.totalStarsEarned || 0);
+  const prevStarsSpentRef = useRef(currentRunStats.currentStarsSpent || 0);
+  useEffect(() => {
+    const earned = currentRunStats.totalStarsEarned || 0;
+    const spent = currentRunStats.currentStarsSpent || 0;
+    const earnedDelta = earned - prevStarsEarnedRef.current;
+    const spentDelta = spent - prevStarsSpentRef.current;
+    prevStarsEarnedRef.current = earned;
+    prevStarsSpentRef.current = spent;
+    if (!isLoaded || isPracticeMode) return;
+    recordTitleProgress({
+      add: {
+        stars_earned_total: Math.max(0, earnedDelta),
+        stars_spent_total: Math.max(0, spentDelta),
+      },
+      max: { stars_earned_run: earned },
+    });
+  }, [currentRunStats.totalStarsEarned, currentRunStats.currentStarsSpent, isLoaded, isPracticeMode]);
+
+  // ショップでの購入回数（totalPurchases の増分を累計に加算）
+  const prevTotalPurchasesRef = useRef(totalPurchases);
+  useEffect(() => {
+    const delta = totalPurchases - prevTotalPurchasesRef.current;
+    prevTotalPurchasesRef.current = totalPurchases;
+    if (delta > 0 && isLoaded && !isPracticeMode) {
+      recordTitleProgress({ add: { shop_purchases: delta } });
+    }
+  }, [totalPurchases, isLoaded, isPracticeMode]);
+
+  // ショップ訪問（訪問ごとの無料リロール付与を含む）
+  const prevShowShopRef = useRef(showShop);
+  useEffect(() => {
+    const opened = showShop && !prevShowShopRef.current;
+    prevShowShopRef.current = showShop;
+    if (!opened || !isLoaded || isPracticeMode) return;
+    recordTitleProgress({ add: { shop_visits: 1 } });
+    const titleFreeRerolls = Math.floor(getTitleEffectTotal('free_reroll', {}, titleEffects));
+    if (titleFreeRerolls > 0) {
+      setFreeRerolls(f => Math.max(f, titleFreeRerolls));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showShop]);
+
+  // ゲームオーバー
+  const prevIsGameOverRef = useRef(isGameOver);
+  useEffect(() => {
+    const becameOver = isGameOver && !prevIsGameOverRef.current;
+    prevIsGameOverRef.current = isGameOver;
+    if (becameOver && isLoaded && !isPracticeMode) {
+      recordTitleProgress({ add: { game_overs: 1 } });
+    }
+  }, [isGameOver, isLoaded, isPracticeMode]);
+
   const startNextCycle = (warpToCycle = null) => {
     setTurn(1);
     setCycleTotalCombo(0);
@@ -4732,6 +5025,31 @@ export const useGameState = () => {
         notify(`複利の導き: ★+${extraStars} (${Math.round(interestRate * 100)}%利子)`);
       }
     }
+
+    // --- 二つ名: サイクル開始時の効果 ---
+    const titleInterestRate = getTitleEffectTotal('cycle_interest', {}, titleEffects);
+    if (titleInterestRate > 0) {
+      const titleInterest = Math.floor(stars * titleInterestRate);
+      if (titleInterest > 0) {
+        setStars(s => s + titleInterest);
+        setCurrentRunStats(prev => ({ ...prev, totalStarsEarned: (prev.totalStarsEarned || 0) + titleInterest }));
+        notify(`二つ名の利子: ★+${titleInterest} (${Math.round(titleInterestRate * 100)}%)`);
+      }
+    }
+    const chargeEffects = getTitleEffects('skill_charge_cycle_start', {}, titleEffects);
+    if (chargeEffects.length > 0) {
+      const chargeFull = chargeEffects.some(e => e.value === 'full');
+      const chargeAmount = chargeEffects.reduce((sum, e) => sum + (typeof e.value === 'number' ? e.value : 0), 0);
+      setTokens(prev => prev.map(t => {
+        if (!t || t.type !== 'skill') return t;
+        const maxCharge = t.cost || 0;
+        return { ...t, charge: chargeFull ? maxCharge : Math.min(maxCharge, (t.charge || 0) + chargeAmount) };
+      }));
+    }
+    const titleLevelUps = Math.floor(getTitleEffectTotal('levelup_on_cycle_start', {}, titleEffects));
+    if (titleLevelUps > 0) {
+      levelUpRandomTokens(titleLevelUps);
+    }
   };
 
   const getRewardMultiplier = () => {
@@ -4755,7 +5073,10 @@ export const useGameState = () => {
       }
     });
 
-    return skipMasterMultiplier * (1 + timeBonusPct);
+    // 二つ名: クリア報酬・スキップ報酬の倍率
+    const titleRewardMult = getTitleEffectProduct('reward_mult', {}, titleEffects);
+
+    return skipMasterMultiplier * (1 + timeBonusPct) * titleRewardMult;
   };
 
   const skipTurns = () => {
@@ -4770,6 +5091,7 @@ export const useGameState = () => {
     notify(`SKIP BONUS: +${bonus} STARS! (+${starsPerTurn}/回)`);
     setSkippedTurnsBonus(prev => prev + remainingTurns);
     setCurrentRunStats(prev => ({ ...prev, skipsPerformed: (prev.skipsPerformed || 0) + 1 }));
+    recordTitleProgress({ add: { skips: 1 } });
 
     setTurn(maxTurns + 1);
   };
@@ -4881,6 +5203,25 @@ export const useGameState = () => {
       addTokenToast(initToken, "の呪いを受けて開始...");
     }
 
+    // --- 二つ名: ゲーム開始時の効果 ---
+    recordTitleProgress({ add: { games_played: 1 } });
+    const titleStartStars = getTitleEffectTotal('start_stars', {}, titleEffects);
+    if (titleStartStars > 0) {
+      setStars(s => s + titleStartStars);
+      notify(`二つ名の効果: 初期スター +${titleStartStars}`);
+    }
+    const titleStartLevel = getTitleEffects('start_token_level', {}, titleEffects).reduce((m, e) => Math.max(m, e.value || 1), 1);
+    if (titleStartLevel > 1) {
+      setTokens(prev => prev.map(t => {
+        if (!t || t.isCurse || t.type === 'curse' || t.noLevelUp || t.effect === 'copy_left') return t;
+        const nextLevel = Math.min(3, Math.max(t.level || 1, titleStartLevel));
+        if (nextLevel === (t.level || 1)) return t;
+        const leveled = { ...t, level: nextLevel };
+        leveled.desc = getTokenDescription(leveled, nextLevel, initialCurrentRunStats, prev, []);
+        return leveled;
+      }));
+    }
+
     if (engineRef.current) {
       engineRef.current.init(null);
     }
@@ -4946,6 +5287,19 @@ export const useGameState = () => {
     if (!engine) return;
 
     setHasUsedActiveSkillThisTurn(true);
+
+    // --- 二つ名: スキル使用の進捗記録 ---
+    skillsThisTurnRef.current += 1;
+    {
+      const skillAdd = { skills_used: 1 };
+      (token.attributes || []).forEach(attr => {
+        if (attr && attr !== 'none') skillAdd[`skills_used_${attr}`] = 1;
+      });
+      recordTitleProgress({ add: skillAdd });
+    }
+    const boardSnapshotBeforeSkill = (token.action === 'refresh' || token.action === 'force_refresh')
+      ? null
+      : engine.state?.map(row => row.map(orb => (orb ? `${orb.type}|${orb.isEnhanced ? 1 : 0}|${orb.isBomb ? 1 : 0}|${orb.isStar ? 1 : 0}|${orb.isRepeat ? 1 : 0}|${orb.isRainbow ? 1 : 0}` : null)));
 
     setStats(prev => ({ ...prev, lifetimeSkillsUsed: (prev.lifetimeSkillsUsed || 0) + 1 }));
     setCurrentRunStats(prev => ({ ...prev, currentSkillsUsed: (prev.currentSkillsUsed || 0) + 1 }));
@@ -5573,6 +5927,16 @@ export const useGameState = () => {
         break;
     }
 
+    // --- 二つ名: スキル1回で変化したドロップ数を記録 ---
+    if (boardSnapshotBeforeSkill && engine.state) {
+      let changedCount = 0;
+      engine.state.forEach((row, r) => row.forEach((orb, c) => {
+        const after = orb ? `${orb.type}|${orb.isEnhanced ? 1 : 0}|${orb.isBomb ? 1 : 0}|${orb.isStar ? 1 : 0}|${orb.isRepeat ? 1 : 0}|${orb.isRainbow ? 1 : 0}` : null;
+        if (after !== boardSnapshotBeforeSkill[r]?.[c]) changedCount++;
+      }));
+      if (changedCount > 0) recordTitleProgress({ max: { skill_convert_max: changedCount } });
+    }
+
     // --- 追加: Lv3以上なら基礎コンボ値プラス効果 (Next Turn Bonus) ---
     // 呪いトークン (isCurse) にはLv3ボーナスは適用しない
     if (!token.isCurse && (token.level || 1) >= 3) {
@@ -5601,7 +5965,10 @@ export const useGameState = () => {
       const hasMagicEcho = !!magicEchoEnc;
       const echoChance = magicEchoEnc ? (magicEchoEnc.value || 0.25) : 0;
       const hasMagicalLeadership = tokens[0] && tokens[0].effect === 'magical_leadership';
-      const skipConsume = (hasMagicEcho && Math.random() < echoChance) || (hasMagicalLeadership && Math.random() < 0.10);
+      // 二つ名: エネルギーを消費しない確率
+      const titleRefundChance = Math.min(0.9, getTitleEffectTotal('skill_refund_chance', { tokenCounts: getTokenTitleCounts(tokens) }, titleEffects));
+      const titleRefund = titleRefundChance > 0 && Math.random() < titleRefundChance;
+      const skipConsume = (hasMagicEcho && Math.random() < echoChance) || (hasMagicalLeadership && Math.random() < 0.10) || titleRefund;
       if (skipConsume) {
         if (hasMagicEcho && !hasMagicalLeadership) {
           notify("魔力反響！エネルギーを消費しませんでした。");
@@ -5661,7 +6028,7 @@ export const useGameState = () => {
     turn, setTurn,
     cycleTotalCombo, setCycleTotalCombo,
     shopRerollBasePrice, setShopRerollBasePrice,
-    shopRerollPrice, setShopRerollPrice,
+    shopRerollPrice, setShopRerollPrice, effectiveRerollPrice,
     stars, setStars,
     activeBuffs, setActiveBuffs,
     skippedTurnsBonus, setSkippedTurnsBonus,

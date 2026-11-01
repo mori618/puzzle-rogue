@@ -745,6 +745,8 @@ class PuzzleEngine {
 
     this.lastSwapTime = null;
     this.timeSinceLastSwap = null;
+    // 二つ名判定用: この手番でドロップを動かしたマス数
+    this.currentMoveSteps = 0;
 
     soundManager.playSE(SE_IDS.DRAG_START);
     this.dragging = target;
@@ -875,6 +877,7 @@ class PuzzleEngine {
           target.c = this.dragging.c;
           this.dragging.r = nr;
           this.dragging.c = nc;
+          this.currentMoveSteps = (this.currentMoveSteps || 0) + 1;
 
           this._incrementMoveDropCount(this.dragging);
           if (target) {
@@ -1824,6 +1827,7 @@ class PuzzleEngine {
     let repeatSelfErased = 0;
     let starSelfErased = 0;
     let rainbowSelfErased = 0;
+    let enhancedSelfErased = 0;
 
     let loopGuard = 0;
     const MAX_LOOP = 50; // 無限ループ防止（1色100%など極端な状況の安全弁）
@@ -2231,6 +2235,7 @@ class PuzzleEngine {
         if (orb.isRepeat) repeatSelfErased++;
         if (orb.isStar) starSelfErased++;
         if (orb.isRainbow) rainbowSelfErased++;
+        if (orb.isEnhanced) enhancedSelfErased++;
 
         if (orb.el) {
           // スタードロップ消滅時の固有エフェクト
@@ -2336,11 +2341,13 @@ class PuzzleEngine {
         erasedByRepeatTotal,
         erasedByStarTotal,
         isPerfect || allInitialOrbsCleared,
-        { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased, erasedRowInfos },
+        { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased, enhancedSelfErased, erasedRowInfos, moveSteps: this.currentMoveSteps || 0 },
         detailedShapes,
         this.lastTurnRemainingTimeMs || 0
       );
     }
+
+    this.currentMoveSteps = 0;
 
     // ターン終了したため、盤面上のすべてのムーブドロップのカウントとステップをリセットする
     this.state.forEach(row => {

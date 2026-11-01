@@ -11,6 +11,13 @@ import {
 import { getTokenDescription } from "../utils/tokenUtils";
 import soundManager from "../utils/SoundManager";
 import { SE_IDS } from "../constants/sounds";
+import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress } from "../utils/titleManager";
+
+/** 二つ名: 割引率の合計を価格倍率に変換（複数の割引は乗算、最大90%引き） */
+const getTitlePriceMultiplier = (effects) => {
+  const mult = getTitleEffects('shop_discount', {}, effects).reduce((m, e) => m * (1 - (e.value || 0)), 1);
+  return Math.max(0.1, mult);
+};
 
 export const useShop = ({
   tokens,
@@ -93,11 +100,15 @@ export const useShop = ({
       }
     });
 
-    const basePassiveCount = 4 + shopExpandBonus;
-    const baseActiveCount = 4 + shopExpandBonus;
+    const titleEffects = getActiveTitleEffects();
+    const titleShopSlots = Math.floor(getTitleEffectTotal('shop_slot_add', {}, titleEffects));
+    const titleSaleSlots = Math.floor(getTitleEffectTotal('sale_add', {}, titleEffects));
+
+    const basePassiveCount = 4 + shopExpandBonus + titleShopSlots;
+    const baseActiveCount = 4 + shopExpandBonus + titleShopSlots;
     const enchantCount = 3;
     const extraEnchantCount = enchantGrantBonus + (isLuxury ? 1 : 0);
-    const saleCount = 1 + saleBonus;
+    const saleCount = 1 + saleBonus + titleSaleSlots;
 
     setIsAwakeningLevelUpBought(false);
 
@@ -310,6 +321,16 @@ export const useShop = ({
       });
     }
 
+    // --- 二つ名: 商品価格の割引 ---
+    const titlePriceMult = getTitlePriceMultiplier(titleEffects);
+    if (titlePriceMult < 1) {
+      finalItems.forEach(item => {
+        if (item && item.price > 0) {
+          item.price = Math.max(1, Math.floor(item.price * titlePriceMult));
+        }
+      });
+    }
+
     setShopItems(finalItems);
     return finalItems;
   }, [tokens, totalPurchases, currentRunStats, activeBuffs, getTokenDynamicPrice, setIsAwakeningLevelUpBought, hasSaintToken]);
@@ -342,6 +363,7 @@ export const useShop = ({
 
     setCurrentRunStats(prev => ({ ...prev, currentCursesRemoved: (prev.currentCursesRemoved || 0) + 1 }));
     setStats(prev => ({ ...prev, lifetimeCursesRemoved: (prev.lifetimeCursesRemoved || 0) + 1 }));
+    recordTitleProgress({ add: { curses_removed: 1 } });
 
     setSelectedTokenDetail(null);
     if (isLegendary) {
@@ -356,11 +378,22 @@ export const useShop = ({
     if (!token) return;
     if (token.isLocked) return notify("このトークンは売却できません");
 
+    const titleEffects = getActiveTitleEffects();
+    const isCurseToken = token.type === 'curse' || token.isCurse === true;
     let sellRate = 0.5;
+    // 二つ名: 売却率の上書き（高い方を採用）
+    getTitleEffects('sell_rate', {}, titleEffects).forEach(e => {
+      sellRate = Math.max(sellRate, e.value || 0);
+    });
     if (token.enchantments?.some(e => e.effect === "high_sell")) {
-      sellRate = 3.0; // 300%
+      sellRate = Math.max(sellRate, 3.0); // 300%
     }
-    let sellPrice = Math.floor(token.price * sellRate);
+    let sellPrice = Math.floor((token.price || 0) * sellRate);
+    // 二つ名: 売却ボーナス
+    sellPrice += Math.floor(getTitleEffectTotal('sell_bonus', {}, titleEffects));
+    if (isCurseToken) {
+      sellPrice += Math.floor(getTitleEffectTotal('curse_sell_bonus', {}, titleEffects));
+    }
 
     // 鉤爪の研鑽 (polishing_claw)
     if (token.effect === "stat_shape_l") {
@@ -380,6 +413,8 @@ export const useShop = ({
       tokensSold: (prev.tokensSold || 0) + 1,
       totalStarsEarned: (prev.totalStarsEarned || 0) + sellPrice
     }));
+
+    recordTitleProgress({ add: { tokens_sold: 1, curses_sold: isCurseToken ? 1 : 0 } });
 
     setSelectedTokenDetail(null);
     notify(`${token.name} を売却しました (+${sellPrice} ★)`);
@@ -678,6 +713,7 @@ export const useShop = ({
         setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
         setShopItems((prev) => prev.filter((i) => i !== item));
+        if (item.isSale) recordTitleProgress({ add: { sale_bought: 1 } });
         notify("購入完了!");
         addTokenToast(obtainedToken, "を獲得しました！");
       }
@@ -868,6 +904,7 @@ export const useShop = ({
     setTotalStarsSpent((prev) => prev + item.price);
     setShopItems((prev) => prev.filter((i) => i !== item));
     setPendingShopItem(null);
+    if (item.isSale) recordTitleProgress({ add: { sale_bought: 1 } });
     if (updatedToken) {
       addTokenToast(updatedToken, actionText);
     }
@@ -881,11 +918,16 @@ export const useShop = ({
     return true; // 親側で showShop のステート切り替えを補助
   }, [shopItems, generateShop]);
 
+  // 二つ名: リロール価格の固定（固定値の方が安い場合のみ適用）
+  const titleRerollFixed = getTitleEffects('reroll_fixed', {}, getActiveTitleEffects()).reduce((m, e) => Math.min(m, e.value), Infinity);
+  const effectiveRerollPrice = Number.isFinite(titleRerollFixed) ? Math.min(titleRerollFixed, shopRerollPrice) : shopRerollPrice;
+
   /** ショップのリロール */
   const refreshShop = useCallback((clickPos) => {
     const isFree = freeRerolls > 0;
+    const rerollCost = effectiveRerollPrice;
 
-    if (!isFree && stars < shopRerollPrice) {
+    if (!isFree && stars < rerollCost) {
       soundManager.playSE(SE_IDS.ERROR);
       notify("★が足りません");
       return false;
@@ -899,12 +941,12 @@ export const useShop = ({
       setFreeRerolls(f => f - 1);
       notify("無料リロールを使用しました！");
     } else {
-      setStars(s => s - shopRerollPrice);
-      setTotalStarsSpent((prev) => prev + shopRerollPrice);
-      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + shopRerollPrice }));
+      setStars(s => s - rerollCost);
+      setTotalStarsSpent((prev) => prev + rerollCost);
+      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + rerollCost }));
       setCurrentRunStats(prev => ({
         ...prev,
-        currentStarsSpent: (prev.currentStarsSpent || 0) + shopRerollPrice,
+        currentStarsSpent: (prev.currentStarsSpent || 0) + rerollCost,
       }));
       setShopRerollPrice(prev => Math.ceil(prev * SHOP_REROLL_GROWTH_FACTOR));
     }
@@ -914,9 +956,10 @@ export const useShop = ({
       ...prev,
       currentShopRerolls: (prev.currentShopRerolls || 0) + 1, // 浪費の勲章用リロール回数カウント
     }));
+    recordTitleProgress({ add: { rerolls: 1 } });
     generateShop();
     return true;
-  }, [stars, shopRerollPrice, freeRerolls, setStars, setTotalStarsSpent, setStats, setCurrentRunStats, generateShop, notify, spawnParticles]);
+  }, [stars, effectiveRerollPrice, freeRerolls, setStars, setTotalStarsSpent, setStats, setCurrentRunStats, generateShop, notify, spawnParticles]);
 
   return {
     shopItems,
@@ -925,6 +968,7 @@ export const useShop = ({
     setShopRerollBasePrice,
     shopRerollPrice,
     setShopRerollPrice,
+    effectiveRerollPrice,
     pendingShopItem,
     setPendingShopItem,
     tokenSlotExpansionCount,

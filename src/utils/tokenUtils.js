@@ -1,4 +1,5 @@
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
+import { getTitleSkillCostReduction } from './titleManager.js';
 
 // --- Utils ---
 // --- Utils ---
@@ -34,8 +35,11 @@ const getEffectiveCost = (token, currentRunStats = null, currentTokens = [], cur
     leadershipReduction = currentTokens[0].values?.[leaderLv - 1] || leaderLv;
   }
 
+  // 二つ名: スキルの消費エネルギー軽減
+  const titleReduction = getTitleSkillCostReduction(token);
+
   const minCost = 1;
-  return Math.max(minCost, baseCost - reduction - enchantReduction - resonanceReduction - leadershipReduction);
+  return Math.max(minCost, baseCost - reduction - enchantReduction - resonanceReduction - leadershipReduction - titleReduction);
 };
 
 const getTokenDescription = (item, level, currentRunStats = null, currentTokens = [], currentBuffs = []) => {
