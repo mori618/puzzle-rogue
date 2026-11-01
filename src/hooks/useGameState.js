@@ -15,6 +15,7 @@ import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_R
 import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
+import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
 import soundManager from '../utils/SoundManager';
 import { useGameSettings } from './useGameSettings';
 import { usePuzzleBoard } from './usePuzzleBoard';
@@ -157,10 +158,13 @@ export const useGameState = () => {
     return baseDelay;
   }, []);
 
-  const triggerPassive = (tokenId) => {
+  const triggerPassive = (tokenId, noLog = false) => {
     if (!tokenId) return;
     // 発動したトークンIDのベースIDを取得し、確率系トークンに該当するかを判定する
     const tok = tokens.find(t => t && (t.instanceId === tokenId || t.id === tokenId));
+    if (!noLog) {
+      playLog.event('trig', { id: tok?.id || String(tokenId), iid: tokenId, n: tok?.name, lv: tok?.level });
+    }
     if (tok) {
       const isProbabilityToken = [
         "turn_end_spawn_h", "turn_end_spawn_bomb_1", "turn_end_spawn_star_3",
@@ -199,6 +203,7 @@ export const useGameState = () => {
   const [levelUpTokenId, setLevelUpTokenId] = useState(null); // レベルアップ演出用
 
   const addTokenToast = useCallback((token, actionText) => {
+    playLog.event('msg', token ? { txt: actionText, tok: compactToken(token) } : { txt: actionText });
     const id = Date.now() + Math.random();
     setToastQueue(prev => [...prev, { id, token, actionText }]);
   }, []);
@@ -518,6 +523,9 @@ export const useGameState = () => {
   useEffect(() => {
     // セーブデータのロード
     if (savedData) {
+      if (!savedData.isGameOver && playLog.resume()) {
+        playLog.event('resumeState', { turn: savedData.turn, target: savedData.target, cycleCombo: savedData.cycleTotalCombo, tokens: compactTokens(savedData.tokens) });
+      }
       // useGameState内で直接初期化できないフック管理下のステートを復元
       setShopRerollBasePrice(savedData.shopRerollBasePrice || 1);
       setShopRerollPrice(savedData.shopRerollPrice || 1);
@@ -1244,7 +1252,7 @@ export const useGameState = () => {
         // 1. 基礎コンボ加算フェーズ
         for (const step of logData.bonusSteps) {
           if (!comboRef.current) break;
-          if (step.tokenId) triggerPassive(step.tokenId);
+          if (step.tokenId) triggerPassive(step.tokenId, true);
           const stepValue = isNaN(step.value) ? 0 : step.value;
           
           const eEl = comboRef.current;
@@ -1320,7 +1328,7 @@ export const useGameState = () => {
         // 3. コンボ倍率加算・乗算フェーズ
         for (const step of logData.multiplierSteps) {
           if (!comboRef.current) break;
-          if (step.tokenId) triggerPassive(step.tokenId);
+          if (step.tokenId) triggerPassive(step.tokenId, true);
           
           const eEl = comboRef.current;
           
@@ -3092,6 +3100,72 @@ export const useGameState = () => {
     const measuredTime = totalMoveTimeRef.current;
     totalMoveTimeRef.current = 0;
 
+    // --- プレイログ: 手番の詳細記録 ---
+    try {
+      const boardStr = engineRef.current?.state
+        ? engineRef.current.state.map(row => row.map(o => {
+          if (!o) return '.';
+          const ch = { fire: 'F', water: 'W', wood: 'G', light: 'L', dark: 'D', heart: 'H' }[o.type] || '?';
+          return (o.isBomb ? 'b' : '') + (o.isRepeat ? 'r' : '') + (o.isStar ? 's' : '') + (o.isRainbow ? 'R' : '') + (o.isMoveDrop ? 'm' : '') + (o.isEnhanced ? '+' : '') + ch;
+        }).join(',')).join('/')
+        : null;
+      const extraStatsLog = { ...(extraStats || {}) };
+      delete extraStatsLog.erasedRowInfos;
+      playLog.event('turn', {
+        maxTurns,
+        target,
+        cycleCombo: cycleTotalCombo,
+        rawCombo: Number(turnCombo) || 0,
+        baseCombo: tc,
+        colorCombos: colorComboCounts,
+        erased: finalErasedColorCounts,
+        skillErased: skillErasedCounts,
+        skyfallCombo: !!hasSkyfallCombo,
+        shapes,
+        dShapes: (detailedShapes || []).map(d => [d.color, d.length, d.shape]),
+        overLink: overLinkMultiplier,
+        byBomb: erasedByBombTotal,
+        byRepeat: erasedByRepeatTotal,
+        byStar: erasedByStarTotal,
+        allClear: !!isAllClear,
+        extra: extraStatsLog,
+        moveDropBonus,
+        remainMs: remainingTimeMs,
+        moveMs: measuredTime,
+        timeLimitMs: (() => { try { return getTimeLimit(); } catch { return null; } })(),
+        bonuses: logData.bonuses,
+        mults: logData.multipliers,
+        bSteps: logData.bonusSteps.map(st => [st.label, st.value, st.tokenId]),
+        dSteps: (logData.debuffSteps || []).map(st => [st.label, st.value, st.tokenId]),
+        mSteps: logData.multiplierSteps.map(st => [st.label, st.type, st.value, st.addedValue, st.tokenId]),
+        bonus,
+        baseMult: baseMultiplier,
+        expBonus: exponentialBonus,
+        expMult: exponentialMultiplier,
+        timeMult: timeMultiplier,
+        finalBaseBeforeDebuff: finalBaseComboBeforeDebuff,
+        finalBase: finalBaseCombo,
+        debuffMult: debuffMultiplier,
+        devotionMult: devotionMultiplier,
+        restrictMult: restrictionMultiplier,
+        addMult: addedMultiplier,
+        multMult: multMultiplier,
+        finalMult: finalComboMultiplier,
+        turnBaseCombo,
+        effCombo: effectiveCombo,
+        devotionZero: !!isZeroComboDueToDevotion,
+        beyond: !!isBeyondMode,
+        enchantDisabled: !!isEnchantDisabled,
+        effTokens: effectiveTokens.length !== tokens.filter(Boolean).length ? effectiveTokens.map(t => t?.instanceId) : undefined,
+        tokens: compactTokens(tokens),
+        buffs: compactBuffs(activeBuffs),
+        starProgress,
+        board: boardStr,
+      });
+    } catch (e) {
+      console.warn('playLog turn failed', e);
+    }
+
     const countLen4 = shapes.filter(s => s === 'len4').length;
     const countCross = shapes.filter(s => s === 'cross').length;
     const countRow = shapes.filter(s => s === 'row').length;
@@ -3174,6 +3248,7 @@ export const useGameState = () => {
     const titleStarGainMult = getTitleEffectProduct('star_gain_mult', titleCtx, titleEffects);
     const totalStarsEarned = Math.floor(rawStarsEarned * titleStarGainMult);
     const nextProgress = starThreshold > 0 ? currentProgress % starThreshold : 0;
+    playLog.event('turnStars', { starThreshold, starProgressBefore: starProgress, earned: totalStarsEarned, raw: rawStarsEarned, mult: titleStarGainMult });
 
     setStarProgress(nextProgress);
 
@@ -4866,6 +4941,7 @@ export const useGameState = () => {
   useEffect(() => {
     return subscribeTitleUnlock((titles) => {
       titles.forEach(title => {
+        playLog.event('titleUnlock', { id: title.id, n: title.name });
         notify(`🏅 二つ名解放【${getTitleKindLabel(title)}】「${title.name}」`);
       });
       soundManager.playSE(SE_IDS.GOAL_REACHED);
@@ -4965,8 +5041,88 @@ export const useGameState = () => {
     prevIsGameOverRef.current = isGameOver;
     if (becameOver && isLoaded && !isPracticeMode) {
       recordTitleProgress({ add: { game_overs: 1 } });
+      playLog.end('game_over', {
+        cycle: (currentRunStats.currentClears || 0) + 1,
+        turn, maxTurns, target, cycleTotalCombo, stars,
+        runTotalCombo: currentRunTotalCombo,
+        tokens: compactTokens(tokens),
+        buffs: compactBuffs(activeBuffs),
+        runStats: currentRunStats,
+        totalPurchases, totalStarsSpent, sandsOfTimeSeconds,
+        tokenSlotExpansionCount, isEnchantShopUnlocked,
+        endless: isEndlessMode, beyond: isBeyondMode,
+      });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isGameOver, isLoaded, isPracticeMode]);
+
+  // --- プレイログ: コンテキストと状態変化の記録 ---
+  useEffect(() => {
+    playLog.setDisabled(isPracticeMode);
+  }, [isPracticeMode]);
+  useEffect(() => {
+    playLog.setCtx({ turn, cycle: (currentRunStats.currentClears || 0) + 1, stars });
+  }, [turn, currentRunStats.currentClears, stars]);
+
+  const prevLogTokensRef = useRef(null);
+  useEffect(() => {
+    if (!isLoaded || isPracticeMode) return;
+    const cur = compactTokens(tokens);
+    const prev = prevLogTokensRef.current;
+    prevLogTokensRef.current = cur;
+    if (!prev) return;
+    const prevMap = new Map(prev.map(t => [t.iid, t]));
+    const curMap = new Map(cur.map(t => [t.iid, t]));
+    const changes = [];
+    cur.forEach(t => {
+      const p = prevMap.get(t.iid);
+      if (!p) { changes.push({ c: '+', ...t }); return; }
+      if (p.lv !== t.lv) changes.push({ c: 'lv', id: t.id, iid: t.iid, from: p.lv, to: t.lv });
+      if (p.s !== t.s) changes.push({ c: 'mv', id: t.id, iid: t.iid, from: p.s, to: t.s });
+      if (JSON.stringify(p.en || []) !== JSON.stringify(t.en || [])) changes.push({ c: 'en', id: t.id, iid: t.iid, from: p.en, to: t.en });
+      if (JSON.stringify(p.p || {}) !== JSON.stringify(t.p || {})) changes.push({ c: 'p', id: t.id, iid: t.iid, from: p.p, to: t.p });
+    });
+    prev.forEach(t => {
+      if (!curMap.has(t.iid)) changes.push({ c: '-', ...t });
+    });
+    // スロット移動だけが大量に出る場合（削除による詰め）は '+'/'-' がある時に省略
+    const hasAddRemove = changes.some(c => c.c === '+' || c.c === '-');
+    const filtered = hasAddRemove ? changes.filter(c => c.c !== 'mv') : changes;
+    if (filtered.length > 0) {
+      playLog.event('tokens', { ch: filtered, now: cur.map(t => `${t.s}:${t.id}@${t.lv}`) });
+    }
+  }, [tokens, isLoaded, isPracticeMode]);
+
+  const prevLogBuffsRef = useRef('');
+  useEffect(() => {
+    if (!isLoaded || isPracticeMode) return;
+    const cb = compactBuffs(activeBuffs);
+    const str = JSON.stringify(cb);
+    if (str === prevLogBuffsRef.current) return;
+    prevLogBuffsRef.current = str;
+    playLog.event('buffs', { buffs: cb });
+  }, [activeBuffs, isLoaded, isPracticeMode]);
+
+  const prevLogFlagsRef = useRef(null);
+  useEffect(() => {
+    if (!isLoaded || isPracticeMode) return;
+    const flags = { showShop, goalReached, showGameClear, isEndlessMode, isBeyondMode, showTitle };
+    const prev = prevLogFlagsRef.current;
+    prevLogFlagsRef.current = flags;
+    if (!prev) return;
+    Object.keys(flags).forEach(k => {
+      if (prev[k] !== flags[k]) playLog.event('flag', { f: k, v: flags[k], target, cycleCombo: cycleTotalCombo });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showShop, goalReached, showGameClear, isEndlessMode, isBeyondMode, showTitle, isLoaded, isPracticeMode]);
+
+  const prevLogSandsRef = useRef(sandsOfTimeSeconds);
+  useEffect(() => {
+    if (prevLogSandsRef.current !== sandsOfTimeSeconds) {
+      playLog.event('sands', { from: prevLogSandsRef.current, to: sandsOfTimeSeconds });
+      prevLogSandsRef.current = sandsOfTimeSeconds;
+    }
+  }, [sandsOfTimeSeconds]);
 
   const startNextCycle = (warpToCycle = null) => {
     setTurn(1);
@@ -4979,6 +5135,7 @@ export const useGameState = () => {
 
     const nextCycle = baseClears + 2;
     let newTarget;
+    playLog.event('cycleStart', { nextCycle, warpToCycle, beyond: isBeyondMode });
 
     if (isBeyondMode) {
       const beyondCycle = nextCycle - 25;
@@ -5138,6 +5295,7 @@ export const useGameState = () => {
     const starsPerTurn = Math.floor(3 * rewardMult);
     const bonus = remainingTurns * starsPerTurn;
 
+    playLog.event('skip', { remainingTurns, starsPerTurn, bonus, rewardMult });
     setStars((s) => s + bonus);
     notify(`SKIP BONUS: +${bonus} STARS! (+${starsPerTurn}/回)`);
     setSkippedTurnsBonus(prev => prev + remainingTurns);
@@ -5191,6 +5349,12 @@ export const useGameState = () => {
   };
 
   const handleStartOptionSelection = (option) => {
+    playLog.setDisabled(false);
+    playLog.start({
+      option,
+      titleEffects: (() => { try { return getActiveTitleEffects(); } catch { return null; } })(),
+      settings,
+    });
     resetGame();
     setShowStartOption(false);
     setShowTitle(false);
@@ -5276,6 +5440,7 @@ export const useGameState = () => {
     if (engineRef.current) {
       engineRef.current.init(null);
     }
+    playLog.event('start', { option });
   };
 
 
@@ -5327,6 +5492,7 @@ export const useGameState = () => {
 
     const currentCharge = token.charge || 0;
     const cost = getEffectiveCost(token, currentRunStats, tokens, activeBuffs);
+    playLog.event('skill', { tok: compactToken(token), charge: currentCharge, cost, usedThisTurn: hasUsedActiveSkillThisTurn });
 
     if (currentCharge < cost) {
       return notify(`チャージ不足です (${currentCharge}/${cost})`);
