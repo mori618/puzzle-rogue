@@ -719,7 +719,7 @@ export const useShop = ({
         addTokenToast(obtainedToken, "を獲得しました！");
       }
     }
-  }, [stars, tokens, tokenSlotExpansionCount, hasSaintToken, setSandsOfTimeSeconds, setStars, setTotalPurchases, setTotalStarsSpent, setStats, currentRunStats, setCurrentRunStats, setShopItems, setTokens, addTokenToast, triggerLevelUp, notify, spawnParticles, getTokenDynamicPrice, getStatByCondition, activeBuffs]);
+  }, [stars, tokens, tokenSlotExpansionCount, hasSaintToken, setSandsOfTimeSeconds, setStars, setTotalPurchases, setTotalStarsSpent, setStats, currentRunStats, setCurrentRunStats, setShopItems, setTokens, addTokenToast, triggerLevelUp, notify, spawnParticles, getTokenDynamicPrice, getStatByCondition, activeBuffs, checkLevelUpSuccess]);
 
   /** 覚醒アイテムの購入 */
   const buyAwakeningItem = useCallback((type, clickPos) => {
@@ -815,7 +815,7 @@ export const useShop = ({
       default:
         break;
     }
-  }, [stars, tokens, isEnchantShopUnlocked, setIsEnchantShopUnlocked, isBeyondMode, tokenSlotExpansionCount, getTokenSlotExpandPrice, setTokens, setStars, setTotalPurchases, setTotalStarsSpent, setStats, currentRunStats, setCurrentRunStats, setIsAwakeningLevelUpBought, notify, spawnParticles, addTokenToast, triggerLevelUp, activeBuffs]);
+  }, [stars, tokens, isEnchantShopUnlocked, setIsEnchantShopUnlocked, isBeyondMode, tokenSlotExpansionCount, getTokenSlotExpandPrice, setTokens, setStars, setTotalPurchases, setTotalStarsSpent, setStats, currentRunStats, setCurrentRunStats, setIsAwakeningLevelUpBought, notify, spawnParticles, addTokenToast, triggerLevelUp, activeBuffs, checkLevelUpSuccess]);
 
   /** 重複トークン購入時の選択処理 (強化 or 2つ目所持) */
   const handleChoice = useCallback((choice) => {
@@ -909,7 +909,7 @@ export const useShop = ({
     if (updatedToken) {
       addTokenToast(updatedToken, actionText);
     }
-  }, [pendingShopItem, tokenSlotExpansionCount, tokens, setTokens, setStars, setTotalPurchases, setTotalStarsSpent, setShopItems, addTokenToast, notify, activeBuffs, currentRunStats, spawnParticles]);
+  }, [pendingShopItem, tokenSlotExpansionCount, tokens, setTokens, setStars, setTotalPurchases, setTotalStarsSpent, setShopItems, addTokenToast, notify, activeBuffs, currentRunStats, spawnParticles, checkLevelUpSuccess]);
 
   /** ショップ画面を開く */
   const openShop = useCallback(() => {
