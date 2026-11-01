@@ -4144,8 +4144,8 @@ export const useGameState = () => {
           const count = t.params?.count || 5;
           if (Math.random() * 100 < prob) {
             const normalOrbs = [];
-            engineRef.current.state.forEach((row, r) => {
-              row.forEach((orb, c) => {
+            engineRef.current.state.forEach((row) => {
+              row.forEach((orb) => {
                 if (orb && orb.type !== color && !orb.isRainbow && !orb.isMoveDrop && !orb.isBomb && !orb.isRepeat && !orb.isStar) {
                   normalOrbs.push(orb);
                 }
@@ -4181,8 +4181,8 @@ export const useGameState = () => {
           const color = buff.params?.color || 'heart';
           const count = buff.params?.count || 5;
           const normalOrbs = [];
-          engineRef.current.state.forEach((row, r) => {
-            row.forEach((orb, c) => {
+          engineRef.current.state.forEach((row) => {
+            row.forEach((orb) => {
               if (orb && orb.type !== color && !orb.isRainbow && !orb.isMoveDrop && !orb.isBomb && !orb.isRepeat && !orb.isStar) {
                 normalOrbs.push(orb);
               }
@@ -5748,7 +5748,6 @@ export const useGameState = () => {
       }
       case "residual_fire":
       case "residual_water": {
-        const finalDuration = (token.params.duration || 1) + extraDuration;
         const lv = token.level || 1;
         const extraTimeSeconds = token.values[lv - 1] || 1.0;
         const multiplierVal = token.effectValues[lv - 1] || 1.0;

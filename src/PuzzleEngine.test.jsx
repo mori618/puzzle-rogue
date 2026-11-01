@@ -1,4 +1,3 @@
-/* global global */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PuzzleEngine } from './engine/PuzzleEngine.js';
 import { ALL_TOKEN_BASES } from './constants/tokens.js';

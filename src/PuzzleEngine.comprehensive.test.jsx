@@ -1,4 +1,3 @@
-/* global global */
 /**
  * PuzzleEngine 包括的テストスイート
  *
@@ -586,10 +585,9 @@ describe('7. スキルアクション: 整列 (organize_color)', () => {
 // 8. スキルアクション: ランダム生成
 // ======================================================
 describe('8. スキルアクション: ランダム生成 (spawn_random)', () => {
-  let engine;
   beforeEach(() => {
     vi.useFakeTimers();
-    ({ engine } = createEngine());
+    createEngine();
   });
   afterEach(() => {
     vi.clearAllTimers();
