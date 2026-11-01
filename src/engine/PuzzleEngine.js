@@ -2967,7 +2967,7 @@ class PuzzleEngine {
         // 下端（rows-1 から上方向）に空きスロット分の新規オーブを生成
         for (let i = 0; i < emptySlots; i++) {
           const targetRow = this.rows - 1 - i;
-          this.spawnOrb(targetRow, c, true, emptySlots - 1 - i);
+          this.spawnOrb(targetRow, c, true, emptySlots - 1);
         }
       }
     } else if (this.gravityDirection === 'left') {
@@ -2987,7 +2987,7 @@ class PuzzleEngine {
         // 右端（cols-1 から左方向）に空きスロット分の新規オーブを生成
         for (let i = 0; i < emptySlots; i++) {
           const targetCol = this.cols - 1 - i;
-          this.spawnOrb(r, targetCol, true, emptySlots - 1 - i);
+          this.spawnOrb(r, targetCol, true, emptySlots - 1);
         }
       }
     } else if (this.gravityDirection === 'right') {
@@ -3006,7 +3006,7 @@ class PuzzleEngine {
         }
         // 左端（0 から右方向）に空きスロット分の新規オーブを生成
         for (let i = 0; i < emptySlots; i++) {
-          this.spawnOrb(r, i, true, emptySlots - 1 - i);
+          this.spawnOrb(r, i, true, emptySlots - 1);
         }
       }
     } else {
@@ -3023,8 +3023,9 @@ class PuzzleEngine {
             orb.r = r + emptySlots;
           }
         }
+        // 新規ドロップは全て「空きマス数」ぶん盤面外にずらして配置し、列ごと一体で落下させる
         for (let i = 0; i < emptySlots; i++) {
-          this.spawnOrb(i, c, true, emptySlots - 1 - i);
+          this.spawnOrb(i, c, true, emptySlots - 1);
         }
       }
     }
