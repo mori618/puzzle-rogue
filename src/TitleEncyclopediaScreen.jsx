@@ -14,8 +14,36 @@ import {
 import soundManager from './utils/SoundManager.js';
 import { SE_IDS } from './constants/sounds.js';
 
-const TitleEncyclopediaScreen = ({ onClose }) => {
-  const [activeTab, setActiveTab] = useState('prefix'); // 'prefix' | 'suffix' | 'synergy'
+// 並び順の選択肢
+const SORT_OPTIONS = [
+  { key: 'unlocked', label: '解放順', icon: 'lock_open' },
+  { key: 'number', label: '図鑑番号', icon: 'tag' },
+  { key: 'name', label: '名前', icon: 'sort_by_alpha' },
+];
+const SORT_STORAGE_KEY = 'puzzle-rogue:title-sort';
+
+const loadSortPref = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SORT_STORAGE_KEY) || 'null');
+    if (parsed && SORT_OPTIONS.some(o => o.key === parsed.key)) {
+      return { key: parsed.key, desc: !!parsed.desc };
+    }
+  } catch { /* 保存領域が使えない場合は既定値 */ }
+  return { key: 'unlocked', desc: false };
+};
+
+// 図鑑番号の比較用（A01〜 → E01〜 の順）
+const compareId = (a, b) => a.id.localeCompare(b.id, 'en', { numeric: true });
+
+const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix' }) => {
+  const [activeTab, setActiveTab] = useState(initialTab); // 'prefix' | 'suffix' | 'synergy'
+  const [sortPref, setSortPref] = useState(loadSortPref);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify(sortPref));
+    } catch { /* 保存できなくても表示には影響しない */ }
+  }, [sortPref]);
   const [titleState, setTitleState] = useState(() => loadTitleState());
 
   // 装備の変更のみを最新の保存状態へ反映する（進捗・解放状況は上書きしない）
@@ -44,6 +72,40 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
   const isSuffixUnlocked = (id) => unlockedTitles.suffixes?.includes(id);
   const isEvolvedUnlocked = (id) => unlockedTitles.evolved?.includes(id);
   const unlockedCount = (unlockedTitles.prefixes?.length || 0) + (unlockedTitles.suffixes?.length || 0) + (unlockedTitles.evolved?.length || 0);
+
+  // A枠/B枠タブの一覧（解放済みの進化二つ名も入れ替え候補として含める）
+  const slotList = useMemo(() => {
+    if (activeTab !== 'prefix' && activeTab !== 'suffix') return [];
+    const slot = activeTab;
+    const baseList = slot === 'prefix' ? PREFIX_TITLES : SUFFIX_TITLES;
+    const isBaseUnlocked = (id) => (slot === 'prefix' ? unlockedTitles.prefixes : unlockedTitles.suffixes)?.includes(id);
+    const items = [
+      ...baseList.map(t => ({ title: t, unlocked: !!isBaseUnlocked(t.id), evolved: false })),
+      ...EVOLVED_TITLES
+        .filter(e => e.slot === slot && unlockedTitles.evolved?.includes(e.id))
+        .map(e => ({ title: e, unlocked: true, evolved: true })),
+    ];
+    const dir = sortPref.desc ? -1 : 1;
+    const byKey = (a, b) => {
+      if (sortPref.key === 'name') {
+        // 未解放は名前が伏せられているため、常に末尾へ
+        if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
+        const r = a.title.name.localeCompare(b.title.name, 'ja');
+        return r !== 0 ? r * dir : compareId(a.title, b.title);
+      }
+      if (sortPref.key === 'unlocked') {
+        if (a.unlocked !== b.unlocked) return (a.unlocked ? -1 : 1) * dir;
+        return compareId(a.title, b.title);
+      }
+      return compareId(a.title, b.title) * dir;
+    };
+    return items.sort(byKey);
+  }, [activeTab, unlockedTitles, sortPref]);
+
+  const handleSortChange = (key) => {
+    soundManager.playSE(SE_IDS.UI_CLICK);
+    setSortPref(prev => (prev.key === key ? { key, desc: !prev.desc } : { key, desc: false }));
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-background-dark font-game-cyber text-slate-100 flex flex-col animate-fade-in select-none">
@@ -166,162 +228,122 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
 
       {/* 一覧リストエリア */}
       <div className="flex-1 overflow-y-auto px-4 py-3 no-scrollbar z-10 space-y-3">
-        {/* A枠一覧 */}
-        {activeTab === 'prefix' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {PREFIX_TITLES.map((title) => {
-              const unlocked = isPrefixUnlocked(title.id);
-              const isEquipped = equippedTitle.prefixId === title.id;
-              const progress = getTitleProgressValue(title, titleState.progress);
-              const percent = Math.min(100, Math.floor((progress / title.targetValue) * 100)) || 0;
-
-              return (
-                <div
-                  key={title.id}
-                  onClick={() => unlocked && handleEquip(title, 'prefix')}
-                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
-                    isEquipped
-                      ? 'bg-indigo-900/40 border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.3)]'
-                      : unlocked
-                      ? 'bg-slate-900/60 border-white/10 hover:border-indigo-400/50 hover:bg-slate-800/60'
-                      : 'bg-slate-950/60 border-white/5 opacity-75'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className={`material-icons-round text-lg ${
-                        unlocked ? 'text-indigo-400' : 'text-slate-500'
-                      }`}>
-                        {unlocked ? (isEquipped ? 'check_circle' : 'sell') : 'lock'}
-                      </span>
-                      <span className="text-xs font-mono text-slate-400">[{title.id}]</span>
-                      <span className={`text-sm font-black ${
-                        unlocked ? 'text-white' : 'text-slate-400'
-                      }`}>
-                        {unlocked ? title.name : '？？？？の'}
-                      </span>
-                      <span className="text-[9px] bg-slate-800/80 border border-white/10 px-1.5 py-0.5 rounded text-slate-400 font-bold">
-                        {title.category}
-                      </span>
-                    </div>
-                    {unlocked && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        isEquipped ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400'
-                      }`}>
-                        {isEquipped ? '装着中' : '装着する'}
+        {/* A枠・B枠一覧 */}
+        {(activeTab === 'prefix' || activeTab === 'suffix') && (
+          <>
+            {/* 並び替え */}
+            <div className="flex items-center gap-1.5 text-[11px]">
+              <span className="text-slate-400 font-bold flex items-center gap-1 shrink-0">
+                <span className="material-icons-round text-sm">sort</span>
+                並び順
+              </span>
+              {SORT_OPTIONS.map(opt => {
+                const active = sortPref.key === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => handleSortChange(opt.key)}
+                    aria-pressed={active}
+                    className={`flex items-center gap-0.5 px-2.5 py-1 rounded-full border font-bold transition-all ${
+                      active
+                        ? 'bg-indigo-600/80 border-indigo-400/60 text-white'
+                        : 'bg-slate-950/50 border-white/10 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {opt.label}
+                    {active && (
+                      <span className="material-icons-round text-sm">
+                        {sortPref.desc ? 'arrow_downward' : 'arrow_upward'}
                       </span>
                     )}
-                  </div>
+                  </button>
+                );
+              })}
+            </div>
 
-                  <p className="text-xs text-slate-300 mb-2 leading-relaxed font-sans">
-                    {unlocked ? title.desc : '条件を達成すると常時発動効果が解放されます。'}
-                  </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {slotList.map(({ title, unlocked, evolved }) => {
+                const slot = activeTab;
+                const isEquipped = (slot === 'prefix' ? equippedTitle.prefixId : equippedTitle.suffixId) === title.id;
+                const progress = getTitleProgressValue(title, titleState.progress);
+                const percent = Math.min(100, Math.floor((progress / title.targetValue) * 100)) || 0;
+                const hiddenName = slot === 'prefix' ? '？？？？の' : '？？？';
+                const unlockedIcon = evolved ? 'verified' : (slot === 'prefix' ? 'sell' : 'loyalty');
 
-                  {/* 解放条件とプログレスバー */}
-                  <div className="bg-slate-950/70 p-2 rounded-xl border border-white/5 text-[11px]">
-                    <div className="flex justify-between text-slate-400 mb-1">
-                      <span className="flex items-center gap-1">
-                        <span className="material-icons-round text-xs text-amber-400">emoji_events</span>
-                        {title.conditionDesc}
-                      </span>
-                      {!unlocked && (
-                        <span className="font-mono font-bold text-amber-300">
-                          {progress.toLocaleString()} / {title.targetValue.toLocaleString()}
+                return (
+                  <div
+                    key={title.id}
+                    onClick={() => unlocked && handleEquip(title, slot)}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
+                      isEquipped
+                        ? 'bg-indigo-900/40 border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.3)]'
+                        : unlocked
+                        ? 'bg-slate-900/60 border-white/10 hover:border-indigo-400/50 hover:bg-slate-800/60'
+                        : 'bg-slate-950/60 border-white/5 opacity-75'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-1.5">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <span className={`material-icons-round text-lg ${
+                          unlocked ? (evolved ? 'text-amber-400' : 'text-indigo-400') : 'text-slate-500'
+                        }`}>
+                          {unlocked ? (isEquipped ? 'check_circle' : unlockedIcon) : 'lock'}
+                        </span>
+                        <span className="text-xs font-mono text-slate-400">[{title.id}]</span>
+                        <span className={`text-sm font-black ${
+                          unlocked ? 'text-white' : 'text-slate-400'
+                        }`}>
+                          {unlocked ? title.name : hiddenName}
+                        </span>
+                        <span className={`text-[9px] border px-1.5 py-0.5 rounded font-bold ${
+                          evolved
+                            ? 'bg-amber-900/30 border-amber-500/30 text-amber-300'
+                            : 'bg-slate-800/80 border-white/10 text-slate-400'
+                        }`}>
+                          {evolved ? '進化' : title.category}
+                        </span>
+                      </div>
+                      {unlocked && (
+                        <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          isEquipped ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          {isEquipped ? '装着中' : '装着する'}
                         </span>
                       )}
                     </div>
-                    {!unlocked && (
-                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5">
-                        <div
-                          className="h-full bg-gradient-to-r from-indigo-500 to-amber-500 rounded-full transition-all duration-300"
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
 
-        {/* B枠一覧 */}
-        {activeTab === 'suffix' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {SUFFIX_TITLES.map((title) => {
-              const unlocked = isSuffixUnlocked(title.id);
-              const isEquipped = equippedTitle.suffixId === title.id;
-              const progress = getTitleProgressValue(title, titleState.progress);
-              const percent = Math.min(100, Math.floor((progress / title.targetValue) * 100)) || 0;
+                    <p className="text-xs text-slate-300 mb-2 leading-relaxed font-sans">
+                      {unlocked ? title.desc : '条件を達成すると常時発動効果が解放されます。'}
+                    </p>
 
-              return (
-                <div
-                  key={title.id}
-                  onClick={() => unlocked && handleEquip(title, 'suffix')}
-                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
-                    isEquipped
-                      ? 'bg-indigo-900/40 border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.3)]'
-                      : unlocked
-                      ? 'bg-slate-900/60 border-white/10 hover:border-indigo-400/50 hover:bg-slate-800/60'
-                      : 'bg-slate-950/60 border-white/5 opacity-75'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className={`material-icons-round text-lg ${
-                        unlocked ? 'text-indigo-400' : 'text-slate-500'
-                      }`}>
-                        {unlocked ? (isEquipped ? 'check_circle' : 'loyalty') : 'lock'}
-                      </span>
-                      <span className="text-xs font-mono text-slate-400">[{title.id}]</span>
-                      <span className={`text-sm font-black ${
-                        unlocked ? 'text-white' : 'text-slate-400'
-                      }`}>
-                        {unlocked ? title.name : '？？？'}
-                      </span>
-                      <span className="text-[9px] bg-slate-800/80 border border-white/10 px-1.5 py-0.5 rounded text-slate-400 font-bold">
-                        {title.category}
-                      </span>
-                    </div>
-                    {unlocked && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        isEquipped ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400'
-                      }`}>
-                        {isEquipped ? '装着中' : '装着する'}
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-slate-300 mb-2 leading-relaxed font-sans">
-                    {unlocked ? title.desc : '条件を達成すると常時発動効果が解放されます。'}
-                  </p>
-
-                  {/* 解放条件とプログレスバー */}
-                  <div className="bg-slate-950/70 p-2 rounded-xl border border-white/5 text-[11px]">
-                    <div className="flex justify-between text-slate-400 mb-1">
-                      <span className="flex items-center gap-1">
-                        <span className="material-icons-round text-xs text-amber-400">emoji_events</span>
-                        {title.conditionDesc}
-                      </span>
-                      {!unlocked && (
-                        <span className="font-mono font-bold text-amber-300">
-                          {progress.toLocaleString()} / {title.targetValue.toLocaleString()}
+                    {/* 解放条件とプログレスバー */}
+                    <div className="bg-slate-950/70 p-2 rounded-xl border border-white/5 text-[11px]">
+                      <div className="flex justify-between text-slate-400 mb-1">
+                        <span className="flex items-center gap-1">
+                          <span className="material-icons-round text-xs text-amber-400">emoji_events</span>
+                          {title.conditionDesc}
                         </span>
+                        {!unlocked && (
+                          <span className="font-mono font-bold text-amber-300">
+                            {progress.toLocaleString()} / {title.targetValue.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      {!unlocked && (
+                        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5">
+                          <div
+                            className="h-full bg-gradient-to-r from-indigo-500 to-amber-500 rounded-full transition-all duration-300"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
                       )}
                     </div>
-                    {!unlocked && (
-                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5">
-                        <div
-                          className="h-full bg-gradient-to-r from-indigo-500 to-amber-500 rounded-full transition-all duration-300"
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
-                    )}
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
 
         {/* シナジー＆進化一覧 */}

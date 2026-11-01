@@ -1733,7 +1733,8 @@ button:disabled {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  filter: drop-shadow(0 0 6px currentColor);
+  /* 発光はアイコンの判別を妨げるため、輪郭を締める控えめな影のみにする */
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
   clip-path: none !important;
 }
 
