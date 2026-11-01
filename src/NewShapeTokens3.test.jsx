@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { PuzzleEngine } from './engine/PuzzleEngine.js';
 import { getTokenDynamicInfo } from './utils/tokenUtils.js';

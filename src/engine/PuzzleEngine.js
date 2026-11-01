@@ -955,7 +955,7 @@ class PuzzleEngine {
     if (e && e.currentTarget && typeof e.currentTarget.releasePointerCapture === "function") {
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch (err) {
+      } catch {
         // Ignore
       }
     }
