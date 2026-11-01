@@ -62,10 +62,10 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
           <span className="material-icons-round text-amber-400 text-2xl">military_tech</span>
           <div>
             <h1 className="text-base font-game-header tracking-wider text-amber-300">
-              二つ名図鑑 (全140種・解放 {unlockedCount}/{PREFIX_TITLES.length + SUFFIX_TITLES.length + EVOLVED_TITLES.length})
+              二つ名図鑑 (全{PREFIX_TITLES.length + SUFFIX_TITLES.length + TITLE_SET_BONUSES.length + EVOLVED_TITLES.length}種・解放 {unlockedCount}/{PREFIX_TITLES.length + SUFFIX_TITLES.length + EVOLVED_TITLES.length})
             </h1>
             <p className="text-[10px] text-slate-400 font-mono tracking-tight">
-              TITLE ENCYCLOPEDIA (ALL 140 TITLES)
+              TITLE ENCYCLOPEDIA (ALL {PREFIX_TITLES.length + SUFFIX_TITLES.length + TITLE_SET_BONUSES.length + EVOLVED_TITLES.length} TITLES)
             </p>
           </div>
         </div>
@@ -132,7 +132,7 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
           }`}
         >
           <span className="material-icons-round text-sm">label</span>
-          <span>A枠（接頭辞 全50種）</span>
+          <span>A枠（接頭辞 全{PREFIX_TITLES.length}種）</span>
         </button>
         <button
           onClick={() => {
@@ -146,7 +146,7 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
           }`}
         >
           <span className="material-icons-round text-sm">loyalty</span>
-          <span>B枠（接尾辞 全50種）</span>
+          <span>B枠（接尾辞 全{SUFFIX_TITLES.length}種）</span>
         </button>
         <button
           onClick={() => {
@@ -331,7 +331,7 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
             <div>
               <h2 className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <span className="material-icons-round text-sm">flare</span>
-                隠しセット効果（シナジー 全20種）
+                隠しセット効果（シナジー 全{TITLE_SET_BONUSES.length}種）
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {TITLE_SET_BONUSES.map((set) => {
@@ -384,7 +384,7 @@ const TitleEncyclopediaScreen = ({ onClose }) => {
             <div className="pt-2">
               <h2 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <span className="material-icons-round text-sm">account_tree</span>
-                派生・進化二つ名（全20種）
+                派生・進化二つ名（全{EVOLVED_TITLES.length}種）
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {EVOLVED_TITLES.map((evo) => {
