@@ -413,3 +413,36 @@ export const getTokenIcon = (token) => {
 
     return 'star';
 };
+
+// ---------------------------------------------------------------------------
+// トークン枠の空き判定（UI と同じく type === 'skill' をアクティブ枠、それ以外をパッシブ枠とする）
+// ---------------------------------------------------------------------------
+
+/** アクティブ枠に入るトークンか */
+export const isActiveSlotToken = (t) => t?.type === 'skill';
+
+/** パッシブ枠・アクティブ枠それぞれの空き状況 */
+export const getFreeSlotInfo = (tokens = [], maxSlots = 0) => {
+    const list = (tokens || []).filter(Boolean);
+    const activeCount = list.filter(isActiveSlotToken).length;
+    const passiveCount = list.length - activeCount;
+    return {
+        activeCount,
+        passiveCount,
+        activeFree: activeCount < maxSlots,
+        passiveFree: passiveCount < maxSlots,
+    };
+};
+
+/**
+ * 抽選候補を「現在空いている枠に入るもの」だけに絞り込む。
+ * 先に枠の空きを見てから抽選することで、空き枠があるのに受け取れない事態を防ぐ。
+ */
+export const filterPoolByFreeSlots = (pool = [], tokens = [], maxSlots = 0) => {
+    const { activeFree, passiveFree } = getFreeSlotInfo(tokens, maxSlots);
+    return pool.filter(b => {
+        // 増殖の呪いはパッシブ枠にもダミーを置くため、両方の空きが必要
+        if (b.id === 'curse_multiply') return activeFree && passiveFree;
+        return isActiveSlotToken(b) ? activeFree : passiveFree;
+    });
+};
