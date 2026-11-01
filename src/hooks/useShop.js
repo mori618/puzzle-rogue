@@ -121,6 +121,12 @@ export const useShop = ({
         attrWeights[t.params.attribute] *= val;
       }
     });
+    // 二つ名: 特定属性のトークンがショップに出やすくなる
+    titleEffects.forEach(e => {
+      if (e.type === 'shop_attr_weight' && attrWeights[e.attribute] !== undefined) {
+        attrWeights[e.attribute] *= (Number(e.value) || 1);
+      }
+    });
 
     const getRarityProbabilities = (cycle) => {
       if (cycle <= 5) return { 1: 0.60, 2: 0.30, 3: 0.10, 4: 0.00 };
