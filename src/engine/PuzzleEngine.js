@@ -19,6 +19,8 @@ class PuzzleEngine {
     this.onCombo = options.onCombo || (() => { });
     this.onPassiveTrigger = options.onPassiveTrigger || null;
     this.onStarErase = options.onStarErase || null;
+    // 操作（ドロップ移動）開始時のコールバック
+    this.onMoveStart = options.onMoveStart || null;
     this.totalMoveTimeRef = options.totalMoveTimeRef || { current: 0 }; // 操作時間加算用Ref
     this.timerText = options.timerText || null; // 残り時間表示用要素
     this.pureMode = options.pureMode || false; // 特殊消しボーナス無効モード
@@ -46,6 +48,8 @@ class PuzzleEngine {
     this.moveStart = null;
     this.timerId = null;
     this.processing = false;
+    // 盤面処理中に要求された特殊ドロップ生成を、処理完了後に適用するためのキュー
+    this._pendingBoardOps = [];
     this.currentCombo = 0;
     this.noSkyfall = false;
     this.noSpecialEffects = false;
@@ -857,6 +861,7 @@ class PuzzleEngine {
           if (!this.moveStart) {
             this.moveStart = Date.now();
             this.timerId = setInterval(this.updateTimer, 20);
+            if (this.onMoveStart) this.onMoveStart();
           }
 
           // 一筆書きの誓約: 通過済みセルへの移動をブロック
@@ -1180,6 +1185,7 @@ class PuzzleEngine {
     if (this._isDestroyed) return { erasedCount, rawCount };
 
     this.processing = false;
+    this._flushPendingBoardOps();
     return { erasedCount, rawCount };
   }
 
@@ -1389,7 +1395,10 @@ class PuzzleEngine {
   }
 
   spawnPlusRandom(count) {
-    if (this.processing) return;
+    if (this.processing) {
+      this._pendingBoardOps.push(() => this.spawnPlusRandom(count));
+      return;
+    }
     const normalOrbs = [];
     this.state.forEach((row) => {
       row.forEach((orb) => {
@@ -1787,6 +1796,14 @@ class PuzzleEngine {
       }
     }
     this.render();
+  }
+
+  // 処理中に保留された盤面操作（プラス/リピート生成など）をまとめて適用する
+  _flushPendingBoardOps() {
+    if (this._isDestroyed || this.processing || !this._pendingBoardOps?.length) return;
+    const ops = this._pendingBoardOps;
+    this._pendingBoardOps = [];
+    ops.forEach(op => op());
   }
 
   async process() {
@@ -2362,6 +2379,7 @@ class PuzzleEngine {
     });
 
     this.processing = false;
+    this._flushPendingBoardOps();
   }
 
   findCombos() {
@@ -2729,7 +2747,10 @@ class PuzzleEngine {
   }
 
   spawnRepeatRandom(count) {
-    if (this.processing) return;
+    if (this.processing) {
+      this._pendingBoardOps.push(() => this.spawnRepeatRandom(count));
+      return;
+    }
     const candidates = [];
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {

@@ -2061,3 +2061,37 @@ button:disabled {
 
 
 
+
+/* ==========================================
+   トークン発動・条件達成の表示
+   - パッシブ/アクティブ枠の親はページ送りのため overflow:hidden のため、
+     上方向に跳ねる animate-bounce だと上辺の枠線が切れてしまう。
+     枠外にはみ出さない「縮んで戻る」ポップに置き換える。
+   - box-shadow は八角形の clip-path で切り取られて見えないため、
+     カード背景（= 1px の外枠線）の色と太さで発光を表現する。
+   ========================================== */
+@keyframes token-trigger-pop {
+  0%   { transform: scale(1);    filter: brightness(1); }
+  35%  { transform: scale(0.86); filter: brightness(1.6); }
+  70%  { transform: scale(1);    filter: brightness(1.3); }
+  100% { transform: scale(1);    filter: brightness(1); }
+}
+.token-trigger-pop {
+  animation: token-trigger-pop 0.35s ease-out;
+}
+
+/* 発動中: 外枠を白く太く光らせる */
+.token-card-triggered {
+  background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%) !important;
+}
+.token-card-triggered::before {
+  inset: 2px;
+}
+
+/* 直前の手番で条件達成: 外枠を緑にする（次の操作開始で解除） */
+.token-card-condition-met {
+  background: linear-gradient(135deg, #4ade80 0%, #16a34a 100%) !important;
+}
+.token-card-condition-met::before {
+  inset: 2px;
+}

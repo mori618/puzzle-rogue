@@ -183,10 +183,12 @@ const getTokenDynamicInfo = (item, level, currentRunStats = null, currentTokens 
       infoList.push({ label: 'ハート消去累計', value: `${currentRunStats.totalHeartsErased || 0} 個`, type: 'stat' });
       infoList.push({ label: '乗算値', value: `x${formatNum(m)}`, type: 'boost' });
     } else if (effect === 'stat_time_skipper') {
-      const count = Math.floor((currentRunStats.skipsPerformed || 0) / 5);
-      const m = Math.pow(v, count);
-      infoList.push({ label: 'スキップ累計', value: `${currentRunStats.skipsPerformed || 0} 回`, type: 'stat' });
-      infoList.push({ label: '乗算値', value: `x${formatNum(m)}`, type: 'boost' });
+      const skipped = currentRunStats.skippedTurns || 0;
+      const count = Math.floor(skipped / 5);
+      // 実際の計算と同じく「v^(スキップターン数÷5) − 1」をコンボ倍率に加算する
+      const add = Math.pow(v, count) - 1;
+      infoList.push({ label: 'スキップしたターン数', value: `${skipped} ターン`, type: 'stat' });
+      infoList.push({ label: '加算値', value: `+${formatNum(add)}`, type: 'boost' });
     } else if (effect === 'stat_shape_cross') {
       const b = Math.floor((currentRunStats.currentShapeCross || 0) / 5) * v;
       infoList.push({ label: '十字消し累計', value: `${currentRunStats.currentShapeCross || 0} 回`, type: 'stat' });

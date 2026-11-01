@@ -643,7 +643,7 @@ export const useShop = ({
       const passiveCount = tokens.filter(t => t && t?.type !== 'skill' && !t?.isCurse).length;
       const maxSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount;
 
-      const cursePool = ALL_TOKEN_BASES.filter(t => t.type === 'curse' || t.isCurse);
+      const cursePool = ALL_TOKEN_BASES.filter(t => (t.type === 'curse' || t.isCurse) && t.id !== 'curse_multiplied_p' && t.id !== 'curse_multiplied_a');
       if (cursePool.length === 0) return notify("呪いが見つかりません");
 
       const randomCurseBase = cursePool[Math.floor(Math.random() * cursePool.length)];

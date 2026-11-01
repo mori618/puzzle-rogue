@@ -74,6 +74,8 @@ export const useGameState = () => {
   const [nextTurnTimeMultiplier, setNextTurnTimeMultiplier] = useState(1);
   const [lastTurnCombo, setLastTurnCombo] = useState(0);
   const [lastErasedColorCounts, setLastErasedColorCounts] = useState({});
+  // 直前の手番結果による「条件達成（緑）」表示を出すかどうか。次の操作開始・次サイクル開始で消す
+  const [showLastTurnConditions, setShowLastTurnConditions] = useState(false);
   const [hasUsedActiveSkillThisTurn, setHasUsedActiveSkillThisTurn] = useState(false);
   // スキル使用によって消去されたドロップ数をターン終了時にマージするための一時的な状態
   const [skillErasedCounts, setSkillErasedCounts] = useState({});
@@ -138,6 +140,7 @@ export const useGameState = () => {
     totalStarsEarned: 0,
     tokensSold: 0,
     skipsPerformed: 0,
+    skippedTurns: 0,
     currentCursesRemoved: 0,  // 今回の呪い解除数
     currentDropsErased: { fire: 0, water: 0, wood: 0, light: 0, dark: 0, heart: 0 }, // 今回の各ドロップ消去数
     maxBaseCombo: 0,
@@ -394,6 +397,8 @@ export const useGameState = () => {
     let current = 0;
     if (cond === 'skill_uses') {
       current = t.curseUses || 0;
+    } else if (cond === 'max_combo') {
+      current = t.bestTurnCombo || 0; // 所持してからの1手番最高コンボ（絶対値で判定）
     } else if (cond === 'level3_tokens_count') {
       current = getStatByCondition(cond); // レベル3トークン所持数は絶対値で判定
     } else {
@@ -503,6 +508,8 @@ export const useGameState = () => {
       if (t?.effect === "picky_eater") return acc + (t.values[(t.level || 1) - 1] || 0);
       return acc;
     }, 0)
+    // 呪い「不運の枷」: 1サイクルの手番が1減る（聖者系の呪い無効化があれば無効）
+    - (hasSaintToken ? 0 : tokens.filter(t => t?.id === "curse_turns").length)
   );
 
   const prevMaxTurnsRef = useRef(maxTurns);
@@ -822,6 +829,9 @@ export const useGameState = () => {
         },
         onPassiveTrigger: (tokenId) => {
           if (onPassiveTriggerRef.current) onPassiveTriggerRef.current(tokenId);
+        },
+        onMoveStart: () => {
+          setShowLastTurnConditions(false);
         },
         onStarErase: (count) => {
           if (onStarEraseRef.current) onStarEraseRef.current(count);
@@ -1505,6 +1515,7 @@ export const useGameState = () => {
 
     setLastTurnCombo(tc);
     setLastErasedColorCounts(finalErasedColorCounts);
+    setShowLastTurnConditions(true);
 
     let bonus = 0;
     let multiplier = 1;
@@ -1968,7 +1979,7 @@ export const useGameState = () => {
           const sCount = shapes.filter(s => s === "square").length;
           if (sCount > 0 && engineRef.current) {
             if (isInstant) triggerPassive(tokenId);
-            notify(`${tokenName || "方陣 of 輪廻"}発動！リピートドロップを${val}個生成！`);
+            notify(`${tokenName || "方陣の輪廻"}発動！リピートドロップを${val}個生成！`);
             setTimeout(() => {
               if (engineRef.current && !engineRef.current._isDestroyed) {
                 engineRef.current.spawnRepeatRandom(val);
@@ -2342,7 +2353,7 @@ export const useGameState = () => {
         }
       }
       if (t.effect === "stat_time_skipper") {
-        const skipCount = currentRunStats.skipsPerformed || 0;
+        const skipCount = currentRunStats.skippedTurns || 0; // スキップしたターン数の累計
         const count = Math.floor(skipCount / 5);
         const base = t.values?.[lv - 1] || 1.3;
         if (count > 0) {
@@ -2393,13 +2404,6 @@ export const useGameState = () => {
         addedMultiplier += (v - 1.0);
         logData.multipliers.push(`combo_ge_${t.params.combo}:+${(v - 1.0).toFixed(2)}`);
         logData.multiplierSteps.push({ label: t.name || `${t.params.combo}コンボ以上`, value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
-      }
-
-      if (t.action === "skill_combo_bonus") {
-        const val = t.params?.value || 0;
-        bonus += val;
-        logData.bonuses.push(`skill_lv3_bonus:+${val}`);
-        if (val > 0) logData.bonusSteps.push({ label: t.name || 'スキルボーナス', value: val, tokenId: tId });
       }
 
       if (t.effect === "shape_bonus" && shapes.length > 0) {
@@ -2784,7 +2788,15 @@ export const useGameState = () => {
     setNextTurnTimeMultiplier(timeMultiplier);
 
     activeBuffs.forEach(buff => {
-      if (buff.action === "temp_mult") {
+      if (buff.action === "skill_combo_bonus") {
+        // 消滅スキル・スキルLv3ボーナスによる基礎コンボ加算（バフとして登録される）
+        const val = buff.params?.value || 0;
+        if (val > 0) {
+          bonus += val;
+          logData.bonuses.push(`skill_combo_bonus:+${val}`);
+          logData.bonusSteps.push({ label: buff.name || 'スキルボーナス', value: val });
+        }
+      } else if (buff.action === "temp_mult") {
         multMultiplier *= buff.params.multiplier;
         logData.multipliers.push(`temp_mult:x${buff.params.multiplier.toFixed(2)}`);
         logData.multiplierSteps.push({ label: 'スキル倍率', value: buff.params.multiplier, type: 'mult' });
@@ -2919,7 +2931,8 @@ export const useGameState = () => {
     }
 
     // デバフである「半減の呪い」は基礎コンボに掛ける
-    if (tokens.some(t => t?.id === "curse_half") && !hasSaintToken) {
+    const isCurseHalfActive = tokens.some(t => t?.id === "curse_half") && !hasSaintToken;
+    if (isCurseHalfActive) {
       debuffMultiplier *= 0.5;
       logData.debuffMultiplier = debuffMultiplier;
       logData.debuffSteps = logData.debuffSteps || [];
@@ -3073,6 +3086,13 @@ export const useGameState = () => {
       effectiveCombo = (tc > 0) ? Math.min(Math.floor(finalBaseCombo * finalComboMultiplier), MAX_COMBO) : 0;
     }
 
+    // 「脆弱の断層」の解除判定用: 半減効果がかかる前のコンボ数（他のトークン効果は全て反映済み）
+    let comboBeforeCurseHalf = effectiveCombo;
+    if (isCurseHalfActive && !isZeroComboDueToDevotion && tc > 0) {
+      const baseWithoutHalf = Math.floor(finalBaseComboBeforeDebuff * (debuffMultiplier / 0.5) * baseMultiplier * devotionMultiplier * restrictionMultiplier);
+      comboBeforeCurseHalf = Math.min(Math.floor(baseWithoutHalf * finalComboMultiplier), MAX_COMBO);
+    }
+
     if (effectiveCombo >= MAX_COMBO) {
       setCurrentRunStats(prev => {
         if (!prev.hasReachedMaxCombo && !isPracticeMode) {
@@ -3198,6 +3218,17 @@ export const useGameState = () => {
         lifetimeRainbowsErased: (prev.lifetimeRainbowsErased || 0) + rainbowSelfErased,
       };
     });
+    // 「1手番で〇コンボ」系の呪い: 所持してからの1手番最高コンボを呪いトークン自身に記録する
+    // （半減の呪いは自身の半減効果がかかる前の値で判定する）
+    if (tokens.some(t => (t?.type === 'curse' || t?.isCurse) && t?.condition === 'max_combo')) {
+      setTokens(prev => prev.map(tok => {
+        if (tok && (tok.type === 'curse' || tok.isCurse) && tok.condition === 'max_combo') {
+          const turnValue = tok.id === 'curse_half' ? comboBeforeCurseHalf : effectiveCombo;
+          if (turnValue > (tok.bestTurnCombo || 0)) return { ...tok, bestTurnCombo: turnValue };
+        }
+        return tok;
+      }));
+    }
     setCurrentRunStats(prev => ({
       ...prev,
       currentTotalCombo: (prev.currentTotalCombo || 0) + effectiveCombo,
@@ -5126,6 +5157,7 @@ export const useGameState = () => {
 
   const startNextCycle = (warpToCycle = null) => {
     setTurn(1);
+    setShowLastTurnConditions(false);
     setCycleTotalCombo(0);
 
     let baseClears = currentRunStats.currentClears || 0;
@@ -5299,7 +5331,11 @@ export const useGameState = () => {
     setStars((s) => s + bonus);
     notify(`SKIP BONUS: +${bonus} STARS! (+${starsPerTurn}/回)`);
     setSkippedTurnsBonus(prev => prev + remainingTurns);
-    setCurrentRunStats(prev => ({ ...prev, skipsPerformed: (prev.skipsPerformed || 0) + 1 }));
+    setCurrentRunStats(prev => ({
+      ...prev,
+      skipsPerformed: (prev.skipsPerformed || 0) + 1,
+      skippedTurns: (prev.skippedTurns || 0) + remainingTurns,
+    }));
     recordTitleProgress({ add: { skips: 1 } });
 
     setTurn(maxTurns + 1);
@@ -5395,7 +5431,12 @@ export const useGameState = () => {
       addTokenToast(pToken, "を獲得した！");
       addTokenToast(aToken, "を獲得した！");
     } else if (option === 'challenge') {
-      const cursePool = ALL_TOKEN_BASES.filter(t => t.type === 'curse' || t.isCurse === true);
+      // 「増殖された呪い」は「増殖」からのみ生成されるため、初期呪いの候補から除外する
+      const cursePool = ALL_TOKEN_BASES.filter(t =>
+        (t.type === 'curse' || t.isCurse === true) &&
+        t.id !== 'curse_multiplied_p' &&
+        t.id !== 'curse_multiplied_a'
+      );
       const randomCurse = cursePool[Math.floor(Math.random() * cursePool.length)];
       const initToken = {
         ...randomCurse,
@@ -6102,7 +6143,7 @@ export const useGameState = () => {
         const isCurseTriggered = (token.action === "spawn_token_s3" && Math.random() < 0.30);
 
         if (isCurseTriggered) {
-          const cursePool = ALL_TOKEN_BASES.filter(b => b.type === 'curse' || b.isCurse);
+          const cursePool = ALL_TOKEN_BASES.filter(b => (b.type === 'curse' || b.isCurse) && b.id !== 'curse_multiplied_p' && b.id !== 'curse_multiplied_a');
           selectedBase = cursePool[Math.floor(Math.random() * cursePool.length)];
         } else {
           // 「招来」系スキル自身を除外したプールから抽選
@@ -6251,6 +6292,7 @@ export const useGameState = () => {
     nextTurnTimeMultiplier, setNextTurnTimeMultiplier,
     lastTurnCombo, setLastTurnCombo,
     lastErasedColorCounts, setLastErasedColorCounts,
+    showLastTurnConditions,
     pendingShopItem, setPendingShopItem,
     showTitle, setShowTitle,
     showHelp, setShowHelp,

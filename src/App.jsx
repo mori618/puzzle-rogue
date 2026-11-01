@@ -46,6 +46,7 @@ const App = () => {
     activeBuffs,
     lastTurnCombo,
     lastErasedColorCounts,
+    showLastTurnConditions,
     pendingShopItem,
     setPendingShopItem,
     showTitle, setShowTitle,
@@ -279,14 +280,15 @@ const App = () => {
                 <>
                   <EquippedTitleChip equippedTitle={equippedTitle} onClick={() => setShowTitleInfo(true)} />
                   <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-white whitespace-nowrap">
-                      <span className="text-[10px] uppercase text-slate-400 mr-1">Cycle</span>
-                      {(currentRunStats?.currentClears || 0) + 1}
-                    </span>
-                    <span className="text-primary font-bold">/</span>
+                    {/* ターンを左・サイクルを右に表示（例: TURN 3 / CYCLE 6） */}
                     <span className="text-lg font-bold text-white whitespace-nowrap">
                       <span className="text-[10px] uppercase text-slate-400 mr-1">Turn</span>
                       {turn}{isEndlessMode ? ' ∞' : ''}
+                    </span>
+                    <span className="text-primary font-bold">/</span>
+                    <span className="text-lg font-bold text-white whitespace-nowrap">
+                      <span className="text-[10px] uppercase text-slate-400 mr-1">Cycle</span>
+                      {(currentRunStats?.currentClears || 0) + 1}
                     </span>
                   </div>
                 </>
@@ -530,10 +532,10 @@ const App = () => {
                                   shadowClass = '';
                                 }
                                 if (t && triggeredPassives.includes(t.instanceId || t.id)) {
-                                  animClass = 'animate-bounce';
-                                  shadowClass = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
+                                  animClass = 'token-trigger-pop';
+                                  shadowClass = 'token-card-triggered';
                                 }
-                                if (t && !animClass && !isSlot1Active) {
+                                if (t && !animClass && !isSlot1Active && showLastTurnConditions) {
                                   let conditionMet = false;
                                   switch (t.effect) {
                                     case 'color_count_bonus': {
@@ -552,7 +554,7 @@ const App = () => {
                                       break;
                                   }
                                   if (conditionMet) {
-                                    shadowClass = 'shadow-[0_0_15px_rgba(74,222,128,0.5)]';
+                                    shadowClass = 'token-card-condition-met';
                                   }
                                 }
                                 return (
@@ -605,7 +607,7 @@ const App = () => {
                                               />
                                             </div>
                                           )}
-                                          <span className={`material-icons-round text-2xl relative z-35 ${t?.type === 'curse' || t?.isCurse ? 'text-red-500' : animClass ? 'text-white drop-shadow-[0_0_3px_rgba(255,255,255,0.45)]' : shadowClass ? 'text-green-300 drop-shadow-[0_0_3px_rgba(74,222,128,0.45)]' : 'text-slate-400'}`}>
+                                          <span className={`material-icons-round text-2xl relative z-35 ${t?.type === 'curse' || t?.isCurse ? 'text-red-500' : animClass ? 'text-white drop-shadow-[0_0_3px_rgba(255,255,255,0.45)]' : shadowClass === 'token-card-condition-met' ? 'text-green-300 drop-shadow-[0_0_3px_rgba(74,222,128,0.45)]' : 'text-slate-400'}`}>
                                             {getTokenIcon(t)}
                                           </span>
                                         </div>
@@ -703,8 +705,8 @@ const App = () => {
                                 let animClass = '';
                                 let triggeredShadow = '';
                                 if (t && triggeredPassives.includes(t.instanceId || t.id)) {
-                                  animClass = 'animate-bounce';
-                                  triggeredShadow = 'shadow-[0_0_15px_rgba(255,255,255,0.8)]';
+                                  animClass = 'token-trigger-pop';
+                                  triggeredShadow = 'token-card-triggered';
                                 }
                                 const readyClass = isCurse
                                   ? 'token-buff-cyan shadow-[0_0_12px_rgba(239,68,68,0.4)]'
