@@ -1,5 +1,6 @@
 // ショップ関連の状態とロジックを管理するカスタムフック
 import { useState, useCallback } from "react";
+import playLog, { compactToken } from '../utils/playLogger.js';
 import { ALL_TOKEN_BASES } from "../constants/tokens.js";
 import { ENCHANTMENTS, getEnchantDescription } from "../constants/enchantments.js";
 import {
@@ -333,6 +334,7 @@ export const useShop = ({
     }
 
     setShopItems(finalItems);
+    playLog.event('shopItems', { items: finalItems.map(it => ({ ...compactToken(it), itype: it.type, price: it.price, sale: it.isSale ? 1 : undefined })) });
     return finalItems;
   }, [tokens, totalPurchases, currentRunStats, activeBuffs, getTokenDynamicPrice, setIsAwakeningLevelUpBought, hasSaintToken]);
 
@@ -362,6 +364,7 @@ export const useShop = ({
       .filter(t => !t || t.parentId !== token.instanceId) // 親に紐付く増殖された呪いを削除
     );
 
+    playLog.event('purify', { curse: compactToken(token), reward: compactToken(rewardToken), legendary: isLegendary });
     setCurrentRunStats(prev => ({ ...prev, currentCursesRemoved: (prev.currentCursesRemoved || 0) + 1 }));
     setStats(prev => ({ ...prev, lifetimeCursesRemoved: (prev.lifetimeCursesRemoved || 0) + 1 }));
     recordTitleProgress({ add: { curses_removed: 1 } });
@@ -411,6 +414,7 @@ export const useShop = ({
       sellPrice += (lCount * v);
     }
 
+    playLog.event('sell', { tok: compactToken(token), sellPrice, sellRate });
     setStars(s => s + sellPrice);
 
     spawnParticles(10, window.innerWidth / 2, window.innerHeight * 0.4, window.innerWidth * 0.8, 40, 'star');
@@ -440,6 +444,7 @@ export const useShop = ({
 
   /** ショップアイテムの購入 */
   const buyItem = useCallback((item, clickPos) => {
+    playLog.event('buyTry', { item: { ...compactToken(item), itype: item.type }, price: item.price, afford: stars >= item.price });
     if (stars < item.price) {
       soundManager.playSE(SE_IDS.ERROR);
       return notify("★が足りません");
@@ -727,6 +732,7 @@ export const useShop = ({
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
         setShopItems((prev) => prev.filter((i) => i !== item));
         if (item.isSale) recordTitleProgress({ add: { sale_bought: 1 } });
+        playLog.event('buy', { tok: compactToken(obtainedToken), price: item.price });
         notify("購入完了!");
         addTokenToast(obtainedToken, "を獲得しました！");
       }
@@ -735,6 +741,7 @@ export const useShop = ({
 
   /** 覚醒アイテムの購入 */
   const buyAwakeningItem = useCallback((type, clickPos) => {
+    playLog.event('awakenTry', { type });
     switch (type) {
       case 'random_levelup': {
         const price = 5;
@@ -833,6 +840,7 @@ export const useShop = ({
   const handleChoice = useCallback((choice) => {
     if (!pendingShopItem) return;
     const item = pendingShopItem;
+    playLog.event('buyChoice', { choice, item: compactToken(item), price: item.price });
 
     let updatedToken = null;
     let actionText = "";
@@ -939,6 +947,7 @@ export const useShop = ({
   const refreshShop = useCallback((clickPos) => {
     const isFree = freeRerolls > 0;
     const rerollCost = effectiveRerollPrice;
+    playLog.event('reroll', { free: isFree, cost: rerollCost, afford: isFree || stars >= rerollCost });
 
     if (!isFree && stars < rerollCost) {
       soundManager.playSE(SE_IDS.ERROR);

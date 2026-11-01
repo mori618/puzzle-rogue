@@ -12,6 +12,8 @@ import TokenEncyclopediaScreen from "./TokenEncyclopediaScreen";
 import UIPreviewScreen from "./UIPreviewScreen";
 import TitleEncyclopediaScreen from "./TitleEncyclopediaScreen";
 import TitleInfoPanel, { EquippedTitleChip } from "./TitleInfoPanel";
+import PlayLogPanel from "./PlayLogPanel";
+import playLog from "./utils/playLogger";
 import { loadTitleState } from "./utils/titleManager";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { getEnchantDescription } from './constants/enchantments.js';
@@ -969,12 +971,12 @@ const App = () => {
             {/* 4. ゲームオーバー時のオーバーレイ (Layer 3)                 */}
             {/* ======================================================== */}
             {isGameOver && (
-              <div className="absolute inset-0 z-30 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in px-8 text-center">
-                <span className="material-icons-round text-7xl text-red-500 mb-4 animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">broken_image</span>
+              <div className="absolute inset-0 z-30 bg-black/90 backdrop-blur-md flex flex-col items-center overflow-y-auto animate-fade-in px-8 py-6 text-center">
+                <span className="material-icons-round text-7xl text-red-500 mb-4 mt-auto animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">broken_image</span>
                 <h2 className="text-4xl font-black font-display text-white mb-2 tracking-tighter">GAME OVER</h2>
                 <p className="text-slate-400 mb-6 text-sm font-medium">目標未達成...<br />リトライして再挑戦しよう</p>
 
-                <div className="bg-slate-800/40 border border-white/10 rounded-2xl p-4 mb-8 w-full max-w-[280px] grid grid-cols-2 gap-4 animate-fade-in">
+                <div className="bg-slate-800/40 border border-white/10 rounded-2xl p-4 mb-4 w-full max-w-[280px] grid grid-cols-2 gap-4 animate-fade-in">
                   <div className="text-center">
                     <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">最終到達サイクル</div>
                     <div className="text-2xl font-black text-white font-mono mt-1">{(currentRunStats?.currentClears || 0) + 1}</div>
@@ -985,7 +987,9 @@ const App = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3 w-full">
+                {!isPracticeMode && <PlayLogPanel />}
+
+                <div className="flex flex-col gap-3 w-full mb-auto">
                   <button onClick={handleGiveUp} className="w-full bg-slate-800 text-slate-300 py-4 rounded-2xl font-bold text-sm active:scale-95 hover:bg-slate-700 transition-colors border border-white/5">
                     リトライ
                   </button>
@@ -1104,6 +1108,7 @@ const App = () => {
                   onCredits={() => setShowCredits(true)}
                   onSettings={() => setShowSettings(true)}
                   onTitles={() => setShowTitleInfo(true)}
+                  onDownloadLog={!isPracticeMode && playLog.getCurrent() ? () => playLog.download() : undefined}
                 />
               </div>
             )
