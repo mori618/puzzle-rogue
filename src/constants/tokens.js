@@ -294,12 +294,14 @@ const ALL_TOKEN_BASES = [
   { id: "sky_fl_2", name: "炎雷の波紋", icon: "keyboard_double_arrow_down", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire", "light"], weight: 2, duration: 2 }, rarity: 1, price: 9, desc: "2手番、炎と雷が落ちやすくなる. 消費E:{cost}", attributes: ["fire", "light"], canBeInitial: true },
 
   // --- スキル: スカイフォール停止（1色）---
-  { id: "sky_f_stop", name: "紅蓮の静寂", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire"], weight: 0, duration: 2 }, rarity: 1, price: 9, desc: "2手番、炎が落ちてこなくなる。消費E:{cost}", attributes: ["fire"], canBeInitial: true },
-  { id: "sky_w_stop", name: "蒼海の静寂", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["water"], weight: 0, duration: 2 }, rarity: 1, price: 9, desc: "2手番、雨が落ちてこなくなる。消費E:{cost}", attributes: ["water"], canBeInitial: true },
-  { id: "sky_g_stop", name: "深翠の静寂", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["wood"], weight: 0, duration: 2 }, rarity: 1, price: 9, desc: "2手番、風が落ちてこなくなる。消費E:{cost}", attributes: ["wood"], canBeInitial: true },
-  { id: "sky_l_stop", name: "閃雷の静寂", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["light"], weight: 0, duration: 2 }, rarity: 1, price: 9, desc: "2手番、雷が落ちてこなくなる。消費E:{cost}", attributes: ["light"], canBeInitial: true },
-  { id: "sky_d_stop", name: "常月の静寂", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["dark"], weight: 0, duration: 2 }, rarity: 1, price: 9, desc: "2手番、月が落ちてこなくなる。消費E:{cost}", attributes: ["dark"], canBeInitial: true },
-  { id: "sky_h_stop", name: "癒の静寂", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["heart"], weight: 0, duration: 2 }, rarity: 1, price: 9, desc: "2手番、ハートが落ちてこなくなる。消費E:{cost}", attributes: ["heart"], canBeInitial: true },
+  // 静寂: トークンの属性は「止める色を抑える側」の属性にする
+  // （雨→炎、風→雨、炎→風、月→雷、雷→月、ハートは無属性）
+  { id: "sky_f_stop", name: "紅蓮の静寂", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire"], weight: 0, duration: 2 }, rarity: 1, price: 9, desc: "2手番、炎が落ちてこなくなる。消費E:{cost}", attributes: ["water"], canBeInitial: true },
+  { id: "sky_w_stop", name: "蒼海の静寂", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["water"], weight: 0, duration: 2 }, rarity: 1, price: 9, desc: "2手番、雨が落ちてこなくなる。消費E:{cost}", attributes: ["wood"], canBeInitial: true },
+  { id: "sky_g_stop", name: "深翠の静寂", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["wood"], weight: 0, duration: 2 }, rarity: 1, price: 9, desc: "2手番、風が落ちてこなくなる。消費E:{cost}", attributes: ["fire"], canBeInitial: true },
+  { id: "sky_l_stop", name: "閃雷の静寂", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["light"], weight: 0, duration: 2 }, rarity: 1, price: 9, desc: "2手番、雷が落ちてこなくなる。消費E:{cost}", attributes: ["dark"], canBeInitial: true },
+  { id: "sky_d_stop", name: "常月の静寂", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["dark"], weight: 0, duration: 2 }, rarity: 1, price: 9, desc: "2手番、月が落ちてこなくなる。消費E:{cost}", attributes: ["light"], canBeInitial: true },
+  { id: "sky_h_stop", name: "癒の静寂", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["heart"], weight: 0, duration: 2 }, rarity: 1, price: 9, desc: "2手番、ハートが落ちてこなくなる。消費E:{cost}", attributes: [], canBeInitial: true },
 
   // --- スキル: スカイフォール停止（2色）---
   { id: "sky_fd_stop", name: "炎月の凪", icon: "cloud_off", type: "skill", cost: 3, costLevels: true, action: "skyfall", params: { colors: ["fire", "dark"], weight: 0, duration: 1 }, rarity: 1, price: 9, desc: "1手番、炎と月が落ちてこなくなる。消費E:{cost}", attributes: ["fire", "dark"], canBeInitial: true },

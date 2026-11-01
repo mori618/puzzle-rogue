@@ -12,7 +12,7 @@ import TokenEncyclopediaScreen from "../TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, ENCHANTMENTS } from '../constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS } from '../constants/gameConstants.js';
-import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles } from '../utils/tokenUtils';
+import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
@@ -2062,31 +2062,32 @@ export const useGameState = () => {
           if (len4Count > 0 && Math.random() < val) {
             if (isInstant) triggerPassive(tokenId);
             const maxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
-            const currentCount = tokens.filter(tok => tok !== null).length;
-            if (currentCount < maxSlots) {
-              const candidatePool = ALL_TOKEN_BASES.filter(b => b.type !== 'curse' && !b.isCurse);
-              if (candidatePool.length > 0) {
-                const randomBase = candidatePool[Math.floor(Math.random() * candidatePool.length)];
-                const isSkill = randomBase.type === 'skill';
-                const newToken = {
-                  ...randomBase,
-                  instanceId: Date.now() + Math.random(),
-                  level: 1,
-                  charge: isSkill ? (randomBase.cost || 0) : 0,
-                  startValue: randomBase.condition ? getStatByCondition(randomBase.condition) : 0
-                };
-                setTokens(prev => {
-                  const nextTokens = [...prev];
-                  let emptySlotIdx = nextTokens.findIndex(tok => tok === null);
-                  if (emptySlotIdx !== -1) {
-                    nextTokens[emptySlotIdx] = newToken;
-                  } else {
-                    nextTokens.push(newToken);
-                  }
-                  return nextTokens;
-                });
-                addTokenToast(newToken, "を入手した！ (4連の錬金)");
-              }
+            // 空いている枠（パッシブ/アクティブ）に入るトークンだけを抽選候補にする
+            const candidatePool = filterPoolByFreeSlots(
+              ALL_TOKEN_BASES.filter(b => b.type !== 'curse' && !b.isCurse),
+              tokens, maxSlots
+            );
+            if (candidatePool.length > 0) {
+              const randomBase = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+              const isSkill = randomBase.type === 'skill';
+              const newToken = {
+                ...randomBase,
+                instanceId: Date.now() + Math.random(),
+                level: 1,
+                charge: isSkill ? (randomBase.cost || 0) : 0,
+                startValue: randomBase.condition ? getStatByCondition(randomBase.condition) : 0
+              };
+              setTokens(prev => {
+                const nextTokens = [...prev];
+                let emptySlotIdx = nextTokens.findIndex(tok => tok === null);
+                if (emptySlotIdx !== -1) {
+                  nextTokens[emptySlotIdx] = newToken;
+                } else {
+                  nextTokens.push(newToken);
+                }
+                return nextTokens;
+              });
+              addTokenToast(newToken, "を入手した！ (4連の錬金)");
             } else {
               notify("4連の錬金: トークン枠がいっぱいです！");
             }
@@ -3564,6 +3565,30 @@ export const useGameState = () => {
         }, 300);
       }
 
+      // 空いている枠（パッシブ/アクティブ）に入るトークンだけから抽選し、nextTokens に追加する。
+      // 入れられる枠が無ければ null を返す
+      const grantRandomTokenToSlots = (list, basePool) => {
+        const maxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
+        const pool = filterPoolByFreeSlots(basePool, list, maxSlots);
+        if (pool.length === 0) return null;
+        const randomBase = pool[Math.floor(Math.random() * pool.length)];
+        const isSkill = randomBase.type === 'skill';
+        const newToken = {
+          ...randomBase,
+          instanceId: Date.now() + Math.random(),
+          level: 1,
+          charge: isSkill ? (randomBase.cost || 0) : 0,
+          startValue: randomBase.condition ? getStatByCondition(randomBase.condition) : 0
+        };
+        const emptySlotIdx = list.findIndex(tok => tok === null);
+        if (emptySlotIdx !== -1) {
+          list[emptySlotIdx] = newToken;
+        } else {
+          list.push(newToken);
+        }
+        return newToken;
+      };
+
       nextTokens.forEach(t => {
         if (t && t.isCountPassive) {
           const threshold = t.values?.[(t.level || 1) - 1] || 30;
@@ -3606,29 +3631,12 @@ export const useGameState = () => {
                   break;
                 }
                 case "cross_count_token": {
-                  const maxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
-                  const currentCount = nextTokens.filter(tok => tok !== null).length;
-                  if (currentCount < maxSlots) {
-                    const candidatePool = ALL_TOKEN_BASES.filter(b => b.type !== 'curse' && !b.isCurse && b.rarity === 3);
-                    if (candidatePool.length > 0) {
-                      const randomBase = candidatePool[Math.floor(Math.random() * candidatePool.length)];
-                      const isSkill = randomBase.type === 'skill';
-                      const newToken = {
-                        ...randomBase,
-                        instanceId: Date.now() + Math.random(),
-                        level: 1,
-                        charge: isSkill ? (randomBase.cost || 0) : 0,
-                        startValue: randomBase.condition ? getStatByCondition(randomBase.condition) : 0
-                      };
-                      
-                      let emptySlotIdx = nextTokens.findIndex(tok => tok === null);
-                      if (emptySlotIdx !== -1) {
-                        nextTokens[emptySlotIdx] = newToken;
-                      } else {
-                        nextTokens.push(newToken);
-                      }
-                      addTokenToast(newToken, "を入手した！ (十字の福音)");
-                    }
+                  const newToken = grantRandomTokenToSlots(
+                    nextTokens,
+                    ALL_TOKEN_BASES.filter(b => b.type !== 'curse' && !b.isCurse && b.rarity === 3)
+                  );
+                  if (newToken) {
+                    addTokenToast(newToken, "を入手した！ (十字の福音)");
                   } else {
                     notify("十字の福音: トークン枠がいっぱいです！");
                   }
@@ -3663,19 +3671,12 @@ export const useGameState = () => {
                   break;
                 }
                 case "passive_fire_count": {
-                  const maxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
-                  const currentCount = nextTokens.filter(tok => tok !== null).length;
-                  if (currentCount < maxSlots) {
-                    const candidatePool = ALL_TOKEN_BASES.filter(b => b.type !== 'curse' && !b.isCurse && b.rarity <= 2 && b.id !== "passive_fire_count");
-                    const randomBase = candidatePool[Math.floor(Math.random() * candidatePool.length)];
-                    const isSkill = randomBase.type === 'skill';
-                    const newToken = {
-                      ...randomBase,
-                      instanceId: Date.now() + Math.random(),
-                      level: 1,
-                      charge: isSkill ? (randomBase.cost || 0) : 0,
-                      startValue: randomBase.condition ? getStatByCondition(randomBase.condition) : 0
-                    };
+                  // 以前は入手トーストだけ出て手持ちに追加されていなかった
+                  const newToken = grantRandomTokenToSlots(
+                    nextTokens,
+                    ALL_TOKEN_BASES.filter(b => b.type !== 'curse' && !b.isCurse && b.rarity <= 2 && b.id !== "passive_fire_count")
+                  );
+                  if (newToken) {
                     addTokenToast(newToken, "を入手した！ (紅炎の供物)");
                   } else {
                     notify("紅炎の供物: トークン枠がいっぱいです！");
@@ -6130,8 +6131,6 @@ export const useGameState = () => {
       case "spawn_token_s1":
       case "spawn_token_s2":
       case "spawn_token_s3": {
-        const activeCount = tokens.filter(t => t?.type === 'skill' || t?.isCurse).length;
-        const passiveCount = tokens.filter(t => t && t?.type !== 'skill' && !t?.isCurse).length;
         const maxSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount;
 
         // 生成するレアリティと呪い判定
@@ -6143,30 +6142,31 @@ export const useGameState = () => {
         const isCurseTriggered = (token.action === "spawn_token_s3" && Math.random() < 0.30);
 
         if (isCurseTriggered) {
-          const cursePool = ALL_TOKEN_BASES.filter(b => (b.type === 'curse' || b.isCurse) && b.id !== 'curse_multiplied_p' && b.id !== 'curse_multiplied_a');
+          // 空いている枠に入る呪いだけから抽選
+          const cursePool = filterPoolByFreeSlots(
+            ALL_TOKEN_BASES.filter(b => (b.type === 'curse' || b.isCurse) && b.id !== 'curse_multiplied_p' && b.id !== 'curse_multiplied_a'),
+            tokens, maxSlots
+          );
           selectedBase = cursePool[Math.floor(Math.random() * cursePool.length)];
         } else {
-          // 「招来」系スキル自身を除外したプールから抽選
-          const pool = ALL_TOKEN_BASES.filter(b =>
-            b.rarity === targetRarity &&
-            b.type !== 'curse' && !b.isCurse &&
-            !["gen_token_s1", "gen_token_s2", "gen_token_s3"].includes(b.id)
+          // 「招来」系スキル自身を除外し、空いている枠に入るものだけから抽選
+          const pool = filterPoolByFreeSlots(
+            ALL_TOKEN_BASES.filter(b =>
+              b.rarity === targetRarity &&
+              b.type !== 'curse' && !b.isCurse &&
+              !["gen_token_s1", "gen_token_s2", "gen_token_s3"].includes(b.id)
+            ),
+            tokens, maxSlots
           );
           selectedBase = pool[Math.floor(Math.random() * pool.length)];
         }
 
-        if (!selectedBase) break;
+        if (!selectedBase) {
+          notify(`トークン枠がいっぱいで生成できませんでした`);
+          break;
+        }
 
         const isSkill = selectedBase.type === 'skill' || selectedBase.isCurse;
-        if (isSkill && activeCount >= maxSlots) {
-          notify(`アクティブ枠がいっぱいで ${selectedBase.name} を生成できませんでした`);
-          break;
-        }
-        if (!isSkill && passiveCount >= maxSlots) {
-          notify(`パッシブ枠がいっぱいで ${selectedBase.name} を生成できませんでした`);
-          break;
-        }
-
         const newToken = {
           ...selectedBase,
           instanceId: Date.now() + Math.random(),

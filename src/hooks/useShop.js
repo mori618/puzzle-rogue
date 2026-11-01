@@ -9,7 +9,7 @@ import {
   AWAKENING_TOKEN_SLOT_PRICES,
   INITIAL_TOKEN_SLOTS,
 } from "../constants/gameConstants.js";
-import { getTokenDescription } from "../utils/tokenUtils";
+import { getTokenDescription, filterPoolByFreeSlots } from "../utils/tokenUtils";
 import soundManager from "../utils/SoundManager";
 import { SE_IDS } from "../constants/sounds";
 import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress } from "../utils/titleManager";
@@ -645,18 +645,17 @@ export const useShop = ({
       addTokenToast(updatedToken, `に「${item.name}」を付与しました！`);
     */
     } else if (item.type === "grant_random_curse") {
-      const activeCount = tokens.filter(t => t?.type === 'skill' || t?.isCurse).length;
-      const passiveCount = tokens.filter(t => t && t?.type !== 'skill' && !t?.isCurse).length;
       const maxSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount;
 
-      const cursePool = ALL_TOKEN_BASES.filter(t => (t.type === 'curse' || t.isCurse) && t.id !== 'curse_multiplied_p' && t.id !== 'curse_multiplied_a');
-      if (cursePool.length === 0) return notify("呪いが見つかりません");
+      // 先に枠の空きを確認し、空いている枠に入る呪いだけから抽選する
+      const cursePool = filterPoolByFreeSlots(
+        ALL_TOKEN_BASES.filter(t => (t.type === 'curse' || t.isCurse) && t.id !== 'curse_multiplied_p' && t.id !== 'curse_multiplied_a'),
+        tokens, maxSlots
+      );
+      if (cursePool.length === 0) return notify("トークン枠がいっぱいで呪いを受け取れません");
 
       const randomCurseBase = cursePool[Math.floor(Math.random() * cursePool.length)];
       const isCurseActive = randomCurseBase.type === 'skill' || randomCurseBase.isCurse;
-
-      if (isCurseActive && activeCount >= maxSlots) return notify(`アクティブ枠がいっぱいで呪いを受け取れません`);
-      if (!isCurseActive && passiveCount >= maxSlots) return notify(`パッシブ枠がいっぱいで呪いを受け取れません`);
 
       if (clickPos) {
         spawnParticles(8, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
