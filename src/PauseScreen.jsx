@@ -2,7 +2,7 @@ import React from 'react';
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
 
-const PauseScreen = ({ onResume, onTitle, onHelp, onStats, onCredits, onSettings }) => {
+const PauseScreen = ({ onResume, onTitle, onHelp, onStats, onCredits, onSettings, onTitles }) => {
     return (
         <div 
             className="w-full h-full bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-fade-in font-game-cyber"
@@ -38,6 +38,18 @@ const PauseScreen = ({ onResume, onTitle, onHelp, onStats, onCredits, onSettings
                         <span className="material-icons-round text-lg text-indigo-300">help_outline</span>
                         ヘルプ
                     </button>
+                    {onTitles && (
+                        <button
+                            onClick={() => {
+                                onTitles();
+                                soundManager.playSE(SE_IDS.UI_CLICK);
+                            }}
+                            className="w-full btn-game-cyber py-3 flex justify-center items-center gap-2"
+                        >
+                            <span className="material-icons-round text-lg text-amber-400">military_tech</span>
+                            二つ名
+                        </button>
+                    )}
                     <button
                         onClick={() => {
                             onStats();

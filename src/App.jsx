@@ -10,6 +10,9 @@ import SettingsScreen from "./SettingsScreen";
 import StartOptionScreen from "./StartOptionScreen";
 import TokenEncyclopediaScreen from "./TokenEncyclopediaScreen";
 import UIPreviewScreen from "./UIPreviewScreen";
+import TitleEncyclopediaScreen from "./TitleEncyclopediaScreen";
+import TitleInfoPanel, { EquippedTitleChip } from "./TitleInfoPanel";
+import { loadTitleState } from "./utils/titleManager";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { getEnchantDescription } from './constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, INITIAL_TOKEN_SLOTS } from './constants/gameConstants.js';
@@ -128,6 +131,14 @@ const App = () => {
 
   const [showSlotExpandConfirm, setShowSlotExpandConfirm] = React.useState(false);
   const [showUIPreview, setShowUIPreview] = React.useState(false);
+  // ゲームプレイ中の二つ名表示・切り替え
+  const [equippedTitle, setEquippedTitle] = React.useState(() => loadTitleState().equippedTitle);
+  const [showTitleInfo, setShowTitleInfo] = React.useState(false);
+  const [showTitleSwitcher, setShowTitleSwitcher] = React.useState(false);
+  // タイトル画面の図鑑で変更された場合に備え、ゲーム画面へ戻る際に再読込
+  React.useEffect(() => {
+    if (!showTitle) setEquippedTitle(loadTitleState().equippedTitle);
+  }, [showTitle]);
   const [showComboDetails, setShowComboDetails] = React.useState(false);
 
   if (showUIPreview) {
@@ -257,14 +268,14 @@ const App = () => {
             <div className="flex flex-col">
               {isPracticeMode ? (
                 <>
-                  <span className="text-xs font-semibold tracking-wider text-indigo-400 uppercase">Mode</span>
+                  <EquippedTitleChip equippedTitle={equippedTitle} onClick={() => setShowTitleInfo(true)} />
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-black text-white whitespace-nowrap tracking-wide">PRACTICE</span>
                   </div>
                 </>
               ) : (
                 <>
-                  <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
+                  <EquippedTitleChip equippedTitle={equippedTitle} onClick={() => setShowTitleInfo(true)} />
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-bold text-white whitespace-nowrap">
                       <span className="text-[10px] uppercase text-slate-400 mr-1">Cycle</span>
@@ -1092,6 +1103,37 @@ const App = () => {
                   onStats={() => setShowStats(true)}
                   onCredits={() => setShowCredits(true)}
                   onSettings={() => setShowSettings(true)}
+                  onTitles={() => setShowTitleInfo(true)}
+                />
+              </div>
+            )
+          }
+
+          {/* 装備中二つ名の詳細 (ポーズ画面より上) */}
+          {
+            showTitleInfo && (
+              <TitleInfoPanel
+                equippedTitle={equippedTitle}
+                onClose={() => setShowTitleInfo(false)}
+                onChangeTitle={() => {
+                  setShowTitleInfo(false);
+                  setShowTitleSwitcher(true);
+                }}
+              />
+            )
+          }
+
+          {/* 二つ名の切り替え (図鑑画面を流用) */}
+          {
+            showTitleSwitcher && (
+              <div className="absolute inset-0 z-[430]">
+                <TitleEncyclopediaScreen
+                  currentRunStats={currentRunStats}
+                  onClose={() => {
+                    setEquippedTitle(loadTitleState().equippedTitle);
+                    setShowTitleSwitcher(false);
+                    setShowTitleInfo(true);
+                  }}
                 />
               </div>
             )
