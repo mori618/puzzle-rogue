@@ -33,6 +33,10 @@ const App = () => {
     hasSaveData,
     setHasSaveData,
     tokens,
+    gambleState,
+    pickGambleChest,
+    startGambleDoubleUp,
+    closeGamble,
     isGameOver,
     setIsGameOver,
     target,
@@ -1326,6 +1330,82 @@ const App = () => {
                 </div>
               </div>
             )
+          }
+
+          {/* Gamble Modal（ギャンブル: 宝箱選択） */}
+          {
+            gambleState && (() => {
+              const isDouble = gambleState.stage === 'double';
+              const picked = gambleState.pickedIndex;
+              const resultInfo = {
+                double: { label: 'スター×2', icon: 'stars', color: 'text-amber-300' },
+                nothing: { label: '何も起きない', icon: 'remove_circle_outline', color: 'text-slate-300' },
+                half: { label: 'スター半減', icon: 'trending_down', color: 'text-red-400' },
+                triple: { label: 'スター×3', icon: 'auto_awesome', color: 'text-amber-300' },
+                levelup: { label: 'Lv UP', icon: 'upgrade', color: 'text-emerald-300' },
+                tenth: { label: 'スター1/10', icon: 'heart_broken', color: 'text-red-500' },
+              };
+              return (
+                <div className="fixed inset-0 z-[320] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+                  <div className={`bg-slate-800 w-full max-w-sm rounded-2xl p-6 border shadow-2xl ${isDouble ? 'border-amber-400/60' : 'border-white/10'}`}>
+                    <h3 className="text-xl font-bold font-display text-white mb-1 text-center italic">
+                      {isDouble ? 'ダブルアップチャンス！' : gambleState.tokenName || 'ギャンブル'}
+                    </h3>
+                    <p className="text-xs text-slate-400 text-center mb-5">
+                      {picked === null
+                        ? (isDouble ? '「スター×3」「ランダムなトークンLv UP」「スター1/10」のどれかが入っている' : '「スター×2」「何も起きない」「スター半減」のどれかが入っている')
+                        : '結果'}
+                    </p>
+                    <div className="grid grid-cols-3 gap-3 mb-5">
+                      {gambleState.chests.map((content, idx) => {
+                        const isOpen = picked !== null;
+                        const isPicked = picked === idx;
+                        const info = resultInfo[content];
+                        return (
+                          <button
+                            key={idx}
+                            data-testid={`gamble-chest-${idx}`}
+                            onClick={() => pickGambleChest(idx)}
+                            disabled={isOpen}
+                            className={`aspect-square rounded-xl flex flex-col items-center justify-center border-2 transition-all active:scale-95 ${isOpen
+                              ? (isPicked ? 'bg-slate-700 border-amber-300 scale-105' : 'bg-slate-900/60 border-white/5 opacity-50')
+                              : 'bg-gradient-to-b from-amber-700 to-amber-900 border-amber-400/70 hover:brightness-110'}`}
+                          >
+                            {isOpen ? (
+                              <>
+                                <span className={`material-icons-round text-3xl ${info.color}`}>{info.icon}</span>
+                                <span className={`text-[10px] font-bold mt-1 ${info.color}`}>{info.label}</span>
+                              </>
+                            ) : (
+                              <span className="material-icons-round text-4xl text-amber-200">inventory_2</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {picked !== null && (
+                      <div className="flex flex-col gap-3">
+                        {gambleState.doubleUpOffered ? (
+                          <>
+                            <p className="text-sm text-amber-300 font-bold text-center">ダブルアップチャンス発生！挑戦しますか？</p>
+                            <button onClick={startGambleDoubleUp} className="bg-amber-500 text-slate-900 py-3 rounded-xl font-bold active:scale-95 shadow-lg">
+                              挑戦する
+                            </button>
+                            <button onClick={closeGamble} className="bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95">
+                              やめておく
+                            </button>
+                          </>
+                        ) : (
+                          <button onClick={closeGamble} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg">
+                            閉じる
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()
           }
 
           {/* Token Detail Modal */}

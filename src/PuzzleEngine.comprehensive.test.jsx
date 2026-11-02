@@ -164,6 +164,7 @@ describe('0. トークン定義の完全性チェック', () => {
     // tokens.js から実際に取得した完全アクションリスト
     const KNOWN_ACTIONS = [
       'board_balance', 'board_change',
+      'gamble', 'rabbit_combo', 'wolf_hunt',
       'buff_cross_mult', 'buff_l_shape_mult', 'buff_len4_mult',
       'buff_row_mult', 'buff_square_judgment', 'buff_square_mult',
       'calm', 'charge_boost', 'col_fix',
@@ -1636,6 +1637,7 @@ describe('31. パッシブトークンの全効果タイプ存在確認', () => 
     // tokens.js から node で実際に取得した完全パッシブ effect リスト
     const KNOWN_PASSIVE_EFFECTS = [
       'absolute_limit_break', 'acrobat', 'active_duration_boost',
+      'rabbit_count_combo_mult',
       'add_probability', 'additive_mastery', 'alchemy',
       'attribute_count_multiplier', 'auto_charge', 'awakening',
       'base_add', 'bomb_chance_color', 'bomb_erase_mult',

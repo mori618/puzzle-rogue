@@ -12,7 +12,7 @@ import TokenEncyclopediaScreen from "../TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, ENCHANTMENTS } from '../constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost } from '../constants/gameConstants.js';
-import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, applyNewTokenLevel, isProbabilityToken } from '../utils/tokenUtils';
+import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, applyNewTokenLevel, isProbabilityToken, isRabbitToken, countRabbitTokens, RABBIT_TOKEN_IDS } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
@@ -88,6 +88,8 @@ export const useGameState = () => {
   // 直前の手番結果による「条件達成（緑）」表示を出すかどうか。次の操作開始・次サイクル開始で消す
   const [showLastTurnConditions, setShowLastTurnConditions] = useState(false);
   const [hasUsedActiveSkillThisTurn, setHasUsedActiveSkillThisTurn] = useState(false);
+  // ギャンブルスキルの宝箱選択状態（null のとき非表示）
+  const [gambleState, setGambleState] = useState(null);
   // スキル使用によって消去されたドロップ数をターン終了時にマージするための一時的な状態
   const [skillErasedCounts, setSkillErasedCounts] = useState({});
 
@@ -2315,6 +2317,16 @@ export const useGameState = () => {
         }
       }
 
+      if (t.effect === "rabbit_count_combo_mult") {
+        // うさぎ: コンボ倍率にプラス（うさぎトークン数 × 値 + 1）
+        const rabbitCount = countRabbitTokens(tokens);
+        const addVal = rabbitCount * (t.values?.[lv - 1] || 1) + 1;
+        if (isInstant) triggerPassive(tId);
+        addedMultiplier += addVal;
+        logData.multipliers.push(`rabbit_count_combo_mult:+${addVal.toFixed(2)}`);
+        logData.multiplierSteps.push({ label: t.name || 'うさぎ', value: 1.0 + addVal, addedValue: addVal, type: 'add', tokenId: tId });
+      }
+
       if (t.effect === "level3_count_combo_mult") {
         const level3Count = tokens.filter(tok => tok?.level === 3).length;
         const base = t.values?.[lv - 1] || 1;
@@ -2853,6 +2865,20 @@ export const useGameState = () => {
           bonus += val;
           logData.bonuses.push(`skill_combo_bonus:+${val}`);
           logData.bonusSteps.push({ label: buff.name || 'スキルボーナス', value: val });
+        }
+      } else if (buff.action === "rabbit_combo_add") {
+        const val = buff.params?.value || 0;
+        if (val > 0) {
+          bonus += val;
+          logData.bonuses.push(`rabbit_combo_add:+${val}`);
+          logData.bonusSteps.push({ label: buff.name || 'うさぎ', value: val });
+        }
+      } else if (buff.action === "wolf_mult_add") {
+        const addVal = buff.params?.value || 0;
+        if (addVal > 0) {
+          addedMultiplier += addVal;
+          logData.multipliers.push(`wolf_mult_add:+${addVal}`);
+          logData.multiplierSteps.push({ label: buff.name || '狼', value: 1.0 + addVal, addedValue: addVal, type: 'add' });
         }
       } else if (buff.action === "temp_mult") {
         multMultiplier *= buff.params.multiplier;
@@ -5604,6 +5630,73 @@ export const useGameState = () => {
   };
 
   // generateShop, buyItem, handleChoice 等は useShop フックへ移行されました
+  // 配列をシャッフルした新しい配列を返す（Fisher–Yates）
+  const shuffleArray = (arr) => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  // --- ギャンブル: 宝箱を選ぶ ---
+  const pickGambleChest = (index) => {
+    if (!gambleState || gambleState.pickedIndex !== null) return;
+    const result = gambleState.chests[index];
+    let doubleUpOffered = false;
+    switch (result) {
+      case 'double':
+        setStars(s => Math.floor(s * 2));
+        notify('大当たり！所持スターが2倍になった！');
+        soundManager.playSE(SE_IDS.MATCH_STAR);
+        doubleUpOffered = gambleState.stage === 'first' && Math.random() < (gambleState.doubleUpChance || 0);
+        break;
+      case 'half':
+        setStars(s => Math.floor(s / 2));
+        notify('ハズレ…所持スターが半分になった');
+        soundManager.playSE(SE_IDS.ERROR);
+        break;
+      case 'triple':
+        setStars(s => Math.floor(s * 3));
+        notify('超大当たり！所持スターが3倍になった！');
+        soundManager.playSE(SE_IDS.MATCH_STAR);
+        break;
+      case 'levelup':
+        levelUpRandomTokens(1);
+        break;
+      case 'tenth':
+        setStars(s => Math.floor(s / 10));
+        notify('大ハズレ…所持スターが10分の1になった');
+        soundManager.playSE(SE_IDS.ERROR);
+        break;
+      default:
+        notify('何も起きなかった');
+        break;
+    }
+    playLog.event('gamble', { stage: gambleState.stage, result, doubleUp: doubleUpOffered });
+    setGambleState(prev => (prev ? { ...prev, pickedIndex: index, doubleUpOffered } : prev));
+  };
+
+  // --- ギャンブル: ダブルアップに挑戦 ---
+  const startGambleDoubleUp = () => {
+    if (!gambleState || !gambleState.doubleUpOffered) return;
+    setGambleState(prev => (prev ? {
+      ...prev,
+      stage: 'double',
+      chests: shuffleArray(['triple', 'levelup', 'tenth']),
+      pickedIndex: null,
+      doubleUpOffered: false,
+    } : prev));
+  };
+
+  // --- ギャンブル: 終了 ---
+  const closeGamble = () => {
+    // 宝箱を選ぶ前に閉じることはできない
+    if (gambleState && gambleState.pickedIndex === null) return;
+    setGambleState(null);
+  };
+
   const activateSkill = (token) => {
     if (!token || token.type !== "skill") return;
 
@@ -6185,6 +6278,97 @@ export const useGameState = () => {
         break;
       }
 
+      case "gamble": {
+        const lv = token.level || 1;
+        const doubleUpChance = token.values?.[lv - 1] ?? 0.2;
+        setGambleState({
+          stage: 'first',
+          chests: shuffleArray(['double', 'nothing', 'half']),
+          pickedIndex: null,
+          doubleUpChance,
+          doubleUpOffered: false,
+          tokenName: token.name,
+          tokenInstanceId: token.instanceId,
+        });
+        notify(`${token.name} 発動！宝箱を1つ選んでください`);
+        break;
+      }
+      case "rabbit_combo": {
+        const lv = token.level || 1;
+        const perRabbit = token.values?.[lv - 1] || 3;
+        const rabbitCount = countRabbitTokens(tokens);
+        const comboAdd = rabbitCount * perRabbit;
+        const finalDuration = 2 + extraDuration;
+        setActiveBuffs(prev => [
+          ...prev,
+          {
+            id: Date.now() + Math.random(),
+            action: "rabbit_combo_add",
+            params: { value: comboAdd },
+            duration: finalDuration,
+            maxDuration: finalDuration,
+            tokenId: token.instanceId || token.id,
+            name: `${token.name} (+${comboAdd}コンボ)`,
+          },
+        ]);
+        notify(`${token.name} 発動！ ${finalDuration}手番の間コンボ+${comboAdd}`);
+
+        // 一定確率でうさぎトークンを獲得（確率系2倍バフの対象）
+        let getChance = token.effectValues?.[lv - 1] ?? 0.1;
+        if (activeBuffs.some(b => b.action === "double_probability")) getChance *= 2;
+        if (Math.random() < getChance) {
+          const maxSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount;
+          const rabbitPool = filterPoolByFreeSlots(
+            ALL_TOKEN_BASES.filter(b => RABBIT_TOKEN_IDS.includes(b.id)),
+            tokens, maxSlots
+          );
+          const rabbitBase = rabbitPool[Math.floor(Math.random() * rabbitPool.length)];
+          if (rabbitBase) {
+            const newToken = applyNewTokenLevel({
+              ...rabbitBase,
+              instanceId: Date.now() + Math.random(),
+              level: 1,
+              charge: rabbitBase.type === 'skill' ? (rabbitBase.cost || 0) : 0,
+            }, { currentRunStats, tokens, activeBuffs });
+            setTokens(prev => [...prev.filter(t => t !== null), newToken]);
+            addTokenToast(newToken, `が仲間になった！ (${token.name})`);
+          }
+        }
+        break;
+      }
+      case "wolf_hunt": {
+        const lv = token.level || 1;
+        const perRabbit = token.values?.[lv - 1] || 2;
+        const eatenNow = countRabbitTokens(tokens);
+        const totalEaten = (token.eatenRabbits || 0) + eatenNow;
+        const addVal = totalEaten * perRabbit;
+        // うさぎを盤外へ（トークン一覧から除去）し、狼に捕食数を記録
+        // 後続のチャージ消費処理は参照（t === token）で自身を特定するため、
+        // オブジェクトを差し替えずに捕食数を記録する（チャージ消費時のコピーで引き継がれる）
+        token.eatenRabbits = totalEaten;
+        setTokens(prev => prev.filter(t => !isRabbitToken(t)));
+        if (addVal > 0) {
+          const finalDuration = 2 + extraDuration;
+          setActiveBuffs(prev => [
+            ...prev,
+            {
+              id: Date.now() + Math.random(),
+              action: "wolf_mult_add",
+              params: { value: addVal },
+              duration: finalDuration,
+              maxDuration: finalDuration,
+              tokenId: token.instanceId || token.id,
+              name: `${token.name} (倍率+${addVal})`,
+            },
+          ]);
+          notify(eatenNow > 0
+            ? `${token.name} がうさぎを${eatenNow}匹捕食！ ${finalDuration}手番の間コンボ倍率+${addVal}`
+            : `${token.name} 発動！ ${finalDuration}手番の間コンボ倍率+${addVal}`);
+        } else {
+          notify(`${token.name}: 捕食できるうさぎがいない…`);
+        }
+        break;
+      }
       case "random_levelup": {
         const upgradeable = tokens.filter(t =>
           t &&
@@ -6368,6 +6552,7 @@ export const useGameState = () => {
     isLoaded, setIsLoaded,
     hasSaveData, setHasSaveData,
     tokens, setTokens,
+    gambleState, pickGambleChest, startGambleDoubleUp, closeGamble,
     sandsOfTimeSeconds, setSandsOfTimeSeconds,
     isGameOver, setIsGameOver,
     target, setTarget,
