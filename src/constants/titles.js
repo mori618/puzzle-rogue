@@ -46,10 +46,10 @@
 export const PREFIX_TITLES = [
   {
     id: 'A01', name: '神速の', category: '操作時間',
-    desc: '操作時間 +1秒',
+    desc: '操作時間 +1秒、手番終了時の残り操作時間1秒につきコンボ +1（最大 +5）',
     conditionType: 'clear_time_left_max', targetValue: 3,
     conditionDesc: '操作時間を3秒以上残して、サイクルクリアする手番を終える',
-    effects: [{ type: 'time_add', value: 1000 }],
+    effects: [{ type: 'time_add', value: 1000 }, { type: 'combo_add', value: 1, per: 'time_left_sec', max: 5 }],
   },
   {
     id: 'A02', name: '狂戦士の', category: 'リスク・火力',
@@ -151,10 +151,10 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A16', name: '孤高の', category: '少数精鋭',
-    desc: 'トークン所持数3個以下でコンボ倍率 +1.0',
+    desc: 'トークン所持数3個以下でコンボ倍率 +2.0',
     conditionType: 'low_token_cycle', targetValue: 3,
     conditionDesc: 'トークン3個以下でサイクル3をクリア',
-    effects: [{ type: 'add_mult', value: 1.0, when: { tokens_le: 3 } }],
+    effects: [{ type: 'add_mult', value: 2.0, when: { tokens_le: 3 } }],
   },
   {
     id: 'A17', name: '紅蓮の詠唱', category: 'アクティブ（炎）',
@@ -172,10 +172,10 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A19', name: '密売人の', category: '呪い・経済',
-    desc: '呪いトークン売却時、追加で +10スター獲得',
+    desc: '呪いトークン売却時、追加で +30スター獲得',
     conditionType: 'curses_sold', targetValue: 3,
     conditionDesc: '呪いトークンを累計3回売却',
-    effects: [{ type: 'curse_sell_bonus', value: 10 }],
+    effects: [{ type: 'curse_sell_bonus', value: 30 }],
   },
   {
     id: 'A20', name: '先達の', category: '成長',
@@ -256,10 +256,10 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A31', name: '爆炎の', category: '特殊ドロップ',
-    desc: 'その手番に消したボムドロップ1個につきコンボ +2（最大+40）',
+    desc: 'その手番に消したボムドロップ1個につきコンボ +5（最大3個分、+15）',
     conditionType: 'bomb_erased', targetValue: 15,
     conditionDesc: 'ボムドロップを累計15個消去',
-    effects: [{ type: 'combo_add', value: 2, per: 'bomb_erased', max: 20 }],
+    effects: [{ type: 'combo_add', value: 5, per: 'bomb_erased', max: 3 }],
   },
   {
     id: 'A32', name: '反響の', category: '特殊ドロップ',
@@ -279,10 +279,10 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A34', name: '完璧なる', category: '全消し',
-    desc: '全消しした手番、最終コンボ倍率 1.5倍',
+    desc: '全消しした手番、最終コンボ倍率 2.5倍',
     conditionType: 'all_clears', targetValue: 3,
     conditionDesc: '盤面の全消しを累計3回達成',
-    effects: [{ type: 'final_mult', value: 1.5, when: { all_clear: true } }],
+    effects: [{ type: 'final_mult', value: 2.5, when: { all_clear: true } }],
   },
   {
     id: 'A35', name: '不屈の', category: '逆境',
@@ -314,7 +314,7 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A39', name: '連鎖の', category: 'コンボ',
-    desc: '消したコンボ1につきコンボ倍率 +0.05（最大+1.0）',
+    desc: 'その手番に消したコンボ数1につきコンボ倍率 +0.05（20コンボで最大 +1.0）',
     conditionType: 'raw_combo_turn_max', targetValue: 15,
     conditionDesc: '1手で15コンボ（倍率適用前）を達成',
     effects: [{ type: 'add_mult', value: 0.05, per: 'tc', max: 20 }],
@@ -372,17 +372,17 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A47', name: '熟練の', category: 'やり込み',
-    desc: '操作時間 +1.5秒',
+    desc: '操作時間 +2秒、コンボ倍率 +0.3',
     conditionType: 'turns_played', targetValue: 1000,
     conditionDesc: '累計1,000手番プレイ',
-    effects: [{ type: 'time_add', value: 1500 }],
+    effects: [{ type: 'time_add', value: 2000 }, { type: 'add_mult', value: 0.3 }],
   },
   {
     id: 'A48', name: '純色の', category: 'コンボ',
-    desc: '1属性のみを消した手番、コンボ倍率 +1.0',
+    desc: '1属性のみを消した手番、コンボ倍率 +2.0',
     conditionType: 'mono_color_combo_max', targetValue: 6,
     conditionDesc: '1属性のみで1手6コンボを達成',
-    effects: [{ type: 'add_mult', value: 1.0, when: { colors_le: 1 } }],
+    effects: [{ type: 'add_mult', value: 2.0, when: { colors_le: 1 } }],
   },
   {
     id: 'A49', name: '回生の', category: '属性（回復）',
@@ -966,8 +966,8 @@ export const TITLE_SET_BONUSES = [
   },
   {
     id: 'S13', prefixId: 'A31', suffixId: 'B36', titleName: '【終末の爆心地】',
-    desc: 'その手番に消したボムドロップ1個につきコンボ倍率 +0.25（最大+5.0）。',
-    effects: [{ type: 'add_mult', value: 0.25, per: 'bomb_erased', max: 20 }],
+    desc: 'その手番に消したボムドロップ1個につきコンボ倍率 +1.0（最大3個分、+3.0）。',
+    effects: [{ type: 'add_mult', value: 1.0, per: 'bomb_erased', max: 3 }],
   },
   {
     id: 'S14', prefixId: 'A12', suffixId: 'B41', titleName: '【静寂の疾走者】',

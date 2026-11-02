@@ -532,3 +532,36 @@ describe('二つ名の解放条件の見直し（グループ8）', () => {
     expect(getEquippedTitleInfo(loadTitleState().equippedTitle).prefix?.name).toBe('商才の');
   });
 });
+
+describe('二つ名の効果の調整（グループ9）', () => {
+  const find = (id) => [...PREFIX_TITLES, ...SUFFIX_TITLES, ...TITLE_SET_BONUSES, ...EVOLVED_TITLES].find(t => t.id === id);
+
+  it('A01 神速の: 残り操作時間1秒につきコンボ +1（最大 +5）', () => {
+    const effects = find('A01').effects;
+    expect(applyTitleTimeLimit(5000, false, effects)).toBe(6000);
+    expect(computeTitleComboModifiers({ timeLeftMs: 2500 }, effects).comboAdd).toBe(2);
+    expect(computeTitleComboModifiers({ timeLeftMs: 9000 }, effects).comboAdd).toBe(5);
+    // 進化先 E01 光速の は残り時間1秒につき倍率 +0.5 で、より強い
+    expect(computeTitleComboModifiers({ timeLeftMs: 3000 }, find('E01').effects).addedMult).toBeCloseTo(1.5);
+  });
+
+  it('A16・A19・A34・A47・A48 の値', () => {
+    expect(computeTitleComboModifiers({ tokenCounts: { token: 3 } }, find('A16').effects).addedMult).toBeCloseTo(2.0);
+    expect(computeTitleComboModifiers({ tokenCounts: { token: 4 } }, find('A16').effects).addedMult).toBe(0);
+    expect(find('A16').conditionType).toBe('low_token_cycle');
+    expect(getTitleEffectTotal('curse_sell_bonus', {}, find('A19').effects)).toBe(30);
+    expect(computeTitleComboModifiers({ isAllClear: true }, find('A34').effects).finalMult).toBeCloseTo(2.5);
+    expect(applyTitleTimeLimit(5000, false, find('A47').effects)).toBe(7000);
+    expect(computeTitleComboModifiers({}, find('A47').effects).addedMult).toBeCloseTo(0.3);
+    const mono = computeTitleComboModifiers({ matchedColors: ['fire'] }, find('A48').effects).addedMult;
+    expect(mono).toBeCloseTo(2.0);
+    // 進化先 E24 無垢の より弱いまま
+    expect(mono).toBeLessThan(computeTitleComboModifiers({ matchedColors: ['fire'] }, find('E24').effects).addedMult);
+  });
+
+  it('A31 爆炎の・S13 終末の爆心地: ボム最大3個分', () => {
+    expect(computeTitleComboModifiers({ bombErased: 2 }, find('A31').effects).comboAdd).toBe(10);
+    expect(computeTitleComboModifiers({ bombErased: 10 }, find('A31').effects).comboAdd).toBe(15);
+    expect(computeTitleComboModifiers({ bombErased: 10 }, find('S13').effects).addedMult).toBeCloseTo(3.0);
+  });
+});
