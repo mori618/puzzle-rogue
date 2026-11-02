@@ -3876,11 +3876,11 @@ const ALL_TOKEN_BASES = [
     type: "passive",
     effect: "square_count",
     isCountPassive: true,
-    values: [3, 3, 3],
+    values: [2, 2, 2],
     effectValues: [1.5, 2.0, 3.0],
     rarity: 2,
     price: 18,
-    desc: "正方形消しを累計3回成功させるごとに、ターン終了後に獲得コンボ数を[1.5/2/3]倍する。（現在: {charge}回）",
+    desc: "正方形消しを累計2回成功させるごとに、ターン終了後に獲得コンボ数を[1.5/2/3]倍する。（現在: {charge}回）",
     attributes: [],
     canBeInitial: true
   },
@@ -3966,7 +3966,7 @@ const ALL_TOKEN_BASES = [
   },
   {
     id: "row_free_reroll",
-    name: "横列 of 恩恵",
+    name: "横列の恩恵",
     icon: "local_play",
     type: "passive",
     effect: "row_free_reroll",
@@ -3997,10 +3997,10 @@ const ALL_TOKEN_BASES = [
     icon: "stars",
     type: "passive",
     effect: "len4_plus",
-    values: [1, 2, 3],
+    values: [2, 3, 5],
     rarity: 1,
     price: 16,
-    desc: "4個消しした際、盤面のランダムなドロップ[1/2/3]個をプラスドロップにする。",
+    desc: "4個消しした際、盤面のランダムなドロップ[2/3/5]個をプラスドロップにする。",
     attributes: [],
     canBeInitial: true
   },
@@ -4048,15 +4048,15 @@ const ALL_TOKEN_BASES = [
   */
   {
     id: "len5_count_level_up",
-    name: "5連 of 成長",
+    name: "5連の成長",
     icon: "upgrade",
     type: "passive",
     effect: "len5_count",
     isCountPassive: true,
-    values: [10, 8, 1],
+    values: [6, 5, 1],
     rarity: 3,
     price: 26,
-    desc: "5個以上連結消しを累計[10/8/1]回するごとに、効果が発動する。ランダムなトークンをレベルアップさせる。（現在: {charge}回）",
+    desc: "5個以上連結消しを累計[6/5/1]回するごとに、効果が発動する。ランダムなトークンをレベルアップさせる。（現在: {charge}回）",
     attributes: [],
     canBeInitial: true
   },
@@ -4087,7 +4087,7 @@ const ALL_TOKEN_BASES = [
   },
   {
     id: "contagious_enchant",
-    name: "伝染 of 刻印",
+    name: "伝染の刻印",
     icon: "control_point_duplicate",
     type: "passive",
     effect: "contagious_enchant",
