@@ -2273,7 +2273,8 @@ export const useGameState = () => {
         const v = (t.values?.[lv - 1] || 0.1) * attrCount;
         if (v > 0) {
           if (isInstant) triggerPassive(tId);
-          multMultiplier *= (1.0 + v);
+          // 説明文どおり「基礎コンボ数」に掛かる倍率として扱う
+          baseMultiplier *= (1.0 + v);
           logData.multipliers.push(`${t.id}:x${(1.0 + v).toFixed(2)}`);
           logData.multiplierSteps.push({ label: t.name, value: 1.0 + v, type: 'mult', tokenId: tId });
         }
