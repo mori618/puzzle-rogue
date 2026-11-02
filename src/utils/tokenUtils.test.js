@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { pickTokensForFreeSlots, applyNewTokenLevel, isNewTokenLevelTarget } from './tokenUtils.js';
+import { pickTokensForFreeSlots, applyNewTokenLevel, isNewTokenLevelTarget, isTokenRequirementMet } from './tokenUtils.js';
+import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { saveTitleState, resetTitleCache } from './titleManager.js';
 
 const skill = (id) => ({ id, type: 'skill' });
@@ -79,5 +80,22 @@ describe('applyNewTokenLevel（二つ名「先達の」）', () => {
   it('最大レベルを超えない', () => {
     expect(applyNewTokenLevel({ ...base, values: [5] }, { level: 2 }).level).toBe(1);
     expect(applyNewTokenLevel({ ...base, level: 3 }, { level: 2 }).level).toBe(3);
+  });
+});
+
+describe('isTokenRequirementMet', () => {
+  it('requires 未指定なら常に true', () => {
+    expect(isTokenRequirementMet({ id: 'x' }, [])).toBe(true);
+  });
+  it('前提トークン未所持なら false、所持なら true', () => {
+    const dependent = ALL_TOKEN_BASES.find(t => t.id === 'move_drop_boost');
+    expect(dependent.requires).toBe('move_drop');
+    expect(isTokenRequirementMet(dependent, [null, { id: 'other' }])).toBe(false);
+    expect(isTokenRequirementMet(dependent, [{ id: 'move_drop', effect: 'move_drop' }])).toBe(true);
+  });
+  it('ムーブドロップ関連トークンはすべて move_drop を前提にする', () => {
+    ['move_drop_add_active', 'move_drop_boost', 'move_drop_lucky', 'move_repeater', 'cross_multiply_move_drop'].forEach(id => {
+      expect(ALL_TOKEN_BASES.find(t => t.id === id)?.requires).toBe('move_drop');
+    });
   });
 });

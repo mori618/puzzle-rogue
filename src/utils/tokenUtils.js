@@ -508,3 +508,13 @@ export const applyNewTokenLevel = (token, opts = {}) => {
     return leveled;
 };
 
+
+/**
+ * 前提トークン（base.requires）を所持しているか判定する。
+ * requires は所持トークンの id または effect と照合する。requires 未指定なら常に true。
+ */
+export const isTokenRequirementMet = (base, tokens = []) => {
+  if (!base?.requires) return true;
+  const reqs = Array.isArray(base.requires) ? base.requires : [base.requires];
+  return reqs.every(req => tokens.some(t => t && (t.id === req || t.effect === req)));
+};

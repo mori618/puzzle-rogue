@@ -27,6 +27,8 @@ const TOKEN_PRICE_TIER = {
   multiplierPerStep: 0.2,
 };
 const SHOP_REROLL_GROWTH_FACTOR = 1.3;
+// 前提トークン（requires）を満たした関連トークンのショップ価格倍率（例: ムーブドロップ所持時の関連トークン）
+const SYNERGY_PRICE_MULTIPLIER = 0.8;
 
 /** 覚醒ショップでのトークン枠拡張に必要なスター数 */
 const AWAKENING_TOKEN_SLOT_PRICES = [50, 500, 2000, 10000, 50000];
@@ -39,5 +41,5 @@ const TITLE_SWITCH_COST = { base: 5, step: 5 };
 /** 切り替え回数から次回の価格を求める */
 const getTitleSwitchCost = (switchCount = 0) => TITLE_SWITCH_COST.base + TITLE_SWITCH_COST.step * Math.max(0, switchCount);
 
-export { TITLE_SWITCH_COST, getTitleSwitchCost, MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_TIER, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS };
+export { TITLE_SWITCH_COST, getTitleSwitchCost, MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_TIER, SHOP_REROLL_GROWTH_FACTOR, SYNERGY_PRICE_MULTIPLIER, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS };
 

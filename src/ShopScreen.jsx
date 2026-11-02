@@ -98,6 +98,9 @@ const NormalItemCard = ({ item, stars, onBuy, isBought }) => {
                     {item.isSale && (
                         <span className="text-[9px] bg-red-500/20 text-red-300 border border-red-500/30 px-1.5 py-0.2 rounded-full font-bold">SALE</span>
                     )}
+                    {item.isSynergy && (
+                        <span className="text-[9px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.2 rounded-full font-bold">相性割引</span>
+                    )}
                 </div>
                 <p className="text-xs text-slate-400 mt-1 leading-tight">{item.desc}</p>
             </div>
