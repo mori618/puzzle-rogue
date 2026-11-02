@@ -1,6 +1,6 @@
 /**
  * 二つ名（称号）システム 全マスターデータ
- * A枠パーツ(62種) + B枠パーツ(63種) + 派生進化(50種) = 全175件
+ * A枠パーツ(69種) + B枠パーツ(69種) + 派生進化(50種) = 全188件
  * （隠しセットシナジー S01〜S49 は廃止し、進化二つ名に移した。docs/title-evolution-plan.md）
  *
  * ■ 解放条件
@@ -50,7 +50,7 @@
  *   定義は残すが、解放・装備・図鑑表示の対象から外す（titleManager.isTitleDisabled）。
  */
 
-// 1. A枠パーツ（接頭辞）マスターデータ（全62種）
+// 1. A枠パーツ（接頭辞）マスターデータ（全69種）
 // 特殊消し（A26〜A30・A61）の強さは消し方の難しさの順:
 //   4つ消し(A61) ≤ 5個以上消し(A30) < L字消し(A28) < 横一列(A29) < 十字消し(A26) < 正方形消し(A27)
 export const PREFIX_TITLES = [
@@ -498,9 +498,58 @@ export const PREFIX_TITLES = [
     conditionDesc: '最初から解放済み',
     effects: [{ type: 'time_add', value: 1000 }],
   },
+  {
+    id: 'A63', name: '休日の', category: '盤面',
+    desc: '炎・雨・風・ハートのドロップしか降ってこなくなる（雷・月が降らない）',
+    conditionType: 'attr_sold_dark', targetValue: 6,
+    conditionDesc: '月属性のトークンを累計6個売却',
+    effects: [{ type: 'spawn_only', colors: ['fire', 'water', 'wood', 'heart'] }],
+  },
+  {
+    id: 'A64', name: '豪雨の中の', category: '盤面（炎）',
+    desc: '炎ドロップが降ってこなくなる（盤面にある炎ドロップや、アクティブスキルで作る炎ドロップは消えない）',
+    conditionType: 'attr_sold_fire', targetValue: 8,
+    conditionDesc: '炎属性のトークンを累計8個売却',
+    effects: [{ type: 'spawn_exclude', colors: ['fire'] }],
+  },
+  {
+    id: 'A65', name: '快晴の中の', category: '盤面（雨）',
+    desc: '雨ドロップが降ってこなくなる（盤面にある雨ドロップや、アクティブスキルで作る雨ドロップは消えない）',
+    conditionType: 'attr_sold_water', targetValue: 8,
+    conditionDesc: '雨属性のトークンを累計8個売却',
+    effects: [{ type: 'spawn_exclude', colors: ['water'] }],
+  },
+  {
+    id: 'A66', name: '凪に佇む', category: '盤面（風）',
+    desc: '風ドロップが降ってこなくなる（盤面にある風ドロップや、アクティブスキルで作る風ドロップは消えない）',
+    conditionType: 'attr_sold_wood', targetValue: 8,
+    conditionDesc: '風属性のトークンを累計8個売却',
+    effects: [{ type: 'spawn_exclude', colors: ['wood'] }],
+  },
+  {
+    id: 'A67', name: '絶縁の', category: '盤面（雷）',
+    desc: '雷ドロップが降ってこなくなる（盤面にある雷ドロップや、アクティブスキルで作る雷ドロップは消えない）',
+    conditionType: 'attr_sold_light', targetValue: 8,
+    conditionDesc: '雷属性のトークンを累計8個売却',
+    effects: [{ type: 'spawn_exclude', colors: ['light'] }],
+  },
+  {
+    id: 'A68', name: '月食の', category: '盤面（月）',
+    desc: '月ドロップが降ってこなくなる（盤面にある月ドロップや、アクティブスキルで作る月ドロップは消えない）',
+    conditionType: 'attr_sold_dark', targetValue: 8,
+    conditionDesc: '月属性のトークンを累計8個売却',
+    effects: [{ type: 'spawn_exclude', colors: ['dark'] }],
+  },
+  {
+    id: 'A69', name: '傷だらけの', category: '盤面（回復）',
+    desc: 'ハートドロップが降ってこなくなる（盤面にあるハートドロップや、アクティブスキルで作るハートドロップは消えない）',
+    conditionType: 'attr_sold_heart', targetValue: 8,
+    conditionDesc: 'ハート属性のトークンを累計8個売却',
+    effects: [{ type: 'spawn_exclude', colors: ['heart'] }],
+  },
 ];
 
-// 2. B枠パーツ（接尾辞）マスターデータ（全63種）
+// 2. B枠パーツ（接尾辞）マスターデータ（全69種）
 export const SUFFIX_TITLES = [
   {
     id: 'B01', name: '覇王', category: '火力',
@@ -942,6 +991,47 @@ export const SUFFIX_TITLES = [
     conditionType: 'no_active_cycle', targetValue: 5,
     conditionDesc: '1回のゲームでアクティブスキルを1回も使わずにサイクル5をクリア',
     effects: [{ type: 'active_null' }, { type: 'passive_double_chance', value: 0.5 }],
+  },  {
+    id: 'B65', name: 'ストーブ', category: '盤面（炎）',
+    desc: '炎ドロップが降りやすくなる（出現率 ×1.5）',
+    conditionType: 'attr_bought_fire', targetValue: 8,
+    conditionDesc: '炎属性のトークンを累計8個購入',
+    effects: [{ type: 'spawn_weight', color: 'fire', value: 1.5 }],
+  },
+  {
+    id: 'B66', name: 'ジョウロ', category: '盤面（雨）',
+    desc: '雨ドロップが降りやすくなる（出現率 ×1.5）',
+    conditionType: 'attr_bought_water', targetValue: 8,
+    conditionDesc: '雨属性のトークンを累計8個購入',
+    effects: [{ type: 'spawn_weight', color: 'water', value: 1.5 }],
+  },
+  {
+    id: 'B67', name: 'ファン', category: '盤面（風）',
+    desc: '風ドロップが降りやすくなる（出現率 ×1.5）',
+    conditionType: 'attr_bought_wood', targetValue: 8,
+    conditionDesc: '風属性のトークンを累計8個購入',
+    effects: [{ type: 'spawn_weight', color: 'wood', value: 1.5 }],
+  },
+  {
+    id: 'B68', name: 'コンセント', category: '盤面（雷）',
+    desc: '雷ドロップが降りやすくなる（出現率 ×1.5）',
+    conditionType: 'attr_bought_light', targetValue: 8,
+    conditionDesc: '雷属性のトークンを累計8個購入',
+    effects: [{ type: 'spawn_weight', color: 'light', value: 1.5 }],
+  },
+  {
+    id: 'B69', name: 'プラネタリウム', category: '盤面（月）',
+    desc: '月ドロップが降りやすくなる（出現率 ×1.5）',
+    conditionType: 'attr_bought_dark', targetValue: 8,
+    conditionDesc: '月属性のトークンを累計8個購入',
+    effects: [{ type: 'spawn_weight', color: 'dark', value: 1.5 }],
+  },
+  {
+    id: 'B70', name: 'ドクター', category: '盤面（回復）',
+    desc: 'ハートドロップが降りやすくなる（出現率 ×1.5）',
+    conditionType: 'attr_bought_heart', targetValue: 8,
+    conditionDesc: 'ハート属性のトークンを累計8個購入',
+    effects: [{ type: 'spawn_weight', color: 'heart', value: 1.5 }],
   },
 ];
 
