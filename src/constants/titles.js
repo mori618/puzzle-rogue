@@ -1,6 +1,6 @@
 /**
  * 二つ名（称号）システム 全マスターデータ
- * A枠パーツ(62種) + B枠パーツ(64種) + 派生進化(50種) = 全176件
+ * A枠パーツ(62種) + B枠パーツ(63種) + 派生進化(50種) = 全175件
  * （隠しセットシナジー S01〜S49 は廃止し、進化二つ名に移した。docs/title-evolution-plan.md）
  *
  * ■ 解放条件
@@ -28,15 +28,16 @@
  *     combo_add_scale : すべてのコンボ加算(+N)の合計 ×value
  *   操作時間: time_add (ms), time_fixed (ms), time_scale (倍率・積)
  *   ランダム: final_mult_gamble（50%で ×value / 50%で ×1/value）
- *   盤面: spawn_weight {color}, spawn_top_colors {count}, spawn_equalize, spawn_only {colors}, no_skyfall,
+ *   盤面: spawn_weight {color}, spawn_top_colors {count}, spawn_equalize, spawn_only {colors}, spawn_exclude {colors}（その色が降らない）, no_skyfall,
  *         enhance_rate, enhance_color {color}, star_rate
  *   スター: cycle_clear_stars（サイクルクリア時に +value★。per: 'stars_10' で所持スター10につき）, star_threshold_sub, star_gain_mult, cycle_interest, clear_reward_add, reward_mult
- *   ショップ: shop_attr_weight {attribute}（その属性のトークンの出現重み ×value）, shop_slot_add, shop_discount, reroll_fixed, reroll_sub（リロール価格 -value★）, sale_add, free_reroll, sell_rate, sell_bonus, curse_sell_bonus
+ *   ショップ: shop_attr_weight {attribute}（その属性のトークンの出現重み ×value）, shop_slot_add, shop_discount, reroll_fixed, reroll_sub（リロール価格 -value★）, sale_add,
+ *         cycle_free_reroll（サイクルクリア時に無料リロール +value。使わなかった分は持ち越す）, sell_rate, sell_bonus, curse_sell_bonus
  *   トークン/スキル: new_token_level（新しく手に入れたトークンの初期レベル。呪い等は除く）, skill_cost_sub {attribute?}, skill_charge_cycle_start (数値 or 'full', {attribute?}),
- *         skill_refund_chance, skill_charge_add, levelup_on_cycle_start, max_turns_add, curse_null
+ *         skill_refund_chance, skill_fizzle_chance（アクティブスキルの効果が発動しない確率。エネルギーは消費する）, skill_charge_add, levelup_on_cycle_start, max_turns_add, curse_null
  *   トークンの封印: passive_null（パッシブトークン（呪いを除く）の効果が発動しない）, skill_cost_fixed（アクティブの消費エネルギーを value に固定。呪いを除く）,
  *         active_null（アクティブスキル（呪いを除く）を使えない）, passive_double_chance（手番ごとに各パッシブが value の確率で2回発動）
- *   その他: clear_reward_mult, curse_remove_bonus, inherit_lv3
+ *   その他: clear_reward_mult, curse_remove_bonus
  *
  * ■ ゲーム開始時の効果は持たせない（開始時の初期スター等は廃止。サイクル開始時の効果は可）
  *
@@ -499,14 +500,14 @@ export const PREFIX_TITLES = [
   },
 ];
 
-// 2. B枠パーツ（接尾辞）マスターデータ（全64種）
+// 2. B枠パーツ（接尾辞）マスターデータ（全63種）
 export const SUFFIX_TITLES = [
   {
     id: 'B01', name: '覇王', category: '火力',
-    desc: 'コンボ倍率 +1.5',
+    desc: 'コンボ倍率 +2.0',
     conditionType: 'combo_turn_max', targetValue: 50000,
     conditionDesc: '1手で最終コンボ50,000を達成',
-    effects: [{ type: 'add_mult', value: 1.5 }],
+    effects: [{ type: 'add_mult', value: 2.0 }],
   },
   {
     id: 'B02', name: '収集家', category: 'スター',
@@ -552,10 +553,10 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B08', name: '無双', category: '基礎コンボ',
-    desc: '基礎コンボ数 1.2倍',
+    desc: '基礎コンボ数 1.5倍',
     conditionType: 'base_combo_turn_max', targetValue: 300,
     conditionDesc: '1手で基礎コンボ300を達成',
-    effects: [{ type: 'base_mult', value: 1.2 }],
+    effects: [{ type: 'base_mult', value: 1.5 }],
   },
   {
     id: 'B09', name: '節約家', category: 'ショップ',
@@ -566,10 +567,10 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B10', name: '狂乱者', category: 'アクティブ',
-    desc: 'アクティブスキル使用時、20%の確率でエネルギーを消費しない',
+    desc: 'アクティブスキル使用時、20%の確率でエネルギーを消費しない。ただし 5%の確率でアクティブスキルの効果が発動しない（エネルギーは消費する）',
     conditionType: 'skills_turn_max', targetValue: 3,
     conditionDesc: '1手番でアクティブスキルを3回使用',
-    effects: [{ type: 'skill_refund_chance', value: 0.2 }],
+    effects: [{ type: 'skill_refund_chance', value: 0.2 }, { type: 'skill_fizzle_chance', value: 0.05 }],
   },
   {
     id: 'B11', name: '星詠み', category: 'スタードロップ',
@@ -581,8 +582,8 @@ export const SUFFIX_TITLES = [
   {
     id: 'B12', name: '見切り屋', category: 'ショップ',
     desc: 'ショップのリロール（更新）価格が 2★固定',
-    conditionType: 'rerolls', targetValue: 5,
-    conditionDesc: 'ショップでリロールを累計5回実行',
+    conditionType: 'rerolls', targetValue: 10,
+    conditionDesc: 'ショップでリロールを累計10回実行',
     effects: [{ type: 'reroll_fixed', value: 2 }],
   },
   {
@@ -594,10 +595,10 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B14', name: '調律師', category: '盤面',
-    desc: '降ってくるドロップの全属性出現確率が均等化',
+    desc: 'ハート（回復ドロップ）が降ってこなくなる（盤面にあるハートや、アクティブスキルで作るハートは消えない）',
     conditionType: 'colors_turn_max', targetValue: 5,
     conditionDesc: '1手で5属性以上を消す',
-    effects: [{ type: 'spawn_equalize' }],
+    effects: [{ type: 'spawn_exclude', colors: ['heart'] }],
   },
   {
     id: 'B15', name: '統率者', category: '属性統一',
@@ -651,8 +652,8 @@ export const SUFFIX_TITLES = [
   {
     id: 'B22', name: 'スペシャリスト', category: 'アクティブ',
     desc: 'アクティブトークン4個以上所持で、毎手番のエネルギー獲得 +2',
-    conditionType: 'skill_tokens_max', targetValue: 4,
-    conditionDesc: 'アクティブトークンを4個同時に所持',
+    conditionType: 'skill_tokens_max', targetValue: 6,
+    conditionDesc: 'アクティブトークンを6個同時に所持',
     effects: [{ type: 'skill_charge_add', value: 2, when: { skill_tokens_ge: 4 } }],
   },
   {
@@ -678,10 +679,10 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B26', name: '呪術師', category: '呪い',
-    desc: '所持中の呪い1つにつき基礎コンボ数 1.1倍（最大5個分）',
+    desc: '所持中の呪い1つにつき基礎コンボ数 1.3倍（最大5個分）',
     conditionType: 'curses_removed', targetValue: 10,
     conditionDesc: '呪いを累計10回解呪',
-    effects: [{ type: 'base_mult', value: 1.1, per: 'curse', max: 5 }],
+    effects: [{ type: 'base_mult', value: 1.3, per: 'curse', max: 5 }],
   },
   {
     id: 'B27', name: '旅人', category: '経済',
@@ -714,16 +715,16 @@ export const SUFFIX_TITLES = [
   {
     id: 'B31', name: '賢者', category: 'アクティブ',
     desc: '全アクティブスキルの消費エネルギー -1',
-    conditionType: 'skill_convert_max', targetValue: 20,
-    conditionDesc: 'アクティブスキル1回で盤面のドロップを20個以上変化させる',
+    conditionType: 'skills_used', targetValue: 100,
+    conditionDesc: 'アクティブスキルを累計100回使用',
     effects: [{ type: 'skill_cost_sub', value: 1 }],
   },
   {
     id: 'B32', name: '博徒', category: 'ショップ',
-    desc: 'ショップを開くたびに無料リロール +1回',
+    desc: 'サイクルクリア時に無料リロール +1回（使わなかった分は次のサイクルに持ち越す）',
     conditionType: 'rerolls', targetValue: 100,
     conditionDesc: 'ショップでリロールを累計100回実行',
-    effects: [{ type: 'free_reroll', value: 1 }],
+    effects: [{ type: 'cycle_free_reroll', value: 1 }],
   },
   {
     id: 'B33', name: '投資家', category: '経済',
@@ -762,7 +763,7 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B38', name: '天文学者', category: 'スタードロップ',
-    desc: '★獲得に必要なコンボ数 -1、スタードロップ出現 +3%',
+    desc: '★獲得に必要なコンボ数 -1、降ってくるドロップの 3% がスタードロップ化',
     conditionType: 'star_drops_erased', targetValue: 500,
     conditionDesc: 'スタードロップを累計500個消去',
     effects: [{ type: 'star_threshold_sub', value: 1 }, { type: 'star_rate', value: 0.03 }],
@@ -776,10 +777,10 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B40', name: '時の番人', category: '操作時間',
-    desc: '操作時間 +1.5秒',
-    conditionType: 'clear_time_left_max', targetValue: 6,
-    conditionDesc: '操作時間を6秒以上残して、サイクルクリアする手番を終える',
-    effects: [{ type: 'time_add', value: 1500 }],
+    desc: '操作時間 +5秒',
+    conditionType: 'time_limit_max', targetValue: 10,
+    conditionDesc: '手番開始時の操作時間が10秒以上になる',
+    effects: [{ type: 'time_add', value: 5000 }],
   },
   {
     id: 'B41', name: '疾風', category: '操作',
@@ -903,12 +904,12 @@ export const SUFFIX_TITLES = [
   {
     id: 'B58', name: '賭博師', category: 'ギャンブル',
     desc: '毎手番、50%で最終コンボ倍率 2倍、50%で 0.5倍',
-    conditionType: 'rerolls', targetValue: 30,
-    conditionDesc: 'ショップでリロールを累計30回実行',
+    conditionType: 'probability_tokens_max', targetValue: 4,
+    conditionDesc: '確率で発動するトークン（ターン終了時の生成・変換・侵食など）を4個同時に所持',
     effects: [{ type: 'final_mult_gamble', value: 2.0 }],
   },
   {
-    id: 'B59', name: '守銭奴', category: '経済',
+    id: 'B59', name: '貯金上手', category: '経済',
     desc: '所持スター100につきコンボ倍率 +0.25（最大+2.5）',
     conditionType: 'stars_held_max', targetValue: 300,
     conditionDesc: '所持スター300以上を達成',
@@ -920,13 +921,6 @@ export const SUFFIX_TITLES = [
     conditionType: 'curses_removed', targetValue: 30,
     conditionDesc: '呪いを累計30回解呪',
     effects: [{ type: 'curse_remove_bonus', value: 20 }],
-  },
-  {
-    id: 'B61', name: '継承者', category: '成長',
-    desc: 'Lv3トークンを売却すると、次のサイクル開始時に Lv2 で戻ってくる（戻ったトークンは再継承されない）',
-    conditionType: 'lv3_sold', targetValue: 5,
-    conditionDesc: 'Lv3トークンを累計5個売却',
-    effects: [{ type: 'inherit_lv3', value: 1 }],
   },
   {
     id: 'B62', name: '初心者', category: '初期',
@@ -960,13 +954,17 @@ export const SUFFIX_TITLES = [
 //                      'unlocked' … 元の二つ名がすべて解放済みなら判定（「〜を解放した状態で」）
 //   trigger.event : 'turn'（手番終了時）| 'clear'（サイクルクリア時）| 'state'（所持状態の変化時）| 'shop'（ショップでの操作時）
 //   trigger.when  : 判定条件（effects の when と同じ書式）
+//   trigger.count : 指定時は「元の二つ名の条件（requireMode）を満たしている間に、条件を累計 count 回満たす」で解放
+//                   （進捗は evo_<id> に記録。図鑑に「12 / 30」のように表示）
+//   trigger.sum   : count と合わせて使う。1回ずつではなく量を数える（titleManager の getTitlePerCount のキー。
+//                   例: 'stars_spent' 消費スター、'shape_count'（trigger.shape の特殊消しの回数））
 //   '$prefix'     : when・effects の color に書くと、装備中の A枠（属性のA枠 A04〜A09 とその進化）の属性に置き換わる
 export const EVOLVED_TITLES = [
   {
     id: 'E01', requiredTitleIds: ['A01'], slot: 'prefix', name: '光速の', category: 'A枠上位',
     requireMode: 'equipped',
-    challengeDesc: '「神速の」を装備して、操作時間を4秒以上残してサイクルクリア',
-    trigger: { event: 'clear', when: { time_left_ge: 4000 } },
+    challengeDesc: '「神速の」を装備して、操作時間を5秒以上残してサイクルクリア',
+    trigger: { event: 'clear', when: { time_left_ge: 5000 } },
     desc: '操作時間 +3秒。残り操作時間1秒につきコンボ倍率 +0.5。',
     effects: [{ type: 'time_add', value: 3000 }, { type: 'add_mult', value: 0.5, per: 'time_left_sec' }],
   },
@@ -999,14 +997,14 @@ export const EVOLVED_TITLES = [
     requireMode: 'equipped',
     challengeDesc: '「厄災の」を装備して、呪いを5つ同時に所持した状態でサイクルクリア',
     trigger: { event: 'clear', when: { curses_ge: 5 } },
-    desc: '全呪いのデメリットが消滅し、所持中の呪い1つにつき基礎コンボ数 1.3倍（最大5個分）。',
-    effects: [{ type: 'curse_null' }, { type: 'base_mult', value: 1.3, per: 'curse', max: 5 }],
+    desc: '全呪いのデメリットが消滅し、所持中の呪い1つにつき基礎コンボ数 1.5倍（最大5個分）。',
+    effects: [{ type: 'curse_null' }, { type: 'base_mult', value: 1.5, per: 'curse', max: 5 }],
   },
   {
     id: 'E06', requiredTitleIds: ['B09'], slot: 'suffix', name: '闇市の帝王', category: 'B枠上位',
     requireMode: 'equipped',
-    challengeDesc: '「節約家」を装備して、所持スター500を達成',
-    trigger: { event: 'state', when: { stars_ge: 500 } },
+    challengeDesc: '「節約家」を装備している間に、スターを累計500消費',
+    trigger: { event: 'shop', sum: 'stars_spent', count: 500 },
     desc: 'ショップの商品価格が常時 40% オフ。',
     effects: [{ type: 'shop_discount', value: 0.4 }],
   },
@@ -1055,8 +1053,8 @@ export const EVOLVED_TITLES = [
     requireMode: 'equipped',
     challengeDesc: '「背水の」を装備して、サイクル10以降をクリア',
     trigger: { event: 'clear', when: { cycle_ge: 10 } },
-    desc: '操作時間5秒固定、基礎コンボ数 1.6倍。',
-    effects: [{ type: 'time_fixed', value: 5000 }, { type: 'base_mult', value: 1.6 }],
+    desc: '操作時間4秒固定、基礎コンボ数 2.0倍。',
+    effects: [{ type: 'time_fixed', value: 4000 }, { type: 'base_mult', value: 2.0 }],
   },
   {
     id: 'E13', requiredTitleIds: ['A14'], slot: 'prefix', name: '千手の', category: 'A枠上位',
@@ -1071,7 +1069,7 @@ export const EVOLVED_TITLES = [
     requireMode: 'equipped',
     challengeDesc: '「星詠み」を装備して、1手でスタードロップを5個以上消去',
     trigger: { event: 'turn', when: { star_erased_ge: 5 } },
-    desc: 'スタードロップ出現 +10%、★獲得に必要なコンボ数 -1。',
+    desc: '降ってくるドロップの 10% がスタードロップ化、★獲得に必要なコンボ数 -1。',
     effects: [{ type: 'star_rate', value: 0.1 }, { type: 'star_threshold_sub', value: 1 }],
   },
   {
@@ -1085,8 +1083,8 @@ export const EVOLVED_TITLES = [
   {
     id: 'E16', requiredTitleIds: ['B03'], slot: 'suffix', name: '大魔導', category: 'B枠上位',
     requireMode: 'equipped',
-    challengeDesc: '「魔導士」を装備して、1手番でアクティブスキルを4回使用',
-    trigger: { event: 'turn', when: { skills_this_turn_ge: 4 } },
+    challengeDesc: '「魔導士」を装備して、1手番でアクティブスキルを8回使用',
+    trigger: { event: 'turn', when: { skills_this_turn_ge: 8 } },
     desc: '全アクティブスキルの消費エネルギー -1、毎手番のエネルギー獲得 +1。',
     effects: [{ type: 'skill_cost_sub', value: 1 }, { type: 'skill_charge_add', value: 1 }],
   },
@@ -1109,8 +1107,8 @@ export const EVOLVED_TITLES = [
   {
     id: 'E19', requiredTitleIds: ['B14'], slot: 'suffix', name: '万象の調律者', category: 'B枠上位',
     requireMode: 'equipped',
-    challengeDesc: '「調律師」を装備して、1手で6属性すべてを消す',
-    trigger: { event: 'turn', when: { colors_ge: 6 } },
+    challengeDesc: '「調律師」を装備している間に、1手でハート以外の5属性をすべて消す、を累計30回',
+    trigger: { event: 'turn', when: { colors_all: ['fire', 'water', 'wood', 'light', 'dark'] }, count: 30 },
     desc: '消した属性1種類につきコンボ倍率 +0.8。',
     effects: [{ type: 'add_mult', value: 0.8, per: 'color_count' }],
   },
@@ -1157,16 +1155,16 @@ export const EVOLVED_TITLES = [
   {
     id: 'E25', requiredTitleIds: ['B20'], slot: 'suffix', name: '双極の覇者', category: 'B枠上位',
     requireMode: 'equipped',
-    challengeDesc: '「二極化」を装備して、2属性のみで1手12コンボを達成',
-    trigger: { event: 'turn', when: { colors_ge: 2, colors_le: 2, tc_ge: 12 } },
+    challengeDesc: '「二極化」を装備している間に、2属性のみで1手12コンボ（倍率適用前）、を累計10回',
+    trigger: { event: 'turn', when: { colors_ge: 2, colors_le: 2, tc_ge: 12 }, count: 10 },
     desc: '累計で最も多く消した2属性の出現率 2倍、ちょうど2属性を消した手番のコンボ倍率 +3.0。',
     effects: [{ type: 'spawn_top_colors', count: 2, value: 2 }, { type: 'add_mult', value: 3.0, when: { colors_ge: 2, colors_le: 2 } }],
   },
   {
     id: 'E26', requiredTitleIds: ['A55'], slot: 'prefix', name: '三界の', category: 'A枠上位',
     requireMode: 'equipped',
-    challengeDesc: '「三彩の」を装備して、3属性のみで1手14コンボを達成',
-    trigger: { event: 'turn', when: { colors_ge: 3, colors_le: 3, tc_ge: 14 } },
+    challengeDesc: '「三彩の」を装備している間に、3属性のみで1手14コンボ（倍率適用前）、を累計10回',
+    trigger: { event: 'turn', when: { colors_ge: 3, colors_le: 3, tc_ge: 14 }, count: 10 },
     desc: '累計で最も多く消した3属性の出現率 1.5倍、ちょうど3属性を消した手番のコンボ倍率 +2.5。',
     effects: [{ type: 'spawn_top_colors', count: 3, value: 1.5 }, { type: 'add_mult', value: 2.5, when: { colors_ge: 3, colors_le: 3 } }],
   },
@@ -1199,10 +1197,10 @@ export const EVOLVED_TITLES = [
   {
     id: 'E30', requiredTitleIds: ['A10', 'B12'], slot: 'suffix', name: 'ミダスの手', category: 'B枠上位',
     requireMode: 'equipped',
-    challengeDesc: '「黄金の」と「見切り屋」を装備して、1回のショップでリロールを5回する',
-    trigger: { event: 'shop', when: { shop_rerolls_ge: 5 } },
-    desc: 'ショップのリロール価格が 1★固定。ショップを開くたびに無料リロール +1回。',
-    effects: [{ type: 'reroll_fixed', value: 1 }, { type: 'free_reroll', value: 1 }],
+    challengeDesc: '「黄金の」と「見切り屋」を装備して、同じサイクルの間にリロールを5回する',
+    trigger: { event: 'shop', when: { cycle_rerolls_ge: 5 } },
+    desc: 'ショップのリロール価格が 1★固定。サイクルクリア時に無料リロール +2回（使わなかった分は次のサイクルに持ち越す）。',
+    effects: [{ type: 'reroll_fixed', value: 1 }, { type: 'cycle_free_reroll', value: 2 }],
   },
   {
     id: 'E31', requiredTitleIds: ['A11', 'B02'], slot: 'suffix', name: '逆転の演出家', category: 'B枠上位',
@@ -1215,16 +1213,16 @@ export const EVOLVED_TITLES = [
   {
     id: 'E32', requiredTitleIds: ['A26'], slot: 'prefix', name: '聖十字の', category: 'A枠上位',
     requireMode: 'equipped',
-    challengeDesc: '「十字の」を装備して、1手で十字消しを2回する',
-    trigger: { event: 'turn', when: { shape_count_ge: { shape: 'cross', n: 2 } } },
+    challengeDesc: '「十字の」を装備している間に、十字消しを累計100回する',
+    trigger: { event: 'turn', sum: 'shape_count', shape: 'cross', count: 100 },
     desc: '十字消しをした手番、コンボ +9、最終コンボ倍率 1.4倍。',
     effects: [{ type: 'combo_add', value: 9, when: { shape: 'cross' } }, { type: 'final_mult', value: 1.4, when: { shape: 'cross' } }],
   },
   {
     id: 'E33', requiredTitleIds: ['A27', 'B04'], slot: 'prefix', name: '絶方の', category: 'A枠上位',
     requireMode: 'equipped',
-    challengeDesc: '「方形の」と「方陣師」を装備して、1手で正方形消しを2回する',
-    trigger: { event: 'turn', when: { shape_count_ge: { shape: 'square', n: 2 } } },
+    challengeDesc: '「方形の」と「方陣師」を装備している間に、正方形消しを累計50回する',
+    trigger: { event: 'turn', sum: 'shape_count', shape: 'square', count: 50 },
     desc: '正方形消しをした手番、コンボ +12、コンボ倍率 +1.5。',
     effects: [{ type: 'combo_add', value: 12, when: { shape: 'square' } }, { type: 'add_mult', value: 1.5, when: { shape: 'square' } }],
   },
@@ -1239,8 +1237,8 @@ export const EVOLVED_TITLES = [
   {
     id: 'E35', requiredTitleIds: ['A19', 'B17'], slot: 'suffix', name: '目利きの大商人', category: 'B枠上位',
     requireMode: 'equipped',
-    challengeDesc: '「密売人の」と「鑑定士」を装備して、1回のショップで呪いトークンを2個売却',
-    trigger: { event: 'shop', when: { shop_curses_sold_ge: 2 } },
+    challengeDesc: '「密売人の」と「鑑定士」を装備して、同じサイクルの間に呪いトークンを2個売却',
+    trigger: { event: 'shop', when: { cycle_curses_sold_ge: 2 } },
     desc: 'トークン売却価格が購入価格の 150%。',
     effects: [{ type: 'sell_rate', value: 1.5 }],
   },
@@ -1345,8 +1343,8 @@ export const EVOLVED_TITLES = [
     requireMode: 'equipped',
     challengeDesc: '「刹那の」と「時の番人」を装備して、操作時間の残りが1秒以下の手番でサイクルクリア',
     trigger: { event: 'clear', when: { time_left_le: 1000 } },
-    desc: '最終コンボ倍率 1.6倍（「刹那の」と違い、操作時間は半分にならない）。',
-    effects: [{ type: 'final_mult', value: 1.6 }],
+    desc: '操作時間が半分になる。最終コンボ倍率 2.0倍。',
+    effects: [{ type: 'time_scale', value: 0.5 }, { type: 'final_mult', value: 2.0 }],
   },
   {
     id: 'E49', requiredTitleIds: ['A60', 'B19'], slot: 'suffix', name: '動静の覚醒者', category: 'B枠上位',
@@ -1366,11 +1364,11 @@ export const EVOLVED_TITLES = [
   },
 ];
 
-// 進化二つ名の進捗キー（trigger を持つものは evo_<id> に記録される）
+// 進化二つ名の進捗キー（trigger を持つものは evo_<id> に記録される。trigger.count があればその回数で解放）
 EVOLVED_TITLES.forEach(t => {
   if (!t.conditionType) {
     t.conditionType = `evo_${t.id}`;
-    t.targetValue = 1;
+    t.targetValue = t.trigger?.count || 1;
   }
   t.conditionDesc = t.challengeDesc;
 });
