@@ -31,7 +31,7 @@
  *   盤面: spawn_weight {color}, spawn_top_colors {count}, spawn_equalize, spawn_only {colors}, spawn_exclude {colors}（その色が降らない）, no_skyfall,
  *         enhance_rate, enhance_color {color}, star_rate
  *   スター: cycle_clear_stars（サイクルクリア時に +value★。per: 'stars_10' で所持スター10につき）, star_threshold_sub, star_gain_mult, cycle_interest, clear_reward_add, reward_mult
- *   ショップ: shop_attr_weight {attribute}（その属性のトークンの出現重み ×value）, shop_slot_add, shop_discount, reroll_fixed, reroll_sub（リロール価格 -value★）, sale_add, free_reroll（ショップを開くたびに無料リロールを value 回に戻す）,
+ *   ショップ: shop_attr_weight {attribute}（その属性のトークンの出現重み ×value）, shop_slot_add, shop_discount, reroll_fixed, reroll_sub（リロール価格 -value★）, sale_add,
  *         cycle_free_reroll（サイクルクリア時に無料リロール +value。使わなかった分は持ち越す）, sell_rate, sell_bonus, curse_sell_bonus
  *   トークン/スキル: new_token_level（新しく手に入れたトークンの初期レベル。呪い等は除く）, skill_cost_sub {attribute?}, skill_charge_cycle_start (数値 or 'full', {attribute?}),
  *         skill_refund_chance, skill_fizzle_chance（アクティブスキルの効果が発動しない確率。エネルギーは消費する）, skill_charge_add, levelup_on_cycle_start, max_turns_add, curse_null
@@ -721,10 +721,10 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B32', name: '博徒', category: 'ショップ',
-    desc: 'ショップを開くたびに無料リロール +1回',
+    desc: 'サイクルクリア時に無料リロール +1回（使わなかった分は次のサイクルに持ち越す）',
     conditionType: 'rerolls', targetValue: 100,
     conditionDesc: 'ショップでリロールを累計100回実行',
-    effects: [{ type: 'free_reroll', value: 1 }],
+    effects: [{ type: 'cycle_free_reroll', value: 1 }],
   },
   {
     id: 'B33', name: '投資家', category: '経済',

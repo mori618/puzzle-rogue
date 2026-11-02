@@ -5132,7 +5132,8 @@ export const useGameState = () => {
     }
   }, [totalPurchases, isLoaded, isPracticeMode]);
 
-  // ショップ訪問（訪問ごとの無料リロール付与を含む）
+  // ショップ訪問
+  // （無料リロールはサイクルクリア時にだけ付与する。開くたびに付与すると、開き直しで何度でも無料になるため）
   const prevShowShopRef = useRef(showShop);
   useEffect(() => {
     const opened = showShop && !prevShowShopRef.current;
@@ -5140,10 +5141,6 @@ export const useGameState = () => {
     if (!opened || !isLoaded || isPracticeMode) return;
     recordTitleProgress({ add: { shop_visits: 1 } });
     resetShopVisitStats();
-    const titleFreeRerolls = Math.floor(getTitleEffectTotal('free_reroll', {}, titleEffects));
-    if (titleFreeRerolls > 0) {
-      setFreeRerolls(f => Math.max(f, titleFreeRerolls));
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showShop]);
 
@@ -5345,7 +5342,7 @@ export const useGameState = () => {
         return { ...t, charge: chargeFull ? maxCharge : Math.min(maxCharge, (t.charge || 0) + chargeAmount) };
       }));
     }
-    // 二つ名「ミダスの手」: サイクルクリア時に無料リロールを付与（使わなかった分は持ち越す）
+    // 二つ名「博徒」「ミダスの手」: サイクルクリア時に無料リロールを付与（使わなかった分は持ち越す）
     const titleCycleFreeRerolls = Math.floor(getTitleEffectTotal('cycle_free_reroll', {}, titleEffects));
     if (titleCycleFreeRerolls > 0) {
       setFreeRerolls(f => f + titleCycleFreeRerolls);

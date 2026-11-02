@@ -979,6 +979,12 @@ describe('B枠・進化の効果の作り直し（グループ14）', () => {
     expect(applyTitleRerollPrice(5, effects)).toBe(1);
   });
 
+  it('ショップを開くたびに無料リロールを付ける二つ名は無い（開き直しで何度でも無料になるため）。博徒 はサイクルクリア時に +1', () => {
+    const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES];
+    expect(all.filter(t => t.effects.some(e => e.type === 'free_reroll')).map(t => t.id)).toEqual([]);
+    expect(findTitle('B32').effects).toEqual([{ type: 'cycle_free_reroll', value: 1 }]);
+  });
+
   it('B10 狂乱者: 5% で不発（呪いは対象外）。E34 パンドラの解放者 には引き継がない', () => {
     unlockAndEquip({ suffixes: ['B10'], suffixId: 'B10' });
     expect(getTitleSkillFizzleChance({ type: 'skill' })).toBeCloseTo(0.05);
