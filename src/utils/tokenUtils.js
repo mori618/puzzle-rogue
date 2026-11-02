@@ -1,4 +1,4 @@
-import { ALL_TOKEN_BASES } from '../constants/tokens.js';
+import { ALL_TOKEN_BASES, ALL_TOKEN_BASES_WITH_DEPRECATED } from '../constants/tokens.js';
 import { getTitleSkillCostReduction } from './titleManager.js';
 
 // --- Utils ---
@@ -43,7 +43,7 @@ const getEffectiveCost = (token, currentRunStats = null, currentTokens = [], cur
 };
 
 const getTokenDescription = (item, level, currentRunStats = null, currentTokens = [], currentBuffs = []) => {
-  const base = ALL_TOKEN_BASES.find((b) => b.id === (item.id || item));
+  const base = ALL_TOKEN_BASES_WITH_DEPRECATED.find((b) => b.id === (item.id || item));
   if (!base) return item?.desc || "";
 
   // level も item.level も指定されていない場合は、図鑑表示用として全レベルの値を併記する
@@ -132,7 +132,7 @@ const getTokenDescription = (item, level, currentRunStats = null, currentTokens 
 
 // --- 動的情報を取得する関数 ---
 const getTokenDynamicInfo = (item, level, currentRunStats = null, currentTokens = [], currentBuffs = [], extraState = {}) => {
-  const base = ALL_TOKEN_BASES.find((b) => b.id === (item.id || item));
+  const base = ALL_TOKEN_BASES_WITH_DEPRECATED.find((b) => b.id === (item.id || item));
   if (!base) return [];
 
   const targetLv = level || item?.level || 1;
