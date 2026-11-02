@@ -643,11 +643,11 @@ export const SUFFIX_TITLES = [
     effects: [{ type: 'add_mult', value: 1.5, when: { last_turn: true } }],
   },
   {
-    id: 'B14', name: '調律師', category: '盤面',
-    desc: 'ハート（回復ドロップ）が降ってこなくなる（盤面にあるハートや、アクティブスキルで作るハートは消えない）',
+    id: 'B14', name: '調律師', category: '多色',
+    desc: '1手で5属性以上を消した手番、最終コンボ倍率 1.5倍',
     conditionType: 'colors_turn_max', targetValue: 5,
     conditionDesc: '1手で5属性以上を消す',
-    effects: [{ type: 'spawn_exclude', colors: ['heart'] }],
+    effects: [{ type: 'final_mult', value: 1.5, when: { colors_ge: 5 } }],
   },
   {
     id: 'B15', name: '統率者', category: '属性統一',

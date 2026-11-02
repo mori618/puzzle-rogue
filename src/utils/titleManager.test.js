@@ -1038,13 +1038,17 @@ describe('B枠・進化レビューの確認事項（グループ15）', () => {
     resetTitleCache();
   });
 
-  it('B14 調律師: ハートが降ってこない（ほかの色はそのまま）', () => {
+  it('B14 調律師: 1手で5属性以上を消した手番だけ、最終コンボ倍率 ×1.5', () => {
     unlockAndEquip({ suffixes: ['B14'], suffixId: 'B14' });
+    const five = computeTitleComboModifiers({ matchedColors: new Set(['fire', 'water', 'wood', 'light', 'heart']) });
+    expect(five.finalMult).toBeCloseTo(1.5);
+    const six = computeTitleComboModifiers({ matchedColors: new Set(['fire', 'water', 'wood', 'light', 'dark', 'heart']) });
+    expect(six.finalMult).toBeCloseTo(1.5);
+    const four = computeTitleComboModifiers({ matchedColors: new Set(['fire', 'water', 'wood', 'light']) });
+    expect(four.finalMult).toBeCloseTo(1);
+    // ドロップの出現率は変えない
     const weights = applyTitleSpawnWeights({ fire: 1, water: 2, wood: 1, light: 1, dark: 1, heart: 1 }, {});
-    expect(weights).toEqual({ fire: 1, water: 2, wood: 1, light: 1, dark: 1, heart: 0 });
-    // 全色が0になる場合は制限しない
-    const onlyHeart = applyTitleSpawnWeights({ fire: 0, heart: 1 }, {});
-    expect(onlyHeart.heart).toBe(1);
+    expect(weights).toEqual({ fire: 1, water: 2, wood: 1, light: 1, dark: 1, heart: 1 });
   });
 
   it('E19 万象の調律者: 調律師を装備している間に、ハート以外の5属性をすべて消す、を累計30回', () => {
