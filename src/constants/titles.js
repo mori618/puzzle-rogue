@@ -1,6 +1,6 @@
 /**
  * 二つ名（称号）システム 全マスターデータ
- * A枠パーツ(62種) + B枠パーツ(63種) + 派生進化(50種) = 全175件
+ * A枠パーツ(63種) + B枠パーツ(65種) + 派生進化(50種) = 全178件
  * （隠しセットシナジー S01〜S49 は廃止し、進化二つ名に移した。docs/title-evolution-plan.md）
  *
  * ■ 解放条件
@@ -30,6 +30,7 @@
  *   ランダム: final_mult_gamble（50%で ×value / 50%で ×1/value）
  *   盤面: spawn_weight {color}, spawn_top_colors {count}, spawn_equalize, spawn_only {colors}, spawn_exclude {colors}（その色が降らない）, no_skyfall,
  *         enhance_rate, enhance_color {color}, star_rate
+ *   借金: debt_interest（サイクルクリア時、借金に value の割合の利子がつく）, exact_clear_stars（目標の超過10%以内でクリアすると最大 +value★）
  *   スター: cycle_clear_stars（サイクルクリア時に +value★。per: 'stars_10' で所持スター10につき）, star_threshold_sub, star_gain_mult, cycle_interest, clear_reward_add, reward_mult
  *   ショップ: shop_attr_weight {attribute}（その属性のトークンの出現重み ×value）, shop_slot_add, shop_discount, reroll_fixed, reroll_sub（リロール価格 -value★）, sale_add,
  *         cycle_free_reroll（サイクルクリア時に無料リロール +value。使わなかった分は持ち越す）, sell_rate, sell_bonus, curse_sell_bonus
@@ -50,7 +51,7 @@
  *   定義は残すが、解放・装備・図鑑表示の対象から外す（titleManager.isTitleDisabled）。
  */
 
-// 1. A枠パーツ（接頭辞）マスターデータ（全62種）
+// 1. A枠パーツ（接頭辞）マスターデータ（全63種）
 // 特殊消し（A26〜A30・A61）の強さは消し方の難しさの順:
 //   4つ消し(A61) ≤ 5個以上消し(A30) < L字消し(A28) < 横一列(A29) < 十字消し(A26) < 正方形消し(A27)
 export const PREFIX_TITLES = [
@@ -498,9 +499,16 @@ export const PREFIX_TITLES = [
     conditionDesc: '最初から解放済み',
     effects: [{ type: 'time_add', value: 1000 }],
   },
+  {
+    id: 'A63', name: '王手の', category: '手番',
+    desc: '目標達成率が80%以上の手番、最終コンボ倍率 1.5倍',
+    conditionType: 'checkmate_clears', targetValue: 10,
+    conditionDesc: '目標達成率80%以上の状態から、その手番でサイクルクリア（累計10回）',
+    effects: [{ type: 'final_mult', value: 1.5, when: { progress_ge: 0.8 } }],
+  },
 ];
 
-// 2. B枠パーツ（接尾辞）マスターデータ（全63種）
+// 2. B枠パーツ（接尾辞）マスターデータ（全65種）
 export const SUFFIX_TITLES = [
   {
     id: 'B01', name: '覇王', category: '火力',
@@ -942,6 +950,20 @@ export const SUFFIX_TITLES = [
     conditionType: 'no_active_cycle', targetValue: 5,
     conditionDesc: '1回のゲームでアクティブスキルを1回も使わずにサイクル5をクリア',
     effects: [{ type: 'active_null' }, { type: 'passive_double_chance', value: 0.5 }],
+  },
+  {
+    id: 'B65', name: '帳尻師', category: '経済',
+    desc: 'サイクルの目標を超過10%以内でクリアすると、超過が少ないほど多くのスターを獲得（ちょうどなら +30★）',
+    conditionType: 'exact_clears', targetValue: 5,
+    conditionDesc: 'サイクルの目標を超過10%以内でクリア（累計5回）',
+    effects: [{ type: 'exact_clear_stars', value: 30 }],
+  },
+  {
+    id: 'B66', name: '債務者', category: '借金',
+    desc: '所持スターがマイナスの間、最終コンボ倍率 1.5倍。サイクルクリア時、借金の10%が利子として増える',
+    conditionType: 'debt_clear', targetValue: 1,
+    conditionDesc: '所持スターがマイナスの状態でサイクルクリア',
+    effects: [{ type: 'final_mult', value: 1.5, when: { stars_le: -1 } }, { type: 'debt_interest', value: 0.1 }],
   },
 ];
 

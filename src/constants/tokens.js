@@ -4004,6 +4004,113 @@ const ALL_TOKEN_BASES = [
     attributes: []
   }
   */
+  // ==========================================
+  // ★ ビルド拡張トークン（縦一列・色ローテーション・余白・借金・ハート電池・持ち越し・鏡写し・特殊ドロップ融合・呪印・導火線）
+  // ==========================================
+  {
+    id: "col_slash_combo", name: "縦一閃の型", icon: "swap_vert", type: "passive", effect: "vertical_slash",
+    values: [3, 7, 14], rarity: 1, price: 14,
+    desc: "縦1列消し1回につきコンボ+[3/7/14]。",
+    attributes: [], canBeInitial: true
+  },
+  {
+    id: "col_double_mult", name: "支柱の共鳴", icon: "view_column", type: "passive", effect: "shape_double_column_mult",
+    values: [2, 3, 4], rarity: 2, price: 20,
+    desc: "縦1列消しを2本以上同時にすると、基礎コンボ数が[2/3/4]倍になる。",
+    attributes: []
+  },
+  {
+    id: "col_thunder_plus", name: "落雷の柱", icon: "bolt", type: "passive", effect: "column_plus",
+    values: [2, 3, 5], rarity: 2, price: 18,
+    desc: "縦1列消しをした列のランダムなドロップ[2/3/5]個を、ターン終了時にプラスドロップにする。",
+    attributes: []
+  },
+  {
+    id: "color_shift", name: "移ろいの彩", icon: "palette", type: "passive", effect: "color_shift_bonus",
+    values: [0.5, 1, 2], rarity: 2, price: 20,
+    desc: "前の手番で消さなかった属性を消すと、その属性1つにつきコンボ倍率にプラス[0.5/1/2]。",
+    attributes: []
+  },
+  {
+    id: "same_color_streak", name: "一途の誓い", icon: "favorite", type: "passive", effect: "same_color_streak",
+    values: [0.3, 0.5, 1], rarity: 2, price: 20,
+    desc: "前の手番とまったく同じ属性の組み合わせを消すと、基礎コンボ数が（1 + 連続した手番数 × [0.3/0.5/1]）倍になる。消す属性の組み合わせが変わると連続数はリセット。",
+    attributes: []
+  },
+  {
+    id: "empty_slot_beauty", name: "余白の美学", icon: "crop_free", type: "passive", effect: "empty_slot_mult",
+    values: [1.3, 1.5, 2], maxMultipliers: [10, 30, 100], rarity: 3, price: 31,
+    desc: "空いているトークン枠1つにつき、基礎コンボ数が[1.3/1.5/2]倍になる（パッシブ枠とアクティブ枠の両方を数える）。",
+    attributes: []
+  },
+  {
+    id: "devil_loan", name: "悪魔の融資", icon: "account_balance", type: "passive", effect: "debt_credit",
+    values: [50, 100, 200], rarity: 3, price: 26,
+    desc: "所持スターが−[50/100/200]になるまで、ショップのトークンを借金で購入できる。借金10★につきコンボ倍率にプラス1。借金がある間は、サイクルクリアしてもショップの商品が補充されず、リロールもできない。",
+    attributes: []
+  },
+  {
+    id: "heart_charge", name: "癒しの充電", icon: "battery_charging_full", type: "passive",
+    isCountPassive: true, maxCharge: 6,
+    values: [6, 5, 4], rarity: 2, price: 20,
+    desc: "ハートドロップを[6/5/4]個消去するたびに、ランダムなアクティブスキルのエネルギーが1たまる。",
+    attributes: ["heart"], canBeInitial: true
+  },
+  {
+    id: "heart_conversion", name: "生命の転換", icon: "electric_bolt", type: "skill", cost: 4, costLevels: true, action: "heart_to_energy",
+    values: [1, 1.5, 2], rarity: 2, price: 20,
+    desc: "盤面のハートドロップをすべて消し（コンボにはならない）、消した数×[1/1.5/2]（端数切り捨て）のエネルギーを他のアクティブスキルにランダムに分配する。消費E:{cost}",
+    attributes: ["heart"]
+  },
+  {
+    id: "time_bank", name: "時の貯金箱", icon: "savings", type: "passive", effect: "time_bank",
+    values: [0.3, 0.5, 1], rarity: 2, price: 20,
+    desc: "手番を終えたときに余った操作時間の[30/50/100]%を貯める（最大20秒）。貯めた時間はアクティブ「時の解放」で使える。",
+    attributes: []
+  },
+  {
+    id: "time_release", name: "時の解放", icon: "more_time", type: "skill", cost: 3, costLevels: true, action: "time_bank_release",
+    requires: "time_bank", rarity: 2, price: 15,
+    desc: "「時の貯金箱」に貯めた操作時間を、この手番の操作時間にまとめて加える。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "mirror_pair", name: "合わせ鏡", icon: "flip", type: "passive", effect: "copy_right",
+    values: [1], rarity: 3, price: 26, noLevelUp: true,
+    desc: "右隣のトークンの効果をコピーする。「合わせ鏡・トークン・模倣の魔鏡」と並べると、真ん中のトークンが3回発動する。自身はレベルアップしない。",
+    attributes: []
+  },
+  {
+    id: "rearguard_stance", name: "殿（しんがり）の構え", icon: "shield", type: "passive", effect: "rearguard",
+    rarity: 3, price: 31, noLevelUp: true,
+    desc: "パッシブ欄の最後に装備している時のみ発動。パッシブ欄の1番目のトークンの効果をもう1回発動させる（1番目が先導なら、先導の効果がもう1回発動する）。",
+    attributes: []
+  },
+  {
+    id: "meteor_bomb", name: "流星爆弾", icon: "flare", type: "passive", effect: "bomb_star_mult",
+    values: [2, 3, 5], rarity: 2, price: 20,
+    desc: "ボムの爆発に巻き込まれたスタードロップからも★を獲得し、その量が[2/3/5]倍になる。",
+    attributes: []
+  },
+  {
+    id: "rebirth_fuse", name: "輪廻の火種", icon: "local_fire_department", type: "passive", effect: "repeat_to_bomb",
+    values: [0.2, 0.35, 0.5], rarity: 2, price: 20,
+    desc: "リピートドロップがボムの爆発に巻き込まれたとき、[20/35/50]%の確率で消えずにボムドロップに変化する。",
+    attributes: []
+  },
+  {
+    id: "curse_engraver", name: "呪印の刻み手", icon: "history_edu", type: "skill", cost: 8, costLevels: true, action: "curse_seal",
+    values: [2, 2, 3], rarity: 3, price: 31,
+    desc: "所持している呪いトークン1つを消滅させ、呪印の無いランダムなパッシブトークン1つに呪印を刻む。呪印付きトークンは効果が[2/2/3]回発動するが、売却できなくなる。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "fuse_line", name: "導火線", icon: "timeline", type: "passive", effect: "fuse_line",
+    requires: "move_drop",
+    values: [3, 5, 8], rarity: 2, price: 22,
+    desc: "ムーブドロップがその手番に通ったマスのうち、ランダムな[3/5/8]マスのドロップをターン終了時にボムドロップにする。",
+    attributes: []
+  },
 ];
 
 const DEPRECATED_TOKEN_BASES = [

@@ -801,6 +801,9 @@ class PuzzleEngine {
     this.timeSinceLastSwap = null;
     // 二つ名判定用: この手番でドロップを動かしたマス数
     this.currentMoveSteps = 0;
+    // 導火線: この手番にムーブドロップが通ったマス
+    this.moveDropPath = new Set();
+    if (target.isMoveDrop) this.moveDropPath.add(`${target.r},${target.c}`);
 
     soundManager.playSE(SE_IDS.DRAG_START);
     this.dragging = target;
@@ -939,6 +942,8 @@ class PuzzleEngine {
             this._incrementMoveDropCount(target);
             this.applyFingerTransform(target);
           }
+          this._recordMoveDropPath(this.dragging);
+          if (target) this._recordMoveDropPath(target);
 
           soundManager.playSE(SE_IDS.DRAG_MOVE);
           this.render(); // 他オーブの位置関係を更新
@@ -966,6 +971,13 @@ class PuzzleEngine {
       soundManager.playSE(SE_IDS.TIME_OVER);
       this.onEnd();
     }
+  }
+
+  // 導火線: ムーブドロップが通ったマスを記録する
+  _recordMoveDropPath(orb) {
+    if (!orb || !orb.isMoveDrop) return;
+    if (!this.moveDropPath) this.moveDropPath = new Set();
+    this.moveDropPath.add(`${orb.r},${orb.c}`);
   }
 
   _incrementMoveDropCount(orb) {
@@ -1882,6 +1894,7 @@ class PuzzleEngine {
     // --- ボムで消えたドロップ数のカウンター ---
     let erasedByBombTotal = 0;
     const erasedRowInfos = [];
+    const erasedColumnInfos = [];
 
     // --- リピートドロップで消えた回数のカウンター ---
     let erasedByRepeatTotal = 0;
@@ -1926,9 +1939,40 @@ class PuzzleEngine {
           });
         });
 
+        // 輪廻の火種: 巻き込まれたリピートドロップが確率で消えずにボムへ変化する
+        const repeatToBombChance = this.noSpecialEffects ? 0 : (this.realtimeBonuses?.repeat_to_bomb || 0);
+        if (repeatToBombChance > 0) {
+          for (let i = bombTargets.length - 1; i >= 0; i--) {
+            const orb = bombTargets[i];
+            if (orb.isRepeat && !orb.isBomb && Math.random() < repeatToBombChance) {
+              bombTargets.splice(i, 1);
+              orb.isRepeat = false;
+              orb.isBomb = true;
+              if (orb.el) {
+                const repeatMark = orb.el.querySelector('.repeat-mark');
+                if (repeatMark) repeatMark.remove();
+                this.addBombMark(orb.el);
+              }
+              if (this.onPassiveTrigger && this.realtimeBonuses?.tokenIds?.repeat_to_bomb) {
+                this.realtimeBonuses.tokenIds.repeat_to_bomb.forEach(id => this.onPassiveTrigger(id));
+              }
+            }
+          }
+        }
+
         if (bombTargets.length > 0) {
           erasedByBombTotal += bombTargets.length;
-          erasedByStarTotal += bombTargets.filter(o => o.isStar).length;
+          const starsInBomb = bombTargets.filter(o => o.isStar).length;
+          erasedByStarTotal += starsInBomb;
+          // 流星爆弾: 爆発に巻き込まれたスタードロップからも★を獲得（倍率付き）
+          const bombStarMult = this.noSpecialEffects ? 0 : (this.realtimeBonuses?.bomb_star_mult || 0);
+          if (starsInBomb > 0 && bombStarMult > 0 && this.onStarErase) {
+            soundManager.playSE(SE_IDS.MATCH_STAR);
+            this.onStarErase(starsInBomb * bombStarMult);
+            if (this.onPassiveTrigger && this.realtimeBonuses?.tokenIds?.bomb_star_mult) {
+              this.realtimeBonuses.tokenIds.bomb_star_mult.forEach(id => this.onPassiveTrigger(id));
+            }
+          }
           bombTargets.forEach(orb => this.erasedByBombColors.push(orb.type));
 
           const enhancedBonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
@@ -2037,6 +2081,11 @@ class PuzzleEngine {
           const minR = Math.min(...rowsInGroup);
           const type = group.groupType || (group.length > 0 ? group[0].type : null);
           erasedRowInfos.push({ r: minR, type });
+        }
+        if (shape === "column") {
+          const colIdx = group.length > 0 ? group[0].c : 0;
+          const type = group.groupType || (group.length > 0 ? group[0].type : null);
+          erasedColumnInfos.push({ c: colIdx, type });
         }
         if (shape === "cross" && group.some(o => o.isStar)) {
           this.starCrossBoostActive = true;
@@ -2408,13 +2457,14 @@ class PuzzleEngine {
         erasedByRepeatTotal,
         erasedByStarTotal,
         isPerfect || allInitialOrbsCleared,
-        { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased, enhancedSelfErased, erasedRowInfos, moveSteps: this.currentMoveSteps || 0 },
+        { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased, enhancedSelfErased, erasedRowInfos, erasedColumnInfos, moveDropPath: Array.from(this.moveDropPath || []), moveSteps: this.currentMoveSteps || 0 },
         detailedShapes,
         this.lastTurnRemainingTimeMs || 0
       );
     }
 
     this.currentMoveSteps = 0;
+    this.moveDropPath = new Set();
 
     // ターン終了したため、盤面上のすべてのムーブドロップのカウントとステップをリセットする
     this.state.forEach(row => {
@@ -2724,6 +2774,43 @@ class PuzzleEngine {
         this.applyAlchemyToOrb(orb, type);
       }
     }
+  }
+
+  // 落雷の柱: 指定した列のランダムなドロップをプラスドロップにする
+  makeColumnPlus(col, count) {
+    if (this.processing) {
+      this._pendingBoardOps.push(() => this.makeColumnPlus(col, count));
+      return;
+    }
+    if (col < 0 || col >= this.cols) return;
+    const candidates = [];
+    for (let r = 0; r < this.rows; r++) {
+      const orb = this.state[r]?.[col];
+      if (orb && !orb.isEnhanced && !orb.isRainbow && !orb.isMoveDrop) candidates.push(orb);
+    }
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+    candidates.slice(0, count).forEach(orb => {
+      orb.isEnhanced = true;
+      if (orb.el) this.addPlusMark(orb.el);
+    });
+  }
+
+  // 導火線: 指定したマス（"r,c" の配列）のドロップをボムドロップにする（色は維持）
+  convertCellsToBomb(cells = []) {
+    if (this.processing) {
+      this._pendingBoardOps.push(() => this.convertCellsToBomb(cells));
+      return;
+    }
+    cells.forEach(key => {
+      const [r, c] = String(key).split(',').map(Number);
+      const orb = this.state[r]?.[c];
+      if (!orb || orb.isBomb || orb.isRainbow || orb.isMoveDrop) return;
+      orb.isBomb = true;
+      if (orb.el) this.addBombMark(orb.el);
+    });
   }
 
   spawnBombRandom(count) {

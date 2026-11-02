@@ -457,12 +457,12 @@ export const filterPoolByFreeSlots = (pool = [], tokens = [], maxSlots = 0) => {
 
 /**
  * 初期レベルの補正の対象か。
- * 呪い、noLevelUp、copy_left、ダミートークン（parentId を持つもの）は対象外。
+ * 呪い、noLevelUp、copy_left・copy_right、ダミートークン（parentId を持つもの）は対象外。
  */
 export const isNewTokenLevelTarget = (token) => !!token
     && token.type !== 'curse' && token.isCurse !== true
     && !token.noLevelUp
-    && token.effect !== 'copy_left'
+    && token.effect !== 'copy_left' && token.effect !== 'copy_right'
     && token.parentId == null;
 
 /**
@@ -493,6 +493,18 @@ export const applyNewTokenLevel = (token, opts = {}) => {
  * 前提トークン（base.requires）を所持しているか判定する。
  * requires は所持トークンの id または effect と照合する。requires 未指定なら常に true。
  */
+/**
+ * 悪魔の融資: 借金で買い物できる上限（所持スターが −上限 まで下がってもよい）。
+ * 融資トークンが無ければ 0。複数あれば一番大きい値を使う。
+ */
+export const getDebtCreditLimit = (tokens = []) => tokens.reduce((max, t) => {
+  if (!t || t.effect !== 'debt_credit') return max;
+  return Math.max(max, t.values?.[(t.level || 1) - 1] || 0);
+}, 0);
+
+/** 所持スターと借金枠から、その価格のものを買えるか */
+export const canAffordWithCredit = (stars, price, creditLimit = 0) => (stars - price) >= -Math.max(0, creditLimit);
+
 export const isTokenRequirementMet = (base, tokens = []) => {
   if (!base?.requires) return true;
   const reqs = Array.isArray(base.requires) ? base.requires : [base.requires];

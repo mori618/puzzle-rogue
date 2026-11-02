@@ -19,6 +19,7 @@ import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { getEnchantDescription } from './constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, INITIAL_TOKEN_SLOTS } from './constants/gameConstants.js';
 import { formatJapaneseNumber } from './utils/numberUtils.js';
+import { resolveCopiedToken } from './utils/effectiveTokens.js';
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
 import { getEffectiveCost, getTokenDescription } from './utils/tokenUtils';
@@ -43,6 +44,8 @@ const App = () => {
     freeRerolls,
     cycleTotalCombo,
     effectiveRerollPrice,
+    creditLimit,
+    isInDebt,
     stars,
     activeBuffs,
     lastTurnCombo,
@@ -1093,6 +1096,8 @@ const App = () => {
                   onAwakeningBuy={buyAwakeningItem}
                   isAwakeningLevelUpBought={isAwakeningLevelUpBought}
                   freeRerolls={freeRerolls}
+                  creditLimit={creditLimit}
+                  isInDebt={isInDebt}
                 />
               </div>
             )
@@ -1403,10 +1408,21 @@ const App = () => {
                         return null;
                       })()}
 
-                      {/* コピー状態の表示 */}
-                      {t.effect === 'copy_left' && (() => {
+                      {/* 呪印の表示 */}
+                      {t.curseSeal > 0 && (
+                        <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30">
+                            <span className="material-icons-round text-[10px] text-red-400">history_edu</span>
+                            <span className="text-[10px] font-bold text-red-300">呪印</span>
+                          </div>
+                          <span className="text-[10px] text-slate-300">効果が{t.curseSeal}回発動する（売却できない）</span>
+                        </div>
+                      )}
+
+                      {/* コピー状態の表示（模倣の魔鏡: 左隣 / 合わせ鏡: 右隣。パッシブ欄の並びで判定） */}
+                      {(t.effect === 'copy_left' || t.effect === 'copy_right') && (() => {
                         const currentIndex = tokens.findIndex(tok => tok?.instanceId === t.instanceId);
-                        const target = currentIndex > 0 ? tokens[currentIndex - 1] : null;
+                        const target = currentIndex >= 0 ? resolveCopiedToken(tokens, tokens, currentIndex) : null;
                         if (target) {
                           return (
                             <div className="mt-3 pt-3 border-t border-white/10">

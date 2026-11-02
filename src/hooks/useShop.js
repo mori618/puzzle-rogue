@@ -10,7 +10,7 @@ import {
   AWAKENING_TOKEN_SLOT_PRICES,
   INITIAL_TOKEN_SLOTS,
 } from "../constants/gameConstants.js";
-import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel, isTokenRequirementMet } from "../utils/tokenUtils";
+import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel, isTokenRequirementMet, getDebtCreditLimit, canAffordWithCredit } from "../utils/tokenUtils";
 import soundManager from "../utils/SoundManager";
 import { SE_IDS } from "../constants/sounds";
 import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress, recordTitleTrigger, applyTitleRerollPrice, applyTitlePassiveSeal } from "../utils/titleManager";
@@ -74,6 +74,11 @@ export const useShop = ({
       cycleRerolls: cycle.rerolls || 0, cycleCursesSold: cycle.cursesSold || 0,
     });
   }, []);
+
+  // 悪魔の融資: 借金で買い物できる上限（二つ名「詠唱者」でパッシブを封印しているときは 0）
+  const creditLimit = getDebtCreditLimit(applyTitlePassiveSeal(tokens, getActiveTitleEffects()));
+  // 借金中（所持スターがマイナス）はリロールできず、サイクルクリアしても商品が補充されない
+  const isInDebt = stars < 0;
 
   /** トークンの動的価格を取得するヘルパー関数 */
   const getTokenDynamicPrice = useCallback((baseToken, currentTokens) => {
@@ -477,10 +482,11 @@ export const useShop = ({
 
   /** ショップアイテムの購入 */
   const buyItem = useCallback((item, clickPos) => {
-    playLog.event('buyTry', { item: { ...compactToken(item), itype: item.type }, price: item.price, afford: stars >= item.price });
-    if (stars < item.price) {
+    const affordable = canAffordWithCredit(stars, item.price, creditLimit);
+    playLog.event('buyTry', { item: { ...compactToken(item), itype: item.type }, price: item.price, afford: affordable, credit: creditLimit || undefined });
+    if (!affordable) {
       soundManager.playSE(SE_IDS.ERROR);
-      return notify("★が足りません");
+      return notify(creditLimit > 0 ? `借金の上限（−${creditLimit}★）を超えるため購入できません` : "★が足りません");
     }
 
     if (item.id === "time_ext") {
@@ -500,7 +506,7 @@ export const useShop = ({
     }
 
     if (item.id === "exchange_star3") {
-      const targets = tokens.filter(t => t && t.type !== 'curse' && t.effect !== 'copy_left' && !t.isCurse && (t.rarity === 1 || t.rarity === 2 || !t.rarity));
+      const targets = tokens.filter(t => t && t.type !== 'curse' && t.effect !== 'copy_left' && t.effect !== 'copy_right' && !t.isCurse && (t.rarity === 1 || t.rarity === 2 || !t.rarity));
       if (targets.length === 0) return notify("交換可能な星1・星2トークンがありません");
 
       const targetToLose = targets[Math.floor(Math.random() * targets.length)];
@@ -545,7 +551,7 @@ export const useShop = ({
     }
 
     if (item.type === "upgrade_random") {
-      const upgradeableTokens = tokens.filter(t => (t.level || 1) < 3 && t.effect !== 'copy_left');
+      const upgradeableTokens = tokens.filter(t => (t.level || 1) < 3 && t.effect !== 'copy_left' && t.effect !== 'copy_right');
 
       if (upgradeableTokens.length === 0) return notify("強化可能なトークンがありません");
 
@@ -594,7 +600,7 @@ export const useShop = ({
 
     /* エンチャント廃止に伴いコメントアウト
     } else if (item.type === "enchant_random") {
-      const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left');
+      const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left' && t.effect !== 'copy_right');
       if (enchantableTokens.length === 0) return notify("付与可能なトークンがありません");
 
       if (clickPos) {
@@ -633,7 +639,7 @@ export const useShop = ({
       addTokenToast(targetToken, `に「${item.originalName}」を付与しました！`);
 
     } else if (item.type === "enchant_grant") {
-      const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left');
+      const enchantableTokens = tokens.filter(t => t.effect !== 'copy_left' && t.effect !== 'copy_right');
       if (enchantableTokens.length === 0) return notify("付与可能なトークンがありません");
 
       if (clickPos) {
@@ -778,7 +784,7 @@ export const useShop = ({
         addTokenToast(obtainedToken, "を獲得しました！");
       }
     }
-  }, [stars, tokens, tokenSlotExpansionCount, hasSaintToken, setSandsOfTimeSeconds, setStars, setTotalPurchases, setTotalStarsSpent, setStats, currentRunStats, setCurrentRunStats, setShopItems, setTokens, addTokenToast, triggerLevelUp, notify, spawnParticles, getTokenDynamicPrice, getStatByCondition, activeBuffs, checkLevelUpSuccess, countShopVisitAction]);
+  }, [stars, creditLimit, tokens, tokenSlotExpansionCount, hasSaintToken, setSandsOfTimeSeconds, setStars, setTotalPurchases, setTotalStarsSpent, setStats, currentRunStats, setCurrentRunStats, setShopItems, setTokens, addTokenToast, triggerLevelUp, notify, spawnParticles, getTokenDynamicPrice, getStatByCondition, activeBuffs, checkLevelUpSuccess, countShopVisitAction]);
 
   /** 覚醒アイテムの購入 */
   const buyAwakeningItem = useCallback((type, clickPos) => {
@@ -982,11 +988,12 @@ export const useShop = ({
 
   /** ショップ画面を開く */
   const openShop = useCallback(() => {
-    if (shopItems.length === 0) {
+    // 借金中は商品を補充しない
+    if (shopItems.length === 0 && !isInDebt) {
       generateShop();
     }
     return true; // 親側で showShop のステート切り替えを補助
-  }, [shopItems, generateShop]);
+  }, [shopItems, generateShop, isInDebt]);
 
   // 二つ名: リロール価格の固定（固定値の方が安い場合のみ適用）・値引き
   const effectiveRerollPrice = applyTitleRerollPrice(shopRerollPrice, getActiveTitleEffects());
@@ -995,7 +1002,13 @@ export const useShop = ({
   const refreshShop = useCallback((clickPos) => {
     const isFree = freeRerolls > 0;
     const rerollCost = effectiveRerollPrice;
-    playLog.event('reroll', { free: isFree, cost: rerollCost, afford: isFree || stars >= rerollCost });
+    playLog.event('reroll', { free: isFree, cost: rerollCost, afford: isFree || stars >= rerollCost, debt: isInDebt || undefined });
+
+    if (isInDebt) {
+      soundManager.playSE(SE_IDS.ERROR);
+      notify("借金がある間はリロールできません");
+      return false;
+    }
 
     if (!isFree && stars < rerollCost) {
       soundManager.playSE(SE_IDS.ERROR);
@@ -1030,7 +1043,7 @@ export const useShop = ({
     countShopVisitAction('rerolls');
     generateShop();
     return true;
-  }, [stars, effectiveRerollPrice, freeRerolls, setStars, setTotalStarsSpent, setStats, setCurrentRunStats, generateShop, notify, spawnParticles, countShopVisitAction]);
+  }, [stars, isInDebt, effectiveRerollPrice, freeRerolls, setStars, setTotalStarsSpent, setStats, setCurrentRunStats, generateShop, notify, spawnParticles, countShopVisitAction]);
 
   return {
     shopItems,
@@ -1040,6 +1053,8 @@ export const useShop = ({
     shopRerollPrice,
     setShopRerollPrice,
     effectiveRerollPrice,
+    creditLimit,
+    isInDebt,
     pendingShopItem,
     setPendingShopItem,
     tokenSlotExpansionCount,

@@ -350,6 +350,7 @@ export const evaluateTitleWhen = (when, ctx = {}) => {
       // 手番の後半（残り手番が半分以下）で、目標達成率が50%未満
       case 'behind': return (ctx.turn != null && ctx.maxTurns != null && ctx.goalProgress != null
         && ctx.turn > ctx.maxTurns / 2 && ctx.goalProgress < 0.5) === val;
+      case 'progress_ge': return (ctx.goalProgress ?? 0) >= val; // 王手の: この手番の前の目標達成率
       case 'no_purchase': return (ctx.purchasesThisCycle === 0) === val;
       case 'skills_this_turn_ge': return (ctx.skillsThisTurn ?? 0) >= val;
       case 'colors_ge': return colors.size >= val;
@@ -414,8 +415,8 @@ export const getTitlePerCount = (per, ctx = {}, effect = {}) => {
     case 'move_steps': return ctx.moveSteps || 0;
     case 'tc': return ctx.tc || 0;
     case 'prev_combo': return ctx.prevCombo || 0;
-    case 'stars_10': return Math.floor((ctx.stars || 0) / 10);
-    case 'stars_100': return Math.floor((ctx.stars || 0) / 100);
+    case 'stars_10': return Math.max(0, Math.floor((ctx.stars || 0) / 10)); // 借金（マイナス）は 0 扱い
+    case 'stars_100': return Math.max(0, Math.floor((ctx.stars || 0) / 100));
     case 'shape_count': return (ctx.shapes || []).filter(s => s === effect.shape).length; // effect.shape の特殊消しの回数
     case 'stars_spent': return Math.max(0, ctx.starsSpent || 0); // 今回消費したスター
     default: return 0;
@@ -528,6 +529,23 @@ export const computeTitleComboModifiers = (ctx = {}, effects = getActiveTitleEff
  * @param {number} baseMs 通常の操作時間
  * @param {boolean} isOverridden トークン効果で時間が固定されている場合 true（加算は行わない）
  */
+/** 帳尻師: 目標の超過がこの割合以内ならスターがもらえる */
+export const EXACT_CLEAR_MAX_OVERSHOOT = 0.1;
+
+/** サイクルクリア時の目標超過率（0 = ちょうど、0.1 = 10%超過） */
+export const getClearOvershootRatio = (total, target) => (target > 0 ? (total - target) / target : Infinity);
+
+/**
+ * 帳尻師: 目標の超過が少ないほど多くのスター（ちょうどなら maxStars、超過10%で0に近づく。最低1）。
+ * 超過10%を超えた場合と、効果が無い場合は 0。
+ */
+export const getExactClearStars = (total, target, maxStars) => {
+  if (!(maxStars > 0)) return 0;
+  const ratio = getClearOvershootRatio(total, target);
+  if (ratio < 0 || ratio > EXACT_CLEAR_MAX_OVERSHOOT) return 0;
+  return Math.max(1, Math.round(maxStars * (1 - ratio / EXACT_CLEAR_MAX_OVERSHOOT)));
+};
+
 export const applyTitleTimeLimit = (baseMs, isOverridden = false, effects = getActiveTitleEffects()) => {
   if (isOverridden) return baseMs;
   const fixed = effects.filter(e => e.type === 'time_fixed').map(e => e.value);
