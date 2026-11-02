@@ -23,6 +23,14 @@ import {
   getTokenTitleCounts,
   evaluateTitleWhen,
   joinTitleName,
+  isTitleDisabled,
+  countUnlockedTitles,
+  getTitleNewTokenLevel,
+  applyTitleRerollPrice,
+  VISIBLE_PREFIX_TITLES,
+  VISIBLE_SUFFIX_TITLES,
+  VISIBLE_TITLE_SET_BONUSES,
+  VISIBLE_EVOLVED_TITLES,
 } from './titleManager.js';
 
 const STORAGE_KEY = 'pazuru_roguelike_title_state';
@@ -355,5 +363,122 @@ describe('装備と効果', () => {
     expect(info.activeSet?.id).toBe('S44');
     const mods = computeTitleComboModifiers({ tokenCounts: { token: 0 }, tc: 3 }, getActiveTitleEffects());
     expect(mods.finalMult).toBeCloseTo(5.4);
+  });
+});
+
+describe('二つ名の整理（グループ7）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    resetTitleCache();
+  });
+
+  const findAny = (id) => [...PREFIX_TITLES, ...SUFFIX_TITLES, ...TITLE_SET_BONUSES, ...EVOLVED_TITLES].find(t => t.id === id);
+
+  it('ゲーム開始時の効果（start_stars / start_token_level）を持つ二つ名がない', () => {
+    [...PREFIX_TITLES, ...SUFFIX_TITLES, ...TITLE_SET_BONUSES, ...EVOLVED_TITLES].forEach(t => {
+      (t.effects || []).forEach(e => {
+        expect(['start_stars', 'start_token_level'], t.id).not.toContain(e.type);
+      });
+    });
+  });
+
+  it('A10 黄金の: 所持スター10につき +1★（最大 +5★）', () => {
+    const effects = findAny('A10').effects;
+    expect(getTitleEffectTotal('cycle_clear_stars', { stars: 9 }, effects)).toBe(0);
+    expect(getTitleEffectTotal('cycle_clear_stars', { stars: 37 }, effects)).toBe(3);
+    expect(getTitleEffectTotal('cycle_clear_stars', { stars: 500 }, effects)).toBe(5);
+  });
+
+  it('A35 不屈の: 操作時間 +1秒、コンボ倍率 +0.3', () => {
+    const effects = findAny('A35').effects;
+    expect(applyTitleTimeLimit(5000, false, effects)).toBe(6000);
+    expect(computeTitleComboModifiers({}, effects).addedMult).toBeCloseTo(0.3);
+  });
+
+  it('B27 旅人: リロール価格 -1★（1★未満にはならない）', () => {
+    const effects = findAny('B27').effects;
+    expect(applyTitleRerollPrice(5, effects)).toBe(4);
+    expect(applyTitleRerollPrice(1, effects)).toBe(1);
+    expect(applyTitleRerollPrice(5, [])).toBe(5);
+    // 見切り屋（2★固定）は今までどおり
+    expect(applyTitleRerollPrice(5, findAny('B12').effects)).toBe(2);
+    expect(applyTitleRerollPrice(1, findAny('B12').effects)).toBe(1);
+  });
+
+  it('S16 黄金律: 利子 +20%、初期スターなし', () => {
+    const effects = findAny('S16').effects;
+    expect(getTitleEffectTotal('cycle_interest', {}, effects)).toBeCloseTo(0.2);
+    expect(effects.some(e => e.type === 'start_stars')).toBe(false);
+  });
+
+  it('A20 先達の: 新しく手に入れたトークンの初期レベルが 2', () => {
+    expect(getTitleNewTokenLevel(findAny('A20').effects)).toBe(2);
+    expect(getTitleNewTokenLevel([])).toBe(1);
+    unlockAndEquip({ prefixes: ['A20'], prefixId: 'A20' });
+    expect(getTitleNewTokenLevel()).toBe(2);
+  });
+
+  it('エンチャント・虹ドロップを使う二つ名（A33・A45・S20・S39）は無効', () => {
+    ['A33', 'A45', 'S20', 'S39'].forEach(id => expect(isTitleDisabled(id), id).toBe(true));
+    ['A01', 'B01', 'S01', 'E01'].forEach(id => expect(isTitleDisabled(id), id).toBe(false));
+    // 図鑑・装備画面の一覧に出ない
+    expect(VISIBLE_PREFIX_TITLES.map(t => t.id)).not.toContain('A33');
+    expect(VISIBLE_PREFIX_TITLES.map(t => t.id)).not.toContain('A45');
+    expect(VISIBLE_TITLE_SET_BONUSES.map(t => t.id)).not.toContain('S20');
+    expect(VISIBLE_TITLE_SET_BONUSES.map(t => t.id)).not.toContain('S39');
+    expect(VISIBLE_PREFIX_TITLES).toHaveLength(PREFIX_TITLES.length - 2);
+    expect(VISIBLE_SUFFIX_TITLES).toHaveLength(SUFFIX_TITLES.length);
+    expect(VISIBLE_EVOLVED_TITLES).toHaveLength(EVOLVED_TITLES.length);
+    // エンチャントを条件・効果に使う二つ名は、すべて無効になっている
+    [...PREFIX_TITLES, ...SUFFIX_TITLES, ...TITLE_SET_BONUSES, ...EVOLVED_TITLES].forEach(t => {
+      const usesEnchant = t.conditionType === 'enchant_max' || (t.effects || []).some(e => e.per === 'enchant');
+      const usesRainbow = t.conditionType === 'rainbow_erased' || (t.effects || []).some(e => e.per === 'rainbow_erased');
+      if (usesEnchant || usesRainbow) expect(isTitleDisabled(t), t.id).toBe(true);
+    });
+  });
+
+  it('無効な二つ名は条件を満たしても解放されない', () => {
+    const unlocked = recordTitleProgress({ max: { enchant_max: 99, rainbow_erased: 99 } });
+    expect(unlocked.map(t => t.id)).not.toContain('A45');
+    expect(unlocked.map(t => t.id)).not.toContain('A33');
+    expect(loadTitleState().unlockedTitles.prefixes).not.toContain('A45');
+  });
+
+  it('解放・装備済みのセーブデータを読み込むと、無効な二つ名の装備は外れ、解放数にも数えない', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      unlockedTitles: { prefixes: ['A45', 'A01'], suffixes: ['B28'], evolved: [] },
+      equippedTitle: { prefixId: 'A45', suffixId: 'B28' },
+      progress: {},
+    }));
+    resetTitleCache();
+    const state = loadTitleState();
+    expect(state.equippedTitle).toEqual({ prefixId: null, suffixId: 'B28' });
+    // 解放済みの記録は消さない（エンチャントを戻したときに復活できるように）
+    expect(state.unlockedTitles.prefixes).toContain('A45');
+    expect(countUnlockedTitles(state.unlockedTitles)).toBe(2);
+    // セット（魔導工房）も発動しない
+    const info = getEquippedTitleInfo({ prefixId: 'A45', suffixId: 'B28' });
+    expect(info.prefix).toBeNull();
+    expect(info.activeSet).toBeNull();
+    expect(getActiveTitleEffects().some(e => e.per === 'enchant')).toBe(false);
+  });
+
+  it('「スキル」の表記をアクティブに揃えている', () => {
+    [...PREFIX_TITLES, ...SUFFIX_TITLES, ...TITLE_SET_BONUSES, ...EVOLVED_TITLES].forEach(t => {
+      ['desc', 'conditionDesc', 'challengeDesc', 'category'].forEach(key => {
+        const text = t[key];
+        if (typeof text !== 'string') return;
+        // 「スキル」は「アクティブスキル」としてだけ使う
+        expect(text.replace(/アクティブスキル/g, ''), `${t.id}.${key}`).not.toMatch(/スキル/);
+      });
+    });
+  });
+
+  it('「コンボ加算(+N)」の表記を使っていない', () => {
+    [...PREFIX_TITLES, ...SUFFIX_TITLES, ...TITLE_SET_BONUSES, ...EVOLVED_TITLES].forEach(t => {
+      ['desc', 'conditionDesc'].forEach(key => {
+        expect(t[key] || '', `${t.id}.${key}`).not.toMatch(/\+N/);
+      });
+    });
   });
 });

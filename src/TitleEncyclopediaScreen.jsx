@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  PREFIX_TITLES,
-  SUFFIX_TITLES,
-  TITLE_SET_BONUSES,
-  EVOLVED_TITLES
-} from './constants/titles.js';
-import {
   loadTitleState,
   saveTitleState,
   getEquippedTitleInfo,
-  getTitleProgressValue
+  getTitleProgressValue,
+  countUnlockedTitles,
+  // 無効な二つ名（disabled）を除いた一覧を表示する
+  VISIBLE_PREFIX_TITLES as PREFIX_TITLES,
+  VISIBLE_SUFFIX_TITLES as SUFFIX_TITLES,
+  VISIBLE_TITLE_SET_BONUSES as TITLE_SET_BONUSES,
+  VISIBLE_EVOLVED_TITLES as EVOLVED_TITLES,
 } from './utils/titleManager.js';
 import soundManager from './utils/SoundManager.js';
 import { SE_IDS } from './constants/sounds.js';
@@ -88,7 +88,7 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
   const isPrefixUnlocked = (id) => unlockedTitles.prefixes?.includes(id);
   const isSuffixUnlocked = (id) => unlockedTitles.suffixes?.includes(id);
   const isEvolvedUnlocked = (id) => unlockedTitles.evolved?.includes(id);
-  const unlockedCount = (unlockedTitles.prefixes?.length || 0) + (unlockedTitles.suffixes?.length || 0) + (unlockedTitles.evolved?.length || 0);
+  const unlockedCount = countUnlockedTitles(unlockedTitles);
 
   // A枠/B枠タブの一覧（解放済みの進化二つ名も入れ替え候補として含める）
   const slotList = useMemo(() => {

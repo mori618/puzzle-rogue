@@ -1,5 +1,5 @@
 import { ALL_TOKEN_BASES, ALL_TOKEN_BASES_WITH_DEPRECATED } from '../constants/tokens.js';
-import { getTitleSkillCostReduction } from './titleManager.js';
+import { getTitleSkillCostReduction, getTitleNewTokenLevel } from './titleManager.js';
 
 // --- Utils ---
 // --- Utils ---
@@ -446,3 +446,65 @@ export const filterPoolByFreeSlots = (pool = [], tokens = [], maxSlots = 0) => {
         return isActiveSlotToken(b) ? activeFree : passiveFree;
     });
 };
+
+/**
+ * 戻ってくるトークン（二つ名「継承者」など）を、アクティブ枠・パッシブ枠それぞれの空きの数だけ選ぶ。
+ * 枠はアクティブとパッシブで別々（各 maxSlots）なので、種類ごとに空きを数える。
+ * @returns {{ accepted: Array, rejected: Array }} 入れられるもの / 枠が足りず入れられないもの（順番は保つ）
+ */
+export const pickTokensForFreeSlots = (candidates = [], tokens = [], maxSlots = 0) => {
+    const { activeCount, passiveCount } = getFreeSlotInfo(tokens, maxSlots);
+    let activeFree = Math.max(0, maxSlots - activeCount);
+    let passiveFree = Math.max(0, maxSlots - passiveCount);
+    const accepted = [];
+    const rejected = [];
+    (candidates || []).forEach(c => {
+        if (!c) return;
+        if (isActiveSlotToken(c)) {
+            if (activeFree > 0) { activeFree--; accepted.push(c); } else rejected.push(c);
+        } else if (passiveFree > 0) {
+            passiveFree--; accepted.push(c);
+        } else {
+            rejected.push(c);
+        }
+    });
+    return { accepted, rejected };
+};
+
+// ---------------------------------------------------------------------------
+// 新しく手に入れたトークンの初期レベル（二つ名「先達の」: new_token_level）
+// ---------------------------------------------------------------------------
+
+/**
+ * 初期レベルの補正の対象か。
+ * 呪い、noLevelUp、copy_left、ダミートークン（parentId を持つもの）は対象外。
+ */
+export const isNewTokenLevelTarget = (token) => !!token
+    && token.type !== 'curse' && token.isCurse !== true
+    && !token.noLevelUp
+    && token.effect !== 'copy_left'
+    && token.parentId == null;
+
+/**
+ * 新しく手に入れたトークンに、二つ名の初期レベル（new_token_level）を適用する。
+ * トークンを新しく作るすべての経路（ショップ購入・初期トークン・呪いの報酬・効果での生成など）で使う。
+ * すでに持っているトークンのレベルアップには使わない。
+ * @param {Object} token 新しく作ったトークン（level 未設定なら 1 とみなす）
+ * @param {Object} [opts]
+ * @param {number} [opts.level] 初期レベル（省略時は装備中の二つ名から取得）
+ * @param {Object} [opts.currentRunStats] 説明文の再計算用
+ * @param {Array} [opts.tokens] 説明文の再計算用
+ * @param {Array} [opts.activeBuffs] 説明文の再計算用
+ */
+export const applyNewTokenLevel = (token, opts = {}) => {
+    if (!isNewTokenLevelTarget(token)) return token;
+    const titleLevel = opts.level != null ? opts.level : getTitleNewTokenLevel();
+    const currentLevel = token.level || 1;
+    const maxLevel = Math.min(3, token.values?.length || 3);
+    const nextLevel = Math.min(maxLevel, Math.max(currentLevel, titleLevel));
+    if (nextLevel === currentLevel) return token;
+    const leveled = { ...token, level: nextLevel };
+    leveled.desc = getTokenDescription(leveled, nextLevel, opts.currentRunStats || null, opts.tokens || [], opts.activeBuffs || []);
+    return leveled;
+};
+

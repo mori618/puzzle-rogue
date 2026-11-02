@@ -7,7 +7,7 @@
  *   targetValue   : 進捗値がこの値以上になると解放
  *
  * ■ 強さの段階（解放難易度に合わせる）
- *   序盤（緩い条件）: 操作時間・初期スター・ショップ出現率・ドロップ出現率などの補助効果
+ *   序盤（緩い条件）: 操作時間・ショップ出現率・ドロップ出現率などの補助効果
  *   中盤            : 条件付きのコンボ加算 / 小さめの条件付き倍率
  *   終盤（厳しい条件）・進化・セット: 常時倍率・基礎コンボ倍率・最終倍率
  *
@@ -29,11 +29,17 @@
  *   ランダム: final_mult_gamble（50%で ×value / 50%で ×1/value）
  *   盤面: spawn_weight {color}, spawn_top_colors {count}, spawn_equalize, spawn_only {colors}, no_skyfall,
  *         enhance_rate, enhance_color {color}, star_rate
- *   スター: start_stars, star_threshold_sub, star_gain_mult, cycle_interest, clear_reward_add, reward_mult
- *   ショップ: shop_attr_weight {attribute}（その属性のトークンの出現重み ×value）, shop_slot_add, shop_discount, reroll_fixed, sale_add, free_reroll, sell_rate, sell_bonus, curse_sell_bonus
- *   トークン/スキル: start_token_level, skill_cost_sub {attribute?}, skill_charge_cycle_start (数値 or 'full', {attribute?}),
+ *   スター: cycle_clear_stars（サイクルクリア時に +value★。per: 'stars_10' で所持スター10につき）, star_threshold_sub, star_gain_mult, cycle_interest, clear_reward_add, reward_mult
+ *   ショップ: shop_attr_weight {attribute}（その属性のトークンの出現重み ×value）, shop_slot_add, shop_discount, reroll_fixed, reroll_sub（リロール価格 -value★）, sale_add, free_reroll, sell_rate, sell_bonus, curse_sell_bonus
+ *   トークン/スキル: new_token_level（新しく手に入れたトークンの初期レベル。呪い等は除く）, skill_cost_sub {attribute?}, skill_charge_cycle_start (数値 or 'full', {attribute?}),
  *         skill_refund_chance, skill_charge_add, levelup_on_cycle_start, max_turns_add, curse_null
  *   その他: clear_reward_mult, curse_remove_bonus, inherit_lv3
+ *
+ * ■ ゲーム開始時の効果は持たせない（開始時の初期スター等は廃止。サイクル開始時の効果は可）
+ *
+ * ■ disabled: true
+ *   今のゲームでは使えない機能（エンチャント・虹ドロップなど）に依存する二つ名・セット。
+ *   定義は残すが、解放・装備・図鑑表示・セット発動の対象から外す（titleManager.isTitleDisabled）。
  */
 
 // 1. A枠パーツ（接頭辞）マスターデータ（全60種）
@@ -103,10 +109,10 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A10', name: '黄金の', category: '経済',
-    desc: 'ゲーム開始時の初期スター +15',
+    desc: 'サイクルクリア時、所持スター10につき +1★（最大 +5★）',
     conditionType: 'stars_earned_run', targetValue: 100,
     conditionDesc: '1回のゲームで累計100スター獲得',
-    effects: [{ type: 'start_stars', value: 15 }],
+    effects: [{ type: 'cycle_clear_stars', value: 1, per: 'stars_10', max: 5 }],
   },
   {
     id: 'A11', name: 'からっぽの', category: '経済・逆境',
@@ -151,17 +157,17 @@ export const PREFIX_TITLES = [
     effects: [{ type: 'add_mult', value: 1.0, when: { tokens_le: 3 } }],
   },
   {
-    id: 'A17', name: '紅蓮の詠唱', category: 'スキル（炎）',
-    desc: '炎属性スキルの消費エネルギーが常時 -1',
+    id: 'A17', name: '紅蓮の詠唱', category: 'アクティブ（炎）',
+    desc: '炎属性アクティブスキルの消費エネルギーが常時 -1',
     conditionType: 'skills_used_fire', targetValue: 30,
-    conditionDesc: '炎属性スキルを累計30回使用',
+    conditionDesc: '炎属性アクティブスキルを累計30回使用',
     effects: [{ type: 'skill_cost_sub', attribute: 'fire', value: 1 }],
   },
   {
-    id: 'A18', name: '蒼海の詠唱', category: 'スキル（雨）',
-    desc: '雨属性スキルの消費エネルギーが常時 -1',
+    id: 'A18', name: '蒼海の詠唱', category: 'アクティブ（雨）',
+    desc: '雨属性アクティブスキルの消費エネルギーが常時 -1',
     conditionType: 'skills_used_water', targetValue: 30,
-    conditionDesc: '雨属性スキルを累計30回使用',
+    conditionDesc: '雨属性アクティブスキルを累計30回使用',
     effects: [{ type: 'skill_cost_sub', attribute: 'water', value: 1 }],
   },
   {
@@ -173,16 +179,16 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A20', name: '先達の', category: '成長',
-    desc: '開始時に獲得するトークンが最初から Lv2',
+    desc: '新しく手に入れたトークンが最初から Lv2 になる（呪いを除く）',
     conditionType: 'token_levelups', targetValue: 20,
     conditionDesc: 'トークンのレベルアップ累計20回',
-    effects: [{ type: 'start_token_level', value: 2 }],
+    effects: [{ type: 'new_token_level', value: 2 }],
   },
   {
     id: 'A21', name: '増幅の', category: 'パッシブ',
     desc: 'パッシブトークン1個につきコンボ倍率 +0.15',
     conditionType: 'combo_add_turn_max', targetValue: 300,
-    conditionDesc: '1手でコンボ加算(+N)の合計+300を達成',
+    conditionDesc: '1手で、トークンなどの『コンボ +○』を合計 +300 以上にする',
     effects: [{ type: 'add_mult', value: 0.15, per: 'passive' }],
   },
   {
@@ -208,7 +214,7 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A25', name: '常連の', category: 'ショップ',
-    desc: 'ショップのパッシブ・スキル品揃えが各 +1枠',
+    desc: 'ショップのパッシブ・アクティブ品揃えが各 +1枠',
     conditionType: 'shop_visits', targetValue: 20,
     conditionDesc: 'ショップ訪問回数累計20回',
     effects: [{ type: 'shop_slot_add', value: 1 }],
@@ -264,6 +270,8 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A33', name: '虹彩の', category: '特殊ドロップ',
+    // 虹ドロップを出すトークンがすべてコメントアウトされていて解放できないため、虹ドロップを戻すまで出さない
+    disabled: true,
     desc: 'その手番に消した虹ドロップ1個につきコンボ +3（最大+15）',
     conditionType: 'rainbow_erased', targetValue: 20,
     conditionDesc: '虹ドロップを累計20個消去',
@@ -278,10 +286,10 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A35', name: '不屈の', category: '逆境',
-    desc: 'ゲーム開始時の初期スター +15、操作時間 +1秒',
+    desc: '操作時間 +1秒、コンボ倍率 +0.3',
     conditionType: 'game_overs', targetValue: 10,
     conditionDesc: 'ゲームオーバー累計10回',
-    effects: [{ type: 'start_stars', value: 15 }, { type: 'time_add', value: 1000 }],
+    effects: [{ type: 'time_add', value: 1000 }, { type: 'add_mult', value: 0.3 }],
   },
   {
     id: 'A36', name: '歴戦の', category: 'やり込み',
@@ -348,16 +356,18 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A45', name: '魔性の', category: 'エンチャント',
+    // エンチャント機能を戻すまで出さない
+    disabled: true,
     desc: '付与中のエンチャント1つにつきコンボ倍率 +0.3（最大+3.0）',
     conditionType: 'enchant_max', targetValue: 5,
     conditionDesc: 'エンチャントを合計5個同時に付与',
     effects: [{ type: 'add_mult', value: 0.3, per: 'enchant', max: 10 }],
   },
   {
-    id: 'A46', name: '双璧の', category: 'スキル',
-    desc: 'スキルトークン4個以上所持で、毎手番のエネルギー獲得 +1',
+    id: 'A46', name: '双璧の', category: 'アクティブ',
+    desc: 'アクティブトークン4個以上所持で、毎手番のエネルギー獲得 +1',
     conditionType: 'skill_tokens_max', targetValue: 4,
-    conditionDesc: 'スキルトークンを4個同時に所持',
+    conditionDesc: 'アクティブトークンを4個同時に所持',
     effects: [{ type: 'skill_charge_add', value: 1, when: { skill_tokens_ge: 4 } }],
   },
   {
@@ -389,31 +399,31 @@ export const PREFIX_TITLES = [
     effects: [{ type: 'final_mult', value: 1.5, when: { last_turn: true } }],
   },
   {
-    id: 'A51', name: '深翠の詠唱', category: 'スキル（風）',
-    desc: '風属性スキルの消費エネルギーが常時 -1',
+    id: 'A51', name: '深翠の詠唱', category: 'アクティブ（風）',
+    desc: '風属性アクティブスキルの消費エネルギーが常時 -1',
     conditionType: 'skills_used_wood', targetValue: 30,
-    conditionDesc: '風属性スキルを累計30回使用',
+    conditionDesc: '風属性アクティブスキルを累計30回使用',
     effects: [{ type: 'skill_cost_sub', attribute: 'wood', value: 1 }],
   },
   {
-    id: 'A52', name: '迅雷の詠唱', category: 'スキル（雷）',
-    desc: '雷属性スキルの消費エネルギーが常時 -1',
+    id: 'A52', name: '迅雷の詠唱', category: 'アクティブ（雷）',
+    desc: '雷属性アクティブスキルの消費エネルギーが常時 -1',
     conditionType: 'skills_used_light', targetValue: 30,
-    conditionDesc: '雷属性スキルを累計30回使用',
+    conditionDesc: '雷属性アクティブスキルを累計30回使用',
     effects: [{ type: 'skill_cost_sub', attribute: 'light', value: 1 }],
   },
   {
-    id: 'A53', name: '常月の詠唱', category: 'スキル（月）',
-    desc: '月属性スキルの消費エネルギーが常時 -1',
+    id: 'A53', name: '常月の詠唱', category: 'アクティブ（月）',
+    desc: '月属性アクティブスキルの消費エネルギーが常時 -1',
     conditionType: 'skills_used_dark', targetValue: 30,
-    conditionDesc: '月属性スキルを累計30回使用',
+    conditionDesc: '月属性アクティブスキルを累計30回使用',
     effects: [{ type: 'skill_cost_sub', attribute: 'dark', value: 1 }],
   },
   {
-    id: 'A54', name: '慈愛の詠唱', category: 'スキル（回復）',
-    desc: 'ハート属性スキルの消費エネルギーが常時 -1',
+    id: 'A54', name: '慈愛の詠唱', category: 'アクティブ（回復）',
+    desc: 'ハート属性アクティブスキルの消費エネルギーが常時 -1',
     conditionType: 'skills_used_heart', targetValue: 30,
-    conditionDesc: 'ハート属性スキルを累計30回使用',
+    conditionDesc: 'ハート属性アクティブスキルを累計30回使用',
     effects: [{ type: 'skill_cost_sub', attribute: 'heart', value: 1 }],
   },
   {
@@ -452,10 +462,10 @@ export const PREFIX_TITLES = [
     effects: [{ type: 'add_mult', value: 1.0, when: { no_purchase: true } }, { type: 'clear_reward_mult', value: 1.5, when: { no_purchase: true } }],
   },
   {
-    id: 'A60', name: '静寂の', category: 'スキル',
-    desc: 'スキルを使用しなかった手番、コンボ倍率 +1.0',
+    id: 'A60', name: '静寂の', category: 'アクティブ',
+    desc: 'アクティブスキルを使わなかった手番、コンボ倍率 +1.0',
     conditionType: 'no_skill_turns', targetValue: 200,
-    conditionDesc: 'スキルを使用せずに手番を終える（累計200回）',
+    conditionDesc: 'アクティブスキルを使わずに手番を終える（累計200回）',
     effects: [{ type: 'add_mult', value: 1.0, when: { skill_used: false } }],
   },
 ];
@@ -477,10 +487,10 @@ export const SUFFIX_TITLES = [
     effects: [{ type: 'star_threshold_sub', value: 1 }],
   },
   {
-    id: 'B03', name: '魔導士', category: 'スキル',
-    desc: 'サイクル開始時、全スキルのエネルギー +2',
+    id: 'B03', name: '魔導士', category: 'アクティブ',
+    desc: 'サイクル開始時、全アクティブトークンのエネルギー +2',
     conditionType: 'skills_used', targetValue: 30,
-    conditionDesc: 'スキルを累計30回使用',
+    conditionDesc: 'アクティブスキルを累計30回使用',
     effects: [{ type: 'skill_charge_cycle_start', value: 2 }],
   },
   {
@@ -492,9 +502,9 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B05', name: '探求者', category: 'コンボ加算',
-    desc: 'すべてのコンボ加算値（+N）の合計 1.3倍',
+    desc: 'トークンなどの『コンボ +○』の合計 1.3倍',
     conditionType: 'combo_add_total', targetValue: 100,
-    conditionDesc: 'コンボ加算(+N)の合計が累計+100',
+    conditionDesc: 'トークンなどの『コンボ +○』を累計 +100 以上にする',
     effects: [{ type: 'combo_add_scale', value: 1.3 }],
   },
   {
@@ -526,10 +536,10 @@ export const SUFFIX_TITLES = [
     effects: [{ type: 'shop_discount', value: 0.15 }],
   },
   {
-    id: 'B10', name: '狂乱者', category: 'スキル',
-    desc: 'スキル使用時、20%の確率でエネルギーを消費しない',
+    id: 'B10', name: '狂乱者', category: 'アクティブ',
+    desc: 'アクティブスキル使用時、20%の確率でエネルギーを消費しない',
     conditionType: 'skills_turn_max', targetValue: 3,
-    conditionDesc: '1手番でスキルを3回使用',
+    conditionDesc: '1手番でアクティブスキルを3回使用',
     effects: [{ type: 'skill_refund_chance', value: 0.2 }],
   },
   {
@@ -568,8 +578,8 @@ export const SUFFIX_TITLES = [
     effects: [{ type: 'add_mult', value: 1.0, when: { same_attr_ge: 3 } }],
   },
   {
-    id: 'B16', name: '即応陣', category: 'スキル',
-    desc: '各サイクル開始時、全スキルのエネルギーが満タン',
+    id: 'B16', name: '即応陣', category: 'アクティブ',
+    desc: '各サイクル開始時、全アクティブトークンのエネルギーが満タン',
     conditionType: 'cycle1_one_turn_clear', targetValue: 1,
     conditionDesc: 'サイクル1を1手目でクリア',
     effects: [{ type: 'skill_charge_cycle_start', value: 'full' }],
@@ -589,10 +599,10 @@ export const SUFFIX_TITLES = [
     effects: [{ type: 'add_mult', value: 0.5, per: 'lv3' }],
   },
   {
-    id: 'B19', name: '覚醒術士', category: 'スキル',
-    desc: 'スキルを使用した手番、コンボ倍率 +0.8',
+    id: 'B19', name: '覚醒術士', category: 'アクティブ',
+    desc: 'アクティブスキルを使用した手番、コンボ倍率 +0.8',
     conditionType: 'skill_convert_max', targetValue: 10,
-    conditionDesc: 'スキル1回で盤面のドロップを10個以上変化させる',
+    conditionDesc: 'アクティブスキル1回で盤面のドロップを10個以上変化させる',
     effects: [{ type: 'add_mult', value: 0.8, when: { skill_used: true } }],
   },
   {
@@ -610,10 +620,10 @@ export const SUFFIX_TITLES = [
     effects: [{ type: 'star_threshold_sub', value: 2 }],
   },
   {
-    id: 'B22', name: 'スペシャリスト', category: 'スキル',
-    desc: 'スキルトークン5個以上所持で、毎手番のエネルギー獲得 +2',
+    id: 'B22', name: 'スペシャリスト', category: 'アクティブ',
+    desc: 'アクティブトークン5個以上所持で、毎手番のエネルギー獲得 +2',
     conditionType: 'skill_tokens_max', targetValue: 5,
-    conditionDesc: 'スキルトークンを5個同時に所持',
+    conditionDesc: 'アクティブトークンを5個同時に所持',
     effects: [{ type: 'skill_charge_add', value: 2, when: { skill_tokens_ge: 5 } }],
   },
   {
@@ -631,10 +641,10 @@ export const SUFFIX_TITLES = [
     effects: [{ type: 'add_mult', value: 1.0 }, { type: 'time_add', value: 500 }],
   },
   {
-    id: 'B25', name: '魔剣士', category: 'スキル',
-    desc: 'スキルを使用した手番、コンボ倍率 +1.0',
+    id: 'B25', name: '魔剣士', category: 'アクティブ',
+    desc: 'アクティブスキルを使用した手番、コンボ倍率 +1.0',
     conditionType: 'skills_used', targetValue: 200,
-    conditionDesc: 'スキルを累計200回使用',
+    conditionDesc: 'アクティブスキルを累計200回使用',
     effects: [{ type: 'add_mult', value: 1.0, when: { skill_used: true } }],
   },
   {
@@ -646,10 +656,10 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B27', name: '旅人', category: '経済',
-    desc: 'ゲーム開始時の初期スター +10',
+    desc: 'ショップのリロール価格 -1★',
     conditionType: 'games_played', targetValue: 10,
     conditionDesc: 'ゲームを累計10回プレイ',
-    effects: [{ type: 'start_stars', value: 10 }],
+    effects: [{ type: 'reroll_sub', value: 1 }],
   },
   {
     id: 'B28', name: '職人', category: '成長',
@@ -673,10 +683,10 @@ export const SUFFIX_TITLES = [
     effects: [{ type: 'final_mult', value: 1.5 }],
   },
   {
-    id: 'B31', name: '賢者', category: 'スキル',
-    desc: '全スキルの消費エネルギー -1',
+    id: 'B31', name: '賢者', category: 'アクティブ',
+    desc: '全アクティブスキルの消費エネルギー -1',
     conditionType: 'skill_convert_max', targetValue: 20,
-    conditionDesc: 'スキル1回で盤面のドロップを20個以上変化させる',
+    conditionDesc: 'アクティブスキル1回で盤面のドロップを20個以上変化させる',
     effects: [{ type: 'skill_cost_sub', value: 1 }],
   },
   {
@@ -786,9 +796,9 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B47', name: '審判者', category: 'コンボ加算',
-    desc: 'すべてのコンボ加算値（+N）の合計 1.2倍',
+    desc: 'トークンなどの『コンボ +○』の合計 1.2倍',
     conditionType: 'combo_add_turn_max', targetValue: 200,
-    conditionDesc: '1手でコンボ加算(+N)の合計+200を達成',
+    conditionDesc: '1手で、トークンなどの『コンボ +○』を合計 +200 以上にする',
     effects: [{ type: 'combo_add_scale', value: 1.2 }],
   },
   {
@@ -926,7 +936,7 @@ export const TITLE_SET_BONUSES = [
   },
   {
     id: 'S07', prefixId: 'A13', suffixId: 'B10', titleName: '【パンドラの解放者】',
-    desc: '所持中の呪い1つにつき、スキルがエネルギーを消費しない確率 +10%。',
+    desc: '所持中の呪い1つにつき、アクティブスキルがエネルギーを消費しない確率 +10%。',
     effects: [{ type: 'skill_refund_chance', value: 0.1, per: 'curse' }],
   },
   {
@@ -971,8 +981,8 @@ export const TITLE_SET_BONUSES = [
   },
   {
     id: 'S16', prefixId: 'A10', suffixId: 'B07', titleName: '【黄金律】',
-    desc: 'サイクルクリア時の利子 +15%、初期スター +20。',
-    effects: [{ type: 'cycle_interest', value: 0.15 }, { type: 'start_stars', value: 20 }],
+    desc: 'サイクルクリア時の利子 +20%。',
+    effects: [{ type: 'cycle_interest', value: 0.2 }],
   },
   {
     id: 'S17', prefixId: 'A07', suffixId: 'B40', titleName: '【雷光時計】',
@@ -991,6 +1001,8 @@ export const TITLE_SET_BONUSES = [
   },
   {
     id: 'S20', prefixId: 'A45', suffixId: 'B28', titleName: '【魔導工房】',
+    // エンチャント機能を戻すまで出さない（A45 魔性の と同じ）
+    disabled: true,
     desc: 'エンチャント1つにつきコンボ倍率 +0.3、Lv2以上トークン1つにつきさらに +0.3。',
     effects: [{ type: 'add_mult', value: 0.3, per: 'enchant', max: 20 }, { type: 'add_mult', value: 0.3, per: 'lv2plus' }],
   },
@@ -1081,17 +1093,19 @@ export const TITLE_SET_BONUSES = [
   },
   {
     id: 'S38', prefixId: 'A55', suffixId: 'B19', titleName: '【三色の真理】',
-    desc: 'スキルを使用した手番にちょうど3属性を消すと、最終コンボ倍率 1.5倍。',
+    desc: 'アクティブスキルを使用した手番にちょうど3属性を消すと、最終コンボ倍率 1.5倍。',
     effects: [{ type: 'final_mult', value: 1.5, when: { skill_used: true, colors_ge: 3, colors_le: 3 } }],
   },
   {
     id: 'S39', prefixId: 'A33', suffixId: 'B46', titleName: '【七色の架け橋】',
+    // A33 虹彩の を出さない間は、このセットも出さない
+    disabled: true,
     desc: '6属性すべてを消した手番、最終コンボ倍率 2倍。',
     effects: [{ type: 'final_mult', value: 2.0, when: { colors_ge: 6 } }],
   },
   {
     id: 'S40', prefixId: 'A51', suffixId: 'B03', titleName: '【嵐の大魔導】',
-    desc: '各サイクル開始時、風属性スキルのエネルギーが満タンになる。',
+    desc: '各サイクル開始時、風属性アクティブトークンのエネルギーが満タンになる。',
     effects: [{ type: 'skill_charge_cycle_start', attribute: 'wood', value: 'full' }],
   },
   {
@@ -1106,7 +1120,7 @@ export const TITLE_SET_BONUSES = [
   },
   {
     id: 'S43', prefixId: 'A60', suffixId: 'B19', titleName: '【静と動】',
-    desc: 'スキルを使用した手番の次の手番、スキルを使わなければコンボ倍率 +1.5。',
+    desc: 'アクティブスキルを使用した手番の次の手番、アクティブスキルを使わなければコンボ倍率 +1.5。',
     effects: [{ type: 'add_mult', value: 1.5, when: { prev_skill_used: true, skill_used: false } }],
   },
   {
@@ -1116,27 +1130,27 @@ export const TITLE_SET_BONUSES = [
   },
   {
     id: 'S45', prefixId: 'A17', suffixId: 'B03', titleName: '【業火の大魔導】',
-    desc: '各サイクル開始時、炎属性スキルのエネルギーが満タンになる。',
+    desc: '各サイクル開始時、炎属性アクティブトークンのエネルギーが満タンになる。',
     effects: [{ type: 'skill_charge_cycle_start', attribute: 'fire', value: 'full' }],
   },
   {
     id: 'S46', prefixId: 'A18', suffixId: 'B03', titleName: '【激流の大魔導】',
-    desc: '各サイクル開始時、雨属性スキルのエネルギーが満タンになる。',
+    desc: '各サイクル開始時、雨属性アクティブトークンのエネルギーが満タンになる。',
     effects: [{ type: 'skill_charge_cycle_start', attribute: 'water', value: 'full' }],
   },
   {
     id: 'S47', prefixId: 'A52', suffixId: 'B03', titleName: '【雷霆の大魔導】',
-    desc: '各サイクル開始時、雷属性スキルのエネルギーが満タンになる。',
+    desc: '各サイクル開始時、雷属性アクティブトークンのエネルギーが満タンになる。',
     effects: [{ type: 'skill_charge_cycle_start', attribute: 'light', value: 'full' }],
   },
   {
     id: 'S48', prefixId: 'A53', suffixId: 'B03', titleName: '【闇夜の大魔導】',
-    desc: '各サイクル開始時、月属性スキルのエネルギーが満タンになる。',
+    desc: '各サイクル開始時、月属性アクティブトークンのエネルギーが満タンになる。',
     effects: [{ type: 'skill_charge_cycle_start', attribute: 'dark', value: 'full' }],
   },
   {
     id: 'S49', prefixId: 'A54', suffixId: 'B03', titleName: '【癒光の大魔導】',
-    desc: '各サイクル開始時、ハート属性スキルのエネルギーが満タンになる。',
+    desc: '各サイクル開始時、ハート属性アクティブトークンのエネルギーが満タンになる。',
     effects: [{ type: 'skill_charge_cycle_start', attribute: 'heart', value: 'full' }],
   },
 ];
@@ -1255,9 +1269,9 @@ export const EVOLVED_TITLES = [
   },
   {
     id: 'E16', requiredTitleId: 'B03', name: '大魔導', category: 'B枠上位',
-    challengeDesc: '「魔導士」を装備して、1手番でスキルを4回使用',
+    challengeDesc: '「魔導士」を装備して、1手番でアクティブスキルを4回使用',
     trigger: { event: 'turn', requireEquipped: true, when: { skills_this_turn_ge: 4 } },
-    desc: '全スキルの消費エネルギー -1、毎手番のエネルギー獲得 +1。',
+    desc: '全アクティブスキルの消費エネルギー -1、毎手番のエネルギー獲得 +1。',
     effects: [{ type: 'skill_cost_sub', value: 1 }, { type: 'skill_charge_add', value: 1 }],
   },
   {

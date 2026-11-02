@@ -9,10 +9,10 @@ import {
   AWAKENING_TOKEN_SLOT_PRICES,
   INITIAL_TOKEN_SLOTS,
 } from "../constants/gameConstants.js";
-import { getTokenDescription, filterPoolByFreeSlots } from "../utils/tokenUtils";
+import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel } from "../utils/tokenUtils";
 import soundManager from "../utils/SoundManager";
 import { SE_IDS } from "../constants/sounds";
-import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress } from "../utils/titleManager";
+import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress, applyTitleRerollPrice } from "../utils/titleManager";
 
 /** 二つ名: 割引率の合計を価格倍率に変換（複数の割引は乗算、最大90%引き） */
 const getTitlePriceMultiplier = (effects) => {
@@ -226,10 +226,11 @@ export const useShop = ({
         }
       }
 
-      const item = { ...selectedBase, level: 1, charge: selectedBase.cost || 0 };
-      item.price = getTokenDynamicPrice(selectedBase, tokens);
-      item.desc = getTokenDescription(item, 1, currentRunStats, tokens, activeBuffs);
-      return item;
+      const baseItem = { ...selectedBase, level: 1, charge: selectedBase.cost || 0 };
+      baseItem.price = getTokenDynamicPrice(selectedBase, tokens);
+      baseItem.desc = getTokenDescription(baseItem, 1, currentRunStats, tokens, activeBuffs);
+      // 二つ名「先達の」: 装備中は Lv2 として効果文を表示する（価格は変えない）
+      return applyNewTokenLevel(baseItem, { currentRunStats, tokens, activeBuffs });
     };
 
     const passiveItems = Array.from({ length: basePassiveCount }).map(() => createTokenItem(passivesPools));
@@ -358,12 +359,12 @@ export const useShop = ({
     }
     const rewardBase = rewardPool[Math.floor(Math.random() * rewardPool.length)] || rewardPool[0];
 
-    const rewardToken = {
+    const rewardToken = applyNewTokenLevel({
       ...rewardBase,
       instanceId: Date.now() + Math.random(),
       level: 1,
       charge: rewardBase.cost || 0
-    };
+    }, { currentRunStats, tokens, activeBuffs });
 
     setTokens(prev => prev
       .map(t => (t && t.instanceId === token.instanceId) ? rewardToken : t)
@@ -389,7 +390,7 @@ export const useShop = ({
     } else {
       addTokenToast(rewardToken, "を獲得しました！ (呪い解除報酬)");
     }
-  }, [setTokens, setStars, setCurrentRunStats, setStats, setSelectedTokenDetail, addTokenToast, notify]);
+  }, [setTokens, setStars, setCurrentRunStats, setStats, setSelectedTokenDetail, addTokenToast, notify, currentRunStats, tokens, activeBuffs]);
 
   /** トークンの売却 */
   const sellToken = useCallback((token) => {
@@ -485,14 +486,14 @@ export const useShop = ({
       if (star3Pool.length === 0) return notify("交換可能な星3が見つかりません");
 
       const gainBase = star3Pool[Math.floor(Math.random() * star3Pool.length)];
-      const gainItem = {
+      const gainItem = applyNewTokenLevel({
         ...gainBase,
         level: 1,
         charge: gainBase.cost || 0,
         instanceId: Date.now() + Math.random(),
         price: getTokenDynamicPrice(gainBase, tokens),
         desc: getTokenDescription({ ...gainBase, level: 1 }, 1, currentRunStats, tokens, activeBuffs)
-      };
+      }, { currentRunStats, tokens, activeBuffs });
 
       if (clickPos) {
         spawnParticles(8, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
@@ -721,11 +722,15 @@ export const useShop = ({
         }
         soundManager.playSE(SE_IDS.BUY_STAR);
 
-        const obtainedToken = {
+        // 商品は Lv1 から作り直してから、二つ名「先達の」の初期レベルを適用する
+        // （ショップ生成後に二つ名を付け替えても、購入時点の装備に合わせる）
+        const obtainedToken = applyNewTokenLevel({
           ...item,
+          level: 1,
+          desc: getTokenDescription({ ...item, level: 1 }, 1, currentRunStats, tokens, activeBuffs),
           instanceId: Date.now() + Math.random(),
           startValue: item.condition ? getStatByCondition(item.condition) : 0
-        };
+        }, { currentRunStats, tokens, activeBuffs });
         setTokens((prev) => [
           ...prev,
           obtainedToken
@@ -911,7 +916,12 @@ export const useShop = ({
           });
         }
       } else {
-        const newToken = { ...item, instanceId: Date.now() + Math.random() };
+        const newToken = applyNewTokenLevel({
+          ...item,
+          level: 1,
+          desc: getTokenDescription({ ...item, level: 1 }, 1, currentRunStats, tokens, activeBuffs),
+          instanceId: Date.now() + Math.random(),
+        }, { currentRunStats, tokens, activeBuffs });
         setTokens((prev) => [
           ...prev,
           newToken
@@ -944,9 +954,8 @@ export const useShop = ({
     return true; // 親側で showShop のステート切り替えを補助
   }, [shopItems, generateShop]);
 
-  // 二つ名: リロール価格の固定（固定値の方が安い場合のみ適用）
-  const titleRerollFixed = getTitleEffects('reroll_fixed', {}, getActiveTitleEffects()).reduce((m, e) => Math.min(m, e.value), Infinity);
-  const effectiveRerollPrice = Number.isFinite(titleRerollFixed) ? Math.min(titleRerollFixed, shopRerollPrice) : shopRerollPrice;
+  // 二つ名: リロール価格の固定（固定値の方が安い場合のみ適用）・値引き
+  const effectiveRerollPrice = applyTitleRerollPrice(shopRerollPrice, getActiveTitleEffects());
 
   /** ショップのリロール */
   const refreshShop = useCallback((clickPos) => {

@@ -12,6 +12,30 @@ export const ALL_DROP_COLORS = ['fire', 'water', 'wood', 'light', 'dark', 'heart
 const findPrefix = (id) => PREFIX_TITLES.find(p => p.id === id) || null;
 const findSuffix = (id) => SUFFIX_TITLES.find(s => s.id === id) || null;
 const findEvolved = (id) => EVOLVED_TITLES.find(e => e.id === id) || null;
+const findAnyTitle = (id) => findPrefix(id) || findSuffix(id) || findEvolved(id)
+  || TITLE_SET_BONUSES.find(s => s.id === id) || null;
+
+/**
+ * 今のゲームでは使えない二つ名か（disabled: true）。
+ * セットは、セット自身か構成パーツ（A枠・B枠）のどちらかが無効なら無効。
+ * 進化二つ名は、元の二つ名が無効なら無効。
+ * 無効な二つ名は解放・装備・図鑑表示・効果の対象外（解放済みのセーブデータは消さずに残す）。
+ */
+export const isTitleDisabled = (titleOrId) => {
+  const title = typeof titleOrId === 'string' ? findAnyTitle(titleOrId) : titleOrId;
+  if (!title) return false;
+  if (title.disabled) return true;
+  if (title.prefixId && isTitleDisabled(title.prefixId)) return true;
+  if (title.suffixId && isTitleDisabled(title.suffixId)) return true;
+  if (title.requiredTitleId && isTitleDisabled(title.requiredTitleId)) return true;
+  return false;
+};
+
+/** 図鑑・装備画面に出す二つ名の一覧（無効な二つ名を除く） */
+export const VISIBLE_PREFIX_TITLES = PREFIX_TITLES.filter(t => !isTitleDisabled(t));
+export const VISIBLE_SUFFIX_TITLES = SUFFIX_TITLES.filter(t => !isTitleDisabled(t));
+export const VISIBLE_TITLE_SET_BONUSES = TITLE_SET_BONUSES.filter(t => !isTitleDisabled(t));
+export const VISIBLE_EVOLVED_TITLES = EVOLVED_TITLES.filter(t => !isTitleDisabled(t));
 
 const createDefaultState = () => ({
   unlockedTitles: { prefixes: [], suffixes: [], evolved: [] },
@@ -30,7 +54,7 @@ const uniqueStrings = (arr) => Array.from(new Set((Array.isArray(arr) ? arr : []
 
 /** 装備IDが指定スロットに装備可能か（解放済みかつ枠が一致するか） */
 const isEquippableInSlot = (id, slot, unlocked) => {
-  if (!id) return false;
+  if (!id || isTitleDisabled(id)) return false;
   const evo = findEvolved(id);
   if (evo) return evo.slot === slot && unlocked.evolved.includes(id);
   if (slot === 'prefix') return !!findPrefix(id) && unlocked.prefixes.includes(id);
@@ -152,7 +176,7 @@ export const joinTitleName = (prefixName, suffixName) => {
 
 /** 枠に装備されたID（通常 or 進化）から二つ名データを解決する */
 const resolveSlotTitle = (id, slot) => {
-  if (!id) return null;
+  if (!id || isTitleDisabled(id)) return null;
   const evo = findEvolved(id);
   if (evo) return evo.slot === slot ? evo : null;
   return slot === 'prefix' ? findPrefix(id) : findSuffix(id);
@@ -172,7 +196,7 @@ export const getEquippedTitleInfo = (equippedTitle = {}) => {
   if (prefix && suffix) {
     const basePrefixId = getBaseTitleId(prefix);
     const baseSuffixId = getBaseTitleId(suffix);
-    activeSet = TITLE_SET_BONUSES.find(s => s.prefixId === basePrefixId && s.suffixId === baseSuffixId) || null;
+    activeSet = VISIBLE_TITLE_SET_BONUSES.find(s => s.prefixId === basePrefixId && s.suffixId === baseSuffixId) || null;
   }
 
   let fullName = '未設定';
@@ -325,6 +349,7 @@ export const getTitlePerCount = (per, ctx = {}, effect = {}) => {
     case 'move_steps': return ctx.moveSteps || 0;
     case 'tc': return ctx.tc || 0;
     case 'prev_combo': return ctx.prevCombo || 0;
+    case 'stars_10': return Math.floor((ctx.stars || 0) / 10);
     case 'stars_100': return Math.floor((ctx.stars || 0) / 100);
     default: return 0;
   }
@@ -472,6 +497,24 @@ export const applyTitleSpawnWeights = (weights, progress = loadTitleState().prog
 };
 
 /**
+ * 新しく手に入れたトークンの初期レベル（new_token_level の最大値。該当なしは 1）
+ */
+export const getTitleNewTokenLevel = (effects = getActiveTitleEffects()) => {
+  return getTitleEffects('new_token_level', {}, effects).reduce((m, e) => Math.max(m, Number(e.value) || 1), 1);
+};
+
+/**
+ * ショップのリロール価格への補正（reroll_fixed で固定 → reroll_sub で値引き。1★未満にはならない）
+ */
+export const applyTitleRerollPrice = (basePrice, effects = getActiveTitleEffects()) => {
+  const fixed = getTitleEffects('reroll_fixed', {}, effects).reduce((m, e) => Math.min(m, e.value), Infinity);
+  let price = Number.isFinite(fixed) ? Math.min(fixed, basePrice) : basePrice;
+  const sub = getTitleEffectTotal('reroll_sub', {}, effects);
+  if (sub > 0) price = Math.max(1, price - sub);
+  return price;
+};
+
+/**
  * スキルの消費エネルギー軽減量
  */
 export const getTitleSkillCostReduction = (token, effects = getActiveTitleEffects()) => {
@@ -492,7 +535,16 @@ const getAllTitleLists = () => [
   { kind: 'evolved', list: EVOLVED_TITLES, key: 'evolved' },
 ];
 
-const countUnlocked = (unlocked) => unlocked.prefixes.length + unlocked.suffixes.length + unlocked.evolved.length;
+/** 解放数（無効な二つ名は、解放済みでも数えない） */
+const countUnlocked = (unlocked) => [...unlocked.prefixes, ...unlocked.suffixes, ...unlocked.evolved]
+  .filter(id => !isTitleDisabled(id)).length;
+
+/** 解放済みの二つ名の数（図鑑表示用。無効な二つ名は除く） */
+export const countUnlockedTitles = (unlocked) => countUnlocked({
+  prefixes: unlocked?.prefixes || [],
+  suffixes: unlocked?.suffixes || [],
+  evolved: unlocked?.evolved || [],
+});
 
 /**
  * 実績・条件達成状況のプログレス値を取得
@@ -522,6 +574,7 @@ const unlockEligibleTitles = (state) => {
     getAllTitleLists().forEach(({ kind, list, key }) => {
       list.forEach(title => {
         if (state.unlockedTitles[key].includes(title.id)) return;
+        if (isTitleDisabled(title)) return;
         if (!isRequirementMet(title, state.unlockedTitles)) return;
         const val = state.progress[title.conditionType] || 0;
         if (val >= title.targetValue) {
@@ -583,6 +636,7 @@ export const recordTitleTrigger = (event, ctx = {}) => {
     const trigger = title.trigger;
     if (!trigger || trigger.event !== event) return;
     if (state.unlockedTitles.evolved.includes(title.id)) return;
+    if (isTitleDisabled(title)) return;
     if (!isRequirementMet(title, state.unlockedTitles)) return;
     if (trigger.requireEquipped && !isTitleEquipped(title.requiredTitleId, state.equippedTitle)) return;
     if (evaluateTitleWhen(trigger.when, ctx)) {
