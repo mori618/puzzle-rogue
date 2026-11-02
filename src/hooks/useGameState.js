@@ -11,9 +11,10 @@ import StartOptionScreen from "../StartOptionScreen";
 import TokenEncyclopediaScreen from "../TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, ENCHANTMENTS } from '../constants/enchantments.js';
-import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost } from '../constants/gameConstants.js';
+import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost, TIME_BANK_MAX_MS } from '../constants/gameConstants.js';
 import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, applyNewTokenLevel, isProbabilityToken, isRabbitToken, countRabbitTokens, RABBIT_TOKEN_IDS } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
+import { buildEffectiveTokens, resolveCopiedToken } from '../utils/effectiveTokens.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
 import soundManager from '../utils/SoundManager';
@@ -44,6 +45,9 @@ import {
   getTitlePassiveDoubleChance,
   rollTitleDoubledPassives,
   getTitleSkillFizzleChance,
+  getClearOvershootRatio,
+  getExactClearStars,
+  EXACT_CLEAR_MAX_OVERSHOOT,
 } from '../utils/titleManager';
 
 // 外部定数・ヘルパーの移行
@@ -503,6 +507,8 @@ export const useGameState = () => {
     shopRerollPrice,
     setShopRerollPrice,
     effectiveRerollPrice,
+    creditLimit,
+    isInDebt,
     pendingShopItem,
     setPendingShopItem,
     tokenSlotExpansionCount,
@@ -912,45 +918,10 @@ export const useGameState = () => {
         engineRef.current.updateTimerDisplay(limit);
       }
 
-      const baseEffective = effectTokens.map((t, index) => {
-        if (!t) return t;
-        if (t.effect === 'copy_left' && index > 0 && effectTokens[index - 1] && effectTokens[index - 1].effect !== 'copy_left') {
-          return { ...tokens[index - 1], instanceId: t.instanceId, name: `模倣(${effectTokens[index - 1].name})` };
-        }
-        return t;
-      });
-
       const isTrialActive = activeBuffs.some(b => b?.action === "trial_stage_active");
-      const hasTrialSuccess = activeBuffs.some(b => b?.action === "trial_success");
-
-      const leadToken = effectTokens[0];
-      const leadColor = (leadToken && leadToken.effect === 'element_lead') ? leadToken.params?.color : null;
       // 二つ名「苦行者」: この手番に2回発動するパッシブ
       const titleDoubledPassiveIds = getTitleDoubledPassiveIds(effectTokens);
-      const effectiveTokens = [];
-      if (!isTrialActive) {
-        baseEffective.forEach(t => {
-          if (!t) return;
-          effectiveTokens.push(t);
-          if (titleDoubledPassiveIds.has(t.instanceId || t.id)) {
-            effectiveTokens.push({ ...t, instanceId: `${t.instanceId || t.id}_title_dup` });
-          }
-          if (leadColor && t.type === 'passive') {
-            const isMatched = (t.attributes && t.attributes.includes(leadColor)) || (t.params?.color === leadColor);
-            if (isMatched) {
-              effectiveTokens.push({ ...t, instanceId: `${t.instanceId || t.id}_dup` });
-            }
-          }
-        });
-
-        if (hasTrialSuccess) {
-          const duplicated = [];
-          effectiveTokens.forEach(t => {
-            duplicated.push({ ...t, instanceId: `${t.instanceId || t.id}_trial_dup` });
-          });
-          effectiveTokens.push(...duplicated);
-        }
-      }
+      const effectiveTokens = buildEffectiveTokens({ effectTokens, tokens, activeBuffs, titleDoubledPassiveIds });
 
       const hasForbiddenLiteral = effectiveTokens.some((t) => t?.id === "forbidden" || t?.effect === "forbidden");
       const hasCurseSkyfall = effectiveTokens.some((t) => (t?.id === "curse_skyfall" || t?.effect === "curse_skyfall") && !hasSaintToken);
@@ -979,12 +950,14 @@ export const useGameState = () => {
         stat_shape_additions: { cross: 0, len4: 0 },
         skyfall: 0,
         rainbow: 0,
+        bomb_star_mult: 0,
+        repeat_to_bomb: 0,
         hasMastery,
         masteryMultiplier,
         tokenIds: {
           len4: [], row: [], l_shape: [], heart_combo: [], enhancedOrbBonus: [], overLink: [],
           rainbow_combo_bonus: [], extra_repeat_activations: [], moveDropBoost: [], stat_shape_additions: { cross: [], len4: [] },
-          skyfall: [], rainbow: []
+          skyfall: [], rainbow: [], bomb_star_mult: [], repeat_to_bomb: []
         }
       };
       effectiveTokens.forEach(t => {
@@ -1045,6 +1018,20 @@ export const useGameState = () => {
         if (t.effect === 'extra_repeat_activations') {
           bonuses.extra_repeat_activations += t.values[lv - 1] || 0;
           bonuses.tokenIds.extra_repeat_activations.push(tId);
+        }
+
+        // 流星爆弾: 複数あれば倍率を掛け合わせる
+        if (t.effect === 'bomb_star_mult') {
+          const v = t.values[lv - 1] || 1;
+          bonuses.bomb_star_mult = bonuses.bomb_star_mult > 0 ? bonuses.bomb_star_mult * v : v;
+          bonuses.tokenIds.bomb_star_mult.push(tId);
+        }
+
+        // 輪廻の火種: 複数あれば「どれか1つが成功する確率」にまとめる
+        if (t.effect === 'repeat_to_bomb') {
+          const p = t.values[lv - 1] || 0;
+          bonuses.repeat_to_bomb = 1 - (1 - bonuses.repeat_to_bomb) * (1 - p);
+          bonuses.tokenIds.repeat_to_bomb.push(tId);
         }
 
         if (t.effect === "stat_shape_cross") {
@@ -1575,6 +1562,12 @@ export const useGameState = () => {
     let timeMultiplier = 1;
     const matchedColorSet = new Set(Object.keys(colorComboCounts).filter(k => colorComboCounts[k] > 0));
     if (isCurseHeartActive) matchedColorSet.delete("heart");
+    // 移ろいの彩・一途の誓い: 前の手番に消した属性との比較
+    const prevTurnColors = Array.isArray(currentRunStats.lastTurnColors) ? currentRunStats.lastTurnColors : null;
+    const currentColorKey = [...matchedColorSet].sort().join(',');
+    const prevColorKey = prevTurnColors ? [...prevTurnColors].sort().join(',') : null;
+    const sameColorStreakNow = (currentColorKey && currentColorKey === prevColorKey) ? (currentRunStats.sameColorStreak || 0) + 1 : 0;
+    const newColorsThisTurn = prevTurnColors ? [...matchedColorSet].filter(c => !prevTurnColors.includes(c)).length : 0;
 
     let moveDropBonus = 0;
     let maxMoveDropThisTurn = 0;
@@ -1591,45 +1584,11 @@ export const useGameState = () => {
       });
     }
 
-    const baseEffective = effectTokens.map((t, index) => {
-      if (!t) return t;
-      if (t.effect === 'copy_left' && index > 0 && effectTokens[index - 1] && effectTokens[index - 1].effect !== 'copy_left') {
-        return { ...tokens[index - 1], instanceId: t.instanceId, name: `模倣(${effectTokens[index - 1].name})` };
-      }
-      return t;
-    });
-
     const isTrialActive = activeBuffs.some(b => b?.action === "trial_stage_active");
-    const hasTrialSuccess = activeBuffs.some(b => b?.action === "trial_success");
 
-    const leadToken = effectTokens[0];
-    const leadColor = (leadToken && leadToken.effect === 'element_lead') ? leadToken.params?.color : null;
     // 二つ名「苦行者」: この手番に2回発動するパッシブ
     const titleDoubledPassiveIds = getTitleDoubledPassiveIds(effectTokens);
-    const effectiveTokens = [];
-    if (!isTrialActive) {
-      baseEffective.forEach(t => {
-        if (!t) return;
-        effectiveTokens.push(t);
-        if (titleDoubledPassiveIds.has(t.instanceId || t.id)) {
-          effectiveTokens.push({ ...t, instanceId: `${t.instanceId || t.id}_title_dup` });
-        }
-        if (leadColor && t.type === 'passive') {
-          const isMatched = (t.attributes && t.attributes.includes(leadColor)) || (t.params?.color === leadColor);
-          if (isMatched) {
-            effectiveTokens.push({ ...t, instanceId: `${t.instanceId || t.id}_dup` });
-          }
-        }
-      });
-
-      if (hasTrialSuccess) {
-        const duplicated = [];
-        effectiveTokens.forEach(t => {
-          duplicated.push({ ...t, instanceId: `${t.instanceId || t.id}_trial_dup` });
-        });
-        effectiveTokens.push(...duplicated);
-      }
-    }
+    const effectiveTokens = buildEffectiveTokens({ effectTokens, tokens, activeBuffs, titleDoubledPassiveIds });
 
     // 二つ名「苦行者」: 2回発動したパッシブを光らせる（同じ手番では1回だけ）
     if (titleDoubledPassiveIds.size > 0 && !titlePassiveDoubleRef.current.flashed) {
@@ -1995,6 +1954,27 @@ export const useGameState = () => {
             logData.multiplierSteps.push({ label: tokenName || "交差する秘技", value: val, type: 'mult', tokenId });
           }
         }
+        if (effect === "shape_double_column_mult") {
+          const colCount = shapes.filter(s => s === "column").length;
+          if (colCount >= 2) {
+            if (isInstant) triggerPassive(tokenId);
+            baseMultiplier *= val;
+            logData.multipliers.push(`double_column_mult:x${val}`);
+            logData.multiplierSteps.push({ label: tokenName || "支柱の共鳴", value: val, type: 'mult', tokenId });
+          }
+        }
+        if (effect === "column_plus") {
+          const columnInfos = extraStats?.erasedColumnInfos || [];
+          if (columnInfos.length > 0 && engineRef.current) {
+            if (isInstant) triggerPassive(tokenId);
+            notify(`${tokenName || "落雷の柱"}発動！縦一列にプラスドロップを${val}個生成！`);
+            setTimeout(() => {
+              if (engineRef.current && !engineRef.current._isDestroyed) {
+                columnInfos.forEach(info => engineRef.current.makeColumnPlus(info.c, val));
+              }
+            }, 300);
+          }
+        }
         if (effect === "shape_double_cross_mult") {
           const crossCount = shapes.filter(s => s === "cross").length;
           if (crossCount >= 2) {
@@ -2198,6 +2178,9 @@ export const useGameState = () => {
         if (effect === "len4_plus") shapeType = "len4";
         if (effect === "len4_token") shapeType = "len4";
         if (effect === "len5_enchant") shapeType = "len5_any";
+        if (effect === "vertical_slash") shapeType = "column";
+        if (effect === "shape_double_column_mult") shapeType = "column";
+        if (effect === "column_plus") shapeType = "column";
 
         if (shapeType) {
           let count = 0;
@@ -2256,6 +2239,51 @@ export const useGameState = () => {
         bonus += v;
         logData.bonuses.push(`random_add:${v}`);
         if (v !== 0) logData.bonusSteps.push({ label: t.name || 'ランダム加算', value: v, tokenId: tId });
+      }
+
+      // 移ろいの彩: 前の手番で消さなかった属性1つにつきコンボ倍率+
+      if (t.effect === "color_shift_bonus" && newColorsThisTurn > 0) {
+        const v = (t.values?.[lv - 1] || 0.5) * newColorsThisTurn;
+        if (isInstant) triggerPassive(tId);
+        addedMultiplier += v;
+        logData.multipliers.push(`color_shift:+${v.toFixed(2)}(${newColorsThisTurn}色)`);
+        logData.multiplierSteps.push({ label: t.name || '移ろいの彩', value: 1.0 + v, addedValue: v, type: 'add', tokenId: tId });
+      }
+
+      // 一途の誓い: 前の手番と同じ属性の組み合わせが続いた手番数に応じて基礎コンボ乗算
+      if (t.effect === "same_color_streak" && sameColorStreakNow > 0) {
+        const v = 1.0 + (t.values?.[lv - 1] || 0.3) * sameColorStreakNow;
+        if (isInstant) triggerPassive(tId);
+        baseMultiplier *= v;
+        logData.multipliers.push(`same_color_streak:x${v.toFixed(2)}(${sameColorStreakNow}連続)`);
+        logData.multiplierSteps.push({ label: t.name || '一途の誓い', value: v, type: 'mult', tokenId: tId });
+      }
+
+      // 余白の美学: 空いているトークン枠1つにつき基礎コンボ乗算
+      if (t.effect === "empty_slot_mult") {
+        const maxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
+        const activeCount = tokens.filter(tok => tok && tok.type === 'skill').length;
+        const passiveCount = tokens.filter(tok => tok && tok.type !== 'skill').length;
+        const emptySlots = Math.max(0, maxSlots - activeCount) + Math.max(0, maxSlots - passiveCount);
+        if (emptySlots > 0) {
+          let v = Math.pow(t.values?.[lv - 1] || 1.3, emptySlots);
+          v = applyMultiplierCap(v, t);
+          if (isInstant) triggerPassive(tId);
+          baseMultiplier *= v;
+          logData.multipliers.push(`empty_slot_mult:x${v.toFixed(2)}(${emptySlots}枠)`);
+          logData.multiplierSteps.push({ label: t.name || '余白の美学', value: v, type: 'mult', tokenId: tId });
+        }
+      }
+
+      // 悪魔の融資: 借金10★につきコンボ倍率+1
+      if (t.effect === "debt_credit" && stars < 0) {
+        const v = Math.floor(-stars / 10);
+        if (v > 0) {
+          if (isInstant) triggerPassive(tId);
+          addedMultiplier += v;
+          logData.multipliers.push(`debt_credit:+${v}(stars:${stars})`);
+          logData.multiplierSteps.push({ label: t.name || '悪魔の融資', value: 1.0 + v, addedValue: v, type: 'add', tokenId: tId });
+        }
       }
 
       if (t.effect === "star_count_combo_add") {
@@ -3451,6 +3479,7 @@ export const useGameState = () => {
         const starsAtClear = stars + totalStarsEarned;
         const tokenCount = titleCtx.tokenCounts.token;
         const noBuyStreak = titleCtx.purchasesThisCycle === 0 ? (currentRunStats.noBuyStreak || 0) + 1 : 0;
+        const clearOvershoot = getClearOvershootRatio(cycleTotalCombo + effectiveCombo, effectiveTarget);
         setCurrentRunStats(prev => ({ ...prev, noBuyStreak }));
         recordTitleProgress({
           add: {
@@ -3458,6 +3487,10 @@ export const useGameState = () => {
             clears_total: 1,
             last_turn_clears: turn === maxTurns ? 1 : 0,
             first_turn_clears: turn === 1 ? 1 : 0,
+            // 王手の: 目標達成率80%以上の状態から、その手番でサイクルクリア
+            checkmate_clears: titleCtx.goalProgress >= 0.8 ? 1 : 0,
+            // 帳尻師: 目標の超過10%以内でサイクルクリア
+            exact_clears: clearOvershoot <= EXACT_CLEAR_MAX_OVERSHOOT ? 1 : 0,
           },
           max: {
             berserk_clear: remainingTimeMs <= 2000 ? 1 : 0,
@@ -3476,6 +3509,8 @@ export const useGameState = () => {
             no_passive_cycle: (titleCtx.tokenCounts.passive || 0) === 0 ? cycleNum : 0,
             // 苦行者: このゲームでアクティブスキルを1回も使わずにクリアしたサイクル
             no_active_cycle: (currentRunStats.currentSkillsUsed || 0) === 0 && !hasUsedActiveSkillThisTurn ? cycleNum : 0,
+            // 債務者: 所持スターがマイナスの状態でサイクルクリア
+            debt_clear: starsAtClear < 0 ? 1 : 0,
           },
         });
         recordTitleTrigger('clear', { ...triggerCtx, stars: starsAtClear });
@@ -3483,7 +3518,14 @@ export const useGameState = () => {
     }
     skillsThisTurnRef.current = 0;
     // 二つ名（残響の・静と動）用: 前の手番の結果を保持
-    setCurrentRunStats(prev => ({ ...prev, lastTurnCombo: effectiveCombo, lastTurnSkillUsed: !!hasUsedActiveSkillThisTurn }));
+    setCurrentRunStats(prev => ({
+      ...prev,
+      lastTurnCombo: effectiveCombo,
+      lastTurnSkillUsed: !!hasUsedActiveSkillThisTurn,
+      // 移ろいの彩・一途の誓い用: この手番に消した属性と、同じ組み合わせが続いた手番数
+      lastTurnColors: [...matchedColorSet],
+      sameColorStreak: sameColorStreakNow,
+    }));
 
     setCycleTotalCombo(prev => {
       const updated = prev + effectiveCombo;
@@ -3495,12 +3537,15 @@ export const useGameState = () => {
             const rewardMult = getRewardMultiplier();
             const clearRewardMult = getTitleEffectProduct('clear_reward_mult', titleCtx, titleEffects);
             const rewardAmount = Math.floor((Math.floor(3 * rewardMult) + getTitleEffectTotal('clear_reward_add', {}, titleEffects)) * clearRewardMult);
-            setStars(s => s + rewardAmount);
+            // 二つ名「帳尻師」: 目標の超過が少ないほど多くのスター
+            const exactClearStars = getExactClearStars(updated, effectiveTarget, getTitleEffectTotal('exact_clear_stars', {}, titleEffects));
+            setStars(s => s + rewardAmount + exactClearStars);
             setCurrentRunStats(prevStats => ({
               ...prevStats,
-              totalStarsEarned: (prevStats.totalStarsEarned || 0) + rewardAmount
+              totalStarsEarned: (prevStats.totalStarsEarned || 0) + rewardAmount + exactClearStars
             }));
             notify(`クリア報酬: ★+${rewardAmount}`);
+            if (exactClearStars > 0) notify(`帳尻合わせ: ★+${exactClearStars}`);
           }
           return true;
         });
@@ -3827,6 +3872,16 @@ export const useGameState = () => {
                   }
                   break;
                 }
+                case "heart_charge": {
+                  // 癒しの充電: エネルギーが満タンでないアクティブスキル1つに +1
+                  const chargeable = nextTokens.filter(tok => tok && tok.type === 'skill' && !tok.isCurse && (tok.charge || 0) < (tok.cost || 0));
+                  if (chargeable.length > 0) {
+                    const target = chargeable[Math.floor(Math.random() * chargeable.length)];
+                    target.charge = Math.min(target.cost || 0, (target.charge || 0) + 1);
+                    notify(`癒しの充電:「${target.name}」のエネルギー+1`);
+                  }
+                  break;
+                }
                 case "passive_light_count": {
                   nextTokens.forEach(tok => {
                     if (tok && tok.type === 'skill') {
@@ -3850,6 +3905,40 @@ export const useGameState = () => {
     }
     if (decayTargetInstanceId && decayTargetName) {
       notify(`侵食する影：${decayTargetName} のレベルが1になった！`);
+    }
+
+    // --- 時の貯金箱: 余った操作時間を貯める（ドロップを動かした手番のみ・最大20秒） ---
+    if (!isCursePassiveNull && (extraStats.moveSteps || 0) > 0 && remainingTimeMs > 0) {
+      const bankTokens = effectiveTokens.filter(t => t && t.effect === 'time_bank');
+      if (bankTokens.length > 0) {
+        const rate = Math.min(1, bankTokens.reduce((sum, t) => sum + (t.values?.[(t.level || 1) - 1] || 0), 0));
+        const addMs = Math.floor(remainingTimeMs * rate);
+        if (addMs > 0) {
+          bankTokens.forEach(t => triggerPassive(t.instanceId || t.id));
+          setCurrentRunStats(prev => ({ ...prev, timeBankMs: Math.min(TIME_BANK_MAX_MS, (prev.timeBankMs || 0) + addMs) }));
+        }
+      }
+    }
+
+    // --- 導火線: ムーブドロップが通ったマスをボムドロップにする ---
+    if (!isCursePassiveNull && engineRef.current) {
+      const fuseTokens = effectiveTokens.filter(t => t && t.effect === 'fuse_line');
+      const path = [...(extraStats.moveDropPath || [])];
+      if (fuseTokens.length > 0 && path.length > 0) {
+        const count = fuseTokens.reduce((sum, t) => sum + (t.values?.[(t.level || 1) - 1] || 0), 0);
+        for (let i = path.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [path[i], path[j]] = [path[j], path[i]];
+        }
+        const cells = path.slice(0, count);
+        fuseTokens.forEach(t => triggerPassive(t.instanceId || t.id));
+        notify(`導火線発動！ムーブドロップの通り道にボムドロップが${cells.length}個生まれる！`);
+        setTimeout(() => {
+          if (engineRef.current && !engineRef.current._isDestroyed) {
+            engineRef.current.convertCellsToBomb(cells);
+          }
+        }, 300);
+      }
     }
 
     // --- 星塵の起爆剤: ボムとスターが同時消去された場合、ボムドロップを追加する ---
@@ -4925,45 +5014,9 @@ export const useGameState = () => {
     handleTurnEndRef.current = handleTurnEnd;
     onPassiveTriggerRef.current = triggerPassive;
     onStarEraseRef.current = (count) => {
-      const baseEffective = effectTokens.map((t, index) => {
-        if (!t) return t;
-        if (t.effect === 'copy_left' && index > 0 && effectTokens[index - 1] && effectTokens[index - 1].effect !== 'copy_left') {
-          return { ...tokens[index - 1], instanceId: t.instanceId };
-        }
-        return t;
-      });
-
-      const isTrialActive = activeBuffs.some(b => b?.action === "trial_stage_active");
-      const hasTrialSuccess = activeBuffs.some(b => b?.action === "trial_success");
-
-      const leadToken = effectTokens[0];
-      const leadColor = (leadToken && leadToken.effect === 'element_lead') ? leadToken.params?.color : null;
       // 二つ名「苦行者」: この手番に2回発動するパッシブ
       const titleDoubledPassiveIds = getTitleDoubledPassiveIds(effectTokens);
-      const effectiveTokens = [];
-      if (!isTrialActive) {
-        baseEffective.forEach(t => {
-          if (!t) return;
-          effectiveTokens.push(t);
-          if (titleDoubledPassiveIds.has(t.instanceId || t.id)) {
-            effectiveTokens.push({ ...t, instanceId: `${t.instanceId || t.id}_title_dup` });
-          }
-          if (leadColor && t.type === 'passive') {
-            const isMatched = (t.attributes && t.attributes.includes(leadColor)) || (t.params?.color === leadColor);
-            if (isMatched) {
-              effectiveTokens.push({ ...t, instanceId: `${t.instanceId || t.id}_dup` });
-            }
-          }
-        });
-
-        if (hasTrialSuccess) {
-          const duplicated = [];
-          effectiveTokens.forEach(t => {
-            duplicated.push({ ...t, instanceId: `${t.instanceId || t.id}_trial_dup` });
-          });
-          effectiveTokens.push(...duplicated);
-        }
-      }
+      const effectiveTokens = buildEffectiveTokens({ effectTokens, tokens, activeBuffs, titleDoubledPassiveIds });
 
       let extraStarsPerStarDropErase = 0;
       effectiveTokens.forEach((t) => {
@@ -5313,7 +5366,14 @@ export const useGameState = () => {
     setShopRerollBasePrice(nextBase);
     setShopRerollPrice(nextBase);
 
-    generateShop(nextCycle);
+    if (stars < 0) {
+      // 借金中はサイクルクリアしても商品が補充されない（覚醒ショップのレベルアップ購入枠だけ戻す）
+      setIsAwakeningLevelUpBought(false);
+      notify("借金があるため、ショップの商品は補充されませんでした");
+      playLog.event('debtNoRestock', { stars });
+    } else {
+      generateShop(nextCycle);
+    }
     setShowShop(false);
 
     if (!isEndlessMode) {
@@ -5335,6 +5395,16 @@ export const useGameState = () => {
       if (extraStars > 0) {
         setStars(s => s + extraStars);
         notify(`複利の導き: ★+${extraStars} (${Math.round(interestRate * 100)}%利子)`);
+      }
+    }
+
+    // --- 二つ名「債務者」: 借金に利子がつく ---
+    const debtInterestRate = getTitleEffectTotal('debt_interest', {}, titleEffects);
+    if (stars < 0 && debtInterestRate > 0) {
+      const debtInterest = Math.ceil(-stars * debtInterestRate);
+      if (debtInterest > 0) {
+        setStars(s => (s < 0 ? s - debtInterest : s));
+        notify(`借金の利子: ★−${debtInterest}`);
       }
     }
 
@@ -5607,7 +5677,7 @@ export const useGameState = () => {
         const upgradeable = next.filter(t =>
           t &&
           (t.level || 1) < 3 &&
-          t.effect !== 'copy_left' &&
+          t.effect !== 'copy_left' && t.effect !== 'copy_right' &&
           !t.isCurse &&
           t.type !== 'curse'
         );
@@ -5719,6 +5789,20 @@ export const useGameState = () => {
     const engine = engineRef.current;
     if (!engine) return;
 
+    // 対象が無いと何も起きないスキルは、エネルギーを消費せずに中断する
+    if (token.action === "curse_seal") {
+      const curseTokens = tokens.filter(t => t && (t.type === 'curse' || t.isCurse));
+      const sealTargets = tokens.filter(t => t && t.type === 'passive' && !t.isCurse && !(t.curseSeal > 0));
+      if (curseTokens.length === 0) return notify("消滅させる呪いトークンがありません");
+      if (sealTargets.length === 0) return notify("呪印を刻めるパッシブトークンがありません");
+    }
+    if (token.action === "time_bank_release" && !((currentRunStats.timeBankMs || 0) > 0)) {
+      return notify("「時の貯金箱」に時間が貯まっていません");
+    }
+    if (token.action === "heart_to_energy" && !engine.state?.some(row => row.some(o => o && o.type === 'heart'))) {
+      return notify("盤面にハートドロップがありません");
+    }
+
     setHasUsedActiveSkillThisTurn(true);
 
     // --- 二つ名: スキル使用の進捗記録 ---
@@ -5758,10 +5842,7 @@ export const useGameState = () => {
     let extraDuration = 0;
     effectTokens.forEach((t, index) => {
       if (!t) return;
-      let workToken = t;
-      if (t.effect === 'copy_left' && index > 0 && effectTokens[index - 1] && effectTokens[index - 1].effect !== 'copy_left') {
-        workToken = tokens[index - 1];
-      }
+      const workToken = resolveCopiedToken(effectTokens, tokens, index) || t;
       if (workToken.effect === 'active_duration_boost') {
         const lv = workToken.level || 1;
         extraDuration += (workToken.values?.[lv - 1] || 0);
@@ -5902,6 +5983,65 @@ export const useGameState = () => {
         }
         break;
 
+      case "heart_to_energy": {
+        // 生命の転換: ハートをすべて消し、消した数に応じたエネルギーを他のスキルに分配
+        const rate = token.values?.[(token.level || 1) - 1] || 1;
+        engine.eraseColor('heart').then(({ rawCount }) => {
+          if (!rawCount) return;
+          setSkillErasedCounts(prev => ({ ...prev, heart: (prev.heart || 0) + rawCount }));
+          let energy = Math.floor(rawCount * rate);
+          setTokens(prev => {
+            const next = [...prev];
+            let given = 0;
+            while (energy > 0) {
+              const candidates = [];
+              next.forEach((t, i) => {
+                if (t && t.type === 'skill' && !t.isCurse && t.instanceId !== token.instanceId && (t.charge || 0) < (t.cost || 0)) candidates.push(i);
+              });
+              if (candidates.length === 0) break;
+              const idx = candidates[Math.floor(Math.random() * candidates.length)];
+              next[idx] = { ...next[idx], charge: (next[idx].charge || 0) + 1 };
+              energy--;
+              given++;
+            }
+            notify(`${token.name}: ハートを${rawCount}個消し、エネルギーを${given}分配した！`);
+            return next;
+          });
+        });
+        break;
+      }
+      case "time_bank_release": {
+        // 時の解放: 時の貯金箱に貯めた時間を、この手番の操作時間に加える
+        const bankMs = currentRunStats.timeBankMs || 0;
+        setCurrentRunStats(prev => ({ ...prev, timeBankMs: 0 }));
+        setActiveBuffs(prev => [
+          ...prev,
+          {
+            id: Date.now() + Math.random(),
+            action: "op_time_boost",
+            params: { extraTime: bankMs },
+            duration: 1,
+            maxDuration: 1,
+            tokenId: token.instanceId || token.id,
+            name: `${token.name} (+${(bankMs / 1000).toFixed(1)}秒)`,
+          },
+        ]);
+        notify(`${token.name} 発動！ この手番の操作時間 +${(bankMs / 1000).toFixed(1)}秒`);
+        break;
+      }
+      case "curse_seal": {
+        // 呪印の刻み手: 呪い1つを消滅させ、パッシブ1つに呪印を刻む（効果が複数回発動・売却不可）
+        const sealCount = token.values?.[(token.level || 1) - 1] || 2;
+        const curseTokens = tokens.filter(t => t && (t.type === 'curse' || t.isCurse));
+        const sealTargets = tokens.filter(t => t && t.type === 'passive' && !t.isCurse && !(t.curseSeal > 0));
+        const curse = curseTokens[Math.floor(Math.random() * curseTokens.length)];
+        const target = sealTargets[Math.floor(Math.random() * sealTargets.length)];
+        setTokens(prev => prev
+          .filter(t => !(t && t.instanceId === curse.instanceId))
+          .map(t => (t && t.instanceId === target.instanceId) ? { ...t, curseSeal: sealCount, isLocked: true } : t));
+        notify(`呪い「${curse.name}」を消滅させ、「${target.name}」に呪印を刻んだ！（効果が${sealCount}回発動）`);
+        break;
+      }
       case "organize_color":
         engine.organizeColor(token.params.color);
         break;
@@ -6375,7 +6515,7 @@ export const useGameState = () => {
           t &&
           t.instanceId !== token.instanceId &&
           (t.level || 1) < 3 &&
-          t.effect !== 'copy_left' &&
+          t.effect !== 'copy_left' && t.effect !== 'copy_right' &&
           !t.isCurse &&
           t.type !== 'curse'
         );
@@ -6562,7 +6702,7 @@ export const useGameState = () => {
     turn, setTurn, displayTurn,
     cycleTotalCombo, setCycleTotalCombo,
     shopRerollBasePrice, setShopRerollBasePrice,
-    shopRerollPrice, setShopRerollPrice, effectiveRerollPrice,
+    shopRerollPrice, setShopRerollPrice, effectiveRerollPrice, creditLimit, isInDebt,
     stars, setStars,
     activeBuffs, setActiveBuffs,
     skippedTurnsBonus, setSkippedTurnsBonus,

@@ -183,6 +183,7 @@ describe('0. トークン定義の完全性チェック', () => {
       'spawn_token_s1', 'spawn_token_s2', 'spawn_token_s3',
       'temp_mult', 'trial_stage',
       'turn_end_convert', 'turn_end_convert_multi', 'turn_end_spawn',
+      'heart_to_energy', 'time_bank_release', 'curse_seal',
     ];
 
     // action が定義されているスキル型トークンのみを対象（curse_multiplied_a などは action なし）
@@ -1683,6 +1684,9 @@ describe('31. パッシブトークンの全効果タイプ存在確認', () => 
       'turn_end_special_spawn', 'turn_end_star_gamble', 'turn_end_token_gamble', 'tyrant_decree',
       'vacation', 'zero_combo_charge',
       'magic_overload', 'sublimation_rune', 'contagious_enchant',
+      'vertical_slash', 'shape_double_column_mult', 'column_plus',
+      'color_shift_bonus', 'same_color_streak', 'empty_slot_mult', 'debt_credit',
+      'time_bank', 'copy_right', 'rearguard', 'bomb_star_mult', 'repeat_to_bomb', 'fuse_line',
     ];
 
     const passives = ALL_TOKEN_BASES.filter(t => t.type === 'passive');

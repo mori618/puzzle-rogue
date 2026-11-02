@@ -1,5 +1,5 @@
 import React from 'react';
-import { getTokenIcon, getAttributeBarStyles } from './utils/tokenUtils';
+import { getTokenIcon, getAttributeBarStyles, canAffordWithCredit } from './utils/tokenUtils';
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
 import { formatJapaneseNumber } from './utils/numberUtils';
@@ -59,9 +59,11 @@ const getEnchantRarityStyle = (rarity) => {
 };
 
 // 通常アイテムのカードを描画するコンポーネント
-const NormalItemCard = ({ item, stars, onBuy, isBought }) => {
+const NormalItemCard = ({ item, stars, onBuy, isBought, creditLimit = 0 }) => {
     const styles = getItemColors(item);
-    const isAffordable = stars >= item.price;
+    // 悪魔の融資: 借金枠の範囲なら購入できる
+    const isAffordable = canAffordWithCredit(stars, item.price, creditLimit);
+    const isOnCredit = isAffordable && stars < item.price;
     const handleBuyClick = (e) => {
         if (!isAffordable) return;
         const rect = e.currentTarget.getBoundingClientRect();
@@ -110,7 +112,7 @@ const NormalItemCard = ({ item, stars, onBuy, isBought }) => {
                 <span className="text-xs font-bold flex items-center gap-0.5">
                     {item.price} <span className="material-icons-round text-[9px]">star</span>
                 </span>
-                <span className="text-[9px] uppercase font-bold opacity-80">{isAffordable ? 'Buy' : 'Locked'}</span>
+                <span className="text-[9px] uppercase font-bold opacity-80">{isOnCredit ? '借金' : (isAffordable ? 'Buy' : 'Locked')}</span>
             </button>
         </div>
     );
@@ -202,7 +204,7 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
 const ShopScreen = ({
     items, stars, onBuy, onClose, onRefresh, rerollPrice, onPause,
     isEnchantShopUnlocked, tokenSlotExpansionCount, onAwakeningBuy,
-    isAwakeningLevelUpBought, freeRerolls,
+    isAwakeningLevelUpBought, freeRerolls, creditLimit = 0, isInDebt = false,
 }) => {
     const [activeTab, setActiveTab] = React.useState('normal');
     const [boughtItemId, setBoughtItemId] = React.useState(null);
@@ -352,6 +354,16 @@ const ShopScreen = ({
                 {/* ノーマルショップ */}
                 {activeTab === 'normal' && (
                     <>
+                        {(isInDebt || creditLimit > 0) && (
+                            <div className={`flex items-start space-x-2 rounded-xl px-4 py-3 border ${isInDebt ? 'bg-red-900/20 border-red-500/30' : 'bg-amber-900/20 border-amber-500/30'}`}>
+                                <span className={`material-icons-round text-base flex-shrink-0 mt-0.5 ${isInDebt ? 'text-red-400' : 'text-amber-400'}`}>account_balance</span>
+                                <p className={`text-xs font-semibold leading-relaxed ${isInDebt ? 'text-red-300' : 'text-amber-300'}`}>
+                                    {isInDebt
+                                        ? `借金中（★${formatJapaneseNumber(stars)}）: サイクルクリアしても商品が補充されず、リロールもできません。`
+                                        : `悪魔の融資: ★が −${formatJapaneseNumber(creditLimit)} になるまで借金で購入できます。`}
+                                </p>
+                            </div>
+                        )}
                         {passiveItems.length > 0 && (
                             <div>
                                 <div className="flex items-center space-x-2 mb-3">
@@ -359,7 +371,7 @@ const ShopScreen = ({
                                     <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Passive Artifacts</h2>
                                 </div>
                                 <div className="space-y-3">
-                                    {passiveItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} onBuy={handleBuy} isBought={boughtItemId === (item.id || item.instanceId)} />)}
+                                    {passiveItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} creditLimit={creditLimit} onBuy={handleBuy} isBought={boughtItemId === (item.id || item.instanceId)} />)}
                                 </div>
                             </div>
                         )}
@@ -370,7 +382,7 @@ const ShopScreen = ({
                                     <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Active Spells</h2>
                                 </div>
                                 <div className="space-y-3">
-                                    {activeItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} onBuy={handleBuy} isBought={boughtItemId === (item.id || item.instanceId)} />)}
+                                    {activeItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} creditLimit={creditLimit} onBuy={handleBuy} isBought={boughtItemId === (item.id || item.instanceId)} />)}
                                 </div>
 
                             </div>
@@ -529,7 +541,9 @@ const ShopScreen = ({
                             onRefresh({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
                         }}
                         style={{ touchAction: 'manipulation' }}
-                        className="h-full aspect-square flex flex-col items-center justify-center btn-game-cyber rounded-xl text-slate-300 relative"
+                        aria-disabled={isInDebt}
+                        title={isInDebt ? '借金がある間はリロールできません' : undefined}
+                        className={`h-full aspect-square flex flex-col items-center justify-center btn-game-cyber rounded-xl text-slate-300 relative ${isInDebt ? 'opacity-40' : ''}`}
                     >
                         {freeRerolls > 0 && (
                             <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-slate-900 animate-bounce">
