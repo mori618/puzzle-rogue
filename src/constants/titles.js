@@ -1,6 +1,6 @@
 /**
  * 二つ名（称号）システム 全マスターデータ
- * A枠パーツ(60種) + B枠パーツ(61種) + 隠しセットシナジー(49種) + 派生進化(26種) = 全196件
+ * A枠パーツ(61種) + B枠パーツ(61種) + 隠しセットシナジー(49種) + 派生進化(26種) = 全197件
  *
  * ■ 解放条件
  *   conditionType : 進捗キー（titleManager の progress に記録される値）
@@ -42,7 +42,9 @@
  *   定義は残すが、解放・装備・図鑑表示・セット発動の対象から外す（titleManager.isTitleDisabled）。
  */
 
-// 1. A枠パーツ（接頭辞）マスターデータ（全60種）
+// 1. A枠パーツ（接頭辞）マスターデータ（全61種）
+// 特殊消し（A26〜A30・A61）の強さは消し方の難しさの順:
+//   4つ消し(A61) ≤ 5個以上消し(A30) < L字消し(A28) < 横一列(A29) < 十字消し(A26) < 正方形消し(A27)
 export const PREFIX_TITLES = [
   {
     id: 'A01', name: '神速の', category: '操作時間',
@@ -221,38 +223,38 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A26', name: '十字の', category: '特殊消し',
-    desc: '十字消しをした手番、コンボ +6',
-    conditionType: 'shape_cross', targetValue: 30,
-    conditionDesc: '十字消しを累計30回達成',
-    effects: [{ type: 'combo_add', value: 6, when: { shape: 'cross' } }],
+    desc: '十字消しをした手番、コンボ +9',
+    conditionType: 'shape_cross', targetValue: 20,
+    conditionDesc: '十字消しを累計20回達成',
+    effects: [{ type: 'combo_add', value: 9, when: { shape: 'cross' } }],
   },
   {
     id: 'A27', name: '方形の', category: '特殊消し',
-    desc: '正方形消しをした手番、コンボ +6',
-    conditionType: 'shape_square', targetValue: 30,
-    conditionDesc: '正方形消しを累計30回達成',
-    effects: [{ type: 'combo_add', value: 6, when: { shape: 'square' } }],
+    desc: '正方形消しをした手番、コンボ +12',
+    conditionType: 'shape_square', targetValue: 15,
+    conditionDesc: '正方形消しを累計15回達成',
+    effects: [{ type: 'combo_add', value: 12, when: { shape: 'square' } }],
   },
   {
     id: 'A28', name: '鉤爪の', category: '特殊消し',
-    desc: 'L字消しをした手番、コンボ +6',
-    conditionType: 'shape_l_shape', targetValue: 50,
-    conditionDesc: 'L字消しを累計50回達成',
-    effects: [{ type: 'combo_add', value: 6, when: { shape: 'l_shape' } }],
+    desc: 'L字消しをした手番、コンボ +5',
+    conditionType: 'shape_l_shape', targetValue: 30,
+    conditionDesc: 'L字消しを累計30回達成',
+    effects: [{ type: 'combo_add', value: 5, when: { shape: 'l_shape' } }],
   },
   {
     id: 'A29', name: '一閃の', category: '特殊消し',
-    desc: '横一列消しをした手番、コンボ +8',
-    conditionType: 'shape_row', targetValue: 30,
-    conditionDesc: '横一列消しを累計30回達成',
-    effects: [{ type: 'combo_add', value: 8, when: { shape: 'row' } }],
+    desc: '横一列消しをした手番、コンボ +7',
+    conditionType: 'shape_row', targetValue: 20,
+    conditionDesc: '横一列消しを累計20回達成',
+    effects: [{ type: 'combo_add', value: 7, when: { shape: 'row' } }],
   },
   {
     id: 'A30', name: '五連の', category: '特殊消し',
-    desc: '5個以上つなげて消した1組につきコンボ +2（最大+20）',
+    desc: '5個以上つなげて消した1組につきコンボ +2（最大+10）',
     conditionType: 'shape_len5', targetValue: 100,
     conditionDesc: '5個以上つなげ消しを累計100回達成',
-    effects: [{ type: 'combo_add', value: 2, per: 'len5', max: 10 }],
+    effects: [{ type: 'combo_add', value: 2, per: 'len5', max: 5 }],
   },
   {
     id: 'A31', name: '爆炎の', category: '特殊ドロップ',
@@ -467,6 +469,13 @@ export const PREFIX_TITLES = [
     conditionType: 'no_skill_turns', targetValue: 200,
     conditionDesc: 'アクティブスキルを使わずに手番を終える（累計200回）',
     effects: [{ type: 'add_mult', value: 1.0, when: { skill_used: false } }],
+  },
+  {
+    id: 'A61', name: '四連の', category: '特殊消し',
+    desc: 'その手番に4つ消しした1組につきコンボ +1（最大+5）',
+    conditionType: 'shape_len4', targetValue: 100,
+    conditionDesc: '4つ消しを累計100回達成',
+    effects: [{ type: 'combo_add', value: 1, per: 'len4', max: 5 }],
   },
 ];
 

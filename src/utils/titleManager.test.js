@@ -44,10 +44,10 @@ const unlockAndEquip = ({ prefixes = [], suffixes = [], evolved = [], prefixId =
 };
 
 describe('二つ名マスターデータ', () => {
-  it('全196件・ID重複なし', () => {
+  it('全197件・ID重複なし', () => {
     const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...TITLE_SET_BONUSES, ...EVOLVED_TITLES];
-    expect(all).toHaveLength(196);
-    expect(new Set(all.map(t => t.id)).size).toBe(196);
+    expect(all).toHaveLength(197);
+    expect(new Set(all.map(t => t.id)).size).toBe(197);
   });
 
   it('6属性すべてが同じ構成（A枠・詠唱・B枠・進化・セット3種）を持つ', () => {
@@ -563,5 +563,35 @@ describe('二つ名の効果の調整（グループ9）', () => {
     expect(computeTitleComboModifiers({ bombErased: 2 }, find('A31').effects).comboAdd).toBe(10);
     expect(computeTitleComboModifiers({ bombErased: 10 }, find('A31').effects).comboAdd).toBe(15);
     expect(computeTitleComboModifiers({ bombErased: 10 }, find('S13').effects).addedMult).toBeCloseTo(3.0);
+  });
+});
+
+describe('特殊消しの二つ名（グループ10）', () => {
+  const find = (id) => PREFIX_TITLES.find(t => t.id === id);
+
+  it('A61 四連の: 4つ消し1組につきコンボ +1（最大 +5）', () => {
+    const a61 = find('A61');
+    expect(a61.conditionType).toBe('shape_len4');
+    expect(a61.targetValue).toBe(100);
+    expect(computeTitleComboModifiers({ shapes: ['len4', 'len4', 'cross'] }, a61.effects).comboAdd).toBe(2);
+    expect(computeTitleComboModifiers({ shapes: Array(8).fill('len4') }, a61.effects).comboAdd).toBe(5);
+  });
+
+  it('難しい消し方ほど加算が大きく、解放条件の回数が少ない', () => {
+    // 4つ消し ≤ 5個以上消し < L字 < 横一列 < 十字 < 正方形（1手で1回達成したときの加算）
+    const order = [
+      ['A61', { shapes: ['len4'] }],
+      ['A30', { len5Count: 1 }],
+      ['A28', { shapes: ['l_shape'] }],
+      ['A29', { shapes: ['row'] }],
+      ['A26', { shapes: ['cross'] }],
+      ['A27', { shapes: ['square'] }],
+    ];
+    const adds = order.map(([id, ctx]) => computeTitleComboModifiers(ctx, find(id).effects).comboAdd);
+    expect(adds).toEqual([1, 2, 5, 7, 9, 12]);
+    const targets = order.map(([id]) => find(id).targetValue);
+    expect(targets).toEqual([100, 100, 30, 20, 20, 15]);
+    // 5個以上消しの最大
+    expect(computeTitleComboModifiers({ len5Count: 9 }, find('A30').effects).comboAdd).toBe(10);
   });
 });

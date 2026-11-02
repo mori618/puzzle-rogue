@@ -335,6 +335,7 @@ export const getTitlePerCount = (per, ctx = {}, effect = {}) => {
     case 'enchant': return counts.enchant || 0;
     case 'time_left_sec': return Math.floor((ctx.timeLeftMs || 0) / 1000);
     case 'special_shape': return (ctx.shapes || []).filter(s => SHAPE_KEYS.includes(s)).length;
+    case 'len4': return (ctx.shapes || []).filter(s => s === 'len4').length;
     case 'len5': return ctx.len5Count || 0;
     case 'bomb_erased': return ctx.bombErased || 0;
     case 'repeat_erased': return ctx.repeatErased || 0;
