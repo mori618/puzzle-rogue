@@ -1721,7 +1721,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "greed_power", name: "金満の暴力", icon: "monetization_on", type: "passive", effect: "greed_power",
     values: [7, 5, 3], maxMultipliers: [10, 20, 50], rarity: 1, price: 26,
-    desc: "★[20/15/10]個につきコンボ倍率にプラス1。",
+    desc: "★[7/5/3]個につきコンボ倍率にプラス1。",
     attributes: [],
     canBeInitial: true
   },
