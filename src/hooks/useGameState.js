@@ -11,7 +11,7 @@ import StartOptionScreen from "../StartOptionScreen";
 import TokenEncyclopediaScreen from "../TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, ENCHANTMENTS } from '../constants/enchantments.js';
-import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS } from '../constants/gameConstants.js';
+import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost } from '../constants/gameConstants.js';
 import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
@@ -22,6 +22,7 @@ import { usePuzzleBoard } from './usePuzzleBoard';
 import { useShop } from './useShop';
 import { BGM_IDS, SE_IDS } from '../constants/sounds';
 import {
+  getEquippedTitleInfo,
   getActiveTitleEffects,
   hasTitleEffect,
   getTitleEffectTotal,
@@ -66,6 +67,8 @@ export const useGameState = () => {
   const [turn, setTurn] = useState(() => savedData?.turn || 1);
   const [cycleTotalCombo, setCycleTotalCombo] = useState(() => savedData?.cycleTotalCombo || 0);
   const [stars, setStars] = useState(() => savedData?.stars || 10);
+  // ラン中に二つ名を切り替えた回数（切り替え価格の算出に使う）
+  const [titleSwitchCount, setTitleSwitchCount] = useState(() => savedData?.titleSwitchCount || 0);
   /* const [energy, setEnergy] = useState(0); // REMOVED: Global Energy */
   /* const [maxEnergy] = useState(10); // REMOVED: Global Energy */
 
@@ -550,6 +553,7 @@ export const useGameState = () => {
       setShopRerollBasePrice(savedData.shopRerollBasePrice || 1);
       setShopRerollPrice(savedData.shopRerollPrice || 1);
       setTokenSlotExpansionCount(savedData.tokenSlotExpansionCount || 0);
+      setTitleSwitchCount(savedData.titleSwitchCount || 0);
 
       if (savedData.shopItems) {
         setShopItems(savedData.shopItems);
@@ -681,6 +685,7 @@ export const useGameState = () => {
       shopItems,
       isEnchantShopUnlocked,
       tokenSlotExpansionCount,
+      titleSwitchCount,
       isAwakeningLevelUpBought,
       currentRunStats,
       // タイトル画面ではエンジンが破棄済みのため、クリーンアップで保存された savedBoard を使う
@@ -690,7 +695,7 @@ export const useGameState = () => {
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveObj));
     setHasSaveData(true);
 
-  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, isAwakeningLevelUpBought, currentRunStats, isPracticeMode, showTitle]);
+  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, titleSwitchCount, isAwakeningLevelUpBought, currentRunStats, isPracticeMode, showTitle]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -5358,6 +5363,31 @@ export const useGameState = () => {
 
 
 
+  /**
+   * ラン中の二つ名切り替えの支払いとログ記録。
+   * スター不足なら false を返して何もしない。練習モードは無料（記録もしない）。
+   */
+  const payTitleSwitch = (before, after) => {
+    const cost = isPracticeMode ? 0 : getTitleSwitchCost(titleSwitchCount);
+    if (cost > 0 && stars < cost) return false;
+    if (!isPracticeMode) {
+      const describe = (eq) => {
+        const info = getEquippedTitleInfo(eq || {});
+        return { prefixId: eq?.prefixId || null, suffixId: eq?.suffixId || null, name: info.fullName };
+      };
+      playLog.event('titleChange', {
+        from: describe(before),
+        to: describe(after),
+        cost,
+        // 切り替え後に実際に適用される二つ名効果（meta.titleEffects はラン開始時の値のため）
+        titleEffects: getActiveTitleEffects(),
+      });
+      setStars((s) => s - cost);
+      setTitleSwitchCount((c) => c + 1);
+    }
+    return true;
+  };
+
   const resetGame = () => {
     setStars(10);
     setTarget(8);
@@ -5384,6 +5414,7 @@ export const useGameState = () => {
     setHasSaveData(false);
     setIsEnchantShopUnlocked(false);
     setTokenSlotExpansionCount(0);
+    setTitleSwitchCount(0);
     setIsAwakeningLevelUpBought(false);
     generateShop();
     if (engineRef.current) {
@@ -6344,6 +6375,9 @@ export const useGameState = () => {
     isPureMode, setIsPureMode,
     isEnchantShopUnlocked, setIsEnchantShopUnlocked,
     tokenSlotExpansionCount, setTokenSlotExpansionCount,
+    titleSwitchCount,
+    titleSwitchCost: isPracticeMode ? 0 : getTitleSwitchCost(titleSwitchCount),
+    payTitleSwitch,
     isAwakeningLevelUpBought, setIsAwakeningLevelUpBought,
     showMaxComboWarpDialog, setShowMaxComboWarpDialog,
     draggedToken, setDraggedToken,
