@@ -5196,7 +5196,7 @@ export const useGameState = () => {
       for (let i = 2; i <= nextCycle; i++) {
         let mult = 1.5;
         let add = 2;
-        if (i === 6) { mult = 3.0; add = 200; }
+        if (i === 6) { mult = 3.0; add = 60; }
         else if (i === 11) { mult = 4.0; add = 5000; }
         else if (i === 16) { mult = 5.0; add = 200000; }
         else if (i === 21) { mult = 6.0; add = 10000000; }
