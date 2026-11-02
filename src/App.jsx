@@ -39,6 +39,7 @@ const App = () => {
     goalReached,
     shopItems,
     turn,
+    displayTurn,
     freeRerolls,
     cycleTotalCombo,
     effectiveRerollPrice,
@@ -284,7 +285,7 @@ const App = () => {
                     {/* ターンを左・サイクルを右に表示（例: TURN 3 / CYCLE 6） */}
                     <span className="text-lg font-bold text-white whitespace-nowrap">
                       <span className="text-[10px] uppercase text-slate-400 mr-1">Turn</span>
-                      {turn}{isEndlessMode ? ' ∞' : ''}
+                      {displayTurn}{isEndlessMode ? ' ∞' : ''}
                     </span>
                     <span className="text-primary font-bold">/</span>
                     <span className="text-lg font-bold text-white whitespace-nowrap">
