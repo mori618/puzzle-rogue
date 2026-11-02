@@ -14,7 +14,7 @@
  * ■ 効果 (effects)
  *   宣言的な効果リスト。titleManager.js の computeTitleComboModifiers / getTitleEffectTotal 等で解釈される。
  *   - when : 発動条件（複数キーは AND）。例 { color: 'fire' }, { first_turn: true, stars_le: 0 }
- *   - per  : 「〜1つにつき」の数え方。例 'curse', 'time_left_sec'
+ *   - per  : 「〜1つにつき」の数え方。例 'curse', 'time_left_sec', 'cycle'（現在のサイクル数）
  *            'attr_token'（effect.attribute のトークン数）, 'color_erased'（effect.color の消去数）
  *   - max  : per のカウント上限
  *
@@ -47,17 +47,17 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A02', name: '狂戦士の', category: 'リスク・火力',
-    desc: '操作時間 -2秒、毎手番コンボ +5',
+    desc: '操作時間 -2秒、毎手番コンボ +(サイクル数×1.0)',
     conditionType: 'berserk_clear', targetValue: 1,
     conditionDesc: '操作時間の残りが2秒以下の手番でサイクルクリア',
-    effects: [{ type: 'time_add', value: -2000 }, { type: 'combo_add', value: 5 }],
+    effects: [{ type: 'time_add', value: -2000 }, { type: 'combo_add', value: 1.0, per: 'cycle' }],
   },
   {
     id: 'A03', name: '背水の', category: 'リスク・固定',
-    desc: '操作時間4秒固定、毎手番コンボ +6',
+    desc: '操作時間4秒固定、毎手番コンボ +(サイクル数×1.2)',
     conditionType: 'clears_total', targetValue: 10,
     conditionDesc: '累計10サイクルクリア',
-    effects: [{ type: 'time_fixed', value: 4000 }, { type: 'combo_add', value: 6 }],
+    effects: [{ type: 'time_fixed', value: 4000 }, { type: 'combo_add', value: 1.2, per: 'cycle' }],
   },
   {
     id: 'A04', name: '紅蓮の', category: '属性（炎）',
@@ -117,10 +117,10 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A12', name: '禁忌の', category: '盤面制限',
-    desc: '落ちコン停止、毎手番コンボ +8',
+    desc: '落ちコン停止、毎手番コンボ +(サイクル数×1.5)',
     conditionType: 'no_skyfall_combo', targetValue: 100,
     conditionDesc: '落ちコンなしの手番で通算100コンボ達成',
-    effects: [{ type: 'no_skyfall' }, { type: 'combo_add', value: 8 }],
+    effects: [{ type: 'no_skyfall' }, { type: 'combo_add', value: 1.5, per: 'cycle' }],
   },
   {
     id: 'A13', name: '厄災の', category: '呪い',
@@ -744,10 +744,10 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B41', name: '疾風', category: '操作',
-    desc: '1手の移動4マスにつきコンボ +1（最大+30）',
+    desc: '1手の移動4マスにつきコンボ +1（最大+12）',
     conditionType: 'move_steps_max', targetValue: 80,
     conditionDesc: '1手で80マス以上移動してコンボを出す',
-    effects: [{ type: 'combo_add', value: 0.25, per: 'move_steps', max: 120 }],
+    effects: [{ type: 'combo_add', value: 0.25, per: 'move_steps', max: 48 }],
   },
   {
     id: 'B42', name: '背信者', category: '売却',
