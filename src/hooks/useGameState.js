@@ -12,7 +12,7 @@ import TokenEncyclopediaScreen from "../TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, ENCHANTMENTS } from '../constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost } from '../constants/gameConstants.js';
-import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, pickTokensForFreeSlots, applyNewTokenLevel } from '../utils/tokenUtils';
+import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, applyNewTokenLevel, isProbabilityToken } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
@@ -43,6 +43,7 @@ import {
   isTitleSealedActive,
   getTitlePassiveDoubleChance,
   rollTitleDoubledPassives,
+  getTitleSkillFizzleChance,
 } from '../utils/titleManager';
 
 // 外部定数・ヘルパーの移行
@@ -179,16 +180,7 @@ export const useGameState = () => {
       playLog.event('trig', { id: tok?.id || String(tokenId), iid: tokenId, n: tok?.name, lv: tok?.level });
     }
     if (tok) {
-      const isProbabilityToken = [
-        "turn_end_spawn_h", "turn_end_spawn_bomb_1", "turn_end_spawn_star_3",
-        "turn_end_spawn_repeat_1", "turn_end_spawn_mixed_1", "turn_end_spawn_plus_5",
-        "erosion_fire", "erosion_dark", "turn_end_convert_f_d", "turn_end_full_board_w"
-      ].includes(tok.id) || tok.effect === "turn_end_special_spawn" ||
-        tok.effect === "turn_end_spawn" || tok.effect === "turn_end_convert" ||
-        tok.effect === "erosion_color" || tok.effect === "turn_end_full_board" ||
-        tok.effect === "turn_end_star_gamble" || tok.effect === "turn_end_token_gamble";
-
-      if (isProbabilityToken) {
+      if (isProbabilityToken(tok)) {
         // 現在のターンで確率系が発動したかのフラグを立てる
         window.probabilityTriggeredThisTurn = true;
         // 累計発動回数をインクリメント
@@ -525,6 +517,7 @@ export const useGameState = () => {
     freeRerolls,
     setFreeRerolls,
     resetShopVisitStats,
+    resetShopCycleStats,
   } = shopHook;
 
   // Refを最新の値に同期
@@ -581,6 +574,7 @@ export const useGameState = () => {
       setShopRerollPrice(savedData.shopRerollPrice || 1);
       setTokenSlotExpansionCount(savedData.tokenSlotExpansionCount || 0);
       setTitleSwitchCount(savedData.titleSwitchCount || 0);
+      setFreeRerolls(savedData.freeRerolls || 0);
 
       if (savedData.shopItems) {
         setShopItems(savedData.shopItems);
@@ -713,6 +707,7 @@ export const useGameState = () => {
       isEnchantShopUnlocked,
       tokenSlotExpansionCount,
       titleSwitchCount,
+      freeRerolls,
       isAwakeningLevelUpBought,
       currentRunStats,
       // タイトル画面ではエンジンが破棄済みのため、クリーンアップで保存された savedBoard を使う
@@ -722,7 +717,7 @@ export const useGameState = () => {
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveObj));
     setHasSaveData(true);
 
-  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, titleSwitchCount, isAwakeningLevelUpBought, currentRunStats, isPracticeMode, showTitle]);
+  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, titleSwitchCount, freeRerolls, isAwakeningLevelUpBought, currentRunStats, isPracticeMode, showTitle]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -3410,6 +3405,8 @@ export const useGameState = () => {
           heart_turn_max: finalErasedColorCounts.heart || 0,
           single_color_board_max: singleColorBoardMax,
           skills_turn_max: skillsThisTurnRef.current,
+          // 時の番人: この手番の開始時の操作時間（秒、小数第1位まで）
+          time_limit_max: Math.floor((engineRef.current?.timeLimit || 0) / 100) / 10,
         },
       });
       if (tc > 0 && !hasUsedActiveSkillThisTurn) recordTitleProgress({ add: { no_skill_turns: 1 } });
@@ -5086,6 +5083,8 @@ export const useGameState = () => {
         same_attr_max: counts.sameAttrMax,
         skill_tokens_max: counts.skill,
         enchant_max: counts.enchant,
+        // 賭博師: 確率で発動するトークンの同時所持数
+        probability_tokens_max: tokens.filter(isProbabilityToken).length,
         ...Object.fromEntries(ALL_DROP_COLORS.map(c => [`attr_tokens_${c}_max`, counts.attrCounts[c] || 0])),
       },
     });
@@ -5119,6 +5118,8 @@ export const useGameState = () => {
       },
       max: { stars_earned_run: earned },
     });
+    // 進化二つ名（闇市の帝王）: 装備している間に消費したスターを数える
+    if (spentDelta > 0) recordTitleTrigger('shop', { starsSpent: spentDelta });
   }, [currentRunStats.totalStarsEarned, currentRunStats.currentStarsSpent, isLoaded, isPracticeMode]);
 
   // ショップでの購入回数（totalPurchases の増分を累計に加算）
@@ -5344,37 +5345,14 @@ export const useGameState = () => {
         return { ...t, charge: chargeFull ? maxCharge : Math.min(maxCharge, (t.charge || 0) + chargeAmount) };
       }));
     }
-    // 二つ名「継承者」: 売却した Lv3 トークンを Lv2 で戻す（空き枠がある分のみ）
-    const inheritQueue = currentRunStats.inheritQueue || [];
-    if (inheritQueue.length > 0) {
-      const maxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
-      // 枠はアクティブとパッシブで別々なので、戻すトークンの種類ごとに空き枠を数える
-      const { accepted } = pickTokensForFreeSlots(
-        inheritQueue.map(id => ALL_TOKEN_BASES.find(b => b.id === id)).filter(Boolean),
-        tokens, maxSlots
-      );
-      const returning = accepted
-        .map(base => ({
-          ...base,
-          instanceId: Date.now() + Math.random(),
-          level: 2,
-          charge: base.type === 'skill' ? (base.cost || 0) : 0,
-          startValue: base.condition ? getStatByCondition(base.condition) : 0,
-          isInherited: true,
-        }));
-      if (returning.length > 0) {
-        setTokens(prev => {
-          const next = [...prev];
-          returning.forEach(tok => {
-            const idx = next.findIndex(t => t === null);
-            if (idx !== -1) next[idx] = tok; else next.push(tok);
-          });
-          return next;
-        });
-        returning.forEach(tok => addTokenToast(tok, "が戻ってきた！ (継承者)"));
-      }
-      setCurrentRunStats(prev => ({ ...prev, inheritQueue: [] }));
+    // 二つ名「ミダスの手」: サイクルクリア時に無料リロールを付与（使わなかった分は持ち越す）
+    const titleCycleFreeRerolls = Math.floor(getTitleEffectTotal('cycle_free_reroll', {}, titleEffects));
+    if (titleCycleFreeRerolls > 0) {
+      setFreeRerolls(f => f + titleCycleFreeRerolls);
+      notify(`二つ名の効果: 無料リロール +${titleCycleFreeRerolls}回`);
     }
+    // 同じサイクルの間のショップ操作の数（進化二つ名の判定用）をリセット
+    resetShopCycleStats();
     const titleLevelUps = Math.floor(getTitleEffectTotal('levelup_on_cycle_start', {}, titleEffects));
     if (titleLevelUps > 0) {
       levelUpRandomTokens(titleLevelUps);
@@ -5467,6 +5445,8 @@ export const useGameState = () => {
     setCurrentRunTotalCombo(0);
     setShopRerollBasePrice(1);
     setShopRerollPrice(1);
+    setFreeRerolls(0);
+    resetShopCycleStats();
     setTokens([]);
     setSandsOfTimeSeconds(0);
     setActiveBuffs([]);
@@ -5665,6 +5645,16 @@ export const useGameState = () => {
 
     setStats(prev => ({ ...prev, lifetimeSkillsUsed: (prev.lifetimeSkillsUsed || 0) + 1 }));
     setCurrentRunStats(prev => ({ ...prev, currentSkillsUsed: (prev.currentSkillsUsed || 0) + 1 }));
+
+    // 二つ名「狂乱者」: 一定の確率でスキルの効果が発動しない（エネルギーは消費する）
+    const fizzleChance = getTitleSkillFizzleChance(token, titleEffects);
+    if (fizzleChance > 0 && Math.random() < fizzleChance) {
+      playLog.event('fizzle', { tok: compactToken(token) });
+      setTokens(prev => prev.map(t => (t === token ? { ...t, charge: 0 } : t)));
+      soundManager.playSE(SE_IDS.ERROR);
+      notify(`不発！ ${token.name} の効果が発動しなかった（狂乱者）`);
+      return;
+    }
 
     soundManager.playSE(SE_IDS.SKILL_USE);
     if (token.effect === "convert_color" || token.effect === "convert_multi") {

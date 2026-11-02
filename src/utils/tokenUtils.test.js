@@ -1,39 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { pickTokensForFreeSlots, applyNewTokenLevel, isNewTokenLevelTarget, isTokenRequirementMet } from './tokenUtils.js';
+import { isProbabilityToken, applyNewTokenLevel, isNewTokenLevelTarget, isTokenRequirementMet } from './tokenUtils.js';
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { saveTitleState, resetTitleCache } from './titleManager.js';
-
-const skill = (id) => ({ id, type: 'skill' });
-const passive = (id) => ({ id, type: 'passive' });
-
-describe('pickTokensForFreeSlots（継承者で戻すトークンの空き枠判定）', () => {
-  it('アクティブとパッシブの空き枠を別々に数える', () => {
-    // 枠は各4。アクティブ4個（満杯）・パッシブ1個（空き3）＝合計5個所持
-    const tokens = [skill('a1'), skill('a2'), skill('a3'), skill('a4'), passive('p1')];
-    const { accepted, rejected } = pickTokensForFreeSlots([passive('ret1'), skill('ret2')], tokens, 4);
-    expect(accepted.map(t => t.id)).toEqual(['ret1']);
-    expect(rejected.map(t => t.id)).toEqual(['ret2']);
-  });
-
-  it('合計4個以上持っていても、該当する枠が空いていれば戻る（旧実装の不具合）', () => {
-    const tokens = [passive('p1'), passive('p2'), skill('a1'), skill('a2')];
-    const { accepted } = pickTokensForFreeSlots([passive('ret1'), skill('ret2')], tokens, 4);
-    expect(accepted.map(t => t.id)).toEqual(['ret1', 'ret2']);
-  });
-
-  it('空き枠の数を超える分は入らない', () => {
-    const tokens = [passive('p1'), passive('p2'), passive('p3')];
-    const { accepted, rejected } = pickTokensForFreeSlots([passive('r1'), passive('r2'), skill('r3')], tokens, 4);
-    expect(accepted.map(t => t.id)).toEqual(['r1', 'r3']);
-    expect(rejected.map(t => t.id)).toEqual(['r2']);
-  });
-
-  it('呪い（パッシブ側）や null を含んでいても正しく数える', () => {
-    const tokens = [null, { id: 'c1', type: 'curse', isCurse: true }, passive('p1'), passive('p2'), passive('p3')];
-    const { accepted } = pickTokensForFreeSlots([passive('r1')], tokens, 4);
-    expect(accepted).toHaveLength(0);
-  });
-});
 
 describe('applyNewTokenLevel（二つ名「先達の」）', () => {
   beforeEach(() => {
@@ -97,5 +65,19 @@ describe('isTokenRequirementMet', () => {
     ['move_drop_add_active', 'move_drop_boost', 'move_drop_lucky', 'move_repeater', 'cross_multiply_move_drop'].forEach(id => {
       expect(ALL_TOKEN_BASES.find(t => t.id === id)?.requires).toBe('move_drop');
     });
+  });
+});
+
+describe('isProbabilityToken（確率で発動するトークン）', () => {
+  it('ターン終了時の生成・変換・侵食などを確率発動として判定する', () => {
+    expect(isProbabilityToken({ id: 'erosion_fire' })).toBe(true);
+    expect(isProbabilityToken({ id: 'x', effect: 'turn_end_convert' })).toBe(true);
+    expect(isProbabilityToken({ id: 'x', effect: 'turn_end_star_gamble' })).toBe(true);
+    expect(isProbabilityToken({ id: 'x', effect: 'time' })).toBe(false);
+    expect(isProbabilityToken(null)).toBe(false);
+  });
+
+  it('実際のトークン定義にも該当するものがある', () => {
+    expect(ALL_TOKEN_BASES.filter(isProbabilityToken).length).toBeGreaterThanOrEqual(4);
   });
 });

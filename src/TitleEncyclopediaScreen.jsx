@@ -368,7 +368,7 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
                   const baseLabel = describeRequiredTitles(evo, unlockedTitles);
                   const modeLabel = evo.requireMode === 'unlocked' ? '解放' : '装備';
                   const progress = getTitleProgressValue(evo, titleState.progress);
-                  const isCounter = !evo.trigger; // 累計系（進捗バーを表示）
+                  const isCounter = !evo.trigger || evo.trigger.count != null; // 累計系（進捗バーを表示）
                   const percent = Math.min(100, Math.floor((progress / evo.targetValue) * 100)) || 0;
 
                   return (

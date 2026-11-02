@@ -90,7 +90,6 @@ export const compactToken = (t, slot) => {
   if (t.params && Object.keys(t.params).length) o.p = t.params;
   if (t.enchantments?.length) o.en = t.enchantments.map(e => e.id || e.effect);
   if (t.isLocked) o.lock = 1;
-  if (t.isInherited) o.inh = 1;
   if (t.parentId) o.par = t.parentId;
   if (t.startValue) o.sv = t.startValue;
   // 成長系トークンの内部カウンタ（数値系の独自プロパティ）を拾う

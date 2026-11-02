@@ -354,6 +354,7 @@ export const evaluateTitleWhen = (when, ctx = {}) => {
       case 'skills_this_turn_ge': return (ctx.skillsThisTurn ?? 0) >= val;
       case 'colors_ge': return colors.size >= val;
       case 'colors_le': return colors.size >= 1 && colors.size <= val;
+      case 'colors_all': return (val || []).every(c => colors.has(c)); // 指定した属性をすべて消した
       case 'all_clear': return !!ctx.isAllClear === val;
       case 'tc_ge': return (ctx.tc ?? 0) >= val;
       case 'tc_le': return ctx.tc != null && ctx.tc >= 1 && ctx.tc <= val;
@@ -373,6 +374,9 @@ export const evaluateTitleWhen = (when, ctx = {}) => {
       case 'no_skyfall_turn': return (ctx.noSkyfall === true) === val;
       case 'shop_rerolls_ge': return (ctx.shopRerolls ?? 0) >= val;
       case 'shop_curses_sold_ge': return (ctx.shopCursesSold ?? 0) >= val;
+      // 同じサイクルの間のショップ操作（ショップを開き直してもリセットしない）
+      case 'cycle_rerolls_ge': return (ctx.cycleRerolls ?? 0) >= val;
+      case 'cycle_curses_sold_ge': return (ctx.cycleCursesSold ?? 0) >= val;
       case 'shop_sales_bought_ge': return (ctx.shopSalesBought ?? 0) >= val;
       default: return false;
     }
@@ -412,6 +416,8 @@ export const getTitlePerCount = (per, ctx = {}, effect = {}) => {
     case 'prev_combo': return ctx.prevCombo || 0;
     case 'stars_10': return Math.floor((ctx.stars || 0) / 10);
     case 'stars_100': return Math.floor((ctx.stars || 0) / 100);
+    case 'shape_count': return (ctx.shapes || []).filter(s => s === effect.shape).length; // effect.shape の特殊消しの回数
+    case 'stars_spent': return Math.max(0, ctx.starsSpent || 0); // 今回消費したスター
     default: return 0;
   }
 };
@@ -554,6 +560,13 @@ export const applyTitleSpawnWeights = (weights, progress = loadTitleState().prog
       Object.keys(weights).forEach(c => { if (!e.colors.includes(c)) weights[c] = 0; });
     }
   });
+  effects.filter(e => e.type === 'spawn_exclude').forEach(e => {
+    // 指定した色を降らせない（調律師）。ほかに出現可能な色が残る場合のみ（全色0になるのを防ぐ）
+    const excluded = e.colors || [];
+    if (Object.keys(weights).some(c => !excluded.includes(c) && weights[c] > 0)) {
+      excluded.forEach(c => { if (weights[c] !== undefined) weights[c] = 0; });
+    }
+  });
   return weights;
 };
 
@@ -573,6 +586,14 @@ export const applyTitleRerollPrice = (basePrice, effects = getActiveTitleEffects
   const sub = getTitleEffectTotal('reroll_sub', {}, effects);
   if (sub > 0) price = Math.max(1, price - sub);
   return price;
+};
+
+/**
+ * アクティブスキルの効果が発動しない確率（狂乱者: skill_fizzle_chance）。呪いのアクティブは対象外。無ければ 0
+ */
+export const getTitleSkillFizzleChance = (token, effects = getActiveTitleEffects()) => {
+  if (!token || token.isCurse || token.type === 'curse') return 0;
+  return Math.min(1, getTitleEffectTotal('skill_fizzle_chance', {}, effects));
 };
 
 /**
@@ -773,12 +794,17 @@ export const recordTitleProgress = (updates = {}) => {
 
 /**
  * 進化二つ名のトリガー判定
+ *   trigger.count 無し : 条件を1回満たしたら解放（evo_<id> = 1）
+ *   trigger.count あり : 条件を満たすたびに evo_<id> に 1 を加算し、count に達したら解放
+ *   trigger.sum あり   : 1 ではなく getTitlePerCount(sum) の量を加算する（例: 'stars_spent'・'shape_count'）
+ * 数えるのは requireMode の条件（装備中など）を満たしている間だけ。
  * @param {'turn'|'clear'|'state'|'shop'} event
  * @param {Object} ctx evaluateTitleWhen と同じ文脈
  */
 export const recordTitleTrigger = (event, ctx = {}) => {
   const state = loadTitleState();
   const max = {};
+  const add = {};
   EVOLVED_TITLES.forEach(title => {
     const trigger = title.trigger;
     if (!trigger || trigger.event !== event) return;
@@ -786,14 +812,22 @@ export const recordTitleTrigger = (event, ctx = {}) => {
     if (isTitleDisabled(title)) return;
     if (!isRequirementMet(title, state.unlockedTitles)) return;
     if (title.requireMode === 'equipped' && !meetsRequired(title, id => isTitleEquipped(id, state.equippedTitle))) return;
-    const when = resolvePrefixAttr(trigger.when, getEquippedPrefixAttribute(state.equippedTitle));
-    if (!when) return;
-    if (evaluateTitleWhen(when, ctx)) {
-      max[title.conditionType] = 1;
+    const prefixAttr = getEquippedPrefixAttribute(state.equippedTitle);
+    let when = null;
+    if (trigger.when) {
+      when = resolvePrefixAttr(trigger.when, prefixAttr);
+      if (!when) return;
     }
+    if (!evaluateTitleWhen(when, ctx)) return;
+    if (trigger.count == null) {
+      max[title.conditionType] = 1;
+      return;
+    }
+    const amount = trigger.sum ? getTitlePerCount(trigger.sum, ctx, trigger) : 1;
+    if (amount > 0) add[title.conditionType] = amount;
   });
-  if (Object.keys(max).length === 0) return [];
-  return recordTitleProgress({ max });
+  if (Object.keys(max).length === 0 && Object.keys(add).length === 0) return [];
+  return recordTitleProgress({ max, add });
 };
 
 /**

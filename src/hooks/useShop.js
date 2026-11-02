@@ -58,11 +58,21 @@ export const useShop = ({
   const resetShopVisitStats = useCallback(() => {
     shopVisitStatsRef.current = { rerolls: 0, cursesSold: 0, salesBought: 0 };
   }, []);
-  /** ショップ訪問中の操作を数え、進化二つ名（event: 'shop'）を判定する */
+  // 二つ名の進化判定用: 同じサイクルの間のショップ操作回数（ショップを開き直してもリセットせず、サイクル開始時にリセット）
+  const shopCycleStatsRef = useRef({ rerolls: 0, cursesSold: 0 });
+  const resetShopCycleStats = useCallback(() => {
+    shopCycleStatsRef.current = { rerolls: 0, cursesSold: 0 };
+  }, []);
+  /** ショップでの操作を数え、進化二つ名（event: 'shop'）を判定する */
   const countShopVisitAction = useCallback((key) => {
     const next = { ...shopVisitStatsRef.current, [key]: (shopVisitStatsRef.current[key] || 0) + 1 };
     shopVisitStatsRef.current = next;
-    recordTitleTrigger('shop', { shopRerolls: next.rerolls, shopCursesSold: next.cursesSold, shopSalesBought: next.salesBought });
+    const cycle = { ...shopCycleStatsRef.current, [key]: (shopCycleStatsRef.current[key] || 0) + 1 };
+    shopCycleStatsRef.current = cycle;
+    recordTitleTrigger('shop', {
+      shopRerolls: next.rerolls, shopCursesSold: next.cursesSold, shopSalesBought: next.salesBought,
+      cycleRerolls: cycle.rerolls || 0, cycleCursesSold: cycle.cursesSold || 0,
+    });
   }, []);
 
   /** トークンの動的価格を取得するヘルパー関数 */
@@ -447,17 +457,13 @@ export const useShop = ({
     soundManager.playSE(SE_IDS.SELL_STAR);
 
     setTokens(prev => prev.filter(t => t.instanceId !== token.instanceId));
-    // 二つ名「継承者」: 売却した Lv3 トークンを次サイクル開始時に Lv2 で戻す（戻ったトークンは対象外）
-    const isLv3 = !isCurseToken && (token.level || 1) >= 3;
-    const shouldInherit = isLv3 && !token.isInherited && getTitleEffectTotal('inherit_lv3', {}, titleEffects) > 0;
     setCurrentRunStats(prev => ({
       ...prev,
       tokensSold: (prev.tokensSold || 0) + 1,
       totalStarsEarned: (prev.totalStarsEarned || 0) + sellPrice,
-      ...(shouldInherit ? { inheritQueue: [...(prev.inheritQueue || []), token.id] } : {}),
     }));
 
-    recordTitleProgress({ add: { tokens_sold: 1, curses_sold: isCurseToken ? 1 : 0, lv3_sold: isLv3 ? 1 : 0 } });
+    recordTitleProgress({ add: { tokens_sold: 1, curses_sold: isCurseToken ? 1 : 0 } });
     if (isCurseToken) countShopVisitAction('cursesSold');
 
     setSelectedTokenDetail(null);
@@ -1050,5 +1056,6 @@ export const useShop = ({
     refreshShop,
     getTokenSlotExpandPrice,
     resetShopVisitStats,
+    resetShopCycleStats,
   };
 };

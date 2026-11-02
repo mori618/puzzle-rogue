@@ -451,30 +451,6 @@ export const filterPoolByFreeSlots = (pool = [], tokens = [], maxSlots = 0) => {
     });
 };
 
-/**
- * 戻ってくるトークン（二つ名「継承者」など）を、アクティブ枠・パッシブ枠それぞれの空きの数だけ選ぶ。
- * 枠はアクティブとパッシブで別々（各 maxSlots）なので、種類ごとに空きを数える。
- * @returns {{ accepted: Array, rejected: Array }} 入れられるもの / 枠が足りず入れられないもの（順番は保つ）
- */
-export const pickTokensForFreeSlots = (candidates = [], tokens = [], maxSlots = 0) => {
-    const { activeCount, passiveCount } = getFreeSlotInfo(tokens, maxSlots);
-    let activeFree = Math.max(0, maxSlots - activeCount);
-    let passiveFree = Math.max(0, maxSlots - passiveCount);
-    const accepted = [];
-    const rejected = [];
-    (candidates || []).forEach(c => {
-        if (!c) return;
-        if (isActiveSlotToken(c)) {
-            if (activeFree > 0) { activeFree--; accepted.push(c); } else rejected.push(c);
-        } else if (passiveFree > 0) {
-            passiveFree--; accepted.push(c);
-        } else {
-            rejected.push(c);
-        }
-    });
-    return { accepted, rejected };
-};
-
 // ---------------------------------------------------------------------------
 // 新しく手に入れたトークンの初期レベル（二つ名「先達の」: new_token_level）
 // ---------------------------------------------------------------------------
@@ -522,3 +498,22 @@ export const isTokenRequirementMet = (base, tokens = []) => {
   const reqs = Array.isArray(base.requires) ? base.requires : [base.requires];
   return reqs.every(req => tokens.some(t => t && (t.id === req || t.effect === req)));
 };
+
+// ---------------------------------------------------------------------------
+// 確率で発動するトークン（ターン終了時の生成・変換・侵食など）
+// triggerPassive の確率発動フラグと、二つ名「賭博師」の解放条件で共通に使う
+// ---------------------------------------------------------------------------
+
+const PROBABILITY_TOKEN_IDS = new Set([
+    "turn_end_spawn_h", "turn_end_spawn_bomb_1", "turn_end_spawn_star_3",
+    "turn_end_spawn_repeat_1", "turn_end_spawn_mixed_1", "turn_end_spawn_plus_5",
+    "erosion_fire", "erosion_dark", "turn_end_convert_f_d", "turn_end_full_board_w",
+]);
+const PROBABILITY_TOKEN_EFFECTS = new Set([
+    "turn_end_special_spawn", "turn_end_spawn", "turn_end_convert",
+    "erosion_color", "turn_end_full_board", "turn_end_star_gamble", "turn_end_token_gamble",
+]);
+
+/** 確率で発動するトークンか */
+export const isProbabilityToken = (token) => !!token
+    && (PROBABILITY_TOKEN_IDS.has(token.id) || PROBABILITY_TOKEN_EFFECTS.has(token.effect));
