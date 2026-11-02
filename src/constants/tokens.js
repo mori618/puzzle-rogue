@@ -383,6 +383,52 @@ const ALL_TOKEN_BASES = [
   { id: "gen_token_s2", name: "二星の招来", icon: "auto_awesome", type: "skill", cost: 5, action: "spawn_token_s2", rarity: 2, price: 20, desc: "自身以外のランダムな★2トークンを1つ生成する。消費E:{cost}", attributes: [] },
   { id: "gen_token_s3", name: "三星の代償", icon: "auto_awesome", type: "skill", cost: 6, action: "spawn_token_s3", rarity: 3, price: 31, desc: "ランダムな★3トークンを1つ生成する。30%の確率で呪いトークンが生成される。消費E:{cost}", attributes: [] },
   { id: "skill_levelup", name: "飛躍の輝き", icon: "upgrade", type: "skill", cost: 6, action: "random_levelup", rarity: 2, price: 20, desc: "自身以外のランダムなトークンを1つ選び、レベルアップさせる（最大Lv3）。消費E:{cost}", attributes: [], canBeInitial: true },
+  // --- スキル: ギャンブル ---
+  {
+    id: "gamble",
+    name: "ギャンブル",
+    icon: "casino",
+    type: "skill",
+    cost: 3,
+    costLevels: true,
+    action: "gamble",
+    values: [0.2, 0.3, 0.4],
+    rarity: 2,
+    price: 20,
+    desc: "3つの宝箱から1つを選ぶ。中身は「所持スター2倍」「何も起きない」「所持スター半減」のいずれか。2倍を引くと[20/30/40]%の確率でダブルアップチャンス（挑戦は任意）：「所持スター3倍」「ランダムなトークン1つをレベルアップ」「所持スター10分の1」の宝箱から1つを選ぶ。消費E:{cost}",
+    attributes: []
+  },
+  // --- スキル: うさぎ / 狼 ---
+  {
+    id: "rabbit_active",
+    name: "うさぎ",
+    icon: "cruelty_free",
+    type: "skill",
+    cost: 2,
+    costLevels: true,
+    action: "rabbit_combo",
+    values: [3, 5, 8],
+    effectValues: [0.1, 0.15, 0.2],
+    rarity: 1,
+    price: 6,
+    desc: "2手番の間、所持しているうさぎトークンの数 × {values} をコンボ数に加算する。発動時に[10/15/20]%の確率でうさぎトークンを1つ獲得する（枠に空きがある場合）。消費E:{cost}",
+    attributes: [],
+    canBeInitial: true
+  },
+  {
+    id: "wolf_active",
+    name: "狼",
+    icon: "pets",
+    type: "skill",
+    cost: 3,
+    costLevels: true,
+    action: "wolf_hunt",
+    values: [2, 3, 4],
+    rarity: 2,
+    price: 15,
+    desc: "所持しているうさぎトークンをすべて捕食する。2手番の間、今までに捕食したうさぎトークンの累計数 × {values} をコンボ倍率に加算する。消費E:{cost}",
+    attributes: []
+  },
   {
     id: "active_double_probability",
     name: "確率の共鳴",
@@ -1527,6 +1573,13 @@ const ALL_TOKEN_BASES = [
   },
   */
   {
+    id: "rabbit_passive", name: "うさぎ", icon: "cruelty_free", type: "passive", effect: "rabbit_count_combo_mult",
+    values: [1, 1.5, 2], rarity: 1, price: 12,
+    desc: "コンボ倍率にプラス（所持しているうさぎトークンの数 × {values} + 1）。",
+    attributes: [],
+    canBeInitial: true
+  },
+  {
     id: "total_level_boost", name: "全霊の共鳴", icon: "upgrade", type: "passive", effect: "total_level_combo_add",
     values: [1, 2, 4], rarity: 3, price: 31,
     desc: "所持しているトークンのレベル数の合計 × {values} をコンボ数に加算する。",
@@ -1721,7 +1774,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "greed_power", name: "金満の暴力", icon: "monetization_on", type: "passive", effect: "greed_power",
     values: [7, 5, 3], maxMultipliers: [10, 20, 50], rarity: 1, price: 26,
-    desc: "★[20/15/10]個につきコンボ倍率にプラス1。",
+    desc: "★[7/5/3]個につきコンボ倍率にプラス1。",
     attributes: [],
     canBeInitial: true
   },

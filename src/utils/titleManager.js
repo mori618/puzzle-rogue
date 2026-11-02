@@ -579,7 +579,7 @@ export const applyTitleSpawnWeights = (weights, progress = loadTitleState().prog
     }
   });
   effects.filter(e => e.type === 'spawn_exclude').forEach(e => {
-    // 指定した色を降らせない（調律師）。ほかに出現可能な色が残る場合のみ（全色0になるのを防ぐ）
+    // 指定した色を降らせない（天候系のA枠など）。ほかに出現可能な色が残る場合のみ（全色0になるのを防ぐ）
     const excluded = e.colors || [];
     if (Object.keys(weights).some(c => !excluded.includes(c) && weights[c] > 0)) {
       excluded.forEach(c => { if (weights[c] !== undefined) weights[c] = 0; });

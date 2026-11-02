@@ -170,20 +170,20 @@ describe('新しい二つ名', () => {
   const find = (id) => [...PREFIX_TITLES, ...SUFFIX_TITLES].find(t => t.id === id);
 
   it('王手の・帳尻師・債務者が定義されている', () => {
-    expect(find('A63').name).toBe('王手の');
-    expect(find('B65').name).toBe('帳尻師');
-    expect(find('B66').name).toBe('債務者');
+    expect(find('A70').name).toBe('王手の');
+    expect(find('B71').name).toBe('帳尻師');
+    expect(find('B72').name).toBe('債務者');
   });
 
   it('王手の: 目標達成率80%以上で最終倍率1.5倍', () => {
-    const effects = find('A63').effects;
+    const effects = find('A70').effects;
     expect(computeTitleComboModifiers({ goalProgress: 0.8 }, effects).finalMult).toBeCloseTo(1.5);
     expect(computeTitleComboModifiers({ goalProgress: 0.79 }, effects).finalMult).toBeCloseTo(1);
     expect(evaluateTitleWhen({ progress_ge: 0.8 }, { goalProgress: 0.9 })).toBe(true);
   });
 
   it('債務者: 所持スターがマイナスの間だけ最終倍率1.5倍', () => {
-    const effects = find('B66').effects;
+    const effects = find('B72').effects;
     expect(computeTitleComboModifiers({ stars: -1 }, effects).finalMult).toBeCloseTo(1.5);
     expect(computeTitleComboModifiers({ stars: 0 }, effects).finalMult).toBeCloseTo(1);
     expect(effects.some(e => e.type === 'debt_interest' && e.value === 0.1)).toBe(true);

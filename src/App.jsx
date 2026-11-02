@@ -34,6 +34,10 @@ const App = () => {
     hasSaveData,
     setHasSaveData,
     tokens,
+    gambleState,
+    pickGambleChest,
+    startGambleDoubleUp,
+    closeGamble,
     isGameOver,
     setIsGameOver,
     target,
@@ -150,6 +154,11 @@ const App = () => {
     if (!showTitle) setEquippedTitle(loadTitleState().equippedTitle);
   }, [showTitle]);
   const [showComboDetails, setShowComboDetails] = React.useState(false);
+  // 目標達成時のスキップ確認ダイアログを「いいえ」で閉じたかどうか（目標未達に戻ったらリセット）
+  const [skipPromptDismissed, setSkipPromptDismissed] = React.useState(false);
+  React.useEffect(() => {
+    if (!goalReached) setSkipPromptDismissed(false);
+  }, [goalReached]);
 
   if (showUIPreview) {
     return (
@@ -846,18 +855,18 @@ const App = () => {
             </div>
           </div>
 
-          {/* Contextual Action Button (Floating) */}
-          <div className="absolute bottom-[50%] left-0 right-0 z-30 px-6 flex justify-center pointer-events-none">
-            {goalReached && turn <= maxTurns && (
+          {/* スキップ確認を「いいえ」で閉じた後に再表示するための小ボタン */}
+          {goalReached && turn <= maxTurns && skipPromptDismissed && !isGameOver && (
+            <div className="absolute bottom-[50%] left-0 right-0 z-30 px-6 flex justify-end pointer-events-none">
               <button
-                onClick={skipTurns}
-                className="pointer-events-auto bg-primary text-white font-bold py-3 px-8 rounded-full shadow-[0_4px_20px_rgba(91,19,236,0.5)] border border-white/20 flex items-center gap-2 transform transition hover:scale-105 active:scale-95 animate-bounce"
+                onClick={() => setSkipPromptDismissed(false)}
+                className="pointer-events-auto bg-slate-800/90 text-green-300 text-xs font-bold py-1.5 px-3 rounded-full border border-green-500/40 shadow-lg flex items-center gap-1 active:scale-95 transition"
               >
-                <span>NEXT GOAL REACHED</span>
-                <span className="material-icons-round">arrow_forward</span>
+                <span className="material-icons-round text-sm">fast_forward</span>
+                <span>スキップ</span>
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* ======================================================== */}
           {/* 1. パズルグリッド・メイン盤面エリア                             */}
@@ -883,6 +892,39 @@ const App = () => {
               >
                 {/* PuzzleEngine がこの中にオーブを動的生成してレンダリングします */}
               </div>
+            {/* ======================================================== */}
+            {/* 目標達成時のスキップ確認オーバーレイ                          */}
+            {/* ======================================================== */}
+            {goalReached && turn <= maxTurns && !skipPromptDismissed && !isGameOver && (
+              <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in px-8 text-center">
+                <h2 className="text-4xl text-green-400 font-black mb-2 tracking-widest font-display italic drop-shadow-glow w-full">
+                  GOAL!
+                </h2>
+                <p className="text-slate-300 text-sm mb-1 font-bold leading-relaxed">
+                  目標クリア！<br />残りの手番をスキップしますか？
+                </p>
+                <p className="text-slate-400 text-xs mb-8">
+                  残り {maxTurns - turn + 1} 手番（スキップでスターボーナス獲得）
+                </p>
+
+                <div className="flex flex-col gap-4 w-full">
+                  <button
+                    onClick={skipTurns}
+                    className="bg-gradient-to-r from-primary to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full animate-pulse-slow"
+                  >
+                    <span>はい</span>
+                    <span className="material-icons-round">fast_forward</span>
+                  </button>
+                  <button
+                    onClick={() => setSkipPromptDismissed(true)}
+                    className="bg-slate-800 text-white py-4 rounded-2xl font-bold border border-white/10 hover:bg-slate-700 transition-all active:scale-95 flex items-center justify-center gap-2 w-full"
+                  >
+                    <span>いいえ</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* ======================================================== */}
             {/* 2. サイクルクリア時のオーバーレイ (Layer 2)                 */}
             {/* ======================================================== */}
@@ -1331,6 +1373,82 @@ const App = () => {
                 </div>
               </div>
             )
+          }
+
+          {/* Gamble Modal（ギャンブル: 宝箱選択） */}
+          {
+            gambleState && (() => {
+              const isDouble = gambleState.stage === 'double';
+              const picked = gambleState.pickedIndex;
+              const resultInfo = {
+                double: { label: 'スター×2', icon: 'stars', color: 'text-amber-300' },
+                nothing: { label: '何も起きない', icon: 'remove_circle_outline', color: 'text-slate-300' },
+                half: { label: 'スター半減', icon: 'trending_down', color: 'text-red-400' },
+                triple: { label: 'スター×3', icon: 'auto_awesome', color: 'text-amber-300' },
+                levelup: { label: 'Lv UP', icon: 'upgrade', color: 'text-emerald-300' },
+                tenth: { label: 'スター1/10', icon: 'heart_broken', color: 'text-red-500' },
+              };
+              return (
+                <div className="fixed inset-0 z-[320] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+                  <div className={`bg-slate-800 w-full max-w-sm rounded-2xl p-6 border shadow-2xl ${isDouble ? 'border-amber-400/60' : 'border-white/10'}`}>
+                    <h3 className="text-xl font-bold font-display text-white mb-1 text-center italic">
+                      {isDouble ? 'ダブルアップチャンス！' : gambleState.tokenName || 'ギャンブル'}
+                    </h3>
+                    <p className="text-xs text-slate-400 text-center mb-5">
+                      {picked === null
+                        ? (isDouble ? '「スター×3」「ランダムなトークンLv UP」「スター1/10」のどれかが入っている' : '「スター×2」「何も起きない」「スター半減」のどれかが入っている')
+                        : '結果'}
+                    </p>
+                    <div className="grid grid-cols-3 gap-3 mb-5">
+                      {gambleState.chests.map((content, idx) => {
+                        const isOpen = picked !== null;
+                        const isPicked = picked === idx;
+                        const info = resultInfo[content];
+                        return (
+                          <button
+                            key={idx}
+                            data-testid={`gamble-chest-${idx}`}
+                            onClick={() => pickGambleChest(idx)}
+                            disabled={isOpen}
+                            className={`aspect-square rounded-xl flex flex-col items-center justify-center border-2 transition-all active:scale-95 ${isOpen
+                              ? (isPicked ? 'bg-slate-700 border-amber-300 scale-105' : 'bg-slate-900/60 border-white/5 opacity-50')
+                              : 'bg-gradient-to-b from-amber-700 to-amber-900 border-amber-400/70 hover:brightness-110'}`}
+                          >
+                            {isOpen ? (
+                              <>
+                                <span className={`material-icons-round text-3xl ${info.color}`}>{info.icon}</span>
+                                <span className={`text-[10px] font-bold mt-1 ${info.color}`}>{info.label}</span>
+                              </>
+                            ) : (
+                              <span className="material-icons-round text-4xl text-amber-200">inventory_2</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {picked !== null && (
+                      <div className="flex flex-col gap-3">
+                        {gambleState.doubleUpOffered ? (
+                          <>
+                            <p className="text-sm text-amber-300 font-bold text-center">ダブルアップチャンス発生！挑戦しますか？</p>
+                            <button onClick={startGambleDoubleUp} className="bg-amber-500 text-slate-900 py-3 rounded-xl font-bold active:scale-95 shadow-lg">
+                              挑戦する
+                            </button>
+                            <button onClick={closeGamble} className="bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95">
+                              やめておく
+                            </button>
+                          </>
+                        ) : (
+                          <button onClick={closeGamble} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg">
+                            閉じる
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()
           }
 
           {/* Token Detail Modal */}
