@@ -6,7 +6,7 @@ import { ENCHANTMENTS, getEnchantDescription } from "../constants/enchantments.j
 import {
   TOKEN_PRICE_TIER,
   SHOP_REROLL_GROWTH_FACTOR,
-  SYNERGY_PRICE_MULTIPLIER,
+  SYNERGY_WEIGHT_MULTIPLIER,
   AWAKENING_TOKEN_SLOT_PRICES,
   INITIAL_TOKEN_SLOTS,
 } from "../constants/gameConstants.js";
@@ -73,11 +73,7 @@ export const useShop = ({
     const tierLevel = possessionCount >= startOwned
       ? Math.floor((possessionCount - startOwned) / stepOwned) + 1
       : 0;
-    let multiplier = 1 + multiplierPerStep * tierLevel;
-    // 前提トークンを所持している関連トークンは割引（例: ムーブドロップ関連）
-    if (baseToken.requires && isTokenRequirementMet(baseToken, currentTokens)) {
-      multiplier *= SYNERGY_PRICE_MULTIPLIER;
-    }
+    const multiplier = 1 + multiplierPerStep * tierLevel;
 
     const dynamicPrice = Math.floor(baseToken.price * multiplier);
     return Math.max(1, dynamicPrice);
@@ -231,6 +227,8 @@ export const useShop = ({
             if (attrWeights[a]) weight *= attrWeights[a];
           });
         }
+        // 前提トークンを所持している関連トークンは出現率アップ（例: ムーブドロップ関連）
+        if (base.requires) weight *= SYNERGY_WEIGHT_MULTIPLIER;
         return { base, weight };
       });
 
@@ -247,7 +245,6 @@ export const useShop = ({
 
       const baseItem = { ...selectedBase, level: 1, charge: selectedBase.cost || 0 };
       baseItem.price = getTokenDynamicPrice(selectedBase, tokens);
-      if (selectedBase.requires) baseItem.isSynergy = true;
       baseItem.desc = getTokenDescription(baseItem, 1, currentRunStats, tokens, activeBuffs);
       // 二つ名「先達の」: 装備中は Lv2 として効果文を表示する（価格は変えない）
       return applyNewTokenLevel(baseItem, { currentRunStats, tokens, activeBuffs });
