@@ -71,6 +71,8 @@ export const useGameState = () => {
 
   const [activeBuffs, setActiveBuffs] = useState([]);
   const [skippedTurnsBonus, setSkippedTurnsBonus] = useState(0);
+  // スキップ直前の手番（HUD表示用。スキップ後はこの値を表示し続ける）
+  const [turnBeforeSkip, setTurnBeforeSkip] = useState(null);
   const [nextTurnTimeMultiplier, setNextTurnTimeMultiplier] = useState(1);
   const [lastTurnCombo, setLastTurnCombo] = useState(0);
   const [lastErasedColorCounts, setLastErasedColorCounts] = useState({});
@@ -524,6 +526,17 @@ export const useGameState = () => {
       notify("手番制限の減少に伴い、残り手番が1に調整されました。");
     }
   }, [maxTurns, turn, showShop, showTitle, isGameOver, notify]);
+
+  // 手番が通常範囲に戻ったら（次サイクル開始・リセット・魔法の石など）スキップ前の手番をクリア
+  useEffect(() => {
+    if (turnBeforeSkip !== null && turn <= maxTurns) setTurnBeforeSkip(null);
+  }, [turn, maxTurns, turnBeforeSkip]);
+
+  // HUD表示用の手番: 内部の turn はサイクル終了時に maxTurns + 1 になるため、
+  // 表示は最大手番で止める（スキップ時はスキップ前の手番を維持する）。エンドレスはそのまま。
+  const displayTurn = (isEndlessMode || turn <= maxTurns)
+    ? turn
+    : (turnBeforeSkip ?? maxTurns);
 
   const minMatchLength = tokens.some(t => t?.effect === "min_match") ? 2 : 3;
 
@@ -5339,6 +5352,7 @@ export const useGameState = () => {
     }));
     recordTitleProgress({ add: { skips: 1 } });
 
+    setTurnBeforeSkip(turn);
     setTurn(maxTurns + 1);
   };
 
@@ -6282,7 +6296,7 @@ export const useGameState = () => {
     target, setTarget,
     goalReached, setGoalReached,
     shopItems, setShopItems,
-    turn, setTurn,
+    turn, setTurn, displayTurn,
     cycleTotalCombo, setCycleTotalCombo,
     shopRerollBasePrice, setShopRerollBasePrice,
     shopRerollPrice, setShopRerollPrice, effectiveRerollPrice,
