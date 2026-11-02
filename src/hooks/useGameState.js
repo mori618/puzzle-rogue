@@ -3396,6 +3396,10 @@ export const useGameState = () => {
             hermit_cycle: tokenCount <= 1 ? cycleNum : 0,
             comeback_clear: evaluateTitleWhen({ behind: true }, titleCtx) ? 1 : 0,
             no_buy_streak: noBuyStreak,
+            // 神速の・時の番人: サイクルクリアした手番の残り操作時間（秒）
+            clear_time_left_max: (extraStats.moveSteps || 0) > 0 ? Math.floor(remainingTimeMs / 1000) : 0,
+            // 一撃の: 消したコンボが6以下の手番でサイクルクリア
+            low_combo_clear: tc >= 1 && tc <= 6 ? 1 : 0,
           },
         });
         recordTitleTrigger('clear', { ...triggerCtx, stars: starsAtClear });

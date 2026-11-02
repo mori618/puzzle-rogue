@@ -482,3 +482,53 @@ describe('二つ名の整理（グループ7）', () => {
     });
   });
 });
+
+describe('二つ名の解放条件の見直し（グループ8）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    resetTitleCache();
+  });
+
+  const find = (id) => [...PREFIX_TITLES, ...SUFFIX_TITLES].find(t => t.id === id);
+
+  it('各二つ名の新しい解放条件', () => {
+    const expected = {
+      A01: ['clear_time_left_max', 3],
+      B40: ['clear_time_left_max', 6],
+      A22: ['single_color_board_max', 12],
+      A25: ['stars_spent_total', 300],
+      B34: ['stars_spent_total', 3000],
+      A31: ['bomb_erased', 15],
+      B36: ['bomb_erased', 50],
+      A38: ['low_combo_clear', 1],
+      A40: ['stars_earned_total', 1000],
+      A20: ['token_levelups', 50],
+      B22: ['skill_tokens_max', 4],
+    };
+    Object.entries(expected).forEach(([id, [type, value]]) => {
+      expect(find(id).conditionType, id).toBe(type);
+      expect(find(id).targetValue, id).toBe(value);
+    });
+    expect(find('A40').name).toBe('商才の');
+  });
+
+  it('神速の: 手番終了時の残り時間だけでは解放されず、サイクルクリアした手番の残り時間で解放される', () => {
+    expect(recordTitleProgress({ max: { time_left_max: 4 } }).map(t => t.id)).not.toContain('A01');
+    expect(recordTitleProgress({ max: { clear_time_left_max: 3 } }).map(t => t.id)).toContain('A01');
+  });
+
+  it('B22 スペシャリスト: アクティブトークン4個で発動する', () => {
+    const effects = find('B22').effects;
+    expect(getTitleEffectTotal('skill_charge_add', { tokenCounts: { skill: 4 } }, effects)).toBe(2);
+    expect(getTitleEffectTotal('skill_charge_add', { tokenCounts: { skill: 3 } }, effects)).toBe(0);
+  });
+
+  it('A40 は id のままなので、解放済みのセーブデータを引き継ぐ', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      unlockedTitles: { prefixes: ['A40'], suffixes: [], evolved: [] },
+      equippedTitle: { prefixId: 'A40', suffixId: null },
+    }));
+    resetTitleCache();
+    expect(getEquippedTitleInfo(loadTitleState().equippedTitle).prefix?.name).toBe('商才の');
+  });
+});

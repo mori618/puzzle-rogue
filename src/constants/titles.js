@@ -47,8 +47,8 @@ export const PREFIX_TITLES = [
   {
     id: 'A01', name: '神速の', category: '操作時間',
     desc: '操作時間 +1秒',
-    conditionType: 'time_left_max', targetValue: 3,
-    conditionDesc: '操作時間を3秒以上残して手番を終える',
+    conditionType: 'clear_time_left_max', targetValue: 3,
+    conditionDesc: '操作時間を3秒以上残して、サイクルクリアする手番を終える',
     effects: [{ type: 'time_add', value: 1000 }],
   },
   {
@@ -125,7 +125,7 @@ export const PREFIX_TITLES = [
     id: 'A12', name: '禁忌の', category: '盤面制限',
     desc: '落ちコン停止、毎手番コンボ +(サイクル数×1.5)',
     conditionType: 'no_skyfall_combo', targetValue: 100,
-    conditionDesc: '落ちコンなしの手番で通算100コンボ達成',
+    conditionDesc: '落ちコンが起きなかった手番で、消したコンボ数の合計を累計100にする',
     effects: [{ type: 'no_skyfall' }, { type: 'combo_add', value: 1.5, per: 'cycle' }],
   },
   {
@@ -180,8 +180,8 @@ export const PREFIX_TITLES = [
   {
     id: 'A20', name: '先達の', category: '成長',
     desc: '新しく手に入れたトークンが最初から Lv2 になる（呪いを除く）',
-    conditionType: 'token_levelups', targetValue: 20,
-    conditionDesc: 'トークンのレベルアップ累計20回',
+    conditionType: 'token_levelups', targetValue: 50,
+    conditionDesc: 'トークンのレベルアップ累計50回',
     effects: [{ type: 'new_token_level', value: 2 }],
   },
   {
@@ -194,8 +194,8 @@ export const PREFIX_TITLES = [
   {
     id: 'A22', name: '偏愛の', category: '盤面',
     desc: '累計で最も多く消した属性の出現率が 2倍',
-    conditionType: 'single_color_board_max', targetValue: 15,
-    conditionDesc: '手番終了時の盤面で単一属性が15個以上',
+    conditionType: 'single_color_board_max', targetValue: 12,
+    conditionDesc: '手番終了時の盤面で単一属性が12個以上',
     effects: [{ type: 'spawn_top_colors', count: 1, value: 2 }],
   },
   {
@@ -215,8 +215,8 @@ export const PREFIX_TITLES = [
   {
     id: 'A25', name: '常連の', category: 'ショップ',
     desc: 'ショップのパッシブ・アクティブ品揃えが各 +1枠',
-    conditionType: 'shop_visits', targetValue: 20,
-    conditionDesc: 'ショップ訪問回数累計20回',
+    conditionType: 'stars_spent_total', targetValue: 300,
+    conditionDesc: 'スターを累計300消費',
     effects: [{ type: 'shop_slot_add', value: 1 }],
   },
   {
@@ -257,8 +257,8 @@ export const PREFIX_TITLES = [
   {
     id: 'A31', name: '爆炎の', category: '特殊ドロップ',
     desc: 'その手番に消したボムドロップ1個につきコンボ +2（最大+40）',
-    conditionType: 'bomb_erased', targetValue: 50,
-    conditionDesc: 'ボムドロップを累計50個消去',
+    conditionType: 'bomb_erased', targetValue: 15,
+    conditionDesc: 'ボムドロップを累計15個消去',
     effects: [{ type: 'combo_add', value: 2, per: 'bomb_erased', max: 20 }],
   },
   {
@@ -308,8 +308,8 @@ export const PREFIX_TITLES = [
   {
     id: 'A38', name: '一撃の', category: '少数精鋭',
     desc: '消したコンボが6以下の手番、コンボ倍率 +1.0',
-    conditionType: 'combo_turn_max', targetValue: 1000,
-    conditionDesc: '1手で最終コンボ1,000を達成',
+    conditionType: 'low_combo_clear', targetValue: 1,
+    conditionDesc: '消したコンボが6以下の手番でサイクルクリア',
     effects: [{ type: 'add_mult', value: 1.0, when: { tc_le: 6 } }],
   },
   {
@@ -320,10 +320,10 @@ export const PREFIX_TITLES = [
     effects: [{ type: 'add_mult', value: 0.05, per: 'tc', max: 20 }],
   },
   {
-    id: 'A40', name: '浪費家の', category: '経済',
+    id: 'A40', name: '商才の', category: '経済',
     desc: 'コンボによるスター獲得量 1.2倍',
-    conditionType: 'stars_spent_total', targetValue: 1000,
-    conditionDesc: 'スターを累計1,000消費',
+    conditionType: 'stars_earned_total', targetValue: 1000,
+    conditionDesc: 'スターを累計1,000獲得',
     effects: [{ type: 'star_gain_mult', value: 1.2 }],
   },
   {
@@ -621,10 +621,10 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B22', name: 'スペシャリスト', category: 'アクティブ',
-    desc: 'アクティブトークン5個以上所持で、毎手番のエネルギー獲得 +2',
-    conditionType: 'skill_tokens_max', targetValue: 5,
-    conditionDesc: 'アクティブトークンを5個同時に所持',
-    effects: [{ type: 'skill_charge_add', value: 2, when: { skill_tokens_ge: 5 } }],
+    desc: 'アクティブトークン4個以上所持で、毎手番のエネルギー獲得 +2',
+    conditionType: 'skill_tokens_max', targetValue: 4,
+    conditionDesc: 'アクティブトークンを4個同時に所持',
+    effects: [{ type: 'skill_charge_add', value: 2, when: { skill_tokens_ge: 4 } }],
   },
   {
     id: 'B23', name: 'セールスマン', category: 'ショップ',
@@ -706,8 +706,8 @@ export const SUFFIX_TITLES = [
   {
     id: 'B34', name: '風来坊', category: 'ショップ',
     desc: 'ショップの商品価格が全品 10% 引き',
-    conditionType: 'shop_visits', targetValue: 100,
-    conditionDesc: 'ショップ訪問回数累計100回',
+    conditionType: 'stars_spent_total', targetValue: 3000,
+    conditionDesc: 'スターを累計3,000消費',
     effects: [{ type: 'shop_discount', value: 0.1 }],
   },
   {
@@ -720,8 +720,8 @@ export const SUFFIX_TITLES = [
   {
     id: 'B36', name: '破壊神', category: '特殊ドロップ',
     desc: 'ボムドロップを消した手番、コンボ倍率 +1.0',
-    conditionType: 'bomb_erased', targetValue: 200,
-    conditionDesc: 'ボムドロップを累計200個消去',
+    conditionType: 'bomb_erased', targetValue: 50,
+    conditionDesc: 'ボムドロップを累計50個消去',
     effects: [{ type: 'add_mult', value: 1.0, when: { bomb_erased_ge: 1 } }],
   },
   {
@@ -748,8 +748,8 @@ export const SUFFIX_TITLES = [
   {
     id: 'B40', name: '時の番人', category: '操作時間',
     desc: '操作時間 +1.5秒',
-    conditionType: 'time_left_max', targetValue: 6,
-    conditionDesc: '操作時間を6秒以上残して手番を終える',
+    conditionType: 'clear_time_left_max', targetValue: 6,
+    conditionDesc: '操作時間を6秒以上残して、サイクルクリアする手番を終える',
     effects: [{ type: 'time_add', value: 1500 }],
   },
   {
