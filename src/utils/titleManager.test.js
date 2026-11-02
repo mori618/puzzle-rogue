@@ -22,6 +22,11 @@ import {
   getTokenTitleCounts,
   evaluateTitleWhen,
   getTitleProgressValue,
+  applyTitlePassiveSeal,
+  isTitleSealedActive,
+  getTitleSkillCostFixed,
+  getTitlePassiveDoubleChance,
+  rollTitleDoubledPassives,
   joinTitleName,
   isTitleDisabled,
   countUnlockedTitles,
@@ -47,10 +52,10 @@ const unlockAndEquip = ({ prefixes = [], suffixes = [], evolved = [], prefixId =
 };
 
 describe('二つ名マスターデータ', () => {
-  it('全174件・ID重複なし（セットシナジーは廃止）', () => {
+  it('全176件・ID重複なし（セットシナジーは廃止）', () => {
     const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES];
-    expect(all).toHaveLength(174);
-    expect(new Set(all.map(t => t.id)).size).toBe(174);
+    expect(all).toHaveLength(176);
+    expect(new Set(all.map(t => t.id)).size).toBe(176);
     expect(EVOLVED_TITLES).toHaveLength(50);
   });
 
@@ -757,5 +762,60 @@ describe('セットシナジー廃止・進化二つ名の追加（グループ1
     expect(computeTitleComboModifiers({ matchedColors: ['fire'], enhancedErased: 30 }, e04).addedMult).toBeCloseTo(7.0);
     const e09 = findEvo('E09').effects;
     expect(computeTitleComboModifiers({ matchedColors: ['water'], timeLeftMs: 4000 }, e09).addedMult).toBeCloseTo(6.0);
+  });
+});
+
+describe('詠唱者（B63）・苦行者（B64）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    resetTitleCache();
+  });
+
+  const passive = { id: 'p1', instanceId: 'p1', type: 'passive', effect: 'time', values: [1, 2, 3] };
+  const curse = { id: 'c1', instanceId: 'c1', type: 'passive', isCurse: true };
+  const skill = { id: 's1', instanceId: 's1', type: 'skill', cost: 6 };
+  const curseSkill = { id: 's2', instanceId: 's2', type: 'skill', cost: 6, isCurse: true };
+
+  it('詠唱者: パッシブ（呪いを除く）を封印し、並び順は保つ。アクティブの消費エネルギーは1（呪いを除く）', () => {
+    unlockAndEquip({ suffixes: ['B63'], suffixId: 'B63' });
+    expect(applyTitlePassiveSeal([passive, skill, curse, null])).toEqual([null, skill, curse, null]);
+    expect(getTitleSkillCostFixed(skill)).toBe(1);
+    expect(getTitleSkillCostFixed(curseSkill)).toBeNull();
+    expect(isTitleSealedActive(skill)).toBe(false);
+  });
+
+  it('苦行者: アクティブ（呪いを除く）を使えず、パッシブは50%で2回発動', () => {
+    unlockAndEquip({ suffixes: ['B64'], suffixId: 'B64' });
+    expect(isTitleSealedActive(skill)).toBe(true);
+    expect(isTitleSealedActive(curseSkill)).toBe(false);
+    const list = [passive, skill];
+    expect(applyTitlePassiveSeal(list)).toBe(list);
+    expect(getTitlePassiveDoubleChance()).toBe(0.5);
+  });
+
+  it('装備していなければ何も変わらない', () => {
+    const list = [passive, skill];
+    expect(applyTitlePassiveSeal(list)).toBe(list);
+    expect(getTitleSkillCostFixed(skill)).toBeNull();
+    expect(isTitleSealedActive(skill)).toBe(false);
+    expect(getTitlePassiveDoubleChance()).toBe(0);
+  });
+
+  it('2回発動の抽選はパッシブ（呪いを除く）だけが対象', () => {
+    const p2 = { ...passive, id: 'p2', instanceId: 'p2' };
+    const always = rollTitleDoubledPassives([passive, p2, curse, skill, null], 0.5, () => 0);
+    expect([...always]).toEqual(['p1', 'p2']);
+    expect(rollTitleDoubledPassives([passive, p2], 0.5, () => 0.9).size).toBe(0);
+    expect(rollTitleDoubledPassives([passive], 0).size).toBe(0);
+  });
+
+  it('解放条件: パッシブなし／アクティブ未使用でサイクル5をクリア', () => {
+    recordTitleProgress({ max: { no_passive_cycle: 4, no_active_cycle: 4 } });
+    expect(loadTitleState().unlockedTitles.suffixes).not.toContain('B63');
+    recordTitleProgress({ max: { no_passive_cycle: 5 } });
+    expect(loadTitleState().unlockedTitles.suffixes).toContain('B63');
+    expect(loadTitleState().unlockedTitles.suffixes).not.toContain('B64');
+    recordTitleProgress({ max: { no_active_cycle: 5 } });
+    expect(loadTitleState().unlockedTitles.suffixes).toContain('B64');
   });
 });

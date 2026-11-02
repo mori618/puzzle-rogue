@@ -1,5 +1,5 @@
 // 自動生成されたゲーム状態フック
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import ShopScreen from "../ShopScreen";
 import TitleScreen from "../TitleScreen";
 import PauseScreen from "../PauseScreen";
@@ -38,6 +38,11 @@ import {
   subscribeTitleUnlock,
   getTitleKindLabel,
   ALL_DROP_COLORS,
+  applyTitlePassiveSeal,
+  isTitlePassiveNull,
+  isTitleSealedActive,
+  getTitlePassiveDoubleChance,
+  rollTitleDoubledPassives,
 } from '../utils/titleManager';
 
 // 外部定数・ヘルパーの移行
@@ -426,7 +431,28 @@ export const useGameState = () => {
   // hasGiantDomain は usePuzzleBoard フックへ移行されました
   // 二つ名の効果（装備は二つ名図鑑でのみ変更されるため参照は安定している）
   const titleEffects = getActiveTitleEffects();
-  const hasSaintToken = tokens.some((t) => t?.id === "legend_saint") || hasTitleEffect('curse_null', {}, titleEffects);
+  // 効果の計算に使うトークン（二つ名「詠唱者」でパッシブを封印しているときは、封印したパッシブを null にした一覧）
+  const effectTokens = useMemo(() => applyTitlePassiveSeal(tokens, titleEffects), [tokens, titleEffects]);
+  const isTitlePassiveSealed = isTitlePassiveNull(titleEffects);
+  // 二つ名「苦行者」: 手番ごとに、2回発動するパッシブを抽選する（同じ手番の中では同じ結果を使う）
+  const titlePassiveDoubleRef = useRef({ key: null, ids: new Set(), flashed: false });
+  const getTitleDoubledPassiveIds = (list) => {
+    const chance = getTitlePassiveDoubleChance(titleEffects);
+    const ref = titlePassiveDoubleRef.current;
+    if (!(chance > 0)) {
+      ref.key = null;
+      ref.ids = new Set();
+      return ref.ids;
+    }
+    const key = `${currentRunStats.currentClears || 0}-${turn}`;
+    if (ref.key !== key) {
+      ref.key = key;
+      ref.ids = rollTitleDoubledPassives(list, chance);
+      ref.flashed = false;
+    }
+    return ref.ids;
+  };
+  const hasSaintToken = effectTokens.some((t) => t?.id === "legend_saint") || hasTitleEffect('curse_null', {}, titleEffects);
   const hasDoubleTargetCurse = tokens.some((t) => t?.id === "curse_double_target") && !hasSaintToken;
   const effectiveTarget = hasDoubleTargetCurse ? target * 2 : target;
 
@@ -509,13 +535,13 @@ export const useGameState = () => {
 
   const maxTurns = Math.max(1, 3
     + getTitleEffectTotal('max_turns_add', {}, titleEffects)
-    + tokens.reduce((acc, t) => acc + (t?.enchantments?.filter(e => e.effect === "add_turn").reduce((sum, e) => sum + (e.value || 1), 0) || 0), 0)
-    + tokens.reduce((acc, t) => {
+    + effectTokens.reduce((acc, t) => acc + (t?.enchantments?.filter(e => e.effect === "add_turn").reduce((sum, e) => sum + (e.value || 1), 0) || 0), 0)
+    + effectTokens.reduce((acc, t) => {
       if (t?.effect === "picky_eater") return acc + (t.values[(t.level || 1) - 1] || 0);
       return acc;
     }, 0)
     // 呪い「不運の枷」: 1サイクルの手番が1減る（聖者系の呪い無効化があれば無効）
-    - (hasSaintToken ? 0 : tokens.filter(t => t?.id === "curse_turns").length)
+    - (hasSaintToken ? 0 : effectTokens.filter(t => t?.id === "curse_turns").length)
   );
 
   const prevMaxTurnsRef = useRef(maxTurns);
@@ -542,7 +568,7 @@ export const useGameState = () => {
     ? turn
     : (turnBeforeSkip ?? maxTurns);
 
-  const minMatchLength = tokens.some(t => t?.effect === "min_match") ? 2 : 3;
+  const minMatchLength = effectTokens.some(t => t?.effect === "min_match") ? 2 : 3;
 
   useEffect(() => {
     // セーブデータのロード
@@ -708,9 +734,9 @@ export const useGameState = () => {
     const weights = {};
     const ALL_COLORS = ["fire", "water", "wood", "light", "dark", "heart"];
     ALL_COLORS.forEach((c) => (weights[c] = 1));
-    const isEnchantDisabled = tokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
+    const isEnchantDisabled = effectTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
 
-    tokens.forEach((t) => {
+    effectTokens.forEach((t) => {
       if (t?.effect === "picky_eater" && t.params?.excludeColors) {
         t.params.excludeColors.forEach((c) => { weights[c] = 0; });
       }
@@ -746,10 +772,10 @@ export const useGameState = () => {
     engineRef.current.setSpawnWeights(weights);
 
     // 錬金術パッシブと消去禁止設定の同期
-    const isCursePassiveNull = activeBuffs.some(b => b?.action === "curse_passive_null") && !hasSaintToken;
+    const isCursePassiveNull = (activeBuffs.some(b => b?.action === "curse_passive_null") && !hasSaintToken) || isTitlePassiveSealed;
     const alchPassives = {};
     if (!isCursePassiveNull) {
-      tokens.forEach(t => {
+      effectTokens.forEach(t => {
         if (t && t.effect === 'alchemy' && t.params?.color) {
           alchPassives[t.params.color] = Math.max(alchPassives[t.params.color] || 0, t.level || 1);
         }
@@ -764,14 +790,14 @@ export const useGameState = () => {
       }
     });
     engineRef.current.setNoEraseColors(noEraseColors);
-  }, [activeBuffs, tokens, hasSaintToken, titleEffects, isPracticeMode]);
+  }, [activeBuffs, tokens, effectTokens, isTitlePassiveSealed, hasSaintToken, titleEffects, isPracticeMode]);
 
   const getTimeLimit = useCallback(() => {
     if (isPracticeMode) return practiceTimeLimit;
-    const isEnchantDisabled = tokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
-    const hasDesperateStance = tokens.some(t => t?.effect === "desperate_stance");
+    const isEnchantDisabled = effectTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
+    const hasDesperateStance = effectTokens.some(t => t?.effect === "desperate_stance");
     // 暴君の号令 (tyrant_decree): 1番目スロットに装備時、操作時間が常に2秒(2000ms)になる
-    const isTyrantDecreeActive = tokens[0] && tokens[0].effect === "tyrant_decree";
+    const isTyrantDecreeActive = effectTokens[0] && effectTokens[0].effect === "tyrant_decree";
     if (isTyrantDecreeActive) {
       return 2000;
     }
@@ -782,12 +808,12 @@ export const useGameState = () => {
     if (curseTimeFixBuff) {
       return curseTimeFixBuff.params?.timeMs ?? 1000;
     }
-    if (tokens.some(t => t?.id === "curse_time") && !hasSaintToken) {
+    if (effectTokens.some(t => t?.id === "curse_time") && !hasSaintToken) {
       return 4000;
     }
 
     let base = 5000 + (sandsOfTimeSeconds * 1000);
-    tokens.forEach((t) => {
+    effectTokens.forEach((t) => {
       if (t?.effect === "time") base += (t.values[(t.level || 1) - 1] * 1000);
       if (t?.effect === "cursed_power" && !hasSaintToken) base -= 3000;
 
@@ -799,7 +825,7 @@ export const useGameState = () => {
       }
 
       if (t?.effect === "star_count_time_ext") {
-        const rarity2Count = tokens.filter(tok => tok?.rarity === 2).length;
+        const rarity2Count = effectTokens.filter(tok => tok?.rarity === 2).length;
         base += (t.values[(t.level || 1) - 1] * 1000) * rarity2Count;
       }
 
@@ -824,7 +850,7 @@ export const useGameState = () => {
 
     base *= nextTurnTimeMultiplier;
     return Math.max(1000, base);
-  }, [tokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs, isPracticeMode, practiceTimeLimit, hasSaintToken, titleEffects]);
+  }, [tokens, effectTokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs, isPracticeMode, practiceTimeLimit, hasSaintToken, titleEffects]);
 
   useEffect(() => {
     if (!boardRef.current || !timerRef.current) return;
@@ -889,10 +915,10 @@ export const useGameState = () => {
         engineRef.current.updateTimerDisplay(limit);
       }
 
-      const baseEffective = tokens.map((t, index) => {
+      const baseEffective = effectTokens.map((t, index) => {
         if (!t) return t;
-        if (t.effect === 'copy_left' && index > 0 && tokens[index - 1] && tokens[index - 1].effect !== 'copy_left') {
-          return { ...tokens[index - 1], instanceId: t.instanceId, name: `模倣(${tokens[index - 1].name})` };
+        if (t.effect === 'copy_left' && index > 0 && effectTokens[index - 1] && effectTokens[index - 1].effect !== 'copy_left') {
+          return { ...tokens[index - 1], instanceId: t.instanceId, name: `模倣(${effectTokens[index - 1].name})` };
         }
         return t;
       });
@@ -900,13 +926,18 @@ export const useGameState = () => {
       const isTrialActive = activeBuffs.some(b => b?.action === "trial_stage_active");
       const hasTrialSuccess = activeBuffs.some(b => b?.action === "trial_success");
 
-      const leadToken = tokens[0];
+      const leadToken = effectTokens[0];
       const leadColor = (leadToken && leadToken.effect === 'element_lead') ? leadToken.params?.color : null;
+      // 二つ名「苦行者」: この手番に2回発動するパッシブ
+      const titleDoubledPassiveIds = getTitleDoubledPassiveIds(effectTokens);
       const effectiveTokens = [];
       if (!isTrialActive) {
         baseEffective.forEach(t => {
           if (!t) return;
           effectiveTokens.push(t);
+          if (titleDoubledPassiveIds.has(t.instanceId || t.id)) {
+            effectiveTokens.push({ ...t, instanceId: `${t.instanceId || t.id}_title_dup` });
+          }
           if (leadColor && t.type === 'passive') {
             const isMatched = (t.attributes && t.attributes.includes(leadColor)) || (t.params?.color === leadColor);
             if (isMatched) {
@@ -1563,10 +1594,10 @@ export const useGameState = () => {
       });
     }
 
-    const baseEffective = tokens.map((t, index) => {
+    const baseEffective = effectTokens.map((t, index) => {
       if (!t) return t;
-      if (t.effect === 'copy_left' && index > 0 && tokens[index - 1] && tokens[index - 1].effect !== 'copy_left') {
-        return { ...tokens[index - 1], instanceId: t.instanceId, name: `模倣(${tokens[index - 1].name})` };
+      if (t.effect === 'copy_left' && index > 0 && effectTokens[index - 1] && effectTokens[index - 1].effect !== 'copy_left') {
+        return { ...tokens[index - 1], instanceId: t.instanceId, name: `模倣(${effectTokens[index - 1].name})` };
       }
       return t;
     });
@@ -1574,13 +1605,18 @@ export const useGameState = () => {
     const isTrialActive = activeBuffs.some(b => b?.action === "trial_stage_active");
     const hasTrialSuccess = activeBuffs.some(b => b?.action === "trial_success");
 
-    const leadToken = tokens[0];
+    const leadToken = effectTokens[0];
     const leadColor = (leadToken && leadToken.effect === 'element_lead') ? leadToken.params?.color : null;
+    // 二つ名「苦行者」: この手番に2回発動するパッシブ
+    const titleDoubledPassiveIds = getTitleDoubledPassiveIds(effectTokens);
     const effectiveTokens = [];
     if (!isTrialActive) {
       baseEffective.forEach(t => {
         if (!t) return;
         effectiveTokens.push(t);
+        if (titleDoubledPassiveIds.has(t.instanceId || t.id)) {
+          effectiveTokens.push({ ...t, instanceId: `${t.instanceId || t.id}_title_dup` });
+        }
         if (leadColor && t.type === 'passive') {
           const isMatched = (t.attributes && t.attributes.includes(leadColor)) || (t.params?.color === leadColor);
           if (isMatched) {
@@ -1598,12 +1634,19 @@ export const useGameState = () => {
       }
     }
 
+    // 二つ名「苦行者」: 2回発動したパッシブを光らせる（同じ手番では1回だけ）
+    if (titleDoubledPassiveIds.size > 0 && !titlePassiveDoubleRef.current.flashed) {
+      titlePassiveDoubleRef.current.flashed = true;
+      playLog.event('titleDouble', { ids: [...titleDoubledPassiveIds].map(String) });
+      titleDoubledPassiveIds.forEach(id => triggerPassive(id, true));
+    }
+
     const masteryToken = effectiveTokens.find(t => t?.effect === "additive_mastery");
     const hasMastery = !!masteryToken;
     const masteryVal = hasMastery ? masteryToken.values[(masteryToken.level || 1) - 1] : 1;
 
     const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power") || isTrialActive;
-    const isCursePassiveNull = activeBuffs.some(b => b?.action === "curse_passive_null") && !hasSaintToken;
+    const isCursePassiveNull = (activeBuffs.some(b => b?.action === "curse_passive_null") && !hasSaintToken) || isTitlePassiveSealed;
     const animationMode = settings?.comboAnimationMode || 'instant';
     const isInstant = animationMode === 'instant';
 
@@ -2787,7 +2830,7 @@ export const useGameState = () => {
       }
     });
 
-    tokens.forEach((t) => {
+    effectTokens.forEach((t) => {
       if (t?.effect === "min_match") {
         const lv = t.level || 1;
         const v = t.values?.[lv - 1] || 1;
@@ -3280,7 +3323,7 @@ export const useGameState = () => {
     });
 
     let totalReduction = 0;
-    tokens.forEach((t) => {
+    effectTokens.forEach((t) => {
       if (!t) return;
       if (t.id === "collector") {
         const threshold = t.values?.[(t.level || 1) - 1] || 5;
@@ -3309,7 +3352,7 @@ export const useGameState = () => {
       // コンボ数によるスター獲得の通知は不要なため非表示
       soundManager.playSE(SE_IDS.MATCH_STAR);
 
-      tokens.forEach(t => {
+      effectTokens.forEach(t => {
         if (t && t.id === "collector") {
           triggerPassive(t.instanceId || t.id);
         }
@@ -3405,6 +3448,10 @@ export const useGameState = () => {
             clear_time_left_max: (extraStats.moveSteps || 0) > 0 ? Math.floor(remainingTimeMs / 1000) : 0,
             // 一撃の: 消したコンボが6以下の手番でサイクルクリア
             low_combo_clear: tc >= 1 && tc <= 6 ? 1 : 0,
+            // 詠唱者: パッシブトークンを1つも所持していない状態でクリアしたサイクル
+            no_passive_cycle: (titleCtx.tokenCounts.passive || 0) === 0 ? cycleNum : 0,
+            // 苦行者: このゲームでアクティブスキルを1回も使わずにクリアしたサイクル
+            no_active_cycle: (currentRunStats.currentSkillsUsed || 0) === 0 && !hasUsedActiveSkillThisTurn ? cycleNum : 0,
           },
         });
         recordTitleTrigger('clear', { ...triggerCtx, stars: starsAtClear });
@@ -3440,7 +3487,7 @@ export const useGameState = () => {
     let moveDropLuckyTriggered = false;
     let luckyTokenId = null;
     let luckyTokenName = "";
-    tokens.forEach(t => {
+    effectTokens.forEach(t => {
       if (!t) return;
       const lv = t.level || 1;
       if (t.effect === "move_drop_lucky") {
@@ -3478,7 +3525,7 @@ export const useGameState = () => {
 
     let zeroComboBonusCharge = 0;
     if (effectiveCombo === 0) {
-      tokens.forEach(t => {
+      effectTokens.forEach(t => {
         if (!t) return;
         const lv = t.level || 1;
         if (t.effect === "zero_combo_charge") {
@@ -3493,7 +3540,7 @@ export const useGameState = () => {
 
     // 二つ名: 毎手番のエネルギー獲得量の加算
     let extraAutoCharge = Math.floor(getTitleEffectTotal('skill_charge_add', titleCtx, titleEffects));
-    tokens.forEach(t => {
+    effectTokens.forEach(t => {
       if (!t) return;
       const lv = t.level || 1;
       if (t.effect === "auto_charge") {
@@ -4097,7 +4144,7 @@ export const useGameState = () => {
       // --- ターン終了時パッシブによる盤面変化効果の処理 ---
       let boardChanged = false;
       const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
-      const isCursePassiveNull = activeBuffs.some(b => b?.action === "curse_passive_null") && !hasSaintToken;
+      const isCursePassiveNull = (activeBuffs.some(b => b?.action === "curse_passive_null") && !hasSaintToken) || isTitlePassiveSealed;
 
       // 確率系トークンの確率計算用ヘルパー
       const getModifiedProbability = (baseProb, tokenInstanceId) => {
@@ -4854,9 +4901,9 @@ export const useGameState = () => {
     handleTurnEndRef.current = handleTurnEnd;
     onPassiveTriggerRef.current = triggerPassive;
     onStarEraseRef.current = (count) => {
-      const baseEffective = tokens.map((t, index) => {
+      const baseEffective = effectTokens.map((t, index) => {
         if (!t) return t;
-        if (t.effect === 'copy_left' && index > 0 && tokens[index - 1] && tokens[index - 1].effect !== 'copy_left') {
+        if (t.effect === 'copy_left' && index > 0 && effectTokens[index - 1] && effectTokens[index - 1].effect !== 'copy_left') {
           return { ...tokens[index - 1], instanceId: t.instanceId };
         }
         return t;
@@ -4865,13 +4912,18 @@ export const useGameState = () => {
       const isTrialActive = activeBuffs.some(b => b?.action === "trial_stage_active");
       const hasTrialSuccess = activeBuffs.some(b => b?.action === "trial_success");
 
-      const leadToken = tokens[0];
+      const leadToken = effectTokens[0];
       const leadColor = (leadToken && leadToken.effect === 'element_lead') ? leadToken.params?.color : null;
+      // 二つ名「苦行者」: この手番に2回発動するパッシブ
+      const titleDoubledPassiveIds = getTitleDoubledPassiveIds(effectTokens);
       const effectiveTokens = [];
       if (!isTrialActive) {
         baseEffective.forEach(t => {
           if (!t) return;
           effectiveTokens.push(t);
+          if (titleDoubledPassiveIds.has(t.instanceId || t.id)) {
+            effectiveTokens.push({ ...t, instanceId: `${t.instanceId || t.id}_title_dup` });
+          }
           if (leadColor && t.type === 'passive') {
             const isMatched = (t.attributes && t.attributes.includes(leadColor)) || (t.params?.color === leadColor);
             if (isMatched) {
@@ -5332,7 +5384,7 @@ export const useGameState = () => {
   const getRewardMultiplier = () => {
     let skipMasterMultiplier = 1;
 
-    tokens.forEach(t => {
+    effectTokens.forEach(t => {
       if (!t) return;
       if (t.id === 'skip_master' || t.effect === 'skip_bonus_multiplier') {
         const val = t.values?.[(t.level || 1) - 1] || 1;
@@ -5341,7 +5393,7 @@ export const useGameState = () => {
     });
 
     let timeBonusPct = 0;
-    tokens.forEach(t => {
+    effectTokens.forEach(t => {
       if (!t) return;
       if (t.effect === 'stat_time_move') {
         const v = t.values?.[(t.level || 1) - 1] || 0.5;
@@ -5407,6 +5459,7 @@ export const useGameState = () => {
   };
 
   const resetGame = () => {
+    titlePassiveDoubleRef.current = { key: null, ids: new Set(), flashed: false };
     setStars(10);
     setTarget(8);
     setTurn(1);
@@ -5580,6 +5633,7 @@ export const useGameState = () => {
     if (isGameOver) return notify("ゲームオーバー時は使用できません");
     if (turn > maxTurns && goalReached) return notify("クリア時は使用できません");
     if (showShop) return notify("ショップ画面では使用できません");
+    if (isTitleSealedActive(token, titleEffects)) return notify("二つ名「苦行者」の効果で、アクティブスキルは使えません");
 
     const currentCharge = token.charge || 0;
     const cost = getEffectiveCost(token, currentRunStats, tokens, activeBuffs);
@@ -5621,10 +5675,10 @@ export const useGameState = () => {
     }
 
     let extraDuration = 0;
-    tokens.forEach((t, index) => {
+    effectTokens.forEach((t, index) => {
       if (!t) return;
       let workToken = t;
-      if (t.effect === 'copy_left' && index > 0 && tokens[index - 1] && tokens[index - 1].effect !== 'copy_left') {
+      if (t.effect === 'copy_left' && index > 0 && effectTokens[index - 1] && effectTokens[index - 1].effect !== 'copy_left') {
         workToken = tokens[index - 1];
       }
       if (workToken.effect === 'active_duration_boost') {

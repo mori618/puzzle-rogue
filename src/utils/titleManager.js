@@ -586,6 +586,52 @@ export const getTitleSkillCostReduction = (token, effects = getActiveTitleEffect
     .reduce((sum, e) => sum + (e.value || 0), 0);
 };
 
+/**
+ * スキルの消費エネルギーを固定する値（詠唱者）。固定しない場合は null
+ */
+export const getTitleSkillCostFixed = (token, effects = getActiveTitleEffects()) => {
+  if (!token || token.isCurse || token.type === 'curse') return null;
+  const fixed = getTitleEffects('skill_cost_fixed', {}, effects).reduce((m, e) => Math.min(m, e.value), Infinity);
+  return Number.isFinite(fixed) ? fixed : null;
+};
+
+/** 二つ名で封印されるパッシブトークンか（呪いは封印しない） */
+export const isTitleSealablePassive = (t) => !!t && t.type === 'passive' && !t.isCurse;
+
+/** パッシブトークンの効果が発動しない（詠唱者） */
+export const isTitlePassiveNull = (effects = getActiveTitleEffects()) => hasTitleEffect('passive_null', {}, effects);
+
+/** アクティブスキルを使えない（苦行者）。呪いのアクティブトークンは使える */
+export const isTitleActiveNull = (effects = getActiveTitleEffects()) => hasTitleEffect('active_null', {}, effects);
+export const isTitleSealedActive = (token, effects = getActiveTitleEffects()) =>
+  !!token && token.type === 'skill' && !token.isCurse && isTitleActiveNull(effects);
+
+/**
+ * 効果の計算に使うトークン一覧。パッシブが封印されているときは、封印されたパッシブを null にする
+ * （並び順に意味がある効果があるため、要素は詰めない）
+ */
+export const applyTitlePassiveSeal = (tokens, effects = getActiveTitleEffects()) => {
+  if (!Array.isArray(tokens) || !isTitlePassiveNull(effects)) return tokens;
+  return tokens.map(t => (isTitleSealablePassive(t) ? null : t));
+};
+
+/** 手番ごとに各パッシブが2回発動する確率（苦行者）。無ければ 0 */
+export const getTitlePassiveDoubleChance = (effects = getActiveTitleEffects()) =>
+  getTitleEffects('passive_double_chance', {}, effects).reduce((m, e) => Math.max(m, e.value || 0), 0);
+
+/**
+ * 2回発動するパッシブトークンを抽選する（各トークンを chance の確率で選ぶ）
+ * @returns {Set<string|number>} 選ばれたトークンの instanceId（無ければ id）
+ */
+export const rollTitleDoubledPassives = (tokens, chance, random = Math.random) => {
+  const ids = new Set();
+  if (!(chance > 0) || !Array.isArray(tokens)) return ids;
+  tokens.forEach(t => {
+    if (isTitleSealablePassive(t) && random() < chance) ids.add(t.instanceId || t.id);
+  });
+  return ids;
+};
+
 // ---------------------------------------------------------------------------
 // 進捗と解放判定
 // ---------------------------------------------------------------------------
