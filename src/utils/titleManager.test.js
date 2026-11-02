@@ -1051,15 +1051,15 @@ describe('B枠・進化レビューの確認事項（グループ15）', () => {
     expect(weights).toEqual({ fire: 1, water: 2, wood: 1, light: 1, dark: 1, heart: 1 });
   });
 
-  it('E19 万象の調律者: 調律師を装備している間に、ハート以外の5属性をすべて消す、を累計30回', () => {
+  it('E19 万象の調律者: 調律師を装備している間に、6属性すべてを消す、を累計30回', () => {
     expect(findTitle('E19').targetValue).toBe(30);
     unlockAndEquip({ suffixes: ['B14'], suffixId: 'B14' });
-    const five = { matchedColors: new Set(['fire', 'water', 'wood', 'light', 'dark']) };
-    recordTitleTrigger('turn', { matchedColors: new Set(['fire', 'water', 'wood', 'light', 'heart']) });
+    const six = { matchedColors: new Set(['fire', 'water', 'wood', 'light', 'dark', 'heart']) };
+    recordTitleTrigger('turn', { matchedColors: new Set(['fire', 'water', 'wood', 'light', 'dark']) });
     expect(loadTitleState().progress.evo_E19 || 0).toBe(0);
-    for (let i = 0; i < 29; i++) recordTitleTrigger('turn', five);
+    for (let i = 0; i < 29; i++) recordTitleTrigger('turn', six);
     expect(loadTitleState().unlockedTitles.evolved).not.toContain('E19');
-    recordTitleTrigger('turn', five);
+    recordTitleTrigger('turn', six);
     expect(loadTitleState().unlockedTitles.evolved).toContain('E19');
   });
 

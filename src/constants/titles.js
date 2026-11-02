@@ -1197,8 +1197,8 @@ export const EVOLVED_TITLES = [
   {
     id: 'E19', requiredTitleIds: ['B14'], slot: 'suffix', name: '万象の調律者', category: 'B枠上位',
     requireMode: 'equipped',
-    challengeDesc: '「調律師」を装備している間に、1手でハート以外の5属性をすべて消す、を累計30回',
-    trigger: { event: 'turn', when: { colors_all: ['fire', 'water', 'wood', 'light', 'dark'] }, count: 30 },
+    challengeDesc: '「調律師」を装備している間に、1手で6属性すべてを消す、を累計30回',
+    trigger: { event: 'turn', when: { colors_ge: 6 }, count: 30 },
     desc: '消した属性1種類につきコンボ倍率 +0.8。',
     effects: [{ type: 'add_mult', value: 0.8, per: 'color_count' }],
   },
