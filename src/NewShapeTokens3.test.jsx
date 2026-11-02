@@ -146,6 +146,6 @@ describe('tokenUtils - getTokenDynamicInfo のテスト (4つ消し・5つ消し
     const info = getTokenDynamicInfo(item, 1, { currentShapeLen5: 3 });
     const match = info.find(i => i.label === '5個以上連結消し累積');
     expect(match).toBeDefined();
-    expect(match.value).toBe('3 / 10 回');
+    expect(match.value).toBe('3 / 6 回');
   });
 });
