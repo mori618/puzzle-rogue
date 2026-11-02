@@ -15,6 +15,16 @@ import soundManager from "../utils/SoundManager";
 import { SE_IDS } from "../constants/sounds";
 import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress, recordTitleTrigger, applyTitleRerollPrice, applyTitlePassiveSeal } from "../utils/titleManager";
 
+/**
+ * 二つ名の進捗: トークンの属性ごとの売却数・購入数（例: attr_sold_fire, attr_bought_dark）
+ * 複数属性のトークンは、それぞれの属性に 1 ずつ数える。
+ */
+const attrTitleProgress = (prefix, token) => {
+  const add = {};
+  [...new Set(token?.attributes || [])].forEach(attr => { add[`${prefix}_${attr}`] = 1; });
+  return add;
+};
+
 /** 二つ名: 割引率の合計を価格倍率に変換（複数の割引は乗算、最大90%引き） */
 const getTitlePriceMultiplier = (effects) => {
   const mult = getTitleEffects('shop_discount', {}, effects).reduce((m, e) => m * (1 - (e.value || 0)), 1);
@@ -463,7 +473,7 @@ export const useShop = ({
       totalStarsEarned: (prev.totalStarsEarned || 0) + sellPrice,
     }));
 
-    recordTitleProgress({ add: { tokens_sold: 1, curses_sold: isCurseToken ? 1 : 0 } });
+    recordTitleProgress({ add: { tokens_sold: 1, curses_sold: isCurseToken ? 1 : 0, ...attrTitleProgress('attr_sold', token) } });
     if (isCurseToken) countShopVisitAction('cursesSold');
 
     setSelectedTokenDetail(null);
@@ -769,6 +779,7 @@ export const useShop = ({
         setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
         setShopItems((prev) => prev.filter((i) => i !== item));
+        recordTitleProgress({ add: attrTitleProgress('attr_bought', item) });
         if (item.isSale) {
           recordTitleProgress({ add: { sale_bought: 1 } });
           countShopVisitAction('salesBought');
@@ -971,6 +982,7 @@ export const useShop = ({
     setTotalStarsSpent((prev) => prev + item.price);
     setShopItems((prev) => prev.filter((i) => i !== item));
     setPendingShopItem(null);
+    recordTitleProgress({ add: attrTitleProgress('attr_bought', item) });
     if (item.isSale) {
       recordTitleProgress({ add: { sale_bought: 1 } });
       countShopVisitAction('salesBought');

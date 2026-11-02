@@ -53,10 +53,10 @@ const unlockAndEquip = ({ prefixes = [], suffixes = [], evolved = [], prefixId =
 };
 
 describe('二つ名マスターデータ', () => {
-  it('全175件・ID重複なし（セットシナジーは廃止・B61 継承者は削除）', () => {
+  it('全188件・ID重複なし（セットシナジーは廃止・B61 継承者は削除）', () => {
     const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES];
-    expect(all).toHaveLength(175);
-    expect(new Set(all.map(t => t.id)).size).toBe(175);
+    expect(all).toHaveLength(188);
+    expect(new Set(all.map(t => t.id)).size).toBe(188);
     expect(EVOLVED_TITLES).toHaveLength(50);
   });
 
@@ -287,6 +287,42 @@ describe('装備と効果', () => {
     const w = { fire: 1, water: 1, wood: 1, light: 1, dark: 1, heart: 1 };
     applyTitleSpawnWeights(w, {}, [{ type: 'spawn_weight', color: 'fire', value: 1.5 }, { type: 'spawn_only', colors: ['fire', 'heart'] }]);
     expect(w).toEqual({ fire: 1.5, water: 0, wood: 0, light: 0, dark: 0, heart: 1 });
+  });
+
+  it('天候・道具の二つ名: 属性トークンの売却・購入数で解放され、出現率を変える', () => {
+    const colors = ['fire', 'water', 'wood', 'light', 'dark', 'heart'];
+    const prefixIds = ['A64', 'A65', 'A66', 'A67', 'A68', 'A69'];
+    const suffixIds = ['B65', 'B66', 'B67', 'B68', 'B69', 'B70'];
+    colors.forEach((c, i) => {
+      const a = PREFIX_TITLES.find(t => t.id === prefixIds[i]);
+      expect(a.conditionType).toBe(`attr_sold_${c}`);
+      expect(a.targetValue).toBe(8);
+      const wa = applyTitleSpawnWeights(Object.fromEntries(colors.map(k => [k, 1])), {}, a.effects);
+      colors.forEach(k => expect(wa[k], `${a.name} ${k}`).toBe(k === c ? 0 : 1));
+
+      const b = SUFFIX_TITLES.find(t => t.id === suffixIds[i]);
+      expect(b.conditionType).toBe(`attr_bought_${c}`);
+      expect(b.targetValue).toBe(8);
+      const wb = applyTitleSpawnWeights(Object.fromEntries(colors.map(k => [k, 1])), {}, b.effects);
+      colors.forEach(k => expect(wb[k], `${b.name} ${k}`).toBe(k === c ? 1.5 : 1));
+    });
+
+    const holiday = PREFIX_TITLES.find(t => t.id === 'A63');
+    expect(holiday.conditionType).toBe('attr_sold_dark');
+    expect(holiday.targetValue).toBe(6);
+    const wh = applyTitleSpawnWeights(Object.fromEntries(colors.map(k => [k, 1])), {}, holiday.effects);
+    expect(wh).toEqual({ fire: 1, water: 1, wood: 1, light: 0, dark: 0, heart: 1 });
+  });
+
+  it('月属性トークンの売却数で「休日の」「月食の」が解放される', () => {
+    unlockAndEquip({});
+    recordTitleProgress({ add: { attr_sold_dark: 5 } });
+    expect(loadTitleState().unlockedTitles.prefixes).not.toContain('A63');
+    recordTitleProgress({ add: { attr_sold_dark: 1 } });
+    expect(loadTitleState().unlockedTitles.prefixes).toContain('A63');
+    expect(loadTitleState().unlockedTitles.prefixes).not.toContain('A68');
+    recordTitleProgress({ add: { attr_sold_dark: 2 } });
+    expect(loadTitleState().unlockedTitles.prefixes).toContain('A68');
   });
 
   it('出現率: 最多消去属性の強化', () => {
@@ -1002,24 +1038,28 @@ describe('B枠・進化レビューの確認事項（グループ15）', () => {
     resetTitleCache();
   });
 
-  it('B14 調律師: ハートが降ってこない（ほかの色はそのまま）', () => {
+  it('B14 調律師: 1手で5属性以上を消した手番だけ、最終コンボ倍率 ×1.5', () => {
     unlockAndEquip({ suffixes: ['B14'], suffixId: 'B14' });
+    const five = computeTitleComboModifiers({ matchedColors: new Set(['fire', 'water', 'wood', 'light', 'heart']) });
+    expect(five.finalMult).toBeCloseTo(1.5);
+    const six = computeTitleComboModifiers({ matchedColors: new Set(['fire', 'water', 'wood', 'light', 'dark', 'heart']) });
+    expect(six.finalMult).toBeCloseTo(1.5);
+    const four = computeTitleComboModifiers({ matchedColors: new Set(['fire', 'water', 'wood', 'light']) });
+    expect(four.finalMult).toBeCloseTo(1);
+    // ドロップの出現率は変えない
     const weights = applyTitleSpawnWeights({ fire: 1, water: 2, wood: 1, light: 1, dark: 1, heart: 1 }, {});
-    expect(weights).toEqual({ fire: 1, water: 2, wood: 1, light: 1, dark: 1, heart: 0 });
-    // 全色が0になる場合は制限しない
-    const onlyHeart = applyTitleSpawnWeights({ fire: 0, heart: 1 }, {});
-    expect(onlyHeart.heart).toBe(1);
+    expect(weights).toEqual({ fire: 1, water: 2, wood: 1, light: 1, dark: 1, heart: 1 });
   });
 
-  it('E19 万象の調律者: 調律師を装備している間に、ハート以外の5属性をすべて消す、を累計30回', () => {
+  it('E19 万象の調律者: 調律師を装備している間に、6属性すべてを消す、を累計30回', () => {
     expect(findTitle('E19').targetValue).toBe(30);
     unlockAndEquip({ suffixes: ['B14'], suffixId: 'B14' });
-    const five = { matchedColors: new Set(['fire', 'water', 'wood', 'light', 'dark']) };
-    recordTitleTrigger('turn', { matchedColors: new Set(['fire', 'water', 'wood', 'light', 'heart']) });
+    const six = { matchedColors: new Set(['fire', 'water', 'wood', 'light', 'dark', 'heart']) };
+    recordTitleTrigger('turn', { matchedColors: new Set(['fire', 'water', 'wood', 'light', 'dark']) });
     expect(loadTitleState().progress.evo_E19 || 0).toBe(0);
-    for (let i = 0; i < 29; i++) recordTitleTrigger('turn', five);
+    for (let i = 0; i < 29; i++) recordTitleTrigger('turn', six);
     expect(loadTitleState().unlockedTitles.evolved).not.toContain('E19');
-    recordTitleTrigger('turn', five);
+    recordTitleTrigger('turn', six);
     expect(loadTitleState().unlockedTitles.evolved).toContain('E19');
   });
 
