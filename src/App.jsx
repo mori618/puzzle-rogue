@@ -14,7 +14,7 @@ import TitleEncyclopediaScreen from "./TitleEncyclopediaScreen";
 import TitleInfoPanel, { EquippedTitleChip } from "./TitleInfoPanel";
 import PlayLogPanel from "./PlayLogPanel";
 import playLog from "./utils/playLogger";
-import { loadTitleState } from "./utils/titleManager";
+import { loadTitleState, isTitleSealedActive } from "./utils/titleManager";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { getEnchantDescription } from './constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, INITIAL_TOKEN_SLOTS } from './constants/gameConstants.js';
@@ -697,7 +697,8 @@ const App = () => {
                                 const charge = t?.charge || 0;
                                 const cost = getEffectiveCost(t, currentRunStats, tokens, activeBuffs);
                                 const progress = isSkill ? Math.min(100, (charge / cost) * 100) : 100;
-                                const isReady = isSkill && charge >= cost;
+                                // 二つ名「苦行者」でアクティブスキルを封印しているときは使えない
+                                const isReady = isSkill && charge >= cost && !isTitleSealedActive(t);
                                 const relatedBuffs = t ? activeBuffs.filter(b => b.tokenId === (t.instanceId || t.id)) : [];
                                 const activeBuff = relatedBuffs.length > 0 ? relatedBuffs[0] : null;
                                 const stackCount = relatedBuffs.length;
@@ -1336,7 +1337,8 @@ const App = () => {
               const isSkill = t.type === 'skill';
               const charge = t.charge || 0;
               const cost = getEffectiveCost(t);
-              const isReady = isSkill && charge >= cost;
+              const isSealedByTitle = isTitleSealedActive(t);
+              const isReady = isSkill && charge >= cost && !isSealedByTitle;
               const enchList = t.enchantments || [];
               return (
                 <div className="fixed inset-0 z-[450] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6" onClick={() => setSelectedTokenDetail(null)}>
@@ -1557,7 +1559,7 @@ const App = () => {
                           disabled={!isReady}
                           className={`py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${isReady ? 'bg-primary text-white shadow-lg shadow-primary/25' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
                         >
-                          {isReady ? 'スキル発動' : 'チャージ不足'}
+                          {isReady ? 'スキル発動' : isSealedByTitle ? '使用不可（苦行者）' : 'チャージ不足'}
                         </button>
                       )}
                       {/* 呪い解除条件の表示 */}

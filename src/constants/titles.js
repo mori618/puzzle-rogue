@@ -1,6 +1,6 @@
 /**
  * 二つ名（称号）システム 全マスターデータ
- * A枠パーツ(61種) + B枠パーツ(61種) + 派生進化(50種) = 全172件
+ * A枠パーツ(62種) + B枠パーツ(64種) + 派生進化(50種) = 全176件
  * （隠しセットシナジー S01〜S49 は廃止し、進化二つ名に移した。docs/title-evolution-plan.md）
  *
  * ■ 解放条件
@@ -34,16 +34,22 @@
  *   ショップ: shop_attr_weight {attribute}（その属性のトークンの出現重み ×value）, shop_slot_add, shop_discount, reroll_fixed, reroll_sub（リロール価格 -value★）, sale_add, free_reroll, sell_rate, sell_bonus, curse_sell_bonus
  *   トークン/スキル: new_token_level（新しく手に入れたトークンの初期レベル。呪い等は除く）, skill_cost_sub {attribute?}, skill_charge_cycle_start (数値 or 'full', {attribute?}),
  *         skill_refund_chance, skill_charge_add, levelup_on_cycle_start, max_turns_add, curse_null
+ *   トークンの封印: passive_null（パッシブトークン（呪いを除く）の効果が発動しない）, skill_cost_fixed（アクティブの消費エネルギーを value に固定。呪いを除く）,
+ *         active_null（アクティブスキル（呪いを除く）を使えない）, passive_double_chance（手番ごとに各パッシブが value の確率で2回発動）
  *   その他: clear_reward_mult, curse_remove_bonus, inherit_lv3
  *
  * ■ ゲーム開始時の効果は持たせない（開始時の初期スター等は廃止。サイクル開始時の効果は可）
+ *
+ * ■ initial: true
+ *   最初から解放済みの二つ名（A62 駆け出しの・B62 初心者）。新しいセーブデータでは最初から装備している。
+ *   解放条件は無く、「合計○種解放」の条件（titles_unlocked）の数にも含めない。
  *
  * ■ disabled: true
  *   今のゲームでは使えない機能（エンチャント・虹ドロップなど）に依存する二つ名。
  *   定義は残すが、解放・装備・図鑑表示の対象から外す（titleManager.isTitleDisabled）。
  */
 
-// 1. A枠パーツ（接頭辞）マスターデータ（全61種）
+// 1. A枠パーツ（接頭辞）マスターデータ（全62種）
 // 特殊消し（A26〜A30・A61）の強さは消し方の難しさの順:
 //   4つ消し(A61) ≤ 5個以上消し(A30) < L字消し(A28) < 横一列(A29) < 十字消し(A26) < 正方形消し(A27)
 export const PREFIX_TITLES = [
@@ -484,9 +490,16 @@ export const PREFIX_TITLES = [
     conditionDesc: '4つ消しを累計100回達成',
     effects: [{ type: 'combo_add', value: 1, per: 'len4', max: 5 }],
   },
+  {
+    id: 'A62', name: '駆け出しの', category: '初期',
+    desc: '操作時間 +1秒',
+    initial: true, conditionType: 'initial', targetValue: 0,
+    conditionDesc: '最初から解放済み',
+    effects: [{ type: 'time_add', value: 1000 }],
+  },
 ];
 
-// 2. B枠パーツ（接尾辞）マスターデータ（全61種）
+// 2. B枠パーツ（接尾辞）マスターデータ（全64種）
 export const SUFFIX_TITLES = [
   {
     id: 'B01', name: '覇王', category: '火力',
@@ -914,6 +927,27 @@ export const SUFFIX_TITLES = [
     conditionType: 'lv3_sold', targetValue: 5,
     conditionDesc: 'Lv3トークンを累計5個売却',
     effects: [{ type: 'inherit_lv3', value: 1 }],
+  },
+  {
+    id: 'B62', name: '初心者', category: '初期',
+    desc: '操作時間 +1秒',
+    initial: true, conditionType: 'initial', targetValue: 0,
+    conditionDesc: '最初から解放済み',
+    effects: [{ type: 'time_add', value: 1000 }],
+  },
+  {
+    id: 'B63', name: '詠唱者', category: 'アクティブ特化',
+    desc: 'パッシブトークンの効果が発動しなくなる。かわりに、アクティブトークンの消費エネルギーがすべて 1 になる',
+    conditionType: 'no_passive_cycle', targetValue: 5,
+    conditionDesc: 'パッシブトークンを1つも所持していない状態でサイクル5をクリア',
+    effects: [{ type: 'passive_null' }, { type: 'skill_cost_fixed', value: 1 }],
+  },
+  {
+    id: 'B64', name: '苦行者', category: 'パッシブ特化',
+    desc: 'アクティブスキルが使えなくなる。かわりに、手番ごとにパッシブトークンそれぞれが 50% の確率で 2回発動する',
+    conditionType: 'no_active_cycle', targetValue: 5,
+    conditionDesc: '1回のゲームでアクティブスキルを1回も使わずにサイクル5をクリア',
+    effects: [{ type: 'active_null' }, { type: 'passive_double_chance', value: 0.5 }],
   },
 ];
 

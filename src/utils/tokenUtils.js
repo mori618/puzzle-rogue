@@ -1,5 +1,5 @@
 import { ALL_TOKEN_BASES, ALL_TOKEN_BASES_WITH_DEPRECATED } from '../constants/tokens.js';
-import { getTitleSkillCostReduction, getTitleNewTokenLevel } from './titleManager.js';
+import { getTitleSkillCostReduction, getTitleNewTokenLevel, getTitleSkillCostFixed } from './titleManager.js';
 
 // --- Utils ---
 // --- Utils ---
@@ -12,6 +12,10 @@ const getEffectiveCost = (token, currentRunStats = null, currentTokens = [], cur
   if (!token || token.type !== 'skill') return token?.cost || 0;
   const baseCost = token.cost || 0;
   if (baseCost === 0) return 0;
+
+  // 二つ名「詠唱者」: 消費エネルギーを固定
+  const titleFixedCost = getTitleSkillCostFixed(token);
+  if (titleFixedCost != null) return titleFixedCost;
   const level = token.level || 1;
   const reduction = Math.max(0, level - 1);
 

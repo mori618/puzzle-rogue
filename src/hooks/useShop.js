@@ -13,7 +13,7 @@ import {
 import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel, isTokenRequirementMet } from "../utils/tokenUtils";
 import soundManager from "../utils/SoundManager";
 import { SE_IDS } from "../constants/sounds";
-import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress, recordTitleTrigger, applyTitleRerollPrice } from "../utils/titleManager";
+import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress, recordTitleTrigger, applyTitleRerollPrice, applyTitlePassiveSeal } from "../utils/titleManager";
 
 /** 二つ名: 割引率の合計を価格倍率に変換（複数の割引は乗算、最大90%引き） */
 const getTitlePriceMultiplier = (effects) => {
@@ -96,11 +96,13 @@ export const useShop = ({
   /** ショップアイテムの生成 */
   const generateShop = useCallback((overrideCycleCount = null) => {
     const isLuxury = totalPurchases >= 6;
+    // 二つ名「詠唱者」でパッシブを封印しているときは、パッシブのショップ効果も発動しない
+    const shopEffectTokens = applyTitlePassiveSeal(tokens, getActiveTitleEffects());
 
     let saleBonus = 0;
     let enchantGrantBonus = 0;
     let shopExpandBonus = 0;
-    tokens.forEach((t) => {
+    shopEffectTokens.forEach((t) => {
       if (t?.id === "bargain") {
         const value = t.values[(t.level || 1) - 1];
         saleBonus += value;
@@ -128,7 +130,7 @@ export const useShop = ({
     setIsAwakeningLevelUpBought(false);
 
     const attrWeights = { fire: 1, water: 1, wood: 1, light: 1, dark: 1, heart: 1, none: 1 };
-    tokens.forEach(t => {
+    shopEffectTokens.forEach(t => {
       if (t && t.effect === 'shop_attribute_weight' && t.params?.attribute) {
         const val = t.values[(t.level || 1) - 1] || 1;
         attrWeights[t.params.attribute] *= val;
@@ -153,7 +155,7 @@ export const useShop = ({
 
     let rarityUpCount = 0;
     let rarityDownCount = 0;
-    tokens.forEach((t) => {
+    shopEffectTokens.forEach((t) => {
       if (!t) return;
       if (t.effect === "shop_rarity_weight") {
         rarityUpCount += (t.values[(t.level || 1) - 1] || 0);
@@ -174,7 +176,7 @@ export const useShop = ({
     let p2 = adjustProb(probs[2] || 0, 0.10, 0.10, 1 - p3 - p4);
     let p1 = Math.max(0, 1 - p2 - p3 - p4);
 
-    const hasCeleb = tokens.some(t => t?.effect === "celeb");
+    const hasCeleb = shopEffectTokens.some(t => t?.effect === "celeb");
     if (hasCeleb) {
       const halfP1 = p1 / 2;
       p2 += halfP1;

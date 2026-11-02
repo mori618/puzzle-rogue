@@ -36,9 +36,14 @@ export const VISIBLE_EVOLVED_TITLES = EVOLVED_TITLES.filter(t => !isTitleDisable
 /** 二つ名の表示名（id から） */
 export const getTitleName = (id) => findAnyTitle(id)?.name || '';
 
+/** 最初から解放済みの二つ名（initial: true）。新しいセーブデータでは最初から装備する */
+export const INITIAL_PREFIX_IDS = PREFIX_TITLES.filter(t => t.initial).map(t => t.id);
+export const INITIAL_SUFFIX_IDS = SUFFIX_TITLES.filter(t => t.initial).map(t => t.id);
+const INITIAL_TITLE_IDS = new Set([...INITIAL_PREFIX_IDS, ...INITIAL_SUFFIX_IDS]);
+
 const createDefaultState = () => ({
-  unlockedTitles: { prefixes: [], suffixes: [], evolved: [] },
-  equippedTitle: { prefixId: null, suffixId: null },
+  unlockedTitles: { prefixes: [...INITIAL_PREFIX_IDS], suffixes: [...INITIAL_SUFFIX_IDS], evolved: [] },
+  equippedTitle: { prefixId: INITIAL_PREFIX_IDS[0] || null, suffixId: INITIAL_SUFFIX_IDS[0] || null },
   progress: {},
 });
 
@@ -65,8 +70,8 @@ const normalizeState = (parsed) => {
   if (!parsed || typeof parsed !== 'object') return state;
 
   state.unlockedTitles = {
-    prefixes: uniqueStrings(parsed.unlockedTitles?.prefixes).filter(id => findPrefix(id)),
-    suffixes: uniqueStrings(parsed.unlockedTitles?.suffixes).filter(id => findSuffix(id)),
+    prefixes: uniqueStrings([...INITIAL_PREFIX_IDS, ...uniqueStrings(parsed.unlockedTitles?.prefixes)]).filter(id => findPrefix(id)),
+    suffixes: uniqueStrings([...INITIAL_SUFFIX_IDS, ...uniqueStrings(parsed.unlockedTitles?.suffixes)]).filter(id => findSuffix(id)),
     evolved: uniqueStrings(parsed.unlockedTitles?.evolved).filter(id => findEvolved(id)),
   };
 
@@ -79,10 +84,15 @@ const normalizeState = (parsed) => {
   state.progress = progress;
 
   // 明示的に外した状態 (null) を保持する。未解放・不正なIDは装備しない
+  // 一度も装備を記録していない（undefined の）枠には、最初から解放済みの二つ名を装備する
   const eq = parsed.equippedTitle || {};
+  const pick = (id, slot, fallback) => {
+    if (id === undefined) return fallback;
+    return isEquippableInSlot(id, slot, state.unlockedTitles) ? id : null;
+  };
   state.equippedTitle = {
-    prefixId: isEquippableInSlot(eq.prefixId, 'prefix', state.unlockedTitles) ? eq.prefixId : null,
-    suffixId: isEquippableInSlot(eq.suffixId, 'suffix', state.unlockedTitles) ? eq.suffixId : null,
+    prefixId: pick(eq.prefixId, 'prefix', INITIAL_PREFIX_IDS[0] || null),
+    suffixId: pick(eq.suffixId, 'suffix', INITIAL_SUFFIX_IDS[0] || null),
   };
   return state;
 };
@@ -576,6 +586,52 @@ export const getTitleSkillCostReduction = (token, effects = getActiveTitleEffect
     .reduce((sum, e) => sum + (e.value || 0), 0);
 };
 
+/**
+ * スキルの消費エネルギーを固定する値（詠唱者）。固定しない場合は null
+ */
+export const getTitleSkillCostFixed = (token, effects = getActiveTitleEffects()) => {
+  if (!token || token.isCurse || token.type === 'curse') return null;
+  const fixed = getTitleEffects('skill_cost_fixed', {}, effects).reduce((m, e) => Math.min(m, e.value), Infinity);
+  return Number.isFinite(fixed) ? fixed : null;
+};
+
+/** 二つ名で封印されるパッシブトークンか（呪いは封印しない） */
+export const isTitleSealablePassive = (t) => !!t && t.type === 'passive' && !t.isCurse;
+
+/** パッシブトークンの効果が発動しない（詠唱者） */
+export const isTitlePassiveNull = (effects = getActiveTitleEffects()) => hasTitleEffect('passive_null', {}, effects);
+
+/** アクティブスキルを使えない（苦行者）。呪いのアクティブトークンは使える */
+export const isTitleActiveNull = (effects = getActiveTitleEffects()) => hasTitleEffect('active_null', {}, effects);
+export const isTitleSealedActive = (token, effects = getActiveTitleEffects()) =>
+  !!token && token.type === 'skill' && !token.isCurse && isTitleActiveNull(effects);
+
+/**
+ * 効果の計算に使うトークン一覧。パッシブが封印されているときは、封印されたパッシブを null にする
+ * （並び順に意味がある効果があるため、要素は詰めない）
+ */
+export const applyTitlePassiveSeal = (tokens, effects = getActiveTitleEffects()) => {
+  if (!Array.isArray(tokens) || !isTitlePassiveNull(effects)) return tokens;
+  return tokens.map(t => (isTitleSealablePassive(t) ? null : t));
+};
+
+/** 手番ごとに各パッシブが2回発動する確率（苦行者）。無ければ 0 */
+export const getTitlePassiveDoubleChance = (effects = getActiveTitleEffects()) =>
+  getTitleEffects('passive_double_chance', {}, effects).reduce((m, e) => Math.max(m, e.value || 0), 0);
+
+/**
+ * 2回発動するパッシブトークンを抽選する（各トークンを chance の確率で選ぶ）
+ * @returns {Set<string|number>} 選ばれたトークンの instanceId（無ければ id）
+ */
+export const rollTitleDoubledPassives = (tokens, chance, random = Math.random) => {
+  const ids = new Set();
+  if (!(chance > 0) || !Array.isArray(tokens)) return ids;
+  tokens.forEach(t => {
+    if (isTitleSealablePassive(t) && random() < chance) ids.add(t.instanceId || t.id);
+  });
+  return ids;
+};
+
 // ---------------------------------------------------------------------------
 // 進捗と解放判定
 // ---------------------------------------------------------------------------
@@ -590,6 +646,10 @@ const getAllTitleLists = () => [
 const countUnlocked = (unlocked) => [...unlocked.prefixes, ...unlocked.suffixes, ...unlocked.evolved]
   .filter(id => !isTitleDisabled(id)).length;
 
+/** 「合計○種解放」の条件（titles_unlocked）用の数。最初から解放済みの二つ名は数えない */
+const countEarnedUnlocks = (unlocked) => [...unlocked.prefixes, ...unlocked.suffixes, ...unlocked.evolved]
+  .filter(id => !isTitleDisabled(id) && !INITIAL_TITLE_IDS.has(id)).length;
+
 /** 解放済みの二つ名の数（図鑑表示用。無効な二つ名は除く） */
 export const countUnlockedTitles = (unlocked) => countUnlocked({
   prefixes: unlocked?.prefixes || [],
@@ -603,7 +663,7 @@ export const countUnlockedTitles = (unlocked) => countUnlocked({
 export const getTitleProgressValue = (title, progress = loadTitleState().progress) => {
   if (!title) return 0;
   if (title.conditionType === 'titles_unlocked') {
-    return countUnlocked(loadTitleState().unlockedTitles);
+    return countEarnedUnlocks(loadTitleState().unlockedTitles);
   }
   return progress?.[title.conditionType] || 0;
 };
@@ -657,7 +717,7 @@ const unlockEligibleTitles = (state) => {
   let changed = true;
   while (changed) {
     changed = false;
-    state.progress.titles_unlocked = countUnlocked(state.unlockedTitles);
+    state.progress.titles_unlocked = countEarnedUnlocks(state.unlockedTitles);
     getAllTitleLists().forEach(({ kind, list, key }) => {
       list.forEach(title => {
         if (state.unlockedTitles[key].includes(title.id)) return;
@@ -672,7 +732,7 @@ const unlockEligibleTitles = (state) => {
       });
     });
   }
-  state.progress.titles_unlocked = countUnlocked(state.unlockedTitles);
+  state.progress.titles_unlocked = countEarnedUnlocks(state.unlockedTitles);
   return newlyUnlocked;
 };
 
