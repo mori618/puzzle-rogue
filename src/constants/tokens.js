@@ -338,6 +338,7 @@ const ALL_TOKEN_BASES = [
     cost: 4,
     costLevels: true,
     action: "move_drop_add",
+    requires: "move_drop", // ムーブドロップ生成トークン所持時のみショップに出現
     rarity: 2, price: 24,
     desc: "盤面にあるすべてのムーブドロップのカウントを+20する。消費E:{cost}",
     attributes: ["fire", "water", "wood", "light", "dark", "heart"],
@@ -1401,12 +1402,14 @@ const ALL_TOKEN_BASES = [
   },
   {
     id: "move_drop_boost", name: "飛躍の歩法", icon: "directions_run", type: "passive", effect: "move_drop_boost",
+    requires: "move_drop",
     values: [1, 2, 5], rarity: 2, price: 24,
     desc: "ムーブドロップが規定マス移動した際、カウントの増加量が+{values}される。",
     attributes: [], canBeInitial: true
   },
   {
     id: "move_drop_lucky", name: "幸運の歩み", icon: "filter_7", type: "passive", effect: "move_drop_lucky",
+    requires: "move_drop",
     values: ["7", "5,7", "5,7,9"], rarity: 3, price: 31,
     desc: "コンボ終了時、カウントが{values}の倍数のムーブドロップがあれば、アクティブスキルをチャージMAXにする(カウント1以上限定)。",
     attributes: [], canBeInitial: true
@@ -2672,6 +2675,7 @@ const ALL_TOKEN_BASES = [
     icon: "repeat",
     type: "passive",
     effect: "move_repeater",
+    requires: "move_drop",
     values: [30, 20, 10],
     rarity: 2, price: 24,
     desc: "ムーブドロップのカウントが[30/20/10]蓄積するごとに、盤面のランダムなドロップ1個をリピートドロップに変化させる。",
@@ -3747,6 +3751,7 @@ const ALL_TOKEN_BASES = [
     icon: "speed",
     type: "passive",
     effect: "cross_multiply_move_drop",
+    requires: "move_drop",
     values: [1.5, 2.0, 3.0],
     rarity: 2,
     price: 18,

@@ -6,10 +6,11 @@ import { ENCHANTMENTS, getEnchantDescription } from "../constants/enchantments.j
 import {
   TOKEN_PRICE_TIER,
   SHOP_REROLL_GROWTH_FACTOR,
+  SYNERGY_WEIGHT_MULTIPLIER,
   AWAKENING_TOKEN_SLOT_PRICES,
   INITIAL_TOKEN_SLOTS,
 } from "../constants/gameConstants.js";
-import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel } from "../utils/tokenUtils";
+import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel, isTokenRequirementMet } from "../utils/tokenUtils";
 import soundManager from "../utils/SoundManager";
 import { SE_IDS } from "../constants/sounds";
 import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress, recordTitleTrigger, applyTitleRerollPrice } from "../utils/titleManager";
@@ -191,21 +192,23 @@ export const useShop = ({
       return 4;
     };
 
+    // 前提トークン（requires）を所持していないトークンはショップに出さない
+    const canAppear = (t) => isTokenRequirementMet(t, tokens);
     const passivesPools = {
-      1: ALL_TOKEN_BASES.filter(t => t.type === "passive" && (t.rarity || 1) === 1 && !t.isCurse),
-      2: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 2 && !t.isCurse),
-      3: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 3 && !t.isCurse),
-      4: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 4 && !t.isCurse && !tokens.some(own => own?.id === t.id)),
+      1: ALL_TOKEN_BASES.filter(t => t.type === "passive" && (t.rarity || 1) === 1 && !t.isCurse && canAppear(t)),
+      2: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 2 && !t.isCurse && canAppear(t)),
+      3: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 3 && !t.isCurse && canAppear(t)),
+      4: ALL_TOKEN_BASES.filter(t => t.type === "passive" && t.rarity === 4 && !t.isCurse && canAppear(t) && !tokens.some(own => own?.id === t.id)),
     };
     if (passivesPools[2].length === 0) passivesPools[2] = passivesPools[1];
     if (passivesPools[3].length === 0) passivesPools[3] = passivesPools[2];
     if (passivesPools[4].length === 0) passivesPools[4] = passivesPools[3];
 
     const activesPools = {
-      1: ALL_TOKEN_BASES.filter(t => t.type === "skill" && (t.rarity || 1) === 1 && !t.isCurse),
-      2: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 2 && !t.isCurse),
-      3: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 3 && !t.isCurse),
-      4: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 4 && !t.isCurse && !tokens.some(own => own?.id === t.id)),
+      1: ALL_TOKEN_BASES.filter(t => t.type === "skill" && (t.rarity || 1) === 1 && !t.isCurse && canAppear(t)),
+      2: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 2 && !t.isCurse && canAppear(t)),
+      3: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 3 && !t.isCurse && canAppear(t)),
+      4: ALL_TOKEN_BASES.filter(t => t.type === "skill" && t.rarity === 4 && !t.isCurse && canAppear(t) && !tokens.some(own => own?.id === t.id)),
     };
     if (activesPools[2].length === 0) activesPools[2] = activesPools[1];
     if (activesPools[3].length === 0) activesPools[3] = activesPools[2];
@@ -224,6 +227,8 @@ export const useShop = ({
             if (attrWeights[a]) weight *= attrWeights[a];
           });
         }
+        // 前提トークンを所持している関連トークンは出現率アップ（例: ムーブドロップ関連）
+        if (base.requires) weight *= SYNERGY_WEIGHT_MULTIPLIER;
         return { base, weight };
       });
 
@@ -494,7 +499,9 @@ export const useShop = ({
       const loseIdx = tokens.findIndex(t => t.instanceId === targetToLose.instanceId);
 
       const targetType = targetToLose.type === "skill" ? "skill" : "passive";
-      const star3Pool = ALL_TOKEN_BASES.filter(t => t.type === targetType && t.rarity === 3 && !t.isCurse);
+      // 交換で失うトークンを除いた所持状況で前提条件を判定する
+      const remainingTokens = tokens.filter(t => t && t.instanceId !== targetToLose.instanceId);
+      const star3Pool = ALL_TOKEN_BASES.filter(t => t.type === targetType && t.rarity === 3 && !t.isCurse && isTokenRequirementMet(t, remainingTokens));
 
       if (star3Pool.length === 0) return notify("交換可能な星3が見つかりません");
 
