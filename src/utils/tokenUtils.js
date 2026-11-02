@@ -150,6 +150,24 @@ const getTokenDynamicInfo = (item, level, currentRunStats = null, currentTokens 
     }
   }
 
+  // うさぎ / 狼: 現在の数値を表示
+  if (item && (item.id === 'rabbit_passive' || item.id === 'rabbit_active')) {
+    const count = countRabbitTokens(currentTokens);
+    const v = base.values?.[targetLv - 1] || 1;
+    infoList.push({ label: '所持うさぎ', value: `${count} 個`, type: 'stat' });
+    if (item.id === 'rabbit_passive') {
+      infoList.push({ label: '倍率加算値', value: `+${formatNum(count * v + 1)}`, type: 'boost' });
+    } else {
+      infoList.push({ label: '加算値', value: `+${formatNum(count * v)}`, type: 'boost' });
+    }
+  }
+  if (item && item.id === 'wolf_active') {
+    const eaten = item.eatenRabbits || 0;
+    const v = base.values?.[targetLv - 1] || 2;
+    infoList.push({ label: '捕食したうさぎ', value: `${eaten} 匹`, type: 'stat' });
+    infoList.push({ label: '倍率加算値', value: `+${formatNum(eaten * v)}`, type: 'boost' });
+  }
+
   // 消滅スキルの累積消去数を表示
   if (item && item.action === 'erase_color') {
     const count = item.erasedCount || 0;
@@ -517,3 +535,17 @@ const PROBABILITY_TOKEN_EFFECTS = new Set([
 /** 確率で発動するトークンか */
 export const isProbabilityToken = (token) => !!token
     && (PROBABILITY_TOKEN_IDS.has(token.id) || PROBABILITY_TOKEN_EFFECTS.has(token.effect));
+
+// ---------------------------------------------------------------------------
+// うさぎ / 狼
+// ---------------------------------------------------------------------------
+
+/** うさぎトークン（パッシブ・アクティブ）のID */
+export const RABBIT_TOKEN_IDS = ["rabbit_passive", "rabbit_active"];
+
+/** うさぎトークンか */
+export const isRabbitToken = (token) => !!token && RABBIT_TOKEN_IDS.includes(token.id);
+
+/** 所持しているうさぎトークンの数 */
+export const countRabbitTokens = (tokens = []) => (tokens || []).filter(isRabbitToken).length;
+
