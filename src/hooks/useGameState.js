@@ -66,6 +66,8 @@ export const useGameState = () => {
   const [turn, setTurn] = useState(() => savedData?.turn || 1);
   const [cycleTotalCombo, setCycleTotalCombo] = useState(() => savedData?.cycleTotalCombo || 0);
   const [stars, setStars] = useState(() => savedData?.stars || 10);
+  // ラン中に二つ名を切り替えた回数（切り替え価格の算出用。セーブ対象）
+  const [titleSwitchCount, setTitleSwitchCount] = useState(() => savedData?.titleSwitchCount || 0);
   /* const [energy, setEnergy] = useState(0); // REMOVED: Global Energy */
   /* const [maxEnergy] = useState(10); // REMOVED: Global Energy */
 
@@ -681,6 +683,7 @@ export const useGameState = () => {
       shopItems,
       isEnchantShopUnlocked,
       tokenSlotExpansionCount,
+      titleSwitchCount,
       isAwakeningLevelUpBought,
       currentRunStats,
       // タイトル画面ではエンジンが破棄済みのため、クリーンアップで保存された savedBoard を使う
@@ -690,7 +693,7 @@ export const useGameState = () => {
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveObj));
     setHasSaveData(true);
 
-  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, isAwakeningLevelUpBought, currentRunStats, isPracticeMode, showTitle]);
+  }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, titleSwitchCount, isAwakeningLevelUpBought, currentRunStats, isPracticeMode, showTitle]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -5384,6 +5387,7 @@ export const useGameState = () => {
     setHasSaveData(false);
     setIsEnchantShopUnlocked(false);
     setTokenSlotExpansionCount(0);
+    setTitleSwitchCount(0);
     setIsAwakeningLevelUpBought(false);
     generateShop();
     if (engineRef.current) {
@@ -6344,6 +6348,7 @@ export const useGameState = () => {
     isPureMode, setIsPureMode,
     isEnchantShopUnlocked, setIsEnchantShopUnlocked,
     tokenSlotExpansionCount, setTokenSlotExpansionCount,
+    titleSwitchCount, setTitleSwitchCount,
     isAwakeningLevelUpBought, setIsAwakeningLevelUpBought,
     showMaxComboWarpDialog, setShowMaxComboWarpDialog,
     draggedToken, setDraggedToken,

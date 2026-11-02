@@ -35,7 +35,23 @@ const loadSortPref = () => {
 // 図鑑番号の比較用（A01〜 → E01〜 の順）
 const compareId = (a, b) => a.id.localeCompare(b.id, 'en', { numeric: true });
 
-const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix' }) => {
+// 装備の A枠/B枠の id と名前（ログ用）
+const describeEquipped = (eq = {}) => {
+  const info = getEquippedTitleInfo(eq);
+  return {
+    a: eq.prefixId || null, an: info.prefix?.name || null,
+    b: eq.suffixId || null, bn: info.suffix?.name || null,
+  };
+};
+
+/**
+ * switchCost: ラン中の切り替えに必要な★（null/未指定なら無料）
+ * stars: 所持★ / onPaidSwitch: 有料切り替えが成立したときに呼ばれる
+ */
+const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = null, stars = 0, onPaidSwitch }) => {
+  const isPaid = switchCost != null;
+  const currentCost = isPaid ? switchCost : 0;
+  const canAfford = !isPaid || stars >= currentCost;
   const [activeTab, setActiveTab] = useState(initialTab); // 'prefix' | 'suffix' | 'synergy'
   const [sortPref, setSortPref] = useState(loadSortPref);
 
@@ -56,7 +72,15 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix' }) => {
 
   // 装備切り替え
   const handleEquip = (item, slot) => {
+    if (!canAfford) return;
     soundManager.playSE(SE_IDS.UI_CLICK);
+    if (isPaid) {
+      const before = describeEquipped(titleState.equippedTitle);
+      const next = { ...titleState.equippedTitle };
+      if (slot === 'prefix') next.prefixId = next.prefixId === item.id ? null : item.id;
+      else next.suffixId = next.suffixId === item.id ? null : item.id;
+      onPaidSwitch?.({ cost: currentCost, before, after: describeEquipped(next) });
+    }
     setTitleState(prev => {
       const nextEquipped = { ...prev.equippedTitle };
       if (slot === 'prefix') {
@@ -180,6 +204,16 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix' }) => {
         </div>
       </div>
 
+      {/* ラン中の切り替えコスト表示 */}
+      {isPaid && (
+        <div className={`flex-none px-4 py-2 text-xs font-bold border-b border-white/10 flex items-center justify-between ${
+          canAfford ? 'bg-amber-950/40 text-amber-200' : 'bg-red-950/50 text-red-300'
+        }`} data-testid="title-switch-cost">
+          <span>切り替えコスト：★{currentCost}（切り替えるたびに上昇）</span>
+          <span>所持：★{stars}{!canAfford && `（あと★${currentCost - stars}）`}</span>
+        </div>
+      )}
+
       {/* タブナビゲーション */}
       <div className="flex-none px-4 pt-3 pb-2 z-10 flex gap-2">
         <button
@@ -275,7 +309,8 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix' }) => {
                   <div
                     key={title.id}
                     onClick={() => unlocked && handleEquip(title, slot)}
-                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
+                    aria-disabled={unlocked && !canAfford ? true : undefined}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer aria-disabled:opacity-50 aria-disabled:cursor-not-allowed relative overflow-hidden ${
                       isEquipped
                         ? 'bg-indigo-900/40 border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.3)]'
                         : unlocked
@@ -425,6 +460,7 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix' }) => {
                     <div
                       key={evo.id}
                       onClick={() => unlocked && handleEquip(evo, slot)}
+                      aria-disabled={unlocked && !canAfford ? true : undefined}
                       className={`p-3.5 rounded-2xl border transition-all relative overflow-hidden ${
                         isEquipped
                           ? 'bg-indigo-900/50 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.3)] cursor-pointer'

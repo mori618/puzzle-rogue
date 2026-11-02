@@ -14,10 +14,10 @@ import TitleEncyclopediaScreen from "./TitleEncyclopediaScreen";
 import TitleInfoPanel, { EquippedTitleChip } from "./TitleInfoPanel";
 import PlayLogPanel from "./PlayLogPanel";
 import playLog from "./utils/playLogger";
-import { loadTitleState } from "./utils/titleManager";
+import { loadTitleState, getActiveTitleEffects } from "./utils/titleManager";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { getEnchantDescription } from './constants/enchantments.js';
-import { MAX_COMBO, MAX_TARGET, SAVE_KEY, INITIAL_TOKEN_SLOTS } from './constants/gameConstants.js';
+import { MAX_COMBO, MAX_TARGET, SAVE_KEY, INITIAL_TOKEN_SLOTS, getTitleSwitchPrice } from './constants/gameConstants.js';
 import { formatJapaneseNumber } from './utils/numberUtils.js';
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
@@ -43,7 +43,8 @@ const App = () => {
     freeRerolls,
     cycleTotalCombo,
     effectiveRerollPrice,
-    stars,
+    stars, setStars,
+    titleSwitchCount, setTitleSwitchCount,
     activeBuffs,
     lastTurnCombo,
     lastErasedColorCounts,
@@ -1139,6 +1140,18 @@ const App = () => {
                 <TitleEncyclopediaScreen
                   initialTab={typeof showTitleSwitcher === 'string' ? showTitleSwitcher : 'prefix'}
                   currentRunStats={currentRunStats}
+                  // ラン中の切り替えは★消費（練習モードは無料）
+                  switchCost={isPracticeMode ? null : getTitleSwitchPrice(titleSwitchCount)}
+                  stars={stars}
+                  onPaidSwitch={({ cost, before, after }) => {
+                    setStars(s => Math.max(0, s - cost));
+                    setTitleSwitchCount(c => c + 1);
+                    if (!isPracticeMode) {
+                      let effects = null;
+                      try { effects = getActiveTitleEffects(); } catch { /* 記録のみ */ }
+                      playLog.event('titleChange', { from: before, to: after, cost, titleEffects: effects });
+                    }
+                  }}
                   onClose={() => {
                     setEquippedTitle(loadTitleState().equippedTitle);
                     setShowTitleSwitcher(false);
