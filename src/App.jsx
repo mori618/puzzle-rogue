@@ -80,6 +80,8 @@ const App = () => {
     isPureMode, setIsPureMode,
     isEnchantShopUnlocked,
     tokenSlotExpansionCount,
+    titleSwitchCost,
+    payTitleSwitch,
     isAwakeningLevelUpBought,
     showMaxComboWarpDialog, setShowMaxComboWarpDialog,
     draggedToken, setDraggedToken,
@@ -1139,6 +1141,9 @@ const App = () => {
                 <TitleEncyclopediaScreen
                   initialTab={typeof showTitleSwitcher === 'string' ? showTitleSwitcher : 'prefix'}
                   currentRunStats={currentRunStats}
+                  switchCost={titleSwitchCost}
+                  stars={stars}
+                  onPaySwitch={payTitleSwitch}
                   onClose={() => {
                     setEquippedTitle(loadTitleState().equippedTitle);
                     setShowTitleSwitcher(false);

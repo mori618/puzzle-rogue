@@ -35,7 +35,11 @@ const loadSortPref = () => {
 // 図鑑番号の比較用（A01〜 → E01〜 の順）
 const compareId = (a, b) => a.id.localeCompare(b.id, 'en', { numeric: true });
 
-const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix' }) => {
+const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = null, stars = 0, onPaySwitch = null }) => {
+  // switchCost が数値のとき（ラン中）は、切り替えごとに★を消費する。null ならタイトル画面など無料
+  const isPaid = typeof switchCost === 'number' && switchCost > 0 && !!onPaySwitch;
+  const canAfford = !isPaid || stars >= switchCost;
+  const [shortage, setShortage] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab); // 'prefix' | 'suffix' | 'synergy'
   const [sortPref, setSortPref] = useState(loadSortPref);
 
@@ -56,16 +60,29 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix' }) => {
 
   // 装備切り替え
   const handleEquip = (item, slot) => {
-    soundManager.playSE(SE_IDS.UI_CLICK);
-    setTitleState(prev => {
-      const nextEquipped = { ...prev.equippedTitle };
-      if (slot === 'prefix') {
-        nextEquipped.prefixId = nextEquipped.prefixId === item.id ? null : item.id;
-      } else if (slot === 'suffix') {
-        nextEquipped.suffixId = nextEquipped.suffixId === item.id ? null : item.id;
+    const before = titleState.equippedTitle;
+    const next = { ...before };
+    if (slot === 'prefix') {
+      next.prefixId = next.prefixId === item.id ? null : item.id;
+    } else if (slot === 'suffix') {
+      next.suffixId = next.suffixId === item.id ? null : item.id;
+    }
+    if (isPaid) {
+      if (!canAfford) {
+        setShortage(true);
+        return;
       }
-      return { ...prev, equippedTitle: nextEquipped };
-    });
+      // 支払い・ログ記録の前に保存して、記録時点で新しい二つ名効果が反映されるようにする
+      saveTitleState({ ...loadTitleState(), equippedTitle: next });
+      if (!onPaySwitch(before, next)) {
+        saveTitleState({ ...loadTitleState(), equippedTitle: before });
+        setShortage(true);
+        return;
+      }
+      setShortage(false);
+    }
+    soundManager.playSE(SE_IDS.UI_CLICK);
+    setTitleState(prev => ({ ...prev, equippedTitle: next }));
   };
 
   const isPrefixUnlocked = (id) => unlockedTitles.prefixes?.includes(id);
@@ -141,6 +158,15 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix' }) => {
           <span className="material-icons-round text-lg">close</span>
         </button>
       </header>
+
+      {isPaid && (
+        <div className={`flex-none px-4 py-2 text-xs font-bold z-10 border-b flex items-center justify-between ${
+          canAfford ? 'bg-amber-950/40 border-amber-500/30 text-amber-200' : 'bg-red-950/50 border-red-500/40 text-red-300'
+        }`} data-testid="title-switch-cost">
+          <span>ラン中の切り替えには ★{switchCost} が必要です（切り替えるたびに値上がり）</span>
+          <span className="font-mono">所持 ★{stars}{!canAfford || shortage ? '（不足）' : ''}</span>
+        </div>
+      )}
 
       {/* 現在装備中のバッジ表示バー */}
       <div className="flex-none px-4 py-3 bg-slate-900/90 border-b border-white/10 z-10 backdrop-blur-sm">
