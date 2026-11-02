@@ -159,9 +159,9 @@ describe('進捗記録と解放', () => {
   it('累計値が目標に達すると解放され、通知される', () => {
     const notified = [];
     const unsubscribe = subscribeTitleUnlock(titles => notified.push(...titles.map(t => t.id)));
-    recordTitleProgress({ add: { erase_fire: 300 } });
+    recordTitleProgress({ add: { erase_fire: 60 } });
     expect(loadTitleState().unlockedTitles.prefixes).not.toContain('A04');
-    recordTitleProgress({ add: { erase_fire: 200 } });
+    recordTitleProgress({ add: { erase_fire: 40 } });
     expect(loadTitleState().unlockedTitles.prefixes).toContain('A04');
     expect(notified).toContain('A04');
     unsubscribe();

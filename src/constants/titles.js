@@ -72,48 +72,48 @@ export const PREFIX_TITLES = [
     id: 'A04', name: '紅蓮の', category: '属性（炎）',
     attribute: 'fire', // 属性のA枠（E27 真・覇王・E28 千変の即応陣 の '$prefix' で使う）
     desc: '炎属性トークンがショップに出やすくなる（3倍）、炎ドロップ出現率UP',
-    conditionType: 'erase_fire', targetValue: 500,
-    conditionDesc: '炎ドロップを累計500個消去',
+    conditionType: 'erase_fire', targetValue: 100,
+    conditionDesc: '炎ドロップを累計100個消去',
     effects: [{ type: 'shop_attr_weight', attribute: 'fire', value: 3 }, { type: 'spawn_weight', color: 'fire', value: 1.35 }],
   },
   {
     id: 'A05', name: '蒼海の', category: '属性（雨）',
     attribute: 'water', // 属性のA枠（E27 真・覇王・E28 千変の即応陣 の '$prefix' で使う）
     desc: '雨属性トークンがショップに出やすくなる（3倍）、雨ドロップ出現率UP',
-    conditionType: 'erase_water', targetValue: 500,
-    conditionDesc: '雨ドロップを累計500個消去',
+    conditionType: 'erase_water', targetValue: 100,
+    conditionDesc: '雨ドロップを累計100個消去',
     effects: [{ type: 'shop_attr_weight', attribute: 'water', value: 3 }, { type: 'spawn_weight', color: 'water', value: 1.35 }],
   },
   {
     id: 'A06', name: '深翠の', category: '属性（風）',
     attribute: 'wood', // 属性のA枠（E27 真・覇王・E28 千変の即応陣 の '$prefix' で使う）
     desc: '風属性トークンがショップに出やすくなる（3倍）、風ドロップ出現率UP',
-    conditionType: 'erase_wood', targetValue: 500,
-    conditionDesc: '風ドロップを累計500個消去',
+    conditionType: 'erase_wood', targetValue: 100,
+    conditionDesc: '風ドロップを累計100個消去',
     effects: [{ type: 'shop_attr_weight', attribute: 'wood', value: 3 }, { type: 'spawn_weight', color: 'wood', value: 1.35 }],
   },
   {
     id: 'A07', name: '迅雷の', category: '属性（雷）',
     attribute: 'light', // 属性のA枠（E27 真・覇王・E28 千変の即応陣 の '$prefix' で使う）
     desc: '雷属性トークンがショップに出やすくなる（3倍）、雷ドロップ出現率UP',
-    conditionType: 'erase_light', targetValue: 500,
-    conditionDesc: '雷ドロップを累計500個消去',
+    conditionType: 'erase_light', targetValue: 100,
+    conditionDesc: '雷ドロップを累計100個消去',
     effects: [{ type: 'shop_attr_weight', attribute: 'light', value: 3 }, { type: 'spawn_weight', color: 'light', value: 1.35 }],
   },
   {
     id: 'A08', name: '常月の', category: '属性（月）',
     attribute: 'dark', // 属性のA枠（E27 真・覇王・E28 千変の即応陣 の '$prefix' で使う）
     desc: '月属性トークンがショップに出やすくなる（3倍）、月ドロップ出現率UP',
-    conditionType: 'erase_dark', targetValue: 500,
-    conditionDesc: '月ドロップを累計500個消去',
+    conditionType: 'erase_dark', targetValue: 100,
+    conditionDesc: '月ドロップを累計100個消去',
     effects: [{ type: 'shop_attr_weight', attribute: 'dark', value: 3 }, { type: 'spawn_weight', color: 'dark', value: 1.35 }],
   },
   {
     id: 'A09', name: '慈愛の', category: '属性（回復）',
     attribute: 'heart', // 属性のA枠（E27 真・覇王・E28 千変の即応陣 の '$prefix' で使う）
     desc: 'ハート属性トークンがショップに出やすくなる（3倍）、ハート出現率UP',
-    conditionType: 'erase_heart', targetValue: 300,
-    conditionDesc: 'ハートドロップを累計300個消去',
+    conditionType: 'erase_heart', targetValue: 100,
+    conditionDesc: 'ハートドロップを累計100個消去',
     effects: [{ type: 'shop_attr_weight', attribute: 'heart', value: 3 }, { type: 'spawn_weight', color: 'heart', value: 1.35 }],
   },
   {
