@@ -321,6 +321,7 @@ export const getTitlePerCount = (per, ctx = {}, effect = {}) => {
     case 'attr_token': return (counts.attrCounts || {})[effect.attribute] || 0;
     case 'color_count': return colors.size;
     case 'clears': return ctx.clears || 0;
+    case 'cycle': return ctx.cycle || 0;
     case 'move_steps': return ctx.moveSteps || 0;
     case 'tc': return ctx.tc || 0;
     case 'prev_combo': return ctx.prevCombo || 0;

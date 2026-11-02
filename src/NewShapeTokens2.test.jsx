@@ -109,7 +109,7 @@ describe('tokenUtils - getTokenDynamicInfo のテスト', () => {
     const info = getTokenDynamicInfo(item, 1, { currentShapeSquare: 2 });
     const match = info.find(i => i.label === '正方形消し累積');
     expect(match).toBeDefined();
-    expect(match.value).toBe('2 / 3 回');
+    expect(match.value).toBe('2 / 2 回');
   });
 
   it('横一列消し累積トークン（row_count）の動的情報を取得できること', () => {

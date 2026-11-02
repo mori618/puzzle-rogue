@@ -285,6 +285,18 @@ describe('装備と効果', () => {
     expect(computeTitleComboModifiers({ ...ctx, matchedColors: new Set(['fire']) }, effects).addedMult).toBe(0);
   });
 
+  it('per: cycle はサイクル数に比例して固定加算が伸びる', () => {
+    const effects = [{ type: 'combo_add', value: 1.5, per: 'cycle' }];
+    expect(computeTitleComboModifiers({ cycle: 1 }, effects).comboAdd).toBe(1);
+    expect(computeTitleComboModifiers({ cycle: 6 }, effects).comboAdd).toBe(9);
+    expect(computeTitleComboModifiers({ cycle: 11 }, effects).comboAdd).toBe(16);
+  });
+
+  it('疾風の最大加算は +12', () => {
+    const b41 = SUFFIX_TITLES.find(t => t.id === 'B41');
+    expect(computeTitleComboModifiers({ moveSteps: 200 }, b41.effects).comboAdd).toBe(12);
+  });
+
   it('属性B枠は属性トークン所持数で解放される', () => {
     unlockAndEquip({});
     recordTitleProgress({ max: { attr_tokens_dark_max: 4 } });

@@ -753,6 +753,31 @@ body {
   animation: revive-ring 0.5s ease-out forwards;
 }
 
+/* --- ドロップ変換演出（光る→縮小から拡大して新しいドロップへ） --- */
+@keyframes orb-convert {
+  0% {
+    transform: scale(0.35);
+    filter: brightness(3) drop-shadow(0 0 0px rgba(255, 255, 255, 0));
+    opacity: 0.3;
+  }
+
+  45% {
+    transform: scale(1.15);
+    filter: brightness(2.4) drop-shadow(0 0 14px rgba(255, 255, 255, 0.95));
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    filter: brightness(1) drop-shadow(0 0 0px rgba(255, 255, 255, 0));
+    opacity: 1;
+  }
+}
+
+.orb-converting>.orb-inner {
+  animation: orb-convert var(--convert-duration, 350ms) ease-out var(--convert-delay, 0ms) backwards;
+}
+
 /* --- Move Drop Styles (フラットスタイル) --- */
 .orb-shape-move {
   border-radius: 50%;

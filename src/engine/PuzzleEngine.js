@@ -113,6 +113,55 @@ class PuzzleEngine {
     window.addEventListener('touchstart', this.onPointerDownForSpeed, { passive: true });
     window.addEventListener('touchend', this.onPointerUpForSpeed);
     window.addEventListener('touchcancel', this.onPointerUpForSpeed);
+
+    this.convertAnimUntil = 0; // 変換演出中は盤面操作を受け付けない（時刻 ms）
+    this._setupConvertObserver();
+  }
+
+  /**
+   * ドロップの種類（orb-shape-*）が変わった要素を検知し、変換演出を再生する。
+   * スキル・ターン終了時の自動変換・侵食など、className を書き換える全経路を一括でカバーする。
+   * 演出は「光る→縮小から拡大して新しいドロップへ」。複数マスは順番にずらして再生（合計0.5秒以内）。
+   */
+  _setupConvertObserver() {
+    if (typeof MutationObserver === 'undefined' || !this.container) return;
+    const shapeOf = (cls) => (cls || '').match(/orb-shape-(\S+)/)?.[1] || null;
+    this._convertObserver = new MutationObserver((records) => {
+      if (this._isDestroyed) return;
+      const changed = new Map(); // el -> 最初の変更前 className
+      records.forEach((rec) => {
+        const el = rec.target;
+        if (!el.classList || !el.classList.contains('orb')) return;
+        if (!changed.has(el)) changed.set(el, rec.oldValue);
+      });
+      const targets = [];
+      changed.forEach((oldCls, el) => {
+        const before = shapeOf(oldCls);
+        if (before && before !== shapeOf(el.className)) targets.push(el);
+      });
+      if (targets.length === 0) return;
+      const factor = this.isFastForward ? 1 / (this.speedMultiplier || 3) : 1;
+      const duration = 350 * factor;
+      const maxStagger = 150 * factor; // 合計 0.5 秒以内
+      const step = targets.length > 1 ? Math.min(40 * factor, maxStagger / (targets.length - 1)) : 0;
+      targets.forEach((el, i) => {
+        el.style.setProperty('--convert-duration', `${duration}ms`);
+        el.style.setProperty('--convert-delay', `${Math.round(i * step)}ms`);
+        el.classList.remove('orb-converting');
+        void el.offsetWidth;
+        el.classList.add('orb-converting');
+        const done = () => el.classList.remove('orb-converting');
+        const id = setTimeout(done, duration + maxStagger + 50);
+        this.activeTimeouts?.add?.(id);
+      });
+      this.convertAnimUntil = Math.max(this.convertAnimUntil, Date.now() + duration + Math.round((targets.length - 1) * step));
+    });
+    this._convertObserver.observe(this.container, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class'],
+      attributeOldValue: true,
+    });
   }
 
   setCalmActive(active) {
@@ -539,6 +588,7 @@ class PuzzleEngine {
 
     const handler = (e) => {
       if (this.processing) return;
+      if (Date.now() < this.convertAnimUntil) return;
       if (this.activePointerId !== null) return;
       // 左クリックまたはタッチ・ペン入力のみ受け付ける（従来マウスイベントもサポート）
       if (e.type.startsWith('mouse') && e.button !== 0) return;
@@ -3246,6 +3296,10 @@ class PuzzleEngine {
 
   destroy() {
     this._isDestroyed = true;
+    if (this._convertObserver) {
+      this._convertObserver.disconnect();
+      this._convertObserver = null;
+    }
     clearInterval(this.timerId);
     clearTimeout(this.chronosTimerId);
     
