@@ -21,6 +21,7 @@ import {
   getTitleEffectProduct,
   getTokenTitleCounts,
   evaluateTitleWhen,
+  getTitleProgressValue,
   joinTitleName,
   isTitleDisabled,
   countUnlockedTitles,
@@ -46,10 +47,10 @@ const unlockAndEquip = ({ prefixes = [], suffixes = [], evolved = [], prefixId =
 };
 
 describe('二つ名マスターデータ', () => {
-  it('全172件・ID重複なし（セットシナジーは廃止）', () => {
+  it('全174件・ID重複なし（セットシナジーは廃止）', () => {
     const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES];
-    expect(all).toHaveLength(172);
-    expect(new Set(all.map(t => t.id)).size).toBe(172);
+    expect(all).toHaveLength(174);
+    expect(new Set(all.map(t => t.id)).size).toBe(174);
     expect(EVOLVED_TITLES).toHaveLength(50);
   });
 
@@ -75,9 +76,10 @@ describe('二つ名マスターデータ', () => {
     });
   });
 
-  it('全ての二つ名が効果と正の目標値を持つ', () => {
+  it('全ての二つ名が効果と正の目標値を持つ（最初から解放済みのものを除く）', () => {
     [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES].forEach(t => {
       expect(t.effects?.length, t.id).toBeGreaterThan(0);
+      if (t.initial) return;
       expect(t.targetValue, t.id).toBeGreaterThan(0);
       expect(typeof t.conditionType, t.id).toBe('string');
     });
@@ -116,10 +118,32 @@ describe('二つ名の状態管理', () => {
     resetTitleCache();
   });
 
-  it('初期状態は未解放・未装備', () => {
+  it('初期状態は「駆け出しの」「初心者」だけが解放・装備済み', () => {
     const state = loadTitleState();
-    expect(state.unlockedTitles.prefixes).toEqual([]);
-    expect(state.equippedTitle).toEqual({ prefixId: null, suffixId: null });
+    expect(state.unlockedTitles.prefixes).toEqual(['A62']);
+    expect(state.unlockedTitles.suffixes).toEqual(['B62']);
+    expect(state.unlockedTitles.evolved).toEqual([]);
+    expect(state.equippedTitle).toEqual({ prefixId: 'A62', suffixId: 'B62' });
+    expect(getActiveTitleEffects().filter(e => e.type === 'time_add').reduce((s, e) => s + e.value, 0)).toBe(2000);
+  });
+
+  it('既存のセーブデータにも「駆け出しの」「初心者」が解放され、装備は上書きしない', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      unlockedTitles: { prefixes: ['A01'], suffixes: [], evolved: [] },
+      equippedTitle: { prefixId: 'A01', suffixId: null },
+      progress: {},
+    }));
+    resetTitleCache();
+    const state = loadTitleState();
+    expect(state.unlockedTitles.prefixes).toEqual(expect.arrayContaining(['A01', 'A62']));
+    expect(state.unlockedTitles.suffixes).toEqual(['B62']);
+    // 装備中の A01 と、明示的に外した B枠（null）はそのまま
+    expect(state.equippedTitle).toEqual({ prefixId: 'A01', suffixId: null });
+  });
+
+  it('最初から解放済みの二つ名は「合計○種解放」の数に含めない', () => {
+    const state = loadTitleState();
+    expect(getTitleProgressValue(SUFFIX_TITLES.find(t => t.id === 'B50'), state.progress)).toBe(0);
   });
 
   it('装備を外した状態 (null) が再読み込み後も保持される', () => {
@@ -454,7 +478,8 @@ describe('二つ名の整理（グループ7）', () => {
     expect(state.equippedTitle).toEqual({ prefixId: null, suffixId: 'B28' });
     // 解放済みの記録は消さない（エンチャントを戻したときに復活できるように）
     expect(state.unlockedTitles.prefixes).toContain('A45');
-    expect(countUnlockedTitles(state.unlockedTitles)).toBe(2);
+    // A01・B28 と、最初から解放済みの A62・B62（無効な A45 は数えない）
+    expect(countUnlockedTitles(state.unlockedTitles)).toBe(4);
     const info = getEquippedTitleInfo({ prefixId: 'A45', suffixId: 'B28' });
     expect(info.prefix).toBeNull();
     expect(getActiveTitleEffects().some(e => e.per === 'enchant')).toBe(false);

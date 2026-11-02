@@ -1,6 +1,6 @@
 /**
  * 二つ名（称号）システム 全マスターデータ
- * A枠パーツ(61種) + B枠パーツ(61種) + 派生進化(50種) = 全172件
+ * A枠パーツ(62種) + B枠パーツ(62種) + 派生進化(50種) = 全174件
  * （隠しセットシナジー S01〜S49 は廃止し、進化二つ名に移した。docs/title-evolution-plan.md）
  *
  * ■ 解放条件
@@ -38,12 +38,16 @@
  *
  * ■ ゲーム開始時の効果は持たせない（開始時の初期スター等は廃止。サイクル開始時の効果は可）
  *
+ * ■ initial: true
+ *   最初から解放済みの二つ名（A62 駆け出しの・B62 初心者）。新しいセーブデータでは最初から装備している。
+ *   解放条件は無く、「合計○種解放」の条件（titles_unlocked）の数にも含めない。
+ *
  * ■ disabled: true
  *   今のゲームでは使えない機能（エンチャント・虹ドロップなど）に依存する二つ名。
  *   定義は残すが、解放・装備・図鑑表示の対象から外す（titleManager.isTitleDisabled）。
  */
 
-// 1. A枠パーツ（接頭辞）マスターデータ（全61種）
+// 1. A枠パーツ（接頭辞）マスターデータ（全62種）
 // 特殊消し（A26〜A30・A61）の強さは消し方の難しさの順:
 //   4つ消し(A61) ≤ 5個以上消し(A30) < L字消し(A28) < 横一列(A29) < 十字消し(A26) < 正方形消し(A27)
 export const PREFIX_TITLES = [
@@ -484,9 +488,16 @@ export const PREFIX_TITLES = [
     conditionDesc: '4つ消しを累計100回達成',
     effects: [{ type: 'combo_add', value: 1, per: 'len4', max: 5 }],
   },
+  {
+    id: 'A62', name: '駆け出しの', category: '初期',
+    desc: '操作時間 +1秒',
+    initial: true, conditionType: 'initial', targetValue: 0,
+    conditionDesc: '最初から解放済み',
+    effects: [{ type: 'time_add', value: 1000 }],
+  },
 ];
 
-// 2. B枠パーツ（接尾辞）マスターデータ（全61種）
+// 2. B枠パーツ（接尾辞）マスターデータ（全62種）
 export const SUFFIX_TITLES = [
   {
     id: 'B01', name: '覇王', category: '火力',
@@ -914,6 +925,13 @@ export const SUFFIX_TITLES = [
     conditionType: 'lv3_sold', targetValue: 5,
     conditionDesc: 'Lv3トークンを累計5個売却',
     effects: [{ type: 'inherit_lv3', value: 1 }],
+  },
+  {
+    id: 'B62', name: '初心者', category: '初期',
+    desc: '操作時間 +1秒',
+    initial: true, conditionType: 'initial', targetValue: 0,
+    conditionDesc: '最初から解放済み',
+    effects: [{ type: 'time_add', value: 1000 }],
   },
 ];
 
