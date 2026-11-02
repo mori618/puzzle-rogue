@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   PREFIX_TITLES,
   SUFFIX_TITLES,
-  TITLE_SET_BONUSES,
   EVOLVED_TITLES,
 } from '../constants/titles.js';
 import {
@@ -23,6 +22,17 @@ import {
   getTokenTitleCounts,
   evaluateTitleWhen,
   joinTitleName,
+  isTitleDisabled,
+  countUnlockedTitles,
+  getTitleNewTokenLevel,
+  applyTitleRerollPrice,
+  VISIBLE_PREFIX_TITLES,
+  VISIBLE_SUFFIX_TITLES,
+  isTitleEquipped,
+  getEquippedPrefixAttribute,
+  describeRequiredTitles,
+  isEvolvedBaseUnlocked,
+  VISIBLE_EVOLVED_TITLES,
 } from './titleManager.js';
 
 const STORAGE_KEY = 'pazuru_roguelike_title_state';
@@ -36,34 +46,31 @@ const unlockAndEquip = ({ prefixes = [], suffixes = [], evolved = [], prefixId =
 };
 
 describe('二つ名マスターデータ', () => {
-  it('全196件・ID重複なし', () => {
-    const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...TITLE_SET_BONUSES, ...EVOLVED_TITLES];
-    expect(all).toHaveLength(196);
-    expect(new Set(all.map(t => t.id)).size).toBe(196);
+  it('全172件・ID重複なし（セットシナジーは廃止）', () => {
+    const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES];
+    expect(all).toHaveLength(172);
+    expect(new Set(all.map(t => t.id)).size).toBe(172);
+    expect(EVOLVED_TITLES).toHaveLength(50);
   });
 
-  it('6属性すべてが同じ構成（A枠・詠唱・B枠・進化・セット3種）を持つ', () => {
+  it('6属性すべてが同じ構成（A枠・詠唱・B枠・進化）を持つ', () => {
     const colors = ['fire', 'water', 'wood', 'light', 'dark', 'heart'];
-    const mentions = (t, c) => JSON.stringify([t.effects, t.trigger]).includes(`"${c}"`);
     const prefixOf = Object.fromEntries(colors.map(c => [c, PREFIX_TITLES.find(t => t.effects.some(e => e.type === 'spawn_weight' && e.color === c))]));
     colors.forEach(c => {
       expect(prefixOf[c], c).toBeTruthy();
       expect(PREFIX_TITLES.filter(t => t.effects.some(e => e.type === 'skill_cost_sub' && e.attribute === c)), c).toHaveLength(1);
       expect(SUFFIX_TITLES.filter(t => t.effects.some(e => e.per === 'attr_token' && e.attribute === c)), c).toHaveLength(1);
-      const evo = EVOLVED_TITLES.filter(t => t.requiredTitleId === prefixOf[c].id);
+      expect(prefixOf[c].attribute, c).toBe(c);
+      const evo = EVOLVED_TITLES.filter(t => t.requiredTitleIds.length === 1 && t.requiredTitleIds[0] === prefixOf[c].id);
       expect(evo, c).toHaveLength(1);
       expect(evo[0].effects.some(e => e.type === 'add_mult' && e.value === 5.0 && e.when?.color === c), c).toBe(true);
-      expect(TITLE_SET_BONUSES.filter(st => st.prefixId === prefixOf[c].id && mentions(st, c) || st.prefixId === prefixOf[c].id && st.suffixId === 'B01'), c).toHaveLength(3);
-      const chant = PREFIX_TITLES.find(t => t.effects.some(e => e.type === 'skill_cost_sub' && e.attribute === c));
-      expect(TITLE_SET_BONUSES.filter(st => mentions(st, c)), c).toHaveLength(4);
-      expect(TITLE_SET_BONUSES.filter(st => st.prefixId === chant.id && st.suffixId === 'B03'), c).toHaveLength(1);
     });
   });
 
   it('仮置きデータが残っていない', () => {
-    const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...TITLE_SET_BONUSES, ...EVOLVED_TITLES];
+    const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES];
     all.forEach(t => {
-      const text = `${t.name || ''}${t.titleName || ''}${t.desc}${t.conditionDesc || ''}`;
+      const text = `${t.name || ''}${t.desc}${t.conditionDesc || ''}`;
       expect(text).not.toMatch(/特殊達成条件|特殊シナジー|超越称号|パターン #|_\d+$/);
     });
   });
@@ -74,20 +81,26 @@ describe('二つ名マスターデータ', () => {
       expect(t.targetValue, t.id).toBeGreaterThan(0);
       expect(typeof t.conditionType, t.id).toBe('string');
     });
-    TITLE_SET_BONUSES.forEach(s => expect(s.effects?.length, s.id).toBeGreaterThan(0));
   });
 
-  it('シナジーと進化の参照先が存在し、組み合わせが重複しない', () => {
-    const pids = new Set(PREFIX_TITLES.map(p => p.id));
-    const sids = new Set(SUFFIX_TITLES.map(s => s.id));
-    TITLE_SET_BONUSES.forEach(s => {
-      expect(pids.has(s.prefixId), s.id).toBe(true);
-      expect(sids.has(s.suffixId), s.id).toBe(true);
-    });
-    const pairs = TITLE_SET_BONUSES.map(s => `${s.prefixId}-${s.suffixId}`);
-    expect(new Set(pairs).size).toBe(pairs.length);
+  it('進化二つ名の形（slot・requiredTitleIds・requireMode）が正しい', () => {
+    const ids = new Set([...PREFIX_TITLES, ...SUFFIX_TITLES].map(t => t.id));
     EVOLVED_TITLES.forEach(e => {
-      expect(pids.has(e.requiredTitleId) || sids.has(e.requiredTitleId), e.id).toBe(true);
+      expect(['prefix', 'suffix'], e.id).toContain(e.slot);
+      expect(['equipped', 'unlocked'], e.id).toContain(e.requireMode);
+      expect(e.requiredTitleIds.length, e.id).toBeGreaterThan(0);
+      e.requiredTitleIds.flat().forEach(id => expect(ids.has(id), `${e.id}:${id}`).toBe(true));
+      expect(e.category, e.id).toBe(e.slot === 'prefix' ? 'A枠上位' : 'B枠上位');
+      // A枠は1つしか装備できないので、「装備して」の条件に A枠（B枠）を2つ以上入れない
+      if (e.requireMode === 'equipped') {
+        const singles = e.requiredTitleIds.filter(x => typeof x === 'string');
+        const groups = e.requiredTitleIds.filter(Array.isArray);
+        const countA = singles.filter(x => x.startsWith('A')).length + groups.filter(g => g[0].startsWith('A')).length;
+        const countB = singles.filter(x => x.startsWith('B')).length + groups.filter(g => g[0].startsWith('B')).length;
+        expect(countA, e.id).toBeLessThanOrEqual(1);
+        expect(countB, e.id).toBeLessThanOrEqual(1);
+      }
+      if (e.trigger) expect(['turn', 'clear', 'state', 'shop'], e.id).toContain(e.trigger.event);
     });
   });
 
@@ -198,11 +211,14 @@ describe('装備と効果', () => {
     resetTitleCache();
   });
 
-  it('シナジーは進化版を装備していても元の二つ名として発動する', () => {
+  it('進化版を装備していると、同じ枠の元の二つ名を装備しているものとして扱う', () => {
     unlockAndEquip({ prefixes: ['A01'], suffixes: ['B08'], evolved: ['E20'], prefixId: 'A01', suffixId: 'E20' });
     const info = getEquippedTitleInfo(loadTitleState().equippedTitle);
     expect(info.suffix.id).toBe('E20');
-    expect(info.activeSet?.id).toBe('S02');
+    expect(info.fullName).toBe('神速の絶対者');
+    expect(isTitleEquipped('B08')).toBe(true);
+    expect(isTitleEquipped('A01')).toBe(true);
+    expect(isTitleEquipped('B01')).toBe(false);
   });
 
   it('進化二つ名は対応する枠にしか装備できない', () => {
@@ -213,7 +229,7 @@ describe('装備と効果', () => {
   it('コンボ補正: 条件・回数・上限を考慮する', () => {
     unlockAndEquip({ prefixes: ['A04'], suffixes: ['B01'], prefixId: 'A04', suffixId: 'B01' });
     const effects = getActiveTitleEffects();
-    // 紅蓮の(ショップ・出現率のみ) + 覇王(+1.5) + 真・紅蓮覇王(強化出現)
+    // 紅蓮の(ショップ・出現率のみ) + 覇王(+1.5)
     expect(effects.some(e => e.type === 'shop_attr_weight' && e.attribute === 'fire')).toBe(true);
     const withFire = computeTitleComboModifiers({ matchedColors: new Set(['fire']), tc: 5 }, effects);
     expect(withFire.addedMult).toBeCloseTo(1.5);
@@ -349,11 +365,372 @@ describe('装備と効果', () => {
     expect(evaluateTitleWhen(when, { prevSkillUsed: true, skillUsed: true })).toBe(false);
   });
 
-  it('独りの極地: 刹那の/隠者のセットが発動する', () => {
+  it('孤高の＋隠者: セット効果は無く、それぞれの効果だけが発動する', () => {
     unlockAndEquip({ prefixes: ['A16'], suffixes: ['B57'], prefixId: 'A16', suffixId: 'B57' });
-    const info = getEquippedTitleInfo(loadTitleState().equippedTitle);
-    expect(info.activeSet?.id).toBe('S44');
     const mods = computeTitleComboModifiers({ tokenCounts: { token: 0 }, tc: 3 }, getActiveTitleEffects());
-    expect(mods.finalMult).toBeCloseTo(5.4);
+    expect(mods.finalMult).toBeCloseTo(1.8);
+    expect(mods.addedMult).toBeCloseTo(2.0);
+  });
+});
+
+describe('二つ名の整理（グループ7）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    resetTitleCache();
+  });
+
+  const findAny = (id) => [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES].find(t => t.id === id);
+
+  it('ゲーム開始時の効果（start_stars / start_token_level）を持つ二つ名がない', () => {
+    [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES].forEach(t => {
+      (t.effects || []).forEach(e => {
+        expect(['start_stars', 'start_token_level'], t.id).not.toContain(e.type);
+      });
+    });
+  });
+
+  it('A10 黄金の: 所持スター10につき +1★（最大 +5★）', () => {
+    const effects = findAny('A10').effects;
+    expect(getTitleEffectTotal('cycle_clear_stars', { stars: 9 }, effects)).toBe(0);
+    expect(getTitleEffectTotal('cycle_clear_stars', { stars: 37 }, effects)).toBe(3);
+    expect(getTitleEffectTotal('cycle_clear_stars', { stars: 500 }, effects)).toBe(5);
+  });
+
+  it('A35 不屈の: 操作時間 +1秒、コンボ倍率 +0.3', () => {
+    const effects = findAny('A35').effects;
+    expect(applyTitleTimeLimit(5000, false, effects)).toBe(6000);
+    expect(computeTitleComboModifiers({}, effects).addedMult).toBeCloseTo(0.3);
+  });
+
+  it('B27 旅人: リロール価格 -1★（1★未満にはならない）', () => {
+    const effects = findAny('B27').effects;
+    expect(applyTitleRerollPrice(5, effects)).toBe(4);
+    expect(applyTitleRerollPrice(1, effects)).toBe(1);
+    expect(applyTitleRerollPrice(5, [])).toBe(5);
+    // 見切り屋（2★固定）は今までどおり
+    expect(applyTitleRerollPrice(5, findAny('B12').effects)).toBe(2);
+    expect(applyTitleRerollPrice(1, findAny('B12').effects)).toBe(1);
+  });
+
+  it('A20 先達の: 新しく手に入れたトークンの初期レベルが 2', () => {
+    expect(getTitleNewTokenLevel(findAny('A20').effects)).toBe(2);
+    expect(getTitleNewTokenLevel([])).toBe(1);
+    unlockAndEquip({ prefixes: ['A20'], prefixId: 'A20' });
+    expect(getTitleNewTokenLevel()).toBe(2);
+  });
+
+  it('エンチャント・虹ドロップを使う二つ名（A33・A45）は無効', () => {
+    ['A33', 'A45'].forEach(id => expect(isTitleDisabled(id), id).toBe(true));
+    ['A01', 'B01', 'E01', 'E27'].forEach(id => expect(isTitleDisabled(id), id).toBe(false));
+    // 図鑑・装備画面の一覧に出ない
+    expect(VISIBLE_PREFIX_TITLES.map(t => t.id)).not.toContain('A33');
+    expect(VISIBLE_PREFIX_TITLES.map(t => t.id)).not.toContain('A45');
+    expect(VISIBLE_PREFIX_TITLES).toHaveLength(PREFIX_TITLES.length - 2);
+    expect(VISIBLE_SUFFIX_TITLES).toHaveLength(SUFFIX_TITLES.length);
+    expect(VISIBLE_EVOLVED_TITLES).toHaveLength(EVOLVED_TITLES.length);
+    // エンチャントを条件・効果に使う二つ名は、すべて無効になっている
+    [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES].forEach(t => {
+      const usesEnchant = t.conditionType === 'enchant_max' || (t.effects || []).some(e => e.per === 'enchant');
+      const usesRainbow = t.conditionType === 'rainbow_erased' || (t.effects || []).some(e => e.per === 'rainbow_erased');
+      if (usesEnchant || usesRainbow) expect(isTitleDisabled(t), t.id).toBe(true);
+    });
+  });
+
+  it('無効な二つ名は条件を満たしても解放されない', () => {
+    const unlocked = recordTitleProgress({ max: { enchant_max: 99, rainbow_erased: 99 } });
+    expect(unlocked.map(t => t.id)).not.toContain('A45');
+    expect(unlocked.map(t => t.id)).not.toContain('A33');
+    expect(loadTitleState().unlockedTitles.prefixes).not.toContain('A45');
+  });
+
+  it('解放・装備済みのセーブデータを読み込むと、無効な二つ名の装備は外れ、解放数にも数えない', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      unlockedTitles: { prefixes: ['A45', 'A01'], suffixes: ['B28'], evolved: [] },
+      equippedTitle: { prefixId: 'A45', suffixId: 'B28' },
+      progress: {},
+    }));
+    resetTitleCache();
+    const state = loadTitleState();
+    expect(state.equippedTitle).toEqual({ prefixId: null, suffixId: 'B28' });
+    // 解放済みの記録は消さない（エンチャントを戻したときに復活できるように）
+    expect(state.unlockedTitles.prefixes).toContain('A45');
+    expect(countUnlockedTitles(state.unlockedTitles)).toBe(2);
+    const info = getEquippedTitleInfo({ prefixId: 'A45', suffixId: 'B28' });
+    expect(info.prefix).toBeNull();
+    expect(getActiveTitleEffects().some(e => e.per === 'enchant')).toBe(false);
+  });
+
+  it('「スキル」の表記をアクティブに揃えている', () => {
+    [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES].forEach(t => {
+      ['desc', 'conditionDesc', 'challengeDesc', 'category'].forEach(key => {
+        const text = t[key];
+        if (typeof text !== 'string') return;
+        // 「スキル」は「アクティブスキル」としてだけ使う
+        expect(text.replace(/アクティブスキル/g, ''), `${t.id}.${key}`).not.toMatch(/スキル/);
+      });
+    });
+  });
+
+  it('「コンボ加算(+N)」の表記を使っていない', () => {
+    [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES].forEach(t => {
+      ['desc', 'conditionDesc'].forEach(key => {
+        expect(t[key] || '', `${t.id}.${key}`).not.toMatch(/\+N/);
+      });
+    });
+  });
+});
+
+describe('二つ名の解放条件の見直し（グループ8）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    resetTitleCache();
+  });
+
+  const find = (id) => [...PREFIX_TITLES, ...SUFFIX_TITLES].find(t => t.id === id);
+
+  it('各二つ名の新しい解放条件', () => {
+    const expected = {
+      A01: ['clear_time_left_max', 3],
+      B40: ['clear_time_left_max', 6],
+      A22: ['single_color_board_max', 12],
+      A25: ['stars_spent_total', 300],
+      B34: ['stars_spent_total', 3000],
+      A31: ['bomb_erased', 15],
+      B36: ['bomb_erased', 50],
+      A38: ['low_combo_clear', 1],
+      A40: ['stars_earned_total', 1000],
+      A20: ['token_levelups', 50],
+      B22: ['skill_tokens_max', 4],
+    };
+    Object.entries(expected).forEach(([id, [type, value]]) => {
+      expect(find(id).conditionType, id).toBe(type);
+      expect(find(id).targetValue, id).toBe(value);
+    });
+    expect(find('A40').name).toBe('商才の');
+  });
+
+  it('神速の: 手番終了時の残り時間だけでは解放されず、サイクルクリアした手番の残り時間で解放される', () => {
+    expect(recordTitleProgress({ max: { time_left_max: 4 } }).map(t => t.id)).not.toContain('A01');
+    expect(recordTitleProgress({ max: { clear_time_left_max: 3 } }).map(t => t.id)).toContain('A01');
+  });
+
+  it('B22 スペシャリスト: アクティブトークン4個で発動する', () => {
+    const effects = find('B22').effects;
+    expect(getTitleEffectTotal('skill_charge_add', { tokenCounts: { skill: 4 } }, effects)).toBe(2);
+    expect(getTitleEffectTotal('skill_charge_add', { tokenCounts: { skill: 3 } }, effects)).toBe(0);
+  });
+
+  it('A40 は id のままなので、解放済みのセーブデータを引き継ぐ', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      unlockedTitles: { prefixes: ['A40'], suffixes: [], evolved: [] },
+      equippedTitle: { prefixId: 'A40', suffixId: null },
+    }));
+    resetTitleCache();
+    expect(getEquippedTitleInfo(loadTitleState().equippedTitle).prefix?.name).toBe('商才の');
+  });
+});
+
+describe('二つ名の効果の調整（グループ9）', () => {
+  const find = (id) => [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES].find(t => t.id === id);
+
+  it('A01 神速の: 残り操作時間1秒につきコンボ +1（最大 +5）', () => {
+    const effects = find('A01').effects;
+    expect(applyTitleTimeLimit(5000, false, effects)).toBe(6000);
+    expect(computeTitleComboModifiers({ timeLeftMs: 2500 }, effects).comboAdd).toBe(2);
+    expect(computeTitleComboModifiers({ timeLeftMs: 9000 }, effects).comboAdd).toBe(5);
+    // 進化先 E01 光速の は残り時間1秒につき倍率 +0.5 で、より強い
+    expect(computeTitleComboModifiers({ timeLeftMs: 3000 }, find('E01').effects).addedMult).toBeCloseTo(1.5);
+  });
+
+  it('A16・A19・A34・A47・A48 の値', () => {
+    expect(computeTitleComboModifiers({ tokenCounts: { token: 3 } }, find('A16').effects).addedMult).toBeCloseTo(2.0);
+    expect(computeTitleComboModifiers({ tokenCounts: { token: 4 } }, find('A16').effects).addedMult).toBe(0);
+    expect(find('A16').conditionType).toBe('low_token_cycle');
+    expect(getTitleEffectTotal('curse_sell_bonus', {}, find('A19').effects)).toBe(30);
+    expect(computeTitleComboModifiers({ isAllClear: true }, find('A34').effects).finalMult).toBeCloseTo(2.5);
+    expect(applyTitleTimeLimit(5000, false, find('A47').effects)).toBe(7000);
+    expect(computeTitleComboModifiers({}, find('A47').effects).addedMult).toBeCloseTo(0.3);
+    const mono = computeTitleComboModifiers({ matchedColors: ['fire'] }, find('A48').effects).addedMult;
+    expect(mono).toBeCloseTo(2.0);
+    // 進化先 E24 無垢の より弱いまま
+    expect(mono).toBeLessThan(computeTitleComboModifiers({ matchedColors: ['fire'] }, find('E24').effects).addedMult);
+  });
+
+  it('A31 爆炎の: ボム最大3個分', () => {
+    expect(computeTitleComboModifiers({ bombErased: 2 }, find('A31').effects).comboAdd).toBe(10);
+    expect(computeTitleComboModifiers({ bombErased: 10 }, find('A31').effects).comboAdd).toBe(15);
+  });
+});
+
+describe('特殊消しの二つ名（グループ10）', () => {
+  const find = (id) => PREFIX_TITLES.find(t => t.id === id);
+
+  it('A61 四連の: 4つ消し1組につきコンボ +1（最大 +5）', () => {
+    const a61 = find('A61');
+    expect(a61.conditionType).toBe('shape_len4');
+    expect(a61.targetValue).toBe(100);
+    expect(computeTitleComboModifiers({ shapes: ['len4', 'len4', 'cross'] }, a61.effects).comboAdd).toBe(2);
+    expect(computeTitleComboModifiers({ shapes: Array(8).fill('len4') }, a61.effects).comboAdd).toBe(5);
+  });
+
+  it('難しい消し方ほど加算が大きく、解放条件の回数が少ない', () => {
+    // 4つ消し ≤ 5個以上消し < L字 < 横一列 < 十字 < 正方形（1手で1回達成したときの加算）
+    const order = [
+      ['A61', { shapes: ['len4'] }],
+      ['A30', { len5Count: 1 }],
+      ['A28', { shapes: ['l_shape'] }],
+      ['A29', { shapes: ['row'] }],
+      ['A26', { shapes: ['cross'] }],
+      ['A27', { shapes: ['square'] }],
+    ];
+    const adds = order.map(([id, ctx]) => computeTitleComboModifiers(ctx, find(id).effects).comboAdd);
+    expect(adds).toEqual([1, 2, 5, 7, 9, 12]);
+    const targets = order.map(([id]) => find(id).targetValue);
+    expect(targets).toEqual([100, 100, 30, 20, 20, 15]);
+    // 5個以上消しの最大
+    expect(computeTitleComboModifiers({ len5Count: 9 }, find('A30').effects).comboAdd).toBe(10);
+  });
+});
+
+describe('セットシナジー廃止・進化二つ名の追加（グループ11）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    resetTitleCache();
+  });
+
+  const findEvo = (id) => EVOLVED_TITLES.find(t => t.id === id);
+  const save = (unlocked, equipped = {}) => saveTitleState({
+    unlockedTitles: { prefixes: [], suffixes: [], evolved: [], ...unlocked },
+    equippedTitle: { prefixId: null, suffixId: null, ...equipped },
+    progress: {},
+  });
+  const unlockedEvolved = () => loadTitleState().unlockedTitles.evolved;
+
+  it('b:「A」と「B」を装備して〜（E29 電撃の）。片方だけでは解放されない', () => {
+    save({ prefixes: ['A01'], suffixes: ['B08'] }, { prefixId: 'A01' });
+    recordTitleTrigger('clear', { timeLeftMs: 3500 });
+    expect(unlockedEvolved()).not.toContain('E29');
+    save({ prefixes: ['A01'], suffixes: ['B08'] }, { prefixId: 'A01', suffixId: 'B08' });
+    recordTitleTrigger('clear', { timeLeftMs: 2000 });
+    expect(unlockedEvolved()).not.toContain('E29');
+    recordTitleTrigger('clear', { timeLeftMs: 3500 });
+    expect(unlockedEvolved()).toContain('E29');
+  });
+
+  it('b: 元の二つ名の進化版を装備していても条件を満たす（E01 光速の＋無双 → E29）', () => {
+    save({ prefixes: ['A01'], suffixes: ['B08'], evolved: ['E01'] }, { prefixId: 'E01', suffixId: 'B08' });
+    recordTitleTrigger('clear', { timeLeftMs: 3500 });
+    expect(unlockedEvolved()).toContain('E29');
+  });
+
+  it('c:「A」と「B」を解放した状態で〜（E34 パンドラの解放者）。装備は不要', () => {
+    save({ prefixes: ['A13'] });
+    recordTitleTrigger('turn', { tokenCounts: { curse: 3 }, skillsThisTurn: 3 });
+    expect(unlockedEvolved()).not.toContain('E34');
+    save({ prefixes: ['A13'], suffixes: ['B10'] });
+    recordTitleTrigger('turn', { tokenCounts: { curse: 3 }, skillsThisTurn: 3 });
+    expect(unlockedEvolved()).toContain('E34');
+  });
+
+  it('c: requiredMin（E47 万象の詠唱: 詠唱6種のうち3つ＋魔導士）', () => {
+    save({ prefixes: ['A17', 'A18'], suffixes: ['B03'] });
+    recordTitleTrigger('turn', { skillsThisTurn: 3 });
+    expect(unlockedEvolved()).not.toContain('E47');
+    save({ prefixes: ['A17', 'A18', 'A54'] });
+    recordTitleTrigger('turn', { skillsThisTurn: 3 });
+    expect(unlockedEvolved()).not.toContain('E47');
+    save({ prefixes: ['A17', 'A18', 'A54'], suffixes: ['B03'] });
+    recordTitleTrigger('turn', { skillsThisTurn: 3 });
+    expect(unlockedEvolved()).toContain('E47');
+  });
+
+  it('c: A枠どうし4つ（E50 幾何の）と、特殊消し3種類の判定', () => {
+    save({ prefixes: ['A26', 'A27', 'A28', 'A29'] });
+    recordTitleTrigger('turn', { shapes: ['cross', 'cross', 'len4', 'row'] });
+    expect(unlockedEvolved()).not.toContain('E50');
+    recordTitleTrigger('turn', { shapes: ['cross', 'square', 'row'] });
+    expect(unlockedEvolved()).toContain('E50');
+    const mods = computeTitleComboModifiers({ shapes: ['cross', 'square', 'row', 'len4', 'l_shape', 'cross', 'row', 'square'] }, findEvo('E50').effects);
+    expect(mods.addedMult).toBeCloseTo(3.0); // 4つ消しは数えず、最大 +3.0
+  });
+
+  it("'$prefix': E27 真・覇王 は装備中の属性A枠の色で解放判定・効果が決まる", () => {
+    save({ prefixes: ['A05'], suffixes: ['B01'] }, { prefixId: 'A05', suffixId: 'B01' });
+    expect(getEquippedPrefixAttribute()).toBe('water');
+    recordTitleTrigger('turn', { erasedColorCounts: { fire: 30 } });
+    expect(unlockedEvolved()).not.toContain('E27');
+    recordTitleTrigger('turn', { erasedColorCounts: { water: 20 } });
+    expect(unlockedEvolved()).toContain('E27');
+
+    save({ prefixes: ['A05'], suffixes: ['B01'], evolved: ['E27'] }, { prefixId: 'A05', suffixId: 'E27' });
+    const enhance = getActiveTitleEffects().filter(e => e.type === 'enhance_color');
+    expect(enhance).toHaveLength(1);
+    expect(enhance[0].color).toBe('water');
+  });
+
+  it("'$prefix': 属性のA枠を装備していなければ、その効果は出ない（進化版の A枠なら元の属性）", () => {
+    save({ prefixes: ['A01'], suffixes: ['B01'], evolved: ['E27'] }, { prefixId: 'A01', suffixId: 'E27' });
+    expect(getActiveTitleEffects().some(e => e.type === 'enhance_color')).toBe(false);
+    expect(getActiveTitleEffects().some(e => e.type === 'add_mult' && e.value === 2.0)).toBe(true);
+    save({ prefixes: ['A04'], suffixes: ['B01'], evolved: ['E04', 'E27'] }, { prefixId: 'E04', suffixId: 'E27' });
+    expect(getEquippedPrefixAttribute()).toBe('fire');
+    expect(getActiveTitleEffects().find(e => e.type === 'enhance_color')?.color).toBe('fire');
+  });
+
+  it("E28 千変の即応陣: 1手目にA枠の属性を消した手番だけ倍率 +2.5", () => {
+    save({ prefixes: ['A07'], suffixes: ['B16'], evolved: ['E28'] }, { prefixId: 'A07', suffixId: 'E28' });
+    const effects = getActiveTitleEffects();
+    expect(computeTitleComboModifiers({ turn: 1, matchedColors: ['light'] }, effects).addedMult).toBeCloseTo(2.5);
+    expect(computeTitleComboModifiers({ turn: 1, matchedColors: ['fire'] }, effects).addedMult).toBe(0);
+    expect(computeTitleComboModifiers({ turn: 2, matchedColors: ['light'] }, effects).addedMult).toBe(0);
+  });
+
+  it("shop: E30 ミダスの手 は1回のショップでのリロール数で解放", () => {
+    save({ prefixes: ['A10'], suffixes: ['B12'] }, { prefixId: 'A10', suffixId: 'B12' });
+    recordTitleTrigger('shop', { shopRerolls: 4 });
+    expect(unlockedEvolved()).not.toContain('E30');
+    recordTitleTrigger('shop', { shopRerolls: 5 });
+    expect(unlockedEvolved()).toContain('E30');
+  });
+
+  it('新しい条件キー', () => {
+    expect(evaluateTitleWhen({ time_left_le: 1000 }, { timeLeftMs: 800 })).toBe(true);
+    expect(evaluateTitleWhen({ time_left_le: 1000 }, { timeLeftMs: 1200 })).toBe(false);
+    expect(evaluateTitleWhen({ stars_le: 0, stars_gained_ge: 3 }, { stars: 0, starsGained: 3 })).toBe(true);
+    expect(evaluateTitleWhen({ shape_count_ge: { shape: 'cross', n: 2 } }, { shapes: ['cross', 'row'] })).toBe(false);
+    expect(evaluateTitleWhen({ shape_count_ge: { shape: 'cross', n: 2 } }, { shapes: ['cross', 'cross'] })).toBe(true);
+    expect(evaluateTitleWhen({ lv3_ge: 5 }, { tokenCounts: { lv3: 5 } })).toBe(true);
+    expect(evaluateTitleWhen({ no_skyfall_turn: true }, { noSkyfall: true })).toBe(true);
+    expect(evaluateTitleWhen({ no_skyfall_turn: true }, {})).toBe(false);
+    expect(evaluateTitleWhen({ shop_curses_sold_ge: 2 }, { shopCursesSold: 2 })).toBe(true);
+    expect(evaluateTitleWhen({ shop_sales_bought_ge: 2 }, { shopSalesBought: 1 })).toBe(false);
+  });
+
+  it('元の二つ名の表示（未解放は伏せる）と解放状態', () => {
+    expect(describeRequiredTitles(findEvo('E29'))).toBe('神速の＋無双');
+    expect(describeRequiredTitles(findEvo('E29'), { prefixes: ['A01'], suffixes: [] })).toBe('神速の＋？？？');
+    expect(describeRequiredTitles(findEvo('E47'))).toMatch(/のうち3つ＋魔導士$/);
+    expect(describeRequiredTitles(findEvo('E27'))).toMatch(/^覇王＋（紅蓮の／.*）のどれか$/);
+    expect(isEvolvedBaseUnlocked(findEvo('E27'), { prefixes: ['A06'], suffixes: ['B01'] })).toBe(true);
+    expect(isEvolvedBaseUnlocked(findEvo('E27'), { prefixes: ['A01'], suffixes: ['B01'] })).toBe(false);
+  });
+
+  it('旧セーブデータ（進化 E01・E20 を解放・装備）をそのまま読み込める', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      unlockedTitles: { prefixes: ['A01'], suffixes: ['B08'], evolved: ['E01', 'E20'] },
+      equippedTitle: { prefixId: 'E01', suffixId: 'E20' },
+      progress: { evo_E01: 1, evo_E20: 1 },
+    }));
+    resetTitleCache();
+    const state = loadTitleState();
+    expect(state.equippedTitle).toEqual({ prefixId: 'E01', suffixId: 'E20' });
+    expect(getEquippedTitleInfo(state.equippedTitle).fullName).toBe('光速の絶対者');
+  });
+
+  it('旧セットの効果を足した既存の進化（E04 獄炎の・E09 蒼溟の）', () => {
+    const e04 = findEvo('E04').effects;
+    expect(computeTitleComboModifiers({ matchedColors: ['fire'], enhancedErased: 30 }, e04).addedMult).toBeCloseTo(7.0);
+    const e09 = findEvo('E09').effects;
+    expect(computeTitleComboModifiers({ matchedColors: ['water'], timeLeftMs: 4000 }, e09).addedMult).toBeCloseTo(6.0);
   });
 });

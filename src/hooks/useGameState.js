@@ -12,7 +12,7 @@ import TokenEncyclopediaScreen from "../TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, ENCHANTMENTS } from '../constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost } from '../constants/gameConstants.js';
-import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots } from '../utils/tokenUtils';
+import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, pickTokensForFreeSlots, applyNewTokenLevel } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
@@ -498,6 +498,7 @@ export const useGameState = () => {
     getTokenSlotExpandPrice,
     freeRerolls,
     setFreeRerolls,
+    resetShopVisitStats,
   } = shopHook;
 
   // Refを最新の値に同期
@@ -2088,13 +2089,13 @@ export const useGameState = () => {
             if (candidatePool.length > 0) {
               const randomBase = candidatePool[Math.floor(Math.random() * candidatePool.length)];
               const isSkill = randomBase.type === 'skill';
-              const newToken = {
+              const newToken = applyNewTokenLevel({
                 ...randomBase,
                 instanceId: Date.now() + Math.random(),
                 level: 1,
                 charge: isSkill ? (randomBase.cost || 0) : 0,
                 startValue: randomBase.condition ? getStatByCondition(randomBase.condition) : 0
-              };
+              }, { currentRunStats, tokens, activeBuffs });
               setTokens(prev => {
                 const nextTokens = [...prev];
                 let emptySlotIdx = nextTokens.findIndex(tok => tok === null);
@@ -3369,7 +3370,11 @@ export const useGameState = () => {
         },
       });
       if (tc > 0 && !hasUsedActiveSkillThisTurn) recordTitleProgress({ add: { no_skill_turns: 1 } });
-      const triggerCtx = { ...titleCtx, effectiveCombo, baseCombo: turnBaseCombo };
+      const triggerCtx = {
+        ...titleCtx, effectiveCombo, baseCombo: turnBaseCombo,
+        starsGained: totalStarsEarned, // 逆転の演出家: この手番にコンボで獲得した★
+        noSkyfall: !hasSkyfallCombo,   // 静寂の疾走者: 落ちコンが起きなかった手番
+      };
       recordTitleTrigger('turn', triggerCtx);
 
       // サイクルクリア（目標達成）時の記録
@@ -3396,6 +3401,10 @@ export const useGameState = () => {
             hermit_cycle: tokenCount <= 1 ? cycleNum : 0,
             comeback_clear: evaluateTitleWhen({ behind: true }, titleCtx) ? 1 : 0,
             no_buy_streak: noBuyStreak,
+            // 神速の・時の番人: サイクルクリアした手番の残り操作時間（秒）
+            clear_time_left_max: (extraStats.moveSteps || 0) > 0 ? Math.floor(remainingTimeMs / 1000) : 0,
+            // 一撃の: 消したコンボが6以下の手番でサイクルクリア
+            low_combo_clear: tc >= 1 && tc <= 6 ? 1 : 0,
           },
         });
         recordTitleTrigger('clear', { ...triggerCtx, stars: starsAtClear });
@@ -3591,13 +3600,13 @@ export const useGameState = () => {
         if (pool.length === 0) return null;
         const randomBase = pool[Math.floor(Math.random() * pool.length)];
         const isSkill = randomBase.type === 'skill';
-        const newToken = {
+        const newToken = applyNewTokenLevel({
           ...randomBase,
           instanceId: Date.now() + Math.random(),
           level: 1,
           charge: isSkill ? (randomBase.cost || 0) : 0,
           startValue: randomBase.condition ? getStatByCondition(randomBase.condition) : 0
-        };
+        }, { currentRunStats, tokens: list, activeBuffs });
         const emptySlotIdx = list.findIndex(tok => tok === null);
         if (emptySlotIdx !== -1) {
           list[emptySlotIdx] = newToken;
@@ -5077,6 +5086,7 @@ export const useGameState = () => {
     prevShowShopRef.current = showShop;
     if (!opened || !isLoaded || isPracticeMode) return;
     recordTitleProgress({ add: { shop_visits: 1 } });
+    resetShopVisitStats();
     const titleFreeRerolls = Math.floor(getTitleEffectTotal('free_reroll', {}, titleEffects));
     if (titleFreeRerolls > 0) {
       setFreeRerolls(f => Math.max(f, titleFreeRerolls));
@@ -5261,6 +5271,13 @@ export const useGameState = () => {
         notify(`二つ名の利子: ★+${titleInterest} (${Math.round(titleInterestRate * 100)}%)`);
       }
     }
+    // 二つ名「黄金の」: 所持スターに応じたクリアボーナス
+    const titleClearStars = Math.floor(getTitleEffectTotal('cycle_clear_stars', { stars }, titleEffects));
+    if (titleClearStars > 0) {
+      setStars(s => s + titleClearStars);
+      setCurrentRunStats(prev => ({ ...prev, totalStarsEarned: (prev.totalStarsEarned || 0) + titleClearStars }));
+      notify(`二つ名のクリアボーナス: ★+${titleClearStars}`);
+    }
     const chargeEffects = getTitleEffects('skill_charge_cycle_start', {}, titleEffects);
     if (chargeEffects.length > 0) {
       setTokens(prev => prev.map(t => {
@@ -5279,11 +5296,12 @@ export const useGameState = () => {
     const inheritQueue = currentRunStats.inheritQueue || [];
     if (inheritQueue.length > 0) {
       const maxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
-      const freeSlots = Math.max(0, maxSlots - tokens.filter(t => t !== null).length);
-      const returning = inheritQueue
-        .slice(0, freeSlots)
-        .map(id => ALL_TOKEN_BASES.find(b => b.id === id))
-        .filter(Boolean)
+      // 枠はアクティブとパッシブで別々なので、戻すトークンの種類ごとに空き枠を数える
+      const { accepted } = pickTokensForFreeSlots(
+        inheritQueue.map(id => ALL_TOKEN_BASES.find(b => b.id === id)).filter(Boolean),
+        tokens, maxSlots
+      );
+      const returning = accepted
         .map(base => ({
           ...base,
           instanceId: Date.now() + Math.random(),
@@ -5453,8 +5471,9 @@ export const useGameState = () => {
       if (star1ActivePool.length === 0) star1ActivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type === 'skill' && t.type !== 'curse');
       const activeToken = star1ActivePool[Math.floor(Math.random() * star1ActivePool.length)];
 
-      const pToken = { ...passiveToken, instanceId: Date.now() + Math.random(), level: 1 };
-      const aToken = { ...activeToken, instanceId: Date.now() + Math.random() + 1, level: 1, charge: activeToken.cost || 0 };
+      // 二つ名「先達の」: 新しく手に入れたトークンの初期レベル
+      const pToken = applyNewTokenLevel({ ...passiveToken, instanceId: Date.now() + Math.random(), level: 1 }, { currentRunStats: initialCurrentRunStats });
+      const aToken = applyNewTokenLevel({ ...activeToken, instanceId: Date.now() + Math.random() + 1, level: 1, charge: activeToken.cost || 0 }, { currentRunStats: initialCurrentRunStats });
       setTokens([pToken, aToken]);
 
       notify("「安全」スタイルで開始しました (+3s, 20★)");
@@ -5469,8 +5488,9 @@ export const useGameState = () => {
       if (star1ActivePool.length === 0) star1ActivePool = ALL_TOKEN_BASES.filter(t => t.rarity === 1 && t.type === 'skill' && t.type !== 'curse');
       const activeToken = star1ActivePool[Math.floor(Math.random() * star1ActivePool.length)];
 
-      const pToken = { ...passiveToken, instanceId: Date.now() + Math.random(), level: 1 };
-      const aToken = { ...activeToken, instanceId: Date.now() + Math.random() + 1, level: 1, charge: activeToken.cost || 0 };
+      // 二つ名「先達の」: 新しく手に入れたトークンの初期レベル
+      const pToken = applyNewTokenLevel({ ...passiveToken, instanceId: Date.now() + Math.random(), level: 1 }, { currentRunStats: initialCurrentRunStats });
+      const aToken = applyNewTokenLevel({ ...activeToken, instanceId: Date.now() + Math.random() + 1, level: 1, charge: activeToken.cost || 0 }, { currentRunStats: initialCurrentRunStats });
       setTokens([pToken, aToken]);
       setStars(10);
       notify("「堅実」スタイルで開始しました (10★)");
@@ -5505,24 +5525,8 @@ export const useGameState = () => {
       addTokenToast(initToken, "の呪いを受けて開始...");
     }
 
-    // --- 二つ名: ゲーム開始時の効果 ---
+    // 二つ名にはゲーム開始時の効果を持たせない（初期スター等は廃止。初期トークンのレベルは applyNewTokenLevel で適用済み）
     recordTitleProgress({ add: { games_played: 1 } });
-    const titleStartStars = getTitleEffectTotal('start_stars', {}, titleEffects);
-    if (titleStartStars > 0) {
-      setStars(s => s + titleStartStars);
-      notify(`二つ名の効果: 初期スター +${titleStartStars}`);
-    }
-    const titleStartLevel = getTitleEffects('start_token_level', {}, titleEffects).reduce((m, e) => Math.max(m, e.value || 1), 1);
-    if (titleStartLevel > 1) {
-      setTokens(prev => prev.map(t => {
-        if (!t || t.isCurse || t.type === 'curse' || t.noLevelUp || t.effect === 'copy_left') return t;
-        const nextLevel = Math.min(3, Math.max(t.level || 1, titleStartLevel));
-        if (nextLevel === (t.level || 1)) return t;
-        const leveled = { ...t, level: nextLevel };
-        leveled.desc = getTokenDescription(leveled, nextLevel, initialCurrentRunStats, prev, []);
-        return leveled;
-      }));
-    }
 
     if (engineRef.current) {
       engineRef.current.init(null);
@@ -6212,13 +6216,14 @@ export const useGameState = () => {
         }
 
         const isSkill = selectedBase.type === 'skill' || selectedBase.isCurse;
-        const newToken = {
+        // 二つ名「先達の」: 新しく手に入れたトークンの初期レベル（呪いは対象外）
+        const newToken = applyNewTokenLevel({
           ...selectedBase,
           instanceId: Date.now() + Math.random(),
           level: 1,
           charge: isSkill ? (selectedBase.cost || 0) : 0,
           startValue: selectedBase.condition ? getStatByCondition(selectedBase.condition) : 0
-        };
+        }, { currentRunStats, tokens, activeBuffs });
 
         setTokens(prev => [...prev.filter(t => t !== null), newToken]);
         addTokenToast(newToken, `を生成した！ (${token.name})`);

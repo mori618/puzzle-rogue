@@ -20,10 +20,10 @@ export const EquippedTitleChip = ({ equippedTitle, onClick, className = '' }) =>
       aria-label="装備中の二つ名を表示"
       className={`flex items-center gap-0.5 max-w-[170px] text-left active:scale-95 transition-transform ${className}`}
     >
-      <span className={`material-icons-round text-[13px] shrink-0 ${info.activeSet ? 'text-yellow-300' : 'text-amber-400'}`}>
+      <span className={`material-icons-round text-[13px] shrink-0 text-amber-400`}>
         military_tech
       </span>
-      <span className={`text-[11px] font-bold tracking-wide truncate ${info.activeSet ? 'text-yellow-200' : 'text-amber-200'}`}>
+      <span className={`text-[11px] font-bold tracking-wide truncate text-amber-200`}>
         {label}
       </span>
       <span className="material-icons-round text-[12px] text-slate-500 shrink-0">chevron_right</span>
@@ -98,27 +98,11 @@ const TitleInfoPanel = ({ equippedTitle, onClose, onChangeTitle }) => {
           </button>
         </div>
 
-        <div className={`p-3 rounded-xl border text-center ${
-          info.activeSet
-            ? 'bg-gradient-to-r from-amber-950/60 via-purple-950/50 to-slate-900/80 border-amber-500/50'
-            : 'bg-slate-900/80 border-white/10'
-        }`}>
-          <div className={`text-lg font-black tracking-wide ${info.activeSet ? 'text-amber-300' : 'text-indigo-200'}`}>
+        <div className="p-3 rounded-xl border text-center bg-slate-900/80 border-white/10">
+          <div className="text-lg font-black tracking-wide text-indigo-200">
             {info.fullName !== '未設定' ? info.fullName : '二つ名未設定'}
           </div>
-          {info.activeSet && (
-            <span className="inline-block mt-1 text-[10px] bg-amber-500/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full font-bold">
-              専用シナジー発動中
-            </span>
-          )}
         </div>
-
-        {info.activeSet && (
-          <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/30">
-            <div className="text-[10px] font-bold text-amber-400 tracking-widest mb-1">シナジー効果</div>
-            <div className="text-xs text-amber-100">{info.activeSet.desc}</div>
-          </div>
-        )}
 
         <EffectRow slotLabel="A枠（接頭辞）" title={info.prefix} emptyText="A枠未設定" onClick={() => onChangeTitle('prefix')} />
         <EffectRow slotLabel="B枠（接尾辞）" title={info.suffix} emptyText="B枠未設定" onClick={() => onChangeTitle('suffix')} />

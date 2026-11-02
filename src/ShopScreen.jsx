@@ -82,9 +82,9 @@ const NormalItemCard = ({ item, stars, onBuy, isBought }) => {
                         </span>
                     </div>
                 </div>
-                {/* レベルタグ（中央下に配置、初期レベルは1） */}
+                {/* レベルタグ（中央下に配置。初期レベルは1、二つ名「先達の」装備中は2） */}
                 <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 token-level-tag-center">
-                    Lv.1
+                    Lv.{item.level || 1}
                 </div>
             </div>
             <div className="ml-3 flex-1 min-w-0 mr-2">
