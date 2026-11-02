@@ -1,7 +1,6 @@
 import {
   PREFIX_TITLES,
   SUFFIX_TITLES,
-  TITLE_SET_BONUSES,
   EVOLVED_TITLES
 } from '../constants/titles.js';
 
@@ -12,30 +11,30 @@ export const ALL_DROP_COLORS = ['fire', 'water', 'wood', 'light', 'dark', 'heart
 const findPrefix = (id) => PREFIX_TITLES.find(p => p.id === id) || null;
 const findSuffix = (id) => SUFFIX_TITLES.find(s => s.id === id) || null;
 const findEvolved = (id) => EVOLVED_TITLES.find(e => e.id === id) || null;
-const findAnyTitle = (id) => findPrefix(id) || findSuffix(id) || findEvolved(id)
-  || TITLE_SET_BONUSES.find(s => s.id === id) || null;
+const findAnyTitle = (id) => findPrefix(id) || findSuffix(id) || findEvolved(id) || null;
+
+/** 進化二つ名の元の二つ名（requiredTitleIds）。要素が配列なら「どれか1つ」のグループ */
+const getRequiredEntries = (title) => (Array.isArray(title?.requiredTitleIds) ? title.requiredTitleIds : []);
 
 /**
  * 今のゲームでは使えない二つ名か（disabled: true）。
- * セットは、セット自身か構成パーツ（A枠・B枠）のどちらかが無効なら無効。
- * 進化二つ名は、元の二つ名が無効なら無効。
+ * 進化二つ名は、元の二つ名（グループでないもの）のどれかが無効なら無効。
  * 無効な二つ名は解放・装備・図鑑表示・効果の対象外（解放済みのセーブデータは消さずに残す）。
  */
 export const isTitleDisabled = (titleOrId) => {
   const title = typeof titleOrId === 'string' ? findAnyTitle(titleOrId) : titleOrId;
   if (!title) return false;
   if (title.disabled) return true;
-  if (title.prefixId && isTitleDisabled(title.prefixId)) return true;
-  if (title.suffixId && isTitleDisabled(title.suffixId)) return true;
-  if (title.requiredTitleId && isTitleDisabled(title.requiredTitleId)) return true;
-  return false;
+  return getRequiredEntries(title).some(entry => typeof entry === 'string' && isTitleDisabled(entry));
 };
 
 /** 図鑑・装備画面に出す二つ名の一覧（無効な二つ名を除く） */
 export const VISIBLE_PREFIX_TITLES = PREFIX_TITLES.filter(t => !isTitleDisabled(t));
 export const VISIBLE_SUFFIX_TITLES = SUFFIX_TITLES.filter(t => !isTitleDisabled(t));
-export const VISIBLE_TITLE_SET_BONUSES = TITLE_SET_BONUSES.filter(t => !isTitleDisabled(t));
 export const VISIBLE_EVOLVED_TITLES = EVOLVED_TITLES.filter(t => !isTitleDisabled(t));
+
+/** 二つ名の表示名（id から） */
+export const getTitleName = (id) => findAnyTitle(id)?.name || '';
 
 const createDefaultState = () => ({
   unlockedTitles: { prefixes: [], suffixes: [], evolved: [] },
@@ -182,27 +181,25 @@ const resolveSlotTitle = (id, slot) => {
   return slot === 'prefix' ? findPrefix(id) : findSuffix(id);
 };
 
-/** シナジー判定用の元二つ名ID（進化版なら元のIDを返す） */
-const getBaseTitleId = (title) => (title ? (title.requiredTitleId || title.id) : null);
+/**
+ * 進化二つ名が、自分の枠で何の代わりになるか（同じ枠の元の二つ名の ID。グループ・別の枠のものは含まない）。
+ * 例: E29 電撃の（A01＋B08、A枠）→ ['A01']
+ */
+const getSlotBaseIds = (title) => {
+  if (!title?.slot) return [];
+  const prefix = title.slot === 'prefix' ? 'A' : 'B';
+  return getRequiredEntries(title).filter(e => typeof e === 'string' && e.startsWith(prefix));
+};
 
 /**
- * 装備中の二つ名とシナジー情報を取得
+ * 装備中の二つ名を取得
  */
 export const getEquippedTitleInfo = (equippedTitle = {}) => {
   const prefix = resolveSlotTitle(equippedTitle.prefixId, 'prefix');
   const suffix = resolveSlotTitle(equippedTitle.suffixId, 'suffix');
 
-  let activeSet = null;
-  if (prefix && suffix) {
-    const basePrefixId = getBaseTitleId(prefix);
-    const baseSuffixId = getBaseTitleId(suffix);
-    activeSet = VISIBLE_TITLE_SET_BONUSES.find(s => s.prefixId === basePrefixId && s.suffixId === baseSuffixId) || null;
-  }
-
   let fullName = '未設定';
-  if (activeSet) {
-    fullName = activeSet.titleName;
-  } else if (prefix && suffix) {
+  if (prefix && suffix) {
     fullName = joinTitleName(prefix.name, suffix.name);
   } else if (prefix) {
     fullName = joinTitleName(prefix.name, '――');
@@ -213,29 +210,71 @@ export const getEquippedTitleInfo = (equippedTitle = {}) => {
   return {
     prefix,
     suffix,
-    activeSet,
     fullName,
   };
 };
 
-/** 指定IDの二つ名（またはその進化版）を装備しているか */
+/** 指定IDの二つ名を装備しているか（同じ枠の元の二つ名として、その進化版を装備している場合も含む） */
 export const isTitleEquipped = (titleId, equippedTitle = loadTitleState().equippedTitle) => {
   const info = getEquippedTitleInfo(equippedTitle);
-  return [info.prefix, info.suffix].some(t => t && (t.id === titleId || getBaseTitleId(t) === titleId));
+  return [info.prefix, info.suffix].some(t => t && (t.id === titleId || getSlotBaseIds(t).includes(titleId)));
 };
 
 /**
- * 現在発動中の全効果を取得（装備中のA枠・B枠・シナジー）。各効果には source（二つ名名）が付与される
+ * 装備中の A枠の属性（属性のA枠 A04〜A09 か、その進化）。無ければ null
+ */
+export const getEquippedPrefixAttribute = (equippedTitle = loadTitleState().equippedTitle) => {
+  const prefix = getEquippedTitleInfo(equippedTitle).prefix;
+  if (!prefix) return null;
+  if (prefix.attribute) return prefix.attribute;
+  for (const baseId of getSlotBaseIds(prefix)) {
+    const base = findPrefix(baseId);
+    if (base?.attribute) return base.attribute;
+  }
+  return null;
+};
+
+const PREFIX_ATTR_TOKEN = '$prefix';
+
+/**
+ * when・効果の中の '$prefix' を装備中の A枠の属性に置き換える。属性が無ければ null（その効果・条件は不成立）
+ */
+const resolvePrefixAttr = (obj, attr) => {
+  if (obj == null || typeof obj !== 'object') return obj === PREFIX_ATTR_TOKEN ? (attr || null) : obj;
+  let missing = false;
+  const walk = (o) => {
+    if (Array.isArray(o)) return o.map(walk);
+    if (o && typeof o === 'object') {
+      const out = {};
+      Object.entries(o).forEach(([k, v]) => { out[k] = walk(v); });
+      return out;
+    }
+    if (o === PREFIX_ATTR_TOKEN) {
+      if (!attr) missing = true;
+      return attr;
+    }
+    return o;
+  };
+  const resolved = walk(obj);
+  return missing ? null : resolved;
+};
+
+/**
+ * 現在発動中の全効果を取得（装備中のA枠・B枠）。各効果には source（二つ名名）が付与される
  */
 export const getActiveTitleEffects = () => {
   if (cachedEffects) return cachedEffects;
   const state = loadTitleState();
   const info = getEquippedTitleInfo(state.equippedTitle);
+  const prefixAttr = getEquippedPrefixAttribute(state.equippedTitle);
   const effects = [];
-  [info.prefix, info.suffix, info.activeSet].forEach(title => {
+  [info.prefix, info.suffix].forEach(title => {
     if (!title || !Array.isArray(title.effects)) return;
-    const source = title.titleName || title.name;
-    title.effects.forEach(effect => effects.push({ ...effect, source }));
+    const source = title.name;
+    title.effects.forEach(effect => {
+      const resolved = resolvePrefixAttr(effect, prefixAttr);
+      if (resolved) effects.push({ ...resolved, source });
+    });
   });
   cachedEffects = effects;
   return effects;
@@ -246,6 +285,7 @@ export const getActiveTitleEffects = () => {
 // ---------------------------------------------------------------------------
 
 const SHAPE_KEYS = ['cross', 'square', 'l_shape', 'row', 'len4'];
+const SPECIAL_SHAPES_NO_LEN4 = ['cross', 'square', 'l_shape', 'row'];
 
 /**
  * トークン構成から二つ名判定用のカウントを算出
@@ -315,6 +355,15 @@ export const evaluateTitleWhen = (when, ctx = {}) => {
       case 'bomb_erased_ge': return (ctx.bombErased ?? 0) >= val;
       case 'enhanced_erased_ge': return (ctx.enhancedErased ?? 0) >= val;
       case 'star_erased_ge': return (ctx.starErased ?? 0) >= val;
+      case 'time_left_le': return ctx.timeLeftMs != null && ctx.timeLeftMs <= val;
+      case 'stars_gained_ge': return (ctx.starsGained ?? 0) >= val;
+      case 'shape_count_ge': return (ctx.shapes || []).filter(s => s === val.shape).length >= val.n;
+      case 'shape_kinds_ge': return new Set((ctx.shapes || []).filter(s => SPECIAL_SHAPES_NO_LEN4.includes(s))).size >= val;
+      case 'lv3_ge': return (counts.lv3 ?? 0) >= val;
+      case 'no_skyfall_turn': return (ctx.noSkyfall === true) === val;
+      case 'shop_rerolls_ge': return (ctx.shopRerolls ?? 0) >= val;
+      case 'shop_curses_sold_ge': return (ctx.shopCursesSold ?? 0) >= val;
+      case 'shop_sales_bought_ge': return (ctx.shopSalesBought ?? 0) >= val;
       default: return false;
     }
   });
@@ -335,6 +384,7 @@ export const getTitlePerCount = (per, ctx = {}, effect = {}) => {
     case 'enchant': return counts.enchant || 0;
     case 'time_left_sec': return Math.floor((ctx.timeLeftMs || 0) / 1000);
     case 'special_shape': return (ctx.shapes || []).filter(s => SHAPE_KEYS.includes(s)).length;
+    case 'special_shape_nolen4': return (ctx.shapes || []).filter(s => SPECIAL_SHAPES_NO_LEN4.includes(s)).length;
     case 'len4': return (ctx.shapes || []).filter(s => s === 'len4').length;
     case 'len5': return ctx.len5Count || 0;
     case 'bomb_erased': return ctx.bombErased || 0;
@@ -558,11 +608,47 @@ export const getTitleProgressValue = (title, progress = loadTitleState().progres
   return progress?.[title.conditionType] || 0;
 };
 
-const isRequirementMet = (title, unlocked) => {
-  if (!title.requiredTitleId) return true;
-  return title.requiredTitleId.startsWith('A')
-    ? unlocked.prefixes.includes(title.requiredTitleId)
-    : unlocked.suffixes.includes(title.requiredTitleId);
+const isIdUnlocked = (id, unlocked) => unlocked.prefixes.includes(id) || unlocked.suffixes.includes(id) || unlocked.evolved.includes(id);
+
+/**
+ * 元の二つ名の条件を満たしているか。
+ * requiredMin 無し: すべて（グループはどれか1つ）が check を満たす。
+ * requiredMin あり: グループを展開した ID のうち、check を満たすものが requiredMin 個以上
+ *   （E47: 詠唱6種のうち3つ＋魔導士 → グループ外の ID は必須、グループ内で requiredMin 個）。
+ */
+const meetsRequired = (title, check) => {
+  const entries = getRequiredEntries(title);
+  if (title.requiredMin != null) {
+    const singles = entries.filter(e => typeof e === 'string');
+    const grouped = entries.filter(Array.isArray).flat();
+    return singles.every(check) && grouped.filter(check).length >= title.requiredMin;
+  }
+  return entries.every(e => (Array.isArray(e) ? e.some(check) : check(e)));
+};
+
+const isRequirementMet = (title, unlocked) => meetsRequired(title, id => isIdUnlocked(id, unlocked));
+
+/** 進化二つ名の元の二つ名がすべて解放済みか（図鑑表示用） */
+export const isEvolvedBaseUnlocked = (title, unlocked) => isRequirementMet(title, {
+  prefixes: unlocked?.prefixes || [],
+  suffixes: unlocked?.suffixes || [],
+  evolved: unlocked?.evolved || [],
+});
+
+/**
+ * 進化二つ名の元の二つ名を表示用の文にする。未解放の二つ名は「？？？」で伏せる。
+ * 例: 「神速の＋無双」「覇王＋属性のA枠（紅蓮の／蒼海の／…）」「〜の詠唱のうち3つ＋魔導士」
+ */
+export const describeRequiredTitles = (title, unlocked = null) => {
+  const nameOf = (id) => (!unlocked || isIdUnlocked(id, {
+    prefixes: unlocked.prefixes || [], suffixes: unlocked.suffixes || [], evolved: unlocked.evolved || [],
+  }) ? getTitleName(id) : '？？？');
+  const parts = getRequiredEntries(title).map(e => {
+    if (!Array.isArray(e)) return nameOf(e);
+    const names = e.map(nameOf).join('／');
+    return title.requiredMin != null ? `（${names}）のうち${title.requiredMin}つ` : `（${names}）のどれか`;
+  });
+  return parts.join('＋');
 };
 
 /** state を直接変更して新規解放を判定する（連鎖解放に対応） */
@@ -627,7 +713,7 @@ export const recordTitleProgress = (updates = {}) => {
 
 /**
  * 進化二つ名のトリガー判定
- * @param {'turn'|'clear'|'state'} event
+ * @param {'turn'|'clear'|'state'|'shop'} event
  * @param {Object} ctx evaluateTitleWhen と同じ文脈
  */
 export const recordTitleTrigger = (event, ctx = {}) => {
@@ -639,8 +725,10 @@ export const recordTitleTrigger = (event, ctx = {}) => {
     if (state.unlockedTitles.evolved.includes(title.id)) return;
     if (isTitleDisabled(title)) return;
     if (!isRequirementMet(title, state.unlockedTitles)) return;
-    if (trigger.requireEquipped && !isTitleEquipped(title.requiredTitleId, state.equippedTitle)) return;
-    if (evaluateTitleWhen(trigger.when, ctx)) {
+    if (title.requireMode === 'equipped' && !meetsRequired(title, id => isTitleEquipped(id, state.equippedTitle))) return;
+    const when = resolvePrefixAttr(trigger.when, getEquippedPrefixAttribute(state.equippedTitle));
+    if (!when) return;
+    if (evaluateTitleWhen(when, ctx)) {
       max[title.conditionType] = 1;
     }
   });
@@ -664,7 +752,7 @@ export const checkAndUnlockTitles = () => {
 /** 解放通知用の表示名 */
 export const getTitleKindLabel = (title) => {
   if (!title) return '';
-  if (title.kind === 'evolved' || title.requiredTitleId) return '進化二つ名';
+  if (title.kind === 'evolved' || title.requiredTitleIds) return '進化二つ名';
   if (title.kind === 'prefix' || title.id?.startsWith('A')) return 'A枠';
   return 'B枠';
 };

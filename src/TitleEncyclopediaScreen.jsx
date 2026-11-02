@@ -5,10 +5,11 @@ import {
   getEquippedTitleInfo,
   getTitleProgressValue,
   countUnlockedTitles,
+  isEvolvedBaseUnlocked,
+  describeRequiredTitles,
   // 無効な二つ名（disabled）を除いた一覧を表示する
   VISIBLE_PREFIX_TITLES as PREFIX_TITLES,
   VISIBLE_SUFFIX_TITLES as SUFFIX_TITLES,
-  VISIBLE_TITLE_SET_BONUSES as TITLE_SET_BONUSES,
   VISIBLE_EVOLVED_TITLES as EVOLVED_TITLES,
 } from './utils/titleManager.js';
 import soundManager from './utils/SoundManager.js';
@@ -85,8 +86,6 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
     setTitleState(prev => ({ ...prev, equippedTitle: next }));
   };
 
-  const isPrefixUnlocked = (id) => unlockedTitles.prefixes?.includes(id);
-  const isSuffixUnlocked = (id) => unlockedTitles.suffixes?.includes(id);
   const isEvolvedUnlocked = (id) => unlockedTitles.evolved?.includes(id);
   const unlockedCount = countUnlockedTitles(unlockedTitles);
 
@@ -141,10 +140,10 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
           <span className="material-icons-round text-amber-400 text-2xl">military_tech</span>
           <div>
             <h1 className="text-base font-game-header tracking-wider text-amber-300">
-              二つ名図鑑 (全{PREFIX_TITLES.length + SUFFIX_TITLES.length + TITLE_SET_BONUSES.length + EVOLVED_TITLES.length}種・解放 {unlockedCount}/{PREFIX_TITLES.length + SUFFIX_TITLES.length + EVOLVED_TITLES.length})
+              二つ名図鑑 (全{PREFIX_TITLES.length + SUFFIX_TITLES.length + EVOLVED_TITLES.length}種・解放 {unlockedCount}/{PREFIX_TITLES.length + SUFFIX_TITLES.length + EVOLVED_TITLES.length})
             </h1>
             <p className="text-[10px] text-slate-400 font-mono tracking-tight">
-              TITLE ENCYCLOPEDIA (ALL {PREFIX_TITLES.length + SUFFIX_TITLES.length + TITLE_SET_BONUSES.length + EVOLVED_TITLES.length} TITLES)
+              TITLE ENCYCLOPEDIA (ALL {PREFIX_TITLES.length + SUFFIX_TITLES.length + EVOLVED_TITLES.length} TITLES)
             </p>
           </div>
         </div>
@@ -172,36 +171,15 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
       <div className="flex-none px-4 py-3 bg-slate-900/90 border-b border-white/10 z-10 backdrop-blur-sm">
         <div className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1.5 flex items-center justify-between">
           <span>EQUIPPED TITLE / 現在装備中の二つ名</span>
-          {equippedInfo.activeSet && (
-            <span className="text-xs text-amber-300 font-black animate-pulse flex items-center gap-1">
-              <span className="material-icons-round text-sm text-yellow-400">auto_awesome</span>
-              SYNERGY ACTIVE
-            </span>
-          )}
         </div>
-        <div className={`p-3 rounded-xl border transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-2 ${
-          equippedInfo.activeSet
-            ? 'bg-gradient-to-r from-amber-950/60 via-purple-950/50 to-slate-900/80 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
-            : 'bg-slate-950/60 border-white/10'
-        }`}>
+        <div className="p-3 rounded-xl border transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-2 bg-slate-950/60 border-white/10">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-base font-black tracking-wide ${
-              equippedInfo.activeSet
-                ? 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-300 to-orange-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
-                : 'text-indigo-200'
-            }`}>
+            <span className="text-base font-black tracking-wide text-indigo-200">
               {equippedInfo.fullName}
             </span>
-            {equippedInfo.activeSet && (
-              <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full font-bold">
-                専用シナジー発動中
-              </span>
-            )}
           </div>
           <div className="text-xs text-slate-300 line-clamp-1">
-            {equippedInfo.activeSet
-              ? equippedInfo.activeSet.desc
-              : `${equippedInfo.prefix?.desc || 'A枠未設定'} ｜ ${equippedInfo.suffix?.desc || 'B枠未設定'}`}
+            {`${equippedInfo.prefix?.desc || 'A枠未設定'} ｜ ${equippedInfo.suffix?.desc || 'B枠未設定'}`}
           </div>
         </div>
       </div>
@@ -248,7 +226,7 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
           }`}
         >
           <span className="material-icons-round text-sm">flare</span>
-          <span>シナジー＆進化 (40種)</span>
+          <span>進化 ({EVOLVED_TITLES.length}種)</span>
         </button>
       </div>
 
@@ -372,64 +350,11 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
           </>
         )}
 
-        {/* シナジー＆進化一覧 */}
+        {/* 進化一覧（タブ名 'synergy' は旧セットシナジーの名残。呼び出し側の initialTab と合わせるため残す） */}
         {activeTab === 'synergy' && (
           <div className="space-y-4">
-            {/* セットボーナス（隠しシナジー） */}
-            <div>
-              <h2 className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                <span className="material-icons-round text-sm">flare</span>
-                隠しセット効果（シナジー 全{TITLE_SET_BONUSES.length}種）
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {TITLE_SET_BONUSES.map((set) => {
-                  const pref = PREFIX_TITLES.find(p => p.id === set.prefixId);
-                  const suff = SUFFIX_TITLES.find(s => s.id === set.suffixId);
-                  const isPrefUnlocked = isPrefixUnlocked(set.prefixId);
-                  const isSuffUnlocked = isSuffixUnlocked(set.suffixId);
-                  const isActive = equippedInfo.activeSet?.id === set.id;
-
-                  return (
-                    <div
-                      key={set.id}
-                      className={`p-3.5 rounded-2xl border transition-all relative overflow-hidden ${
-                        isActive
-                          ? 'bg-gradient-to-br from-amber-950/60 via-purple-950/40 to-slate-900 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
-                          : 'bg-slate-900/60 border-white/10'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className={`text-sm font-black ${
-                          isActive ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]' : 'text-white'
-                        }`}>
-                          {isPrefUnlocked && isSuffUnlocked ? set.titleName : '【？？？？？】'}
-                        </span>
-                        {isActive && (
-                          <span className="text-[9px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full font-black animate-pulse">
-                            発動中
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-2">
-                        <span className={isPrefUnlocked ? 'text-indigo-300 font-bold' : 'text-slate-600'}>
-                          {isPrefUnlocked ? pref?.name : '？？？'}
-                        </span>
-                        <span>×</span>
-                        <span className={isSuffUnlocked ? 'text-indigo-300 font-bold' : 'text-slate-600'}>
-                          {isSuffUnlocked ? suff?.name : '？？？'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-200 leading-relaxed font-sans bg-slate-950/50 p-2 rounded-xl border border-white/5">
-                        {isPrefUnlocked && isSuffUnlocked ? set.desc : '対応するA枠・B枠の二つ名を両方解放すると効果が判明します。'}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* 派生・進化二つ名 */}
-            <div className="pt-2">
+            <div>
               <h2 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <span className="material-icons-round text-sm">account_tree</span>
                 派生・進化二つ名（全{EVOLVED_TITLES.length}種）
@@ -439,10 +364,9 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
                   const unlocked = isEvolvedUnlocked(evo.id);
                   const slot = evo.slot;
                   const isEquipped = (slot === 'prefix' ? equippedTitle.prefixId : equippedTitle.suffixId) === evo.id;
-                  const baseTitle = slot === 'prefix'
-                    ? PREFIX_TITLES.find(p => p.id === evo.requiredTitleId)
-                    : SUFFIX_TITLES.find(p => p.id === evo.requiredTitleId);
-                  const baseUnlocked = slot === 'prefix' ? isPrefixUnlocked(evo.requiredTitleId) : isSuffixUnlocked(evo.requiredTitleId);
+                  const baseUnlocked = isEvolvedBaseUnlocked(evo, unlockedTitles);
+                  const baseLabel = describeRequiredTitles(evo, unlockedTitles);
+                  const modeLabel = evo.requireMode === 'unlocked' ? '解放' : '装備';
                   const progress = getTitleProgressValue(evo, titleState.progress);
                   const isCounter = !evo.trigger; // 累計系（進捗バーを表示）
                   const percent = Math.min(100, Math.floor((progress / evo.targetValue) * 100)) || 0;
@@ -468,7 +392,7 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
                             【{evo.name}】
                           </span>
                           <span className="text-[9px] bg-indigo-900/50 border border-indigo-500/30 px-1.5 py-0.5 rounded text-indigo-300 font-bold">
-                            {slot === 'prefix' ? 'A枠' : 'B枠'}・{baseTitle ? `${baseTitle.name}の進化` : evo.category}
+                            {slot === 'prefix' ? 'A枠' : 'B枠'}・{modeLabel}: {baseLabel}
                           </span>
                         </div>
                         {unlocked && (

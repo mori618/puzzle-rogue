@@ -51,3 +51,25 @@ describe('TitleEncyclopediaScreen（ラン中の切り替え）', () => {
     expect(loadTitleState().equippedTitle.prefixId).toBe('A02');
   });
 });
+
+describe('TitleEncyclopediaScreen（進化タブ）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    resetTitleCache();
+    saveTitleState({
+      unlockedTitles: { prefixes: ['A01'], suffixes: ['B08'], evolved: ['E29'] },
+      equippedTitle: { prefixId: 'E29', suffixId: 'B08' },
+      progress: {},
+    });
+  });
+
+  it('セット効果の欄が無く、進化二つ名を元の二つ名（複数）つきで表示する', () => {
+    render(<TitleEncyclopediaScreen onClose={() => {}} initialTab="synergy" />);
+    expect(screen.queryByText(/隠しセット効果/)).toBeNull();
+    expect(screen.getByText(/派生・進化二つ名（全50種）/)).toBeTruthy();
+    expect(screen.getByText('【電撃の】')).toBeTruthy();
+    expect(screen.getAllByText(/A枠・装備: 神速の＋無双/).length).toBeGreaterThan(0);
+    // 未解放の元の二つ名は伏せる
+    expect(screen.getAllByText(/B枠・解放: ？？？＋？？？/).length).toBeGreaterThan(0);
+  });
+});

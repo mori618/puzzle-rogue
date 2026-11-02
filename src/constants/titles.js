@@ -1,6 +1,7 @@
 /**
  * 二つ名（称号）システム 全マスターデータ
- * A枠パーツ(61種) + B枠パーツ(61種) + 隠しセットシナジー(49種) + 派生進化(26種) = 全197件
+ * A枠パーツ(61種) + B枠パーツ(61種) + 派生進化(50種) = 全172件
+ * （隠しセットシナジー S01〜S49 は廃止し、進化二つ名に移した。docs/title-evolution-plan.md）
  *
  * ■ 解放条件
  *   conditionType : 進捗キー（titleManager の progress に記録される値）
@@ -9,7 +10,7 @@
  * ■ 強さの段階（解放難易度に合わせる）
  *   序盤（緩い条件）: 操作時間・ショップ出現率・ドロップ出現率などの補助効果
  *   中盤            : 条件付きのコンボ加算 / 小さめの条件付き倍率
- *   終盤（厳しい条件）・進化・セット: 常時倍率・基礎コンボ倍率・最終倍率
+ *   終盤（厳しい条件）・進化: 常時倍率・基礎コンボ倍率・最終倍率
  *
  * ■ 効果 (effects)
  *   宣言的な効果リスト。titleManager.js の computeTitleComboModifiers / getTitleEffectTotal 等で解釈される。
@@ -38,8 +39,8 @@
  * ■ ゲーム開始時の効果は持たせない（開始時の初期スター等は廃止。サイクル開始時の効果は可）
  *
  * ■ disabled: true
- *   今のゲームでは使えない機能（エンチャント・虹ドロップなど）に依存する二つ名・セット。
- *   定義は残すが、解放・装備・図鑑表示・セット発動の対象から外す（titleManager.isTitleDisabled）。
+ *   今のゲームでは使えない機能（エンチャント・虹ドロップなど）に依存する二つ名。
+ *   定義は残すが、解放・装備・図鑑表示の対象から外す（titleManager.isTitleDisabled）。
  */
 
 // 1. A枠パーツ（接頭辞）マスターデータ（全61種）
@@ -69,6 +70,7 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A04', name: '紅蓮の', category: '属性（炎）',
+    attribute: 'fire', // 属性のA枠（E27 真・覇王・E28 千変の即応陣 の '$prefix' で使う）
     desc: '炎属性トークンがショップに出やすくなる（3倍）、炎ドロップ出現率UP',
     conditionType: 'erase_fire', targetValue: 500,
     conditionDesc: '炎ドロップを累計500個消去',
@@ -76,6 +78,7 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A05', name: '蒼海の', category: '属性（雨）',
+    attribute: 'water', // 属性のA枠（E27 真・覇王・E28 千変の即応陣 の '$prefix' で使う）
     desc: '雨属性トークンがショップに出やすくなる（3倍）、雨ドロップ出現率UP',
     conditionType: 'erase_water', targetValue: 500,
     conditionDesc: '雨ドロップを累計500個消去',
@@ -83,6 +86,7 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A06', name: '深翠の', category: '属性（風）',
+    attribute: 'wood', // 属性のA枠（E27 真・覇王・E28 千変の即応陣 の '$prefix' で使う）
     desc: '風属性トークンがショップに出やすくなる（3倍）、風ドロップ出現率UP',
     conditionType: 'erase_wood', targetValue: 500,
     conditionDesc: '風ドロップを累計500個消去',
@@ -90,6 +94,7 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A07', name: '迅雷の', category: '属性（雷）',
+    attribute: 'light', // 属性のA枠（E27 真・覇王・E28 千変の即応陣 の '$prefix' で使う）
     desc: '雷属性トークンがショップに出やすくなる（3倍）、雷ドロップ出現率UP',
     conditionType: 'erase_light', targetValue: 500,
     conditionDesc: '雷ドロップを累計500個消去',
@@ -97,6 +102,7 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A08', name: '常月の', category: '属性（月）',
+    attribute: 'dark', // 属性のA枠（E27 真・覇王・E28 千変の即応陣 の '$prefix' で使う）
     desc: '月属性トークンがショップに出やすくなる（3倍）、月ドロップ出現率UP',
     conditionType: 'erase_dark', targetValue: 500,
     conditionDesc: '月ドロップを累計500個消去',
@@ -104,6 +110,7 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A09', name: '慈愛の', category: '属性（回復）',
+    attribute: 'heart', // 属性のA枠（E27 真・覇王・E28 千変の即応陣 の '$prefix' で使う）
     desc: 'ハート属性トークンがショップに出やすくなる（3倍）、ハート出現率UP',
     conditionType: 'erase_heart', targetValue: 300,
     conditionDesc: 'ハートドロップを累計300個消去',
@@ -910,448 +917,418 @@ export const SUFFIX_TITLES = [
   },
 ];
 
-// 3. 隠しセットシナジー（全49種）
-// A枠・B枠の特定の組み合わせを装備すると、各パーツの効果に加えて発動する（進化版を装備していても元の二つ名として扱う）
-export const TITLE_SET_BONUSES = [
-  {
-    id: 'S01', prefixId: 'A04', suffixId: 'B01', titleName: '【真・紅蓮覇王】',
-    desc: '【業火の覚醒】降ってくる炎ドロップがすべて強化（プラス）ドロップになる。',
-    effects: [{ type: 'enhance_color', color: 'fire', value: 1.0 }],
-  },
-  {
-    id: 'S02', prefixId: 'A01', suffixId: 'B08', titleName: '【神速の電撃戦】',
-    desc: '手番終了時、残った操作時間1秒につき基礎コンボ数が +0.2倍。',
-    effects: [{ type: 'base_mult_step', value: 0.2, per: 'time_left_sec' }],
-  },
-  {
-    id: 'S03', prefixId: 'A10', suffixId: 'B12', titleName: '【ミダス王の再来】',
-    desc: 'ショップを開くたびに、最初のリロール（更新）が無料になる。',
-    effects: [{ type: 'free_reroll', value: 1 }],
-  },
-  {
-    id: 'S04', prefixId: 'A11', suffixId: 'B02', titleName: '【逆転の演出家】',
-    desc: '所持スター0で手番を終えた際、コンボによる★獲得量が 2倍。',
-    effects: [{ type: 'star_gain_mult', value: 2.0, when: { stars_le: 0 } }],
-  },
-  {
-    id: 'S05', prefixId: 'A02', suffixId: 'B08', titleName: '【鬼神降臨】',
-    desc: '基礎コンボ数がさらに 1.2倍。',
-    effects: [{ type: 'base_mult', value: 1.2 }],
-  },
-  {
-    id: 'S06', prefixId: 'A13', suffixId: 'B04', titleName: '【絶対障壁の方陣】',
-    desc: '正方形消しを達成した手番、コンボ倍率 +1.5。',
-    effects: [{ type: 'add_mult', value: 1.5, when: { shape: 'square' } }],
-  },
-  {
-    id: 'S07', prefixId: 'A13', suffixId: 'B10', titleName: '【パンドラの解放者】',
-    desc: '所持中の呪い1つにつき、アクティブスキルがエネルギーを消費しない確率 +10%。',
-    effects: [{ type: 'skill_refund_chance', value: 0.1, per: 'curse' }],
-  },
-  {
-    id: 'S08', prefixId: 'A04', suffixId: 'B16', titleName: '【紅蓮の即応陣】',
-    desc: '各サイクルの1手目に炎を消すと、コンボ倍率 +2.0。',
-    effects: [{ type: 'add_mult', value: 2.0, when: { first_turn: true, color: 'fire' } }],
-  },
-  {
-    id: 'S09', prefixId: 'A19', suffixId: 'B17', titleName: '【闇市の売買術】',
-    desc: 'トークン売却時、購入時価格の 150%（1.5倍額）が払い戻される。',
-    effects: [{ type: 'sell_rate', value: 1.5 }],
-  },
-  {
-    id: 'S10', prefixId: 'A20', suffixId: 'B18', titleName: '【全能力覚醒】',
-    desc: '各サイクル開始時、ランダムなトークン1つのレベルが上がる。',
-    effects: [{ type: 'levelup_on_cycle_start', value: 1 }],
-  },
-  {
-    id: 'S11', prefixId: 'A25', suffixId: 'B23', titleName: '【商店街の主】',
-    desc: 'セール商品 +2枠、全商品がさらに 10% 引き。',
-    effects: [{ type: 'sale_add', value: 2 }, { type: 'shop_discount', value: 0.1 }],
-  },
-  {
-    id: 'S12', prefixId: 'A26', suffixId: 'B04', titleName: '【聖十字陣】',
-    desc: '十字消しを達成した手番、最終コンボ倍率 1.5倍。',
-    effects: [{ type: 'final_mult', value: 1.5, when: { shape: 'cross' } }],
-  },
-  {
-    id: 'S13', prefixId: 'A31', suffixId: 'B36', titleName: '【終末の爆心地】',
-    desc: 'その手番に消したボムドロップ1個につきコンボ倍率 +1.0（最大3個分、+3.0）。',
-    effects: [{ type: 'add_mult', value: 1.0, per: 'bomb_erased', max: 3 }],
-  },
-  {
-    id: 'S14', prefixId: 'A12', suffixId: 'B41', titleName: '【静寂の疾走者】',
-    desc: '1手の移動2マスにつきさらにコンボ +1（最大+60）。',
-    effects: [{ type: 'combo_add', value: 0.5, per: 'move_steps', max: 120 }],
-  },
-  {
-    id: 'S15', prefixId: 'A09', suffixId: 'B45', titleName: '【不死鳥の加護】',
-    desc: '所持スター5以下の時、最終コンボ倍率 1.5倍。',
-    effects: [{ type: 'final_mult', value: 1.5, when: { stars_le: 5 } }],
-  },
-  {
-    id: 'S16', prefixId: 'A10', suffixId: 'B07', titleName: '【黄金律】',
-    desc: 'サイクルクリア時の利子 +20%。',
-    effects: [{ type: 'cycle_interest', value: 0.2 }],
-  },
-  {
-    id: 'S17', prefixId: 'A07', suffixId: 'B40', titleName: '【雷光時計】',
-    desc: '操作時間 +2秒、雷を消した手番のコンボ倍率 +1.0。',
-    effects: [{ type: 'time_add', value: 2000 }, { type: 'add_mult', value: 1.0, when: { color: 'light' } }],
-  },
-  {
-    id: 'S18', prefixId: 'A44', suffixId: 'B50', titleName: '【彼岸の伝説】',
-    desc: '最終コンボ倍率 2.5倍。',
-    effects: [{ type: 'final_mult', value: 2.5 }],
-  },
-  {
-    id: 'S19', prefixId: 'A16', suffixId: 'B30', titleName: '【孤剣】',
-    desc: 'トークン所持数3個以下の時、最終コンボ倍率 2倍。',
-    effects: [{ type: 'final_mult', value: 2.0, when: { tokens_le: 3 } }],
-  },
-  {
-    id: 'S20', prefixId: 'A45', suffixId: 'B28', titleName: '【魔導工房】',
-    // エンチャント機能を戻すまで出さない（A45 魔性の と同じ）
-    disabled: true,
-    desc: 'エンチャント1つにつきコンボ倍率 +0.3、Lv2以上トークン1つにつきさらに +0.3。',
-    effects: [{ type: 'add_mult', value: 0.3, per: 'enchant', max: 20 }, { type: 'add_mult', value: 0.3, per: 'lv2plus' }],
-  },
-  {
-    id: 'S21', prefixId: 'A05', suffixId: 'B01', titleName: '【真・蒼海覇王】',
-    desc: '【激流の覚醒】降ってくる雨ドロップがすべて強化（プラス）ドロップになる。',
-    effects: [{ type: 'enhance_color', color: 'water', value: 1.0 }],
-  },
-  {
-    id: 'S22', prefixId: 'A06', suffixId: 'B01', titleName: '【真・深翠覇王】',
-    desc: '【烈風の覚醒】降ってくる風ドロップがすべて強化（プラス）ドロップになる。',
-    effects: [{ type: 'enhance_color', color: 'wood', value: 1.0 }],
-  },
-  {
-    id: 'S23', prefixId: 'A07', suffixId: 'B01', titleName: '【真・迅雷覇王】',
-    desc: '【轟雷の覚醒】降ってくる雷ドロップがすべて強化（プラス）ドロップになる。',
-    effects: [{ type: 'enhance_color', color: 'light', value: 1.0 }],
-  },
-  {
-    id: 'S24', prefixId: 'A08', suffixId: 'B01', titleName: '【真・常月覇王】',
-    desc: '【月蝕の覚醒】降ってくる月ドロップがすべて強化（プラス）ドロップになる。',
-    effects: [{ type: 'enhance_color', color: 'dark', value: 1.0 }],
-  },
-  {
-    id: 'S25', prefixId: 'A09', suffixId: 'B01', titleName: '【真・慈愛覇王】',
-    desc: '【聖光の覚醒】降ってくるハートがすべて強化（プラス）ドロップになる。',
-    effects: [{ type: 'enhance_color', color: 'heart', value: 1.0 }],
-  },
-  {
-    id: 'S26', prefixId: 'A05', suffixId: 'B16', titleName: '【蒼海の即応陣】',
-    desc: '各サイクルの1手目に雨を消すと、コンボ倍率 +2.0。',
-    effects: [{ type: 'add_mult', value: 2.0, when: { first_turn: true, color: 'water' } }],
-  },
-  {
-    id: 'S27', prefixId: 'A06', suffixId: 'B16', titleName: '【深翠の即応陣】',
-    desc: '各サイクルの1手目に風を消すと、コンボ倍率 +2.0。',
-    effects: [{ type: 'add_mult', value: 2.0, when: { first_turn: true, color: 'wood' } }],
-  },
-  {
-    id: 'S28', prefixId: 'A07', suffixId: 'B16', titleName: '【迅雷の即応陣】',
-    desc: '各サイクルの1手目に雷を消すと、コンボ倍率 +2.0。',
-    effects: [{ type: 'add_mult', value: 2.0, when: { first_turn: true, color: 'light' } }],
-  },
-  {
-    id: 'S29', prefixId: 'A08', suffixId: 'B16', titleName: '【常月の即応陣】',
-    desc: '各サイクルの1手目に月を消すと、コンボ倍率 +2.0。',
-    effects: [{ type: 'add_mult', value: 2.0, when: { first_turn: true, color: 'dark' } }],
-  },
-  {
-    id: 'S30', prefixId: 'A09', suffixId: 'B16', titleName: '【慈愛の即応陣】',
-    desc: '各サイクルの1手目にハートを消すと、コンボ倍率 +2.0。',
-    effects: [{ type: 'add_mult', value: 2.0, when: { first_turn: true, color: 'heart' } }],
-  },
-  {
-    id: 'S31', prefixId: 'A04', suffixId: 'B39', titleName: '【焦熱の錬成炉】',
-    desc: '炎を消した手番、消した強化ドロップ1個につきコンボ倍率 +0.2（最大+4.0）。',
-    effects: [{ type: 'add_mult', value: 0.2, per: 'enhanced_erased', max: 20, when: { color: 'fire' } }],
-  },
-  {
-    id: 'S32', prefixId: 'A05', suffixId: 'B24', titleName: '【蒼海の水時計】',
-    desc: '雨を消した手番、残り操作時間1秒につきコンボ倍率 +0.5（最大+4.0）。',
-    effects: [{ type: 'add_mult', value: 0.5, per: 'time_left_sec', max: 8, when: { color: 'water' } }],
-  },
-  {
-    id: 'S33', prefixId: 'A06', suffixId: 'B41', titleName: '【深翠の旋風】',
-    desc: '風を消した手番、移動2マスにつきコンボ +1（最大+40）。',
-    effects: [{ type: 'combo_add', value: 0.5, per: 'move_steps', max: 80, when: { color: 'wood' } }],
-  },
-  {
-    id: 'S34', prefixId: 'A08', suffixId: 'B26', titleName: '【常月の呪月】',
-    desc: '月を消した手番、所持中の呪い1つにつきコンボ倍率 +0.5（最大+2.5）。',
-    effects: [{ type: 'add_mult', value: 0.5, per: 'curse', max: 5, when: { color: 'dark' } }],
-  },
-  {
-    id: 'S35', prefixId: 'A09', suffixId: 'B48', titleName: '【慈愛の星海】',
-    desc: 'ハートを消した手番、コンボ +15、コンボによる★獲得量 1.5倍。',
-    effects: [{ type: 'combo_add', value: 15, when: { color: 'heart' } }, { type: 'star_gain_mult', value: 1.5, when: { color: 'heart' } }],
-  },
-  {
-    id: 'S36', prefixId: 'A48', suffixId: 'B15', titleName: '【一色の軍勢】',
-    desc: '1属性のみを消した手番、最終コンボ倍率 1.5倍。',
-    effects: [{ type: 'final_mult', value: 1.5, when: { colors_le: 1 } }],
-  },
-  {
-    id: 'S37', prefixId: 'A22', suffixId: 'B20', titleName: '【二律の支配】',
-    desc: 'ちょうど2属性を消した手番、最終コンボ倍率 1.4倍。',
-    effects: [{ type: 'final_mult', value: 1.4, when: { colors_ge: 2, colors_le: 2 } }],
-  },
-  {
-    id: 'S38', prefixId: 'A55', suffixId: 'B19', titleName: '【三色の真理】',
-    desc: 'アクティブスキルを使用した手番にちょうど3属性を消すと、最終コンボ倍率 1.5倍。',
-    effects: [{ type: 'final_mult', value: 1.5, when: { skill_used: true, colors_ge: 3, colors_le: 3 } }],
-  },
-  {
-    id: 'S39', prefixId: 'A33', suffixId: 'B46', titleName: '【七色の架け橋】',
-    // A33 虹彩の を出さない間は、このセットも出さない
-    disabled: true,
-    desc: '6属性すべてを消した手番、最終コンボ倍率 2倍。',
-    effects: [{ type: 'final_mult', value: 2.0, when: { colors_ge: 6 } }],
-  },
-  {
-    id: 'S40', prefixId: 'A51', suffixId: 'B03', titleName: '【嵐の大魔導】',
-    desc: '各サイクル開始時、風属性アクティブトークンのエネルギーが満タンになる。',
-    effects: [{ type: 'skill_charge_cycle_start', attribute: 'wood', value: 'full' }],
-  },
-  {
-    id: 'S41', prefixId: 'A55', suffixId: 'B14', titleName: '【森羅の律】',
-    desc: '消した属性1種類につきコンボ倍率 +0.5。',
-    effects: [{ type: 'add_mult', value: 0.5, per: 'color_count' }],
-  },
-  {
-    id: 'S42', prefixId: 'A56', suffixId: 'B40', titleName: '【時間停止】',
-    desc: '「刹那の」の操作時間半減を打ち消し、さらに最終コンボ倍率 1.5倍。',
-    effects: [{ type: 'time_scale', value: 2.0 }, { type: 'final_mult', value: 1.5 }],
-  },
-  {
-    id: 'S43', prefixId: 'A60', suffixId: 'B19', titleName: '【静と動】',
-    desc: 'アクティブスキルを使用した手番の次の手番、アクティブスキルを使わなければコンボ倍率 +1.5。',
-    effects: [{ type: 'add_mult', value: 1.5, when: { prev_skill_used: true, skill_used: false } }],
-  },
-  {
-    id: 'S44', prefixId: 'A16', suffixId: 'B57', titleName: '【独りの極地】',
-    desc: 'トークンを1つも所持していない時、最終コンボ倍率 3倍。',
-    effects: [{ type: 'final_mult', value: 3.0, when: { tokens_le: 0 } }],
-  },
-  {
-    id: 'S45', prefixId: 'A17', suffixId: 'B03', titleName: '【業火の大魔導】',
-    desc: '各サイクル開始時、炎属性アクティブトークンのエネルギーが満タンになる。',
-    effects: [{ type: 'skill_charge_cycle_start', attribute: 'fire', value: 'full' }],
-  },
-  {
-    id: 'S46', prefixId: 'A18', suffixId: 'B03', titleName: '【激流の大魔導】',
-    desc: '各サイクル開始時、雨属性アクティブトークンのエネルギーが満タンになる。',
-    effects: [{ type: 'skill_charge_cycle_start', attribute: 'water', value: 'full' }],
-  },
-  {
-    id: 'S47', prefixId: 'A52', suffixId: 'B03', titleName: '【雷霆の大魔導】',
-    desc: '各サイクル開始時、雷属性アクティブトークンのエネルギーが満タンになる。',
-    effects: [{ type: 'skill_charge_cycle_start', attribute: 'light', value: 'full' }],
-  },
-  {
-    id: 'S48', prefixId: 'A53', suffixId: 'B03', titleName: '【闇夜の大魔導】',
-    desc: '各サイクル開始時、月属性アクティブトークンのエネルギーが満タンになる。',
-    effects: [{ type: 'skill_charge_cycle_start', attribute: 'dark', value: 'full' }],
-  },
-  {
-    id: 'S49', prefixId: 'A54', suffixId: 'B03', titleName: '【癒光の大魔導】',
-    desc: '各サイクル開始時、ハート属性アクティブトークンのエネルギーが満タンになる。',
-    effects: [{ type: 'skill_charge_cycle_start', attribute: 'heart', value: 'full' }],
-  },
-];
-
-// 4. 派生・進化二つ名（全26種）
-// 元の二つ名（requiredTitleId）が解放済みで、trigger 条件を満たすと解放される。
-// 解放後は元の二つ名と同じ枠に装備でき、セットシナジーでは元の二つ名として扱われる。
-//   trigger.event : 'turn'（手番終了時）| 'clear'（サイクルクリア時）| 'state'（所持状態の変化時）
+// 3. 派生・進化二つ名（全50種）
+// 元の二つ名（requiredTitleIds）が解放済みで、trigger 条件を満たすと解放される。解放後は slot の枠に装備できる。
+//   slot             : 'prefix'（A枠）| 'suffix'（B枠）
+//   requiredTitleIds : 元の二つ名。配列の中の配列は「どれか1つ」（例: ['B01', ['A04', 'A05', …]]）
+//   requiredMin      : 指定時は「requiredTitleIds（グループは展開）のうち N 個以上」
+//   requireMode      : 'equipped' … 元の二つ名をすべて装備中のときだけ判定（「〜を装備して」）
+//                      'unlocked' … 元の二つ名がすべて解放済みなら判定（「〜を解放した状態で」）
+//   trigger.event : 'turn'（手番終了時）| 'clear'（サイクルクリア時）| 'state'（所持状態の変化時）| 'shop'（ショップでの操作時）
 //   trigger.when  : 判定条件（effects の when と同じ書式）
-//   trigger.requireEquipped : true の場合、元の二つ名（または本二つ名）を装備中のときだけ判定
+//   '$prefix'     : when・effects の color に書くと、装備中の A枠（属性のA枠 A04〜A09 とその進化）の属性に置き換わる
 export const EVOLVED_TITLES = [
   {
-    id: 'E01', requiredTitleId: 'A01', name: '光速の', category: 'A枠上位',
+    id: 'E01', requiredTitleIds: ['A01'], slot: 'prefix', name: '光速の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「神速の」を装備して、操作時間を4秒以上残してサイクルクリア',
-    trigger: { event: 'clear', requireEquipped: true, when: { time_left_ge: 4000 } },
+    trigger: { event: 'clear', when: { time_left_ge: 4000 } },
     desc: '操作時間 +3秒。残り操作時間1秒につきコンボ倍率 +0.5。',
     effects: [{ type: 'time_add', value: 3000 }, { type: 'add_mult', value: 0.5, per: 'time_left_sec' }],
   },
   {
-    id: 'E02', requiredTitleId: 'A02', name: '修羅の', category: 'A枠上位',
+    id: 'E02', requiredTitleIds: ['A02'], slot: 'prefix', name: '修羅の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「狂戦士の」を装備して、残り操作時間1秒未満で1手20コンボ（倍率適用前）',
-    trigger: { event: 'turn', requireEquipped: true, when: { time_left_lt: 1000, tc_ge: 20 } },
+    trigger: { event: 'turn', when: { time_left_lt: 1000, tc_ge: 20 } },
     desc: '操作時間 -3秒、基礎コンボ数 2.0倍、コンボによるスター獲得量 1.5倍。',
     effects: [{ type: 'time_add', value: -3000 }, { type: 'base_mult', value: 2.0 }, { type: 'star_gain_mult', value: 1.5 }],
   },
   {
-    id: 'E03', requiredTitleId: 'A11', name: '無一文の', category: 'A枠上位',
+    id: 'E03', requiredTitleIds: ['A11'], slot: 'prefix', name: '無一文の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「からっぽの」を装備して、所持スター0のままサイクル3以降をクリア',
-    trigger: { event: 'clear', requireEquipped: true, when: { stars_le: 0, cycle_ge: 3 } },
+    trigger: { event: 'clear', when: { stars_le: 0, cycle_ge: 3 } },
     desc: 'コンボによるスター獲得不可。最終コンボ倍率が常時 5.0倍。',
     effects: [{ type: 'star_gain_mult', value: 0 }, { type: 'final_mult', value: 5.0 }],
   },
   {
-    id: 'E04', requiredTitleId: 'A04', name: '獄炎の', category: 'A枠上位',
+    id: 'E04', requiredTitleIds: ['A04'], slot: 'prefix', name: '獄炎の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「紅蓮の」を装備して、1手で炎ドロップを30個以上消去',
-    trigger: { event: 'turn', requireEquipped: true, when: { erased_ge: { color: 'fire', n: 30 } } },
-    desc: '降ってくるドロップが「炎」と「ハート」のみになり、炎を消した手番のコンボ倍率 +5.0。',
-    effects: [{ type: 'spawn_only', colors: ['fire', 'heart'] }, { type: 'add_mult', value: 5.0, when: { color: 'fire' } }],
+    trigger: { event: 'turn', when: { erased_ge: { color: 'fire', n: 30 } } },
+    desc: '降ってくるドロップが「炎」と「ハート」のみになり、炎を消した手番のコンボ倍率 +5.0。さらに炎を消した手番、消した強化ドロップ1個につきコンボ倍率 +0.1（最大+2.0）。',
+    effects: [{ type: 'spawn_only', colors: ['fire', 'heart'] }, { type: 'add_mult', value: 5.0, when: { color: 'fire' } }, { type: 'add_mult', value: 0.1, per: 'enhanced_erased', max: 20, when: { color: 'fire' } }],
   },
   {
-    id: 'E05', requiredTitleId: 'A13', name: '禍神の', category: 'A枠上位',
+    id: 'E05', requiredTitleIds: ['A13'], slot: 'prefix', name: '禍神の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「厄災の」を装備して、呪いを5つ同時に所持した状態でサイクルクリア',
-    trigger: { event: 'clear', requireEquipped: true, when: { curses_ge: 5 } },
+    trigger: { event: 'clear', when: { curses_ge: 5 } },
     desc: '全呪いのデメリットが消滅し、所持中の呪い1つにつき基礎コンボ数 1.3倍（最大5個分）。',
     effects: [{ type: 'curse_null' }, { type: 'base_mult', value: 1.3, per: 'curse', max: 5 }],
   },
   {
-    id: 'E06', requiredTitleId: 'B09', name: '闇市の帝王', category: 'B枠上位',
+    id: 'E06', requiredTitleIds: ['B09'], slot: 'suffix', name: '闇市の帝王', category: 'B枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「節約家」を装備して、所持スター500を達成',
-    trigger: { event: 'state', requireEquipped: true, when: { stars_ge: 500 } },
+    trigger: { event: 'state', when: { stars_ge: 500 } },
     desc: 'ショップの商品価格が常時 40% オフ。',
     effects: [{ type: 'shop_discount', value: 0.4 }],
   },
   {
-    id: 'E07', requiredTitleId: 'A21', name: '超越の', category: 'A枠上位',
+    id: 'E07', requiredTitleIds: ['A21'], slot: 'prefix', name: '超越の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「増幅の」を装備して、1手で最終コンボ100,000を達成',
-    trigger: { event: 'turn', requireEquipped: true, when: { combo_ge: 100000 } },
+    trigger: { event: 'turn', when: { combo_ge: 100000 } },
     desc: 'パッシブトークン1個につきコンボ倍率 +0.5。',
     effects: [{ type: 'add_mult', value: 0.5, per: 'passive' }],
   },
   {
-    id: 'E08', requiredTitleId: 'B01', name: 'パズルマスター', category: 'B枠上位',
+    id: 'E08', requiredTitleIds: ['B01'], slot: 'suffix', name: 'パズルマスター', category: 'B枠上位',
+    requireMode: 'unlocked',
     challengeDesc: '全6属性のドロップを各2,000個以上消去',
     conditionType: 'erase_min_color', targetValue: 2000,
     desc: 'コンボ倍率 +3.0。',
     effects: [{ type: 'add_mult', value: 3.0 }],
   },
   {
-    id: 'E09', requiredTitleId: 'A05', name: '蒼溟の', category: 'A枠上位',
+    id: 'E09', requiredTitleIds: ['A05'], slot: 'prefix', name: '蒼溟の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「蒼海の」を装備して、1手で雨ドロップを30個以上消去',
-    trigger: { event: 'turn', requireEquipped: true, when: { erased_ge: { color: 'water', n: 30 } } },
-    desc: '雨ドロップ出現率 3倍、雨を消した手番のコンボ倍率 +5.0、操作時間 +1秒。',
-    effects: [{ type: 'spawn_weight', color: 'water', value: 3 }, { type: 'add_mult', value: 5.0, when: { color: 'water' } }, { type: 'time_add', value: 1000 }],
+    trigger: { event: 'turn', when: { erased_ge: { color: 'water', n: 30 } } },
+    desc: '雨ドロップ出現率 3倍、雨を消した手番のコンボ倍率 +5.0、操作時間 +1秒。さらに雨を消した手番、残り操作時間1秒につきコンボ倍率 +0.25（最大+2.0）。',
+    effects: [{ type: 'spawn_weight', color: 'water', value: 3 }, { type: 'add_mult', value: 5.0, when: { color: 'water' } }, { type: 'time_add', value: 1000 }, { type: 'add_mult', value: 0.25, per: 'time_left_sec', max: 8, when: { color: 'water' } }],
   },
   {
-    id: 'E10', requiredTitleId: 'A07', name: '神鳴の', category: 'A枠上位',
+    id: 'E10', requiredTitleIds: ['A07'], slot: 'prefix', name: '神鳴の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「迅雷の」を装備して、1手で雷ドロップを30個以上消去',
-    trigger: { event: 'turn', requireEquipped: true, when: { erased_ge: { color: 'light', n: 30 } } },
+    trigger: { event: 'turn', when: { erased_ge: { color: 'light', n: 30 } } },
     desc: '雷ドロップ出現率 3倍、雷を消した手番のコンボ倍率 +5.0。各サイクルの1手目に雷を消すと、さらに最終コンボ倍率 1.5倍。',
     effects: [{ type: 'spawn_weight', color: 'light', value: 3 }, { type: 'add_mult', value: 5.0, when: { color: 'light' } }, { type: 'final_mult', value: 1.5, when: { first_turn: true, color: 'light' } }],
   },
   {
-    id: 'E11', requiredTitleId: 'A15', name: '先見の', category: 'A枠上位',
+    id: 'E11', requiredTitleIds: ['A15'], slot: 'prefix', name: '先見の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「先制の」を装備して、サイクル5以降を1手目でクリア',
-    trigger: { event: 'clear', requireEquipped: true, when: { first_turn: true, cycle_ge: 5 } },
+    trigger: { event: 'clear', when: { first_turn: true, cycle_ge: 5 } },
     desc: '各サイクルの1手目のみ最終コンボ倍率 2.5倍。',
     effects: [{ type: 'final_mult', value: 2.5, when: { first_turn: true } }],
   },
   {
-    id: 'E12', requiredTitleId: 'A03', name: '不撓の', category: 'A枠上位',
+    id: 'E12', requiredTitleIds: ['A03'], slot: 'prefix', name: '不撓の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「背水の」を装備して、サイクル10以降をクリア',
-    trigger: { event: 'clear', requireEquipped: true, when: { cycle_ge: 10 } },
+    trigger: { event: 'clear', when: { cycle_ge: 10 } },
     desc: '操作時間5秒固定、基礎コンボ数 1.6倍。',
     effects: [{ type: 'time_fixed', value: 5000 }, { type: 'base_mult', value: 1.6 }],
   },
   {
-    id: 'E13', requiredTitleId: 'A14', name: '千手の', category: 'A枠上位',
+    id: 'E13', requiredTitleIds: ['A14'], slot: 'prefix', name: '千手の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「一筆の」を装備して、1手で100マス以上移動してコンボを出す',
-    trigger: { event: 'turn', requireEquipped: true, when: { move_steps_ge: 100, tc_ge: 1 } },
+    trigger: { event: 'turn', when: { move_steps_ge: 100, tc_ge: 1 } },
     desc: '1手の移動1マスにつきコンボ +1（最大+100）。',
     effects: [{ type: 'combo_add', value: 1, per: 'move_steps', max: 100 }],
   },
   {
-    id: 'E14', requiredTitleId: 'B11', name: '星霜の守り手', category: 'B枠上位',
+    id: 'E14', requiredTitleIds: ['B11'], slot: 'suffix', name: '星霜の守り手', category: 'B枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「星詠み」を装備して、1手でスタードロップを5個以上消去',
-    trigger: { event: 'turn', requireEquipped: true, when: { star_erased_ge: 5 } },
+    trigger: { event: 'turn', when: { star_erased_ge: 5 } },
     desc: 'スタードロップ出現 +10%、★獲得に必要なコンボ数 -1。',
     effects: [{ type: 'star_rate', value: 0.1 }, { type: 'star_threshold_sub', value: 1 }],
   },
   {
-    id: 'E15', requiredTitleId: 'B06', name: '錬成王', category: 'B枠上位',
+    id: 'E15', requiredTitleIds: ['B06'], slot: 'suffix', name: '錬成王', category: 'B枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「錬金術士」を装備して、1手で強化ドロップを20個以上消去',
-    trigger: { event: 'turn', requireEquipped: true, when: { enhanced_erased_ge: 20 } },
+    trigger: { event: 'turn', when: { enhanced_erased_ge: 20 } },
     desc: '降ってくるドロップの 25% が強化ドロップ化。消した強化ドロップ1個につきコンボ倍率 +0.1（最大+3.0）。',
     effects: [{ type: 'enhance_rate', value: 0.25 }, { type: 'add_mult', value: 0.1, per: 'enhanced_erased', max: 30 }],
   },
   {
-    id: 'E16', requiredTitleId: 'B03', name: '大魔導', category: 'B枠上位',
+    id: 'E16', requiredTitleIds: ['B03'], slot: 'suffix', name: '大魔導', category: 'B枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「魔導士」を装備して、1手番でアクティブスキルを4回使用',
-    trigger: { event: 'turn', requireEquipped: true, when: { skills_this_turn_ge: 4 } },
+    trigger: { event: 'turn', when: { skills_this_turn_ge: 4 } },
     desc: '全アクティブスキルの消費エネルギー -1、毎手番のエネルギー獲得 +1。',
     effects: [{ type: 'skill_cost_sub', value: 1 }, { type: 'skill_charge_add', value: 1 }],
   },
   {
-    id: 'E17', requiredTitleId: 'B13', name: '天下人', category: 'B枠上位',
+    id: 'E17', requiredTitleIds: ['B13'], slot: 'suffix', name: '天下人', category: 'B枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「討伐者」を装備して、サイクル15以降を最終手番でクリア',
-    trigger: { event: 'clear', requireEquipped: true, when: { last_turn: true, cycle_ge: 15 } },
+    trigger: { event: 'clear', when: { last_turn: true, cycle_ge: 15 } },
     desc: '各サイクルの最終手番でコンボ倍率 +4.0。',
     effects: [{ type: 'add_mult', value: 4.0, when: { last_turn: true } }],
   },
   {
-    id: 'E18', requiredTitleId: 'B07', name: '黄金郷の主', category: 'B枠上位',
+    id: 'E18', requiredTitleIds: ['B07'], slot: 'suffix', name: '黄金郷の主', category: 'B枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「大富豪」を装備して、所持スター1,000を達成',
-    trigger: { event: 'state', requireEquipped: true, when: { stars_ge: 1000 } },
+    trigger: { event: 'state', when: { stars_ge: 1000 } },
     desc: 'サイクルクリア時、所持スターの 25% を利子として獲得。',
     effects: [{ type: 'cycle_interest', value: 0.25 }],
   },
   {
-    id: 'E19', requiredTitleId: 'B14', name: '万象の調律者', category: 'B枠上位',
+    id: 'E19', requiredTitleIds: ['B14'], slot: 'suffix', name: '万象の調律者', category: 'B枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「調律師」を装備して、1手で6属性すべてを消す',
-    trigger: { event: 'turn', requireEquipped: true, when: { colors_ge: 6 } },
+    trigger: { event: 'turn', when: { colors_ge: 6 } },
     desc: '消した属性1種類につきコンボ倍率 +0.8。',
     effects: [{ type: 'add_mult', value: 0.8, per: 'color_count' }],
   },
   {
-    id: 'E20', requiredTitleId: 'B08', name: '絶対者', category: 'B枠上位',
+    id: 'E20', requiredTitleIds: ['B08'], slot: 'suffix', name: '絶対者', category: 'B枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「無双」を装備して、1手で基礎コンボ60を達成',
-    trigger: { event: 'turn', requireEquipped: true, when: { base_combo_ge: 60 } },
+    trigger: { event: 'turn', when: { base_combo_ge: 60 } },
     desc: '基礎コンボ数 1.6倍。',
     effects: [{ type: 'base_mult', value: 1.6 }],
   },
   {
-    id: 'E21', requiredTitleId: 'A06', name: '翠嵐の', category: 'A枠上位',
+    id: 'E21', requiredTitleIds: ['A06'], slot: 'prefix', name: '翠嵐の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「深翠の」を装備して、1手で風ドロップを30個以上消去',
-    trigger: { event: 'turn', requireEquipped: true, when: { erased_ge: { color: 'wood', n: 30 } } },
+    trigger: { event: 'turn', when: { erased_ge: { color: 'wood', n: 30 } } },
     desc: '風ドロップ出現率 3倍、風を消した手番のコンボ倍率 +5.0。さらに風を消した手番、移動4マスにつきコンボ +1（最大+30）。',
     effects: [{ type: 'spawn_weight', color: 'wood', value: 3 }, { type: 'add_mult', value: 5.0, when: { color: 'wood' } }, { type: 'combo_add', value: 0.25, per: 'move_steps', max: 120, when: { color: 'wood' } }],
   },
   {
-    id: 'E22', requiredTitleId: 'A08', name: '朔月の', category: 'A枠上位',
+    id: 'E22', requiredTitleIds: ['A08'], slot: 'prefix', name: '朔月の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「常月の」を装備して、1手で月ドロップを30個以上消去',
-    trigger: { event: 'turn', requireEquipped: true, when: { erased_ge: { color: 'dark', n: 30 } } },
+    trigger: { event: 'turn', when: { erased_ge: { color: 'dark', n: 30 } } },
     desc: '月ドロップ出現率 3倍、月を消した手番のコンボ倍率 +5.0。さらに月を消した手番、所持中の呪い1つにつきコンボ倍率 +1.0（最大5個分）。',
     effects: [{ type: 'spawn_weight', color: 'dark', value: 3 }, { type: 'add_mult', value: 5.0, when: { color: 'dark' } }, { type: 'add_mult', value: 1.0, per: 'curse', max: 5, when: { color: 'dark' } }],
   },
   {
-    id: 'E23', requiredTitleId: 'A09', name: '聖母の', category: 'A枠上位',
+    id: 'E23', requiredTitleIds: ['A09'], slot: 'prefix', name: '聖母の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「慈愛の」を装備して、1手でハートを30個以上消去',
-    trigger: { event: 'turn', requireEquipped: true, when: { erased_ge: { color: 'heart', n: 30 } } },
+    trigger: { event: 'turn', when: { erased_ge: { color: 'heart', n: 30 } } },
     desc: 'ハート出現率 3倍、ハートを消した手番のコンボ倍率 +5.0、コンボによる★獲得量 1.5倍。',
     effects: [{ type: 'spawn_weight', color: 'heart', value: 3 }, { type: 'add_mult', value: 5.0, when: { color: 'heart' } }, { type: 'star_gain_mult', value: 1.5, when: { color: 'heart' } }],
   },
   {
-    id: 'E24', requiredTitleId: 'A48', name: '無垢の', category: 'A枠上位',
+    id: 'E24', requiredTitleIds: ['A48'], slot: 'prefix', name: '無垢の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「純色の」を装備して、1属性のみで1手10コンボを達成',
-    trigger: { event: 'turn', requireEquipped: true, when: { colors_le: 1, tc_ge: 10 } },
+    trigger: { event: 'turn', when: { colors_le: 1, tc_ge: 10 } },
     desc: '累計で最も多く消した属性の出現率 2倍、1属性のみを消した手番のコンボ倍率 +3.5。',
     effects: [{ type: 'spawn_top_colors', count: 1, value: 2 }, { type: 'add_mult', value: 3.5, when: { colors_le: 1 } }],
   },
   {
-    id: 'E25', requiredTitleId: 'B20', name: '双極の覇者', category: 'B枠上位',
+    id: 'E25', requiredTitleIds: ['B20'], slot: 'suffix', name: '双極の覇者', category: 'B枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「二極化」を装備して、2属性のみで1手12コンボを達成',
-    trigger: { event: 'turn', requireEquipped: true, when: { colors_ge: 2, colors_le: 2, tc_ge: 12 } },
+    trigger: { event: 'turn', when: { colors_ge: 2, colors_le: 2, tc_ge: 12 } },
     desc: '累計で最も多く消した2属性の出現率 2倍、ちょうど2属性を消した手番のコンボ倍率 +3.0。',
     effects: [{ type: 'spawn_top_colors', count: 2, value: 2 }, { type: 'add_mult', value: 3.0, when: { colors_ge: 2, colors_le: 2 } }],
   },
   {
-    id: 'E26', requiredTitleId: 'A55', name: '三界の', category: 'A枠上位',
+    id: 'E26', requiredTitleIds: ['A55'], slot: 'prefix', name: '三界の', category: 'A枠上位',
+    requireMode: 'equipped',
     challengeDesc: '「三彩の」を装備して、3属性のみで1手14コンボを達成',
-    trigger: { event: 'turn', requireEquipped: true, when: { colors_ge: 3, colors_le: 3, tc_ge: 14 } },
+    trigger: { event: 'turn', when: { colors_ge: 3, colors_le: 3, tc_ge: 14 } },
     desc: '累計で最も多く消した3属性の出現率 1.5倍、ちょうど3属性を消した手番のコンボ倍率 +2.5。',
     effects: [{ type: 'spawn_top_colors', count: 3, value: 1.5 }, { type: 'add_mult', value: 2.5, when: { colors_ge: 3, colors_le: 3 } }],
+  },
+
+  // --- E27〜E50: 旧セットシナジー（S01〜S49）から移した進化と、新規の進化（E50） ---
+  {
+    id: 'E27', requiredTitleIds: ['B01', ['A04', 'A05', 'A06', 'A07', 'A08', 'A09']], slot: 'suffix', name: '真・覇王', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「覇王」と属性のA枠（紅蓮の・蒼海の・深翠の・迅雷の・常月の・慈愛の）を装備して、その属性のドロップを1手で20個以上消去',
+    trigger: { event: 'turn', when: { erased_ge: { color: '$prefix', n: 20 } } },
+    desc: 'コンボ倍率 +2.0。A枠に装備した属性のドロップがすべて強化ドロップで降ってくる。',
+    effects: [{ type: 'add_mult', value: 2.0 }, { type: 'enhance_color', color: '$prefix', value: 1.0 }],
+  },
+  {
+    id: 'E28', requiredTitleIds: ['B16', ['A04', 'A05', 'A06', 'A07', 'A08', 'A09']], slot: 'suffix', name: '千変の即応陣', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「即応陣」と属性のA枠を装備して、その属性を消してサイクルの1手目でクリア',
+    trigger: { event: 'clear', when: { first_turn: true, color: '$prefix' } },
+    desc: '各サイクル開始時、全アクティブトークンのエネルギーが満タン。各サイクルの1手目にA枠の属性を消すと、コンボ倍率 +2.5。',
+    effects: [{ type: 'skill_charge_cycle_start', value: 'full' }, { type: 'add_mult', value: 2.5, when: { first_turn: true, color: '$prefix' } }],
+  },
+  {
+    id: 'E29', requiredTitleIds: ['A01', 'B08'], slot: 'prefix', name: '電撃の', category: 'A枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「神速の」と「無双」を装備して、操作時間を3秒以上残してサイクルクリア',
+    trigger: { event: 'clear', when: { time_left_ge: 3000 } },
+    desc: '操作時間 +1秒。手番終了時の残り操作時間1秒につき基礎コンボ数 ×+0.15（最大5秒分、×1.75）。',
+    effects: [{ type: 'time_add', value: 1000 }, { type: 'base_mult_step', value: 0.15, per: 'time_left_sec', max: 5 }],
+  },
+  {
+    id: 'E30', requiredTitleIds: ['A10', 'B12'], slot: 'suffix', name: 'ミダスの手', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「黄金の」と「見切り屋」を装備して、1回のショップでリロールを5回する',
+    trigger: { event: 'shop', when: { shop_rerolls_ge: 5 } },
+    desc: 'ショップのリロール価格が 1★固定。ショップを開くたびに無料リロール +1回。',
+    effects: [{ type: 'reroll_fixed', value: 1 }, { type: 'free_reroll', value: 1 }],
+  },
+  {
+    id: 'E31', requiredTitleIds: ['A11', 'B02'], slot: 'suffix', name: '逆転の演出家', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「からっぽの」と「収集家」を装備して、所持スター0の手番でコンボにより★を3個以上獲得',
+    trigger: { event: 'turn', when: { stars_le: 0, stars_gained_ge: 3 } },
+    desc: '★獲得に必要なコンボ数 -2。所持スター0の手番、コンボによる★獲得量 2倍。',
+    effects: [{ type: 'star_threshold_sub', value: 2 }, { type: 'star_gain_mult', value: 2.0, when: { stars_le: 0 } }],
+  },
+  {
+    id: 'E32', requiredTitleIds: ['A26'], slot: 'prefix', name: '聖十字の', category: 'A枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「十字の」を装備して、1手で十字消しを2回する',
+    trigger: { event: 'turn', when: { shape_count_ge: { shape: 'cross', n: 2 } } },
+    desc: '十字消しをした手番、コンボ +9、最終コンボ倍率 1.4倍。',
+    effects: [{ type: 'combo_add', value: 9, when: { shape: 'cross' } }, { type: 'final_mult', value: 1.4, when: { shape: 'cross' } }],
+  },
+  {
+    id: 'E33', requiredTitleIds: ['A27', 'B04'], slot: 'prefix', name: '絶方の', category: 'A枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「方形の」と「方陣師」を装備して、1手で正方形消しを2回する',
+    trigger: { event: 'turn', when: { shape_count_ge: { shape: 'square', n: 2 } } },
+    desc: '正方形消しをした手番、コンボ +12、コンボ倍率 +1.5。',
+    effects: [{ type: 'combo_add', value: 12, when: { shape: 'square' } }, { type: 'add_mult', value: 1.5, when: { shape: 'square' } }],
+  },
+  {
+    id: 'E34', requiredTitleIds: ['A13', 'B10'], slot: 'suffix', name: 'パンドラの解放者', category: 'B枠上位',
+    requireMode: 'unlocked',
+    challengeDesc: '「厄災の」と「狂乱者」を解放した状態で、呪いを3つ所持して1手番でアクティブスキルを3回使う',
+    trigger: { event: 'turn', when: { curses_ge: 3, skills_this_turn_ge: 3 } },
+    desc: 'アクティブスキル使用時、20% ＋所持中の呪い1つにつき 10%（最大+50%）の確率でエネルギーを消費しない。',
+    effects: [{ type: 'skill_refund_chance', value: 0.2 }, { type: 'skill_refund_chance', value: 0.1, per: 'curse', max: 5 }],
+  },
+  {
+    id: 'E35', requiredTitleIds: ['A19', 'B17'], slot: 'suffix', name: '目利きの大商人', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「密売人の」と「鑑定士」を装備して、1回のショップで呪いトークンを2個売却',
+    trigger: { event: 'shop', when: { shop_curses_sold_ge: 2 } },
+    desc: 'トークン売却価格が購入価格の 150%。',
+    effects: [{ type: 'sell_rate', value: 1.5 }],
+  },
+  {
+    id: 'E36', requiredTitleIds: ['A20', 'B18'], slot: 'suffix', name: '全能の覚醒者', category: 'B枠上位',
+    requireMode: 'unlocked',
+    challengeDesc: '「先達の」と「極致者」を解放した状態で、Lv3トークンを5個同時に所持',
+    trigger: { event: 'state', when: { lv3_ge: 5 } },
+    desc: '所持中の Lv3 トークン1つにつきコンボ倍率 +0.5。各サイクル開始時、ランダムなトークン1つのレベルが上がる。',
+    effects: [{ type: 'add_mult', value: 0.5, per: 'lv3' }, { type: 'levelup_on_cycle_start', value: 1 }],
+  },
+  {
+    id: 'E37', requiredTitleIds: ['A25', 'B23'], slot: 'suffix', name: '商店街の主', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「常連の」と「セールスマン」を装備して、1回のショップでセール商品を2個購入',
+    trigger: { event: 'shop', when: { shop_sales_bought_ge: 2 } },
+    desc: 'セール商品 +2枠、全商品 10% 引き。',
+    effects: [{ type: 'sale_add', value: 2 }, { type: 'shop_discount', value: 0.1 }],
+  },
+  {
+    id: 'E38', requiredTitleIds: ['A31', 'B36'], slot: 'suffix', name: '爆心の破壊神', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「爆炎の」と「破壊神」を装備して、1手でボムドロップを3個消去',
+    trigger: { event: 'turn', when: { bomb_erased_ge: 3 } },
+    desc: 'ボムドロップを消した手番、コンボ倍率 +1.0。さらに消したボム1個につきコンボ倍率 +0.5（最大3個分、+1.5）。',
+    effects: [{ type: 'add_mult', value: 1.0, when: { bomb_erased_ge: 1 } }, { type: 'add_mult', value: 0.5, per: 'bomb_erased', max: 3 }],
+  },
+  {
+    id: 'E39', requiredTitleIds: ['A12', 'B41'], slot: 'suffix', name: '静寂の疾走者', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「禁忌の」と「疾風」を装備して、落ちコンが起きなかった手番に60マス以上移動してコンボを出す',
+    trigger: { event: 'turn', when: { no_skyfall_turn: true, move_steps_ge: 60, tc_ge: 1 } },
+    desc: '1手の移動2マスにつきコンボ +1（最大+24）。',
+    effects: [{ type: 'combo_add', value: 0.5, per: 'move_steps', max: 48 }],
+  },
+  {
+    id: 'E40', requiredTitleIds: ['A09', 'B45'], slot: 'suffix', name: '不死鳥の加護', category: 'B枠上位',
+    requireMode: 'unlocked',
+    challengeDesc: '「慈愛の」と「不死鳥」を解放した状態で、所持スター5以下のままサイクルクリア',
+    trigger: { event: 'clear', when: { stars_le: 5 } },
+    desc: '所持スター5以下の時、基礎コンボ数 1.3倍・最終コンボ倍率 1.3倍。',
+    effects: [{ type: 'base_mult', value: 1.3, when: { stars_le: 5 } }, { type: 'final_mult', value: 1.3, when: { stars_le: 5 } }],
+  },
+  {
+    id: 'E41', requiredTitleIds: ['A07', 'B40'], slot: 'suffix', name: '雷光の番人', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「迅雷の」と「時の番人」を装備して、操作時間を4秒以上残し、雷を消してサイクルクリア',
+    trigger: { event: 'clear', when: { time_left_ge: 4000, color: 'light' } },
+    desc: '操作時間 +2.5秒。雷を消した手番、コンボ倍率 +1.0。',
+    effects: [{ type: 'time_add', value: 2500 }, { type: 'add_mult', value: 1.0, when: { color: 'light' } }],
+  },
+  {
+    id: 'E42', requiredTitleIds: ['A44', 'B50'], slot: 'suffix', name: '彼岸の伝説', category: 'B枠上位',
+    requireMode: 'unlocked',
+    challengeDesc: '「彼岸の」と「伝説」を解放した状態で、サイクル25をクリア',
+    trigger: { event: 'clear', when: { cycle_ge: 25 } },
+    desc: 'コンボ倍率 +1.0、最終コンボ倍率 2.5倍。',
+    effects: [{ type: 'add_mult', value: 1.0 }, { type: 'final_mult', value: 2.5 }],
+  },
+  {
+    id: 'E43', requiredTitleIds: ['A16', 'B30'], slot: 'prefix', name: '孤剣の', category: 'A枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「孤高の」と「剣聖」を装備して、トークン3個以下でサイクル8をクリア',
+    trigger: { event: 'clear', when: { tokens_le: 3, cycle_ge: 8 } },
+    desc: 'トークン所持数3個以下でコンボ倍率 +2.0、最終コンボ倍率 1.5倍。',
+    effects: [{ type: 'add_mult', value: 2.0, when: { tokens_le: 3 } }, { type: 'final_mult', value: 1.5, when: { tokens_le: 3 } }],
+  },
+  {
+    id: 'E44', requiredTitleIds: ['A16', 'B57'], slot: 'suffix', name: '独りの極地', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「孤高の」と「隠者」を装備して、トークンを1つも持たずにサイクル5をクリア',
+    trigger: { event: 'clear', when: { tokens_le: 0, cycle_ge: 5 } },
+    desc: 'トークン所持数1個以下で最終コンボ倍率 1.8倍。0個ならさらに 1.5倍。',
+    effects: [{ type: 'final_mult', value: 1.8, when: { tokens_le: 1 } }, { type: 'final_mult', value: 1.5, when: { tokens_le: 0 } }],
+  },
+  {
+    id: 'E45', requiredTitleIds: ['A48', 'B15'], slot: 'suffix', name: '一色の統率者', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「純色の」と「統率者」を装備して、同属性トークン4個を所持し、1属性のみで1手8コンボ',
+    trigger: { event: 'turn', when: { same_attr_ge: 4, colors_le: 1, tc_ge: 8 } },
+    desc: '同属性トークン3個以上所持でコンボ倍率 +1.0。1属性のみを消した手番、最終コンボ倍率 1.4倍。',
+    effects: [{ type: 'add_mult', value: 1.0, when: { same_attr_ge: 3 } }, { type: 'final_mult', value: 1.4, when: { colors_le: 1 } }],
+  },
+  {
+    id: 'E46', requiredTitleIds: ['B46'], slot: 'suffix', name: '七彩の使者', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「虹の使者」を装備して、1手で6属性すべてを消して10コンボ（倍率適用前）',
+    trigger: { event: 'turn', when: { colors_ge: 6, tc_ge: 10 } },
+    desc: '消した属性1種類につきコンボ倍率 +0.25。6属性すべてを消した手番、最終コンボ倍率 1.8倍。',
+    effects: [{ type: 'add_mult', value: 0.25, per: 'color_count' }, { type: 'final_mult', value: 1.8, when: { colors_ge: 6 } }],
+  },
+  {
+    id: 'E47', requiredTitleIds: [['A17', 'A18', 'A51', 'A52', 'A53', 'A54'], 'B03'], requiredMin: 3, slot: 'prefix', name: '万象の詠唱', category: 'A枠上位',
+    requireMode: 'unlocked',
+    challengeDesc: '「〜の詠唱」を3種類以上と「魔導士」を解放した状態で、1手番でアクティブスキルを3回使う',
+    trigger: { event: 'turn', when: { skills_this_turn_ge: 3 } },
+    desc: '全アクティブスキルの消費エネルギー -1。各サイクル開始時、全アクティブトークンのエネルギー +2。',
+    effects: [{ type: 'skill_cost_sub', value: 1 }, { type: 'skill_charge_cycle_start', value: 2 }],
+  },
+  {
+    id: 'E48', requiredTitleIds: ['A56', 'B40'], slot: 'prefix', name: '停刻の', category: 'A枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「刹那の」と「時の番人」を装備して、操作時間の残りが1秒以下の手番でサイクルクリア',
+    trigger: { event: 'clear', when: { time_left_le: 1000 } },
+    desc: '最終コンボ倍率 1.6倍（「刹那の」と違い、操作時間は半分にならない）。',
+    effects: [{ type: 'final_mult', value: 1.6 }],
+  },
+  {
+    id: 'E49', requiredTitleIds: ['A60', 'B19'], slot: 'suffix', name: '動静の覚醒者', category: 'B枠上位',
+    requireMode: 'equipped',
+    challengeDesc: '「静寂の」と「覚醒術士」を装備して、アクティブスキルを使った次の手番に、使わずにサイクルクリア',
+    trigger: { event: 'clear', when: { prev_skill_used: true, skill_used: false } },
+    desc: 'アクティブスキルを使った手番、コンボ倍率 +0.8。その次の手番にアクティブスキルを使わなければ、コンボ倍率 +1.5。',
+    effects: [{ type: 'add_mult', value: 0.8, when: { skill_used: true } }, { type: 'add_mult', value: 1.5, when: { prev_skill_used: true, skill_used: false } }],
+  },
+  {
+    id: 'E50', requiredTitleIds: ['A26', 'A27', 'A28', 'A29'], slot: 'prefix', name: '幾何の', category: 'A枠上位',
+    requireMode: 'unlocked',
+    challengeDesc: '「十字の」「方形の」「鉤爪の」「一閃の」をすべて解放した状態で、1手で特殊消しを3種類以上する',
+    trigger: { event: 'turn', when: { shape_kinds_ge: 3 } },
+    desc: '特殊消し（十字・正方形・L字・横一列）1回につきコンボ倍率 +0.5（最大+3.0）。',
+    effects: [{ type: 'add_mult', value: 0.5, per: 'special_shape_nolen4', max: 6 }],
   },
 ];
 
@@ -1362,5 +1339,4 @@ EVOLVED_TITLES.forEach(t => {
     t.targetValue = 1;
   }
   t.conditionDesc = t.challengeDesc;
-  t.slot = t.requiredTitleId.startsWith('A') ? 'prefix' : 'suffix';
 });

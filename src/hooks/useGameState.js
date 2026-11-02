@@ -498,6 +498,7 @@ export const useGameState = () => {
     getTokenSlotExpandPrice,
     freeRerolls,
     setFreeRerolls,
+    resetShopVisitStats,
   } = shopHook;
 
   // Refを最新の値に同期
@@ -3369,7 +3370,11 @@ export const useGameState = () => {
         },
       });
       if (tc > 0 && !hasUsedActiveSkillThisTurn) recordTitleProgress({ add: { no_skill_turns: 1 } });
-      const triggerCtx = { ...titleCtx, effectiveCombo, baseCombo: turnBaseCombo };
+      const triggerCtx = {
+        ...titleCtx, effectiveCombo, baseCombo: turnBaseCombo,
+        starsGained: totalStarsEarned, // 逆転の演出家: この手番にコンボで獲得した★
+        noSkyfall: !hasSkyfallCombo,   // 静寂の疾走者: 落ちコンが起きなかった手番
+      };
       recordTitleTrigger('turn', triggerCtx);
 
       // サイクルクリア（目標達成）時の記録
@@ -5081,6 +5086,7 @@ export const useGameState = () => {
     prevShowShopRef.current = showShop;
     if (!opened || !isLoaded || isPracticeMode) return;
     recordTitleProgress({ add: { shop_visits: 1 } });
+    resetShopVisitStats();
     const titleFreeRerolls = Math.floor(getTitleEffectTotal('free_reroll', {}, titleEffects));
     if (titleFreeRerolls > 0) {
       setFreeRerolls(f => Math.max(f, titleFreeRerolls));
