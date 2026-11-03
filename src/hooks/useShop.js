@@ -25,8 +25,14 @@ const attrTitleProgress = (prefix, token) => {
   return add;
 };
 
-/** 二つ名の進捗: ★3以上（レア度3以上）のトークンの購入数（rare_bought） */
-const rareBoughtProgress = (token) => ((token?.rarity || 1) >= 3 ? { rare_bought: 1 } : {});
+/** 二つ名の進捗: ★3以上（レア度3以上）のトークンの購入数（rare_bought）・伝説（★4）の購入数（legend_bought） */
+const rareBoughtProgress = (token) => {
+  const rarity = token?.rarity || 1;
+  return {
+    ...(rarity >= 3 ? { rare_bought: 1 } : {}),
+    ...(rarity >= 4 ? { legend_bought: 1 } : {}),
+  };
+};
 
 /** 二つ名: 割引率の合計を価格倍率に変換（複数の割引は乗算、最大90%引き） */
 const getTitlePriceMultiplier = (effects) => {
@@ -205,6 +211,13 @@ export const useShop = ({
     let p4 = adjustProb(probs[4] || 0, 0.05, 0.05, 1);
     let p3 = adjustProb(probs[3] || 0, 0.10, 0.10, 1 - p4);
     let p2 = adjustProb(probs[2] || 0, 0.10, 0.10, 1 - p3 - p4);
+    // 二つ名「燦星の」「秘宝狩り」: ★3 / ★4（伝説）の出現確率を直接加算（その分 ★1→★2 の順に減らす）
+    const rarityAdd = (r) => getTitleEffects('shop_rarity_add', {}, titleEffects)
+      .filter(e => Number(e.rarity) === r)
+      .reduce((sum, e) => sum + (Number(e.value) || 0), 0);
+    p4 = Math.min(1, p4 + rarityAdd(4));
+    p3 = Math.min(1 - p4, p3 + rarityAdd(3));
+    p2 = Math.min(p2, 1 - p3 - p4);
     let p1 = Math.max(0, 1 - p2 - p3 - p4);
 
     const hasCeleb = shopEffectTokens.some(t => t?.effect === "celeb");
