@@ -25,6 +25,9 @@ const attrTitleProgress = (prefix, token) => {
   return add;
 };
 
+/** 二つ名の進捗: ★3以上（レア度3以上）のトークンの購入数（rare_bought） */
+const rareBoughtProgress = (token) => ((token?.rarity || 1) >= 3 ? { rare_bought: 1 } : {});
+
 /** 二つ名: 割引率の合計を価格倍率に変換（複数の割引は乗算、最大90%引き） */
 const getTitlePriceMultiplier = (effects) => {
   const mult = getTitleEffects('shop_discount', {}, effects).reduce((m, e) => m * (1 - (e.value || 0)), 1);
@@ -192,6 +195,9 @@ export const useShop = ({
         });
       }
     });
+
+    // 二つ名「福運の」: ★2以上のレアトークンが出やすくなる（招福の鈴と同じ扱い）
+    rarityUpCount += getTitleEffectTotal('shop_rarity_up', {}, titleEffects);
 
     const adjustProb = (base, upRate, downRate, max) =>
       Math.max(0, Math.min(max, base + upRate * rarityUpCount - downRate * rarityDownCount));
@@ -785,7 +791,7 @@ export const useShop = ({
         setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
         setShopItems((prev) => prev.filter((i) => i !== item));
-        recordTitleProgress({ add: attrTitleProgress('attr_bought', item) });
+        recordTitleProgress({ add: { ...attrTitleProgress('attr_bought', item), ...rareBoughtProgress(item) } });
         if (item.isSale) {
           recordTitleProgress({ add: { sale_bought: 1 } });
           countShopVisitAction('salesBought');
@@ -988,7 +994,7 @@ export const useShop = ({
     setTotalStarsSpent((prev) => prev + item.price);
     setShopItems((prev) => prev.filter((i) => i !== item));
     setPendingShopItem(null);
-    recordTitleProgress({ add: attrTitleProgress('attr_bought', item) });
+    recordTitleProgress({ add: { ...attrTitleProgress('attr_bought', item), ...rareBoughtProgress(item) } });
     if (item.isSale) {
       recordTitleProgress({ add: { sale_bought: 1 } });
       countShopVisitAction('salesBought');
