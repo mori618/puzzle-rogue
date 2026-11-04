@@ -10,7 +10,7 @@ import {
   AWAKENING_TOKEN_SLOT_PRICES,
   INITIAL_TOKEN_SLOTS,
 } from "../constants/gameConstants.js";
-import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel, isTokenRequirementMet, getDebtCreditLimit, canAffordWithCredit } from "../utils/tokenUtils";
+import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel, isTokenRequirementMet, getDebtCreditLimit, canAffordWithCredit, isProbabilityToken } from "../utils/tokenUtils";
 import soundManager from "../utils/SoundManager";
 import { SE_IDS } from "../constants/sounds";
 import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress, recordTitleTrigger, applyTitleRerollPrice, applyTitlePassiveSeal } from "../utils/titleManager";
@@ -22,6 +22,8 @@ import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitl
 const attrTitleProgress = (prefix, token) => {
   const add = {};
   [...new Set(token?.attributes || [])].forEach(attr => { add[`${prefix}_${attr}`] = 1; });
+  // ギャンブラー: 確率で発動するトークンの購入数
+  if (prefix === 'attr_bought' && isProbabilityToken(token)) add.probability_tokens_bought = 1;
   return add;
 };
 
@@ -176,6 +178,9 @@ export const useShop = ({
         attrWeights[e.attribute] *= (Number(e.value) || 1);
       }
     });
+    // 二つ名「ギャンブラー」: 確率系トークンがショップに出やすくなる
+    const probabilityWeight = getTitleEffects('shop_probability_weight', {}, titleEffects)
+      .reduce((m, e) => m * (Number(e.value) || 1), 1);
 
     const getRarityProbabilities = (cycle) => {
       if (cycle <= 5) return { 1: 0.60, 2: 0.30, 3: 0.10, 4: 0.00 };
@@ -275,6 +280,7 @@ export const useShop = ({
         }
         // 前提トークンを所持している関連トークンは出現率アップ（例: ムーブドロップ関連）
         if (base.requires) weight *= SYNERGY_WEIGHT_MULTIPLIER;
+        if (probabilityWeight !== 1 && isProbabilityToken(base)) weight *= probabilityWeight;
         return { base, weight };
       });
 

@@ -48,6 +48,7 @@ import {
   getClearOvershootRatio,
   getExactClearStars,
   EXACT_CLEAR_MAX_OVERSHOOT,
+  applyTitleProbability,
 } from '../utils/titleManager';
 
 // 外部定数・ヘルパーの移行
@@ -180,6 +181,11 @@ export const useGameState = () => {
     return baseDelay;
   }, []);
 
+  // 二つ名「勝負師」: 確率系トークンごとの連続不発回数（キーは instanceId。発動したら 0 に戻る）
+  const probabilityMissStreakRef = useRef({});
+  // ターン終了時の確率判定で発動した確率系トークン（連続不発・発動回数の集計用）
+  const probabilityTriggeredIdsRef = useRef(new Set());
+
   const triggerPassive = (tokenId, noLog = false) => {
     if (!tokenId) return;
     // 発動したトークンIDのベースIDを取得し、確率系トークンに該当するかを判定する
@@ -193,6 +199,7 @@ export const useGameState = () => {
         window.probabilityTriggeredThisTurn = true;
         // 累計発動回数をインクリメント
         window.probabilityTriggeredTotalCount = (window.probabilityTriggeredTotalCount || 0) + 1;
+        probabilityTriggeredIdsRef.current.add(tokenId);
       }
     }
 
@@ -4312,6 +4319,10 @@ export const useGameState = () => {
       const isCursePassiveNull = (buffsInEffect.some(b => b?.action === "curse_passive_null") && !hasSaintToken) || isTitlePassiveSealed;
 
       // 確率系トークンの確率計算用ヘルパー
+      // 判定した確率系トークン（二つ名「勝負師」の連続不発・発動回数の集計用）
+      const rolledProbabilityIds = new Set();
+      probabilityTriggeredIdsRef.current = new Set();
+      const titleProbabilityEffects = isPracticeMode ? [] : titleEffects;
       const getModifiedProbability = (baseProb, tokenInstanceId) => {
         // パッシブ効果による加算
         let addedProb = 0;
@@ -4321,7 +4332,11 @@ export const useGameState = () => {
             addedProb += tok.values[lv - 1] || 0;
           }
         });
-        let result = baseProb + addedProb;
+        const rolledToken = tokens.find(tok => tok && (tok.instanceId === tokenInstanceId || tok.id === tokenInstanceId));
+        if (rolledToken && isProbabilityToken(rolledToken)) rolledProbabilityIds.add(tokenInstanceId);
+        // 二つ名「強運の」(+%)・「幸運の」(×)・「勝負師」(連続不発ごとに +%)
+        const missStreak = probabilityMissStreakRef.current[tokenInstanceId] || 0;
+        let result = applyTitleProbability(baseProb + addedProb, missStreak, titleProbabilityEffects);
         // バフによる倍増
         if (buffsInEffect.some(b => b.action === "double_probability")) {
           result *= 2;
@@ -5036,6 +5051,32 @@ export const useGameState = () => {
             }
           }
         });
+
+        // 二つ名「勝負師」: 連続不発回数の更新（発動したらリセット）と、二つ名の解放進捗
+        {
+          const streaks = { ...probabilityMissStreakRef.current };
+          let triggeredCount = 0;
+          let maxStreak = 0;
+          rolledProbabilityIds.forEach(id => {
+            if (probabilityTriggeredIdsRef.current.has(id)) {
+              streaks[id] = 0;
+              triggeredCount++;
+            } else {
+              streaks[id] = (streaks[id] || 0) + 1;
+              maxStreak = Math.max(maxStreak, streaks[id]);
+            }
+          });
+          // 手放したトークンの記録は消す
+          const ownedIds = new Set(tokens.filter(Boolean).map(tok => tok.instanceId || tok.id));
+          Object.keys(streaks).forEach(id => { if (!ownedIds.has(id) && !ownedIds.has(Number(id))) delete streaks[id]; });
+          probabilityMissStreakRef.current = streaks;
+          if (!isPracticeMode && !showTitle && rolledProbabilityIds.size > 0) {
+            recordTitleProgress({
+              add: { probability_triggers: triggeredCount },
+              max: { probability_miss_streak_max: maxStreak },
+            });
+          }
+        }
 
         // 12. 確率盤面リフレッシュ（他のすべての効果の後）
         if (refreshRates.length > 0) {
