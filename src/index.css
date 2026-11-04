@@ -413,6 +413,18 @@ body {
     0 0 40px rgba(91, 19, 236, 0.8);
 }
 
+/* トークン効果（脈動系など）でコンボが加算された時のコンボ数字（シアン系） */
+.combo-number--token {
+  color: #67e8f9;
+  text-shadow:
+    -2px -2px 0 var(--color-outline-stylish),
+    2px -2px 0 var(--color-outline-stylish),
+    -2px 2px 0 var(--color-outline-stylish),
+    2px 2px 0 var(--color-outline-stylish),
+    0 0 20px rgba(34, 211, 238, 1),
+    0 0 40px rgba(34, 211, 238, 0.8);
+}
+
 /* 黄色く輝くテキスト効果 */
 .text-yellow-glow {
   color: #fbbf24 !important;

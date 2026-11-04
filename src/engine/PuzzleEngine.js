@@ -1534,7 +1534,7 @@ class PuzzleEngine {
         const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
 
         // 先に comboEl の HTML をコンボ数で更新（既存のコンボカウンタ自体は更新）
-        this.comboEl.innerHTML = `<span class="combo-number" id="rt-combo-num">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
+        this.comboEl.innerHTML = `<span class="combo-number combo-number--token" id="rt-combo-num">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
         this.comboEl.classList.remove('animate-combo-pop');
         void this.comboEl.offsetWidth;
         this.comboEl.classList.add('animate-combo-pop');
