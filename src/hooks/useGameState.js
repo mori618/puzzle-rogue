@@ -18,6 +18,7 @@ import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, 
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { buildEffectiveTokens, resolveCopiedToken, getBuffsInEffect, decrementBuffDurations, isTrialStageActive } from '../utils/effectiveTokens.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
+import { getMoveTimeRhythmEffect } from '../utils/moveTimeRhythm.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
 import { describeRewards, isPenaltyReward } from '../utils/minigames.js';
 import soundManager from '../utils/SoundManager';
@@ -2876,6 +2877,28 @@ export const useGameState = () => {
       }
     });
 
+    // --- 緩急の心得: 操作時間 4〜10秒で基礎コンボ加算、10秒超で操作秒数ぶんコンボ倍率加算 ---
+    if ((extraStats.moveSteps || 0) > 0) {
+      effectiveTokens.forEach(t => {
+        if (!t || t.effect !== 'move_time_rhythm') return;
+        if (isCursePassiveNull && t.type === 'passive') return;
+        const lv = t.level || 1;
+        const tId = t.instanceId || t.id;
+        const rhythm = getMoveTimeRhythmEffect(extraStats.moveElapsedMs, t.values?.[lv - 1] || 0);
+        if (rhythm.kind === 'combo') {
+          if (isInstant) triggerPassive(tId);
+          bonus += rhythm.bonus;
+          logData.bonuses.push(`move_time_rhythm:+${rhythm.bonus}`);
+          logData.bonusSteps.push({ label: t.name || '緩急の心得', value: rhythm.bonus, tokenId: tId });
+        } else if (rhythm.kind === 'multiplier' && rhythm.addMultiplier > 0) {
+          if (isInstant) triggerPassive(tId);
+          addedMultiplier += rhythm.addMultiplier;
+          logData.multipliers.push(`move_time_rhythm:+${rhythm.addMultiplier.toFixed(1)}`);
+          logData.multiplierSteps.push({ label: t.name || '緩急の心得', value: 1.0 + rhythm.addMultiplier, addedValue: rhythm.addMultiplier, type: 'add', tokenId: tId });
+        }
+      });
+    }
+
     // --- 確率系発動基礎コンボ乗算 ---
     effectiveTokens.forEach(t => {
       if (!t || t.effect !== 'probability_trigger_multiplier') return;
@@ -3706,6 +3729,18 @@ export const useGameState = () => {
         }
       }
     });
+
+    // 緩急の心得: 操作時間2秒以下ならアクティブスキルのエネルギーをチャージ
+    if (!isCursePassiveNull && (extraStats.moveSteps || 0) > 0) {
+      effectiveTokens.forEach(t => {
+        if (!t || t.effect !== 'move_time_rhythm') return;
+        const rhythm = getMoveTimeRhythmEffect(extraStats.moveElapsedMs, t.values?.[(t.level || 1) - 1] || 0);
+        if (rhythm.kind === 'charge') {
+          triggerPassive(t.instanceId || t.id);
+          extraAutoCharge += rhythm.charge;
+        }
+      });
+    }
 
     // --- ターン終了時の呪い処理 ---
     const hasRoulette = tokens.some(t => t?.id === "curse_roulette") && !hasSaintToken;

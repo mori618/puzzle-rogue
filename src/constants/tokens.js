@@ -1943,6 +1943,19 @@ const ALL_TOKEN_BASES = [
     canBeInitial: true
   },
   {
+    id: "tempo_rhythm",
+    name: "緩急の心得",
+    icon: "avg_pace",
+    type: "passive",
+    effect: "move_time_rhythm",
+    values: [3, 5, 8],
+    rarity: 2,
+    price: 22,
+    desc: "ドロップを動かした手番の操作時間で効果が変わる。2秒以下：アクティブスキルのエネルギーを1チャージ。4〜10秒：基礎コンボ+{values}。10秒超：操作した秒数だけコンボ倍率にプラス。",
+    attributes: [],
+    canBeInitial: true
+  },
+  {
     id: "last_turn_burst",
     name: "火事場の馬鹿力",
     icon: "hourglass_bottom",
