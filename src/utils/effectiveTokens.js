@@ -69,6 +69,36 @@ export const getRearguardTargetIndex = (effectTokens = [], tokens = []) => {
   return firstIdx;
 };
 
+// 試練そのものに関わるバフ（試練中も止めずに通常どおり扱う）
+const TRIAL_BUFF_ACTIONS = new Set(['trial_stage_active', 'trial_success']);
+
+/** 試練のターン中かどうか */
+export const isTrialStageActive = (activeBuffs = []) =>
+  activeBuffs.some(b => b?.action === 'trial_stage_active');
+
+/** 試練自体のバフかどうか */
+export const isTrialBuff = (buff) => TRIAL_BUFF_ACTIONS.has(buff?.action);
+
+/**
+ * 効果を発揮しているバフの一覧を返す。
+ * 試練のターン中は、試練以外のバフの効果をすべて止める（残り手番は減らさずに次のターンへ持ち越す）。
+ */
+export const getBuffsInEffect = (activeBuffs = []) => {
+  if (!isTrialStageActive(activeBuffs)) return activeBuffs;
+  return activeBuffs.filter(isTrialBuff);
+};
+
+/**
+ * ターン終了時のバフの残り手番を1減らし、切れたものを取り除く。
+ * 試練のターン中は試練以外のバフの残り手番を減らさない。
+ */
+export const decrementBuffDurations = (activeBuffs = []) => {
+  const trialActive = isTrialStageActive(activeBuffs);
+  return activeBuffs
+    .map(b => ((trialActive && !isTrialBuff(b)) ? { ...b } : { ...b, duration: b.duration - 1 }))
+    .filter(b => b.duration > 0);
+};
+
 /**
  * 効果計算に使うトークン一覧を作る。
  * @param {object} p
@@ -78,8 +108,7 @@ export const getRearguardTargetIndex = (effectTokens = [], tokens = []) => {
  * @param {Set}   [p.titleDoubledPassiveIds] 二つ名「苦行者」で2回発動するパッシブの instanceId
  */
 export const buildEffectiveTokens = ({ effectTokens = [], tokens = [], activeBuffs = [], titleDoubledPassiveIds = new Set() }) => {
-  const isTrialActive = activeBuffs.some(b => b?.action === 'trial_stage_active');
-  if (isTrialActive) return [];
+  if (isTrialStageActive(activeBuffs)) return [];
   const hasTrialSuccess = activeBuffs.some(b => b?.action === 'trial_success');
 
   const baseEffective = buildBaseEffectiveTokens(effectTokens, tokens);
