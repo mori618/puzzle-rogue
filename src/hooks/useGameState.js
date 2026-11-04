@@ -11,6 +11,7 @@ import StartOptionScreen from "../StartOptionScreen";
 import TokenEncyclopediaScreen from "../TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, ENCHANTMENTS } from '../constants/enchantments.js';
+import { getComboStarUnits } from '../utils/starEconomy.js';
 import { MAX_COMBO, MAX_TARGET, TRIAL_TIME_LIMIT_MS, TRIAL_BOARD_COMBOS, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost, TIME_BANK_MAX_MS } from '../constants/gameConstants.js';
 import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, applyNewTokenLevel, isProbabilityToken, isRabbitToken, countRabbitTokens, RABBIT_TOKEN_IDS } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
@@ -3443,13 +3444,15 @@ export const useGameState = () => {
     const baseStarThreshold = Math.max(1, 5 - totalReduction);
     const starThreshold = isCurseInitActive ? baseStarThreshold + 1 : baseStarThreshold;
 
-    const currentProgress = starProgress + effectiveCombo;
+    // スターインフレ対策: 目標が大きいサイクルではコンボを「目標に対する割合」で換算する
+    const comboStarUnits = getComboStarUnits(effectiveCombo, effectiveTarget);
+    const currentProgress = starProgress + comboStarUnits;
     const rawStarsEarned = starThreshold > 0 ? Math.floor(currentProgress / starThreshold) : 0;
     // 二つ名: コンボによるスター獲得量の倍率
     const titleStarGainMult = getTitleEffectProduct('star_gain_mult', titleCtx, titleEffects);
     const totalStarsEarned = Math.floor(rawStarsEarned * titleStarGainMult);
     const nextProgress = starThreshold > 0 ? currentProgress % starThreshold : 0;
-    playLog.event('turnStars', { starThreshold, starProgressBefore: starProgress, earned: totalStarsEarned, raw: rawStarsEarned, mult: titleStarGainMult });
+    playLog.event('turnStars', { starThreshold, starProgressBefore: starProgress, comboStarUnits, earned: totalStarsEarned, raw: rawStarsEarned, mult: titleStarGainMult });
 
     setStarProgress(nextProgress);
 
