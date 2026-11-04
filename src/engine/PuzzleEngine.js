@@ -1,6 +1,9 @@
 import { MAX_COMBO, MAX_TARGET } from '../constants/gameConstants.js';
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
+
+// 1ターンの消去回数（リピートの再消去を含む）がこれを超えたら、自動で早送りにする
+const AUTO_FAST_FORWARD_CLEARS = 20;
 import soundManager from '../utils/SoundManager';
 import { SE_IDS } from '../constants/sounds';
 
@@ -53,6 +56,12 @@ class PuzzleEngine {
     this.currentCombo = 0;
     this.noSkyfall = false;
     this.noSpecialEffects = false;
+    // 呪い「絶望の癒し」など: 消してもコンボにならない属性（リアルタイム表示からも除く）
+    this.noComboColors = [];
+    this.cursedComboRemoved = 0;
+    // 1ターンの消去回数と、多すぎるときの自動早送り
+    this.clearsThisTurn = 0;
+    this.autoFastForward = false;
     this.gravityDirection = 'down'; // 重力方向（'down' または 'up'）
     this.hasOneStrokeSeal = false;  // 一筆書きの誓約が有効か
     this.oneStrokeVisited = null;   // ドラッグ中の訪問済みセル（Set で管理）
@@ -229,6 +238,22 @@ class PuzzleEngine {
 
   setNoEraseColors(colors) {
     this.noEraseColors = colors || [];
+  }
+
+  setNoComboColors(colors) {
+    this.noComboColors = colors || [];
+  }
+
+  /** コンボにならない属性かどうか */
+  _isNoComboColor(type) {
+    return !!type && !!this.noComboColors?.includes(type);
+  }
+
+  /** コンボにならない属性の count 個分を加算値から差し引く量を返す（記録もする） */
+  _deductNoCombo(addition, count) {
+    const d = Math.max(0, Math.min(count, addition));
+    this.cursedComboRemoved += d;
+    return d;
   }
 
   setRealtimeBonuses(bonuses) {
@@ -1871,6 +1896,9 @@ class PuzzleEngine {
   async process() {
     this.processing = true;
     this.currentCombo = 0;
+    this.cursedComboRemoved = 0;
+    this.clearsThisTurn = 0;
+    this.autoFastForward = false;
     if (this.comboEl) {
       this.comboEl.innerText = "";
       this.comboEl.style.display = "block";
@@ -1978,6 +2006,7 @@ class PuzzleEngine {
           const enhancedBonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
 
           let totalAddition = 0;
+          let noComboCount = 0;
 
           for (const targetOrb of bombTargets) {
             targetOrb.el.classList.add("orb-matching");
@@ -1995,6 +2024,7 @@ class PuzzleEngine {
               colorComboCounts[type]++;
               erasedColorCounts[type]++; // NOTE: This adds +1 per orb, not per group. Compatible with color combo.
               iterationErasedColors.add(type);
+              if (this._isNoComboColor(type)) noComboCount++;
             }
             if (!targetOrb.isSkyfall) clearedInitialOrbs++;
           }
@@ -2009,6 +2039,8 @@ class PuzzleEngine {
             this.state[targetOrb.r][targetOrb.c] = null;
           }
 
+          // コンボにならない属性（呪い）の分は表示前に差し引く
+          totalAddition -= this._deductNoCombo(totalAddition, noComboCount);
           await this.animateComboAdd(totalAddition);
           await this.sleep(50);
           if (this._isDestroyed) return;
@@ -2092,6 +2124,9 @@ class PuzzleEngine {
         }
 
         for (let clearNum = 0; clearNum < totalClears; clearNum++) {
+          // リピートの連鎖などで消去が続くときは、自動で早送りにして待ち時間を短くする
+          this.clearsThisTurn++;
+          if (this.clearsThisTurn > AUTO_FAST_FORWARD_CLEARS) this.autoFastForward = true;
           if (clearNum > 0) {
             // 2回目以降の消去時：復活アニメーション（アイコンを消して再度準備）
             group.forEach((o) => {
@@ -2303,6 +2338,9 @@ class PuzzleEngine {
             }
           });
 
+          // コンボにならない属性（呪い）のグループは1コンボ分を差し引く
+          if (this._isNoComboColor(type)) addition -= this._deductNoCombo(addition, 1);
+
           // 通常コンボ加算（トークンボーナスなし）
           groupComboPromises.push(this.animateComboAdd(addition));
 
@@ -2446,6 +2484,9 @@ class PuzzleEngine {
     }
 
     if (this.onTurnEnd) {
+      // 自動早送りは盤面の消去演出だけ。ターン終了後のコンボ内訳演出は通常速度で見せる
+      this.autoFastForward = false;
+      this.updateFastForwardState();
       await this.onTurnEnd(
         this.currentCombo,
         colorComboCounts,
@@ -2457,7 +2498,7 @@ class PuzzleEngine {
         erasedByRepeatTotal,
         erasedByStarTotal,
         isPerfect || allInitialOrbsCleared,
-        { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased, enhancedSelfErased, erasedRowInfos, erasedColumnInfos, moveDropPath: Array.from(this.moveDropPath || []), moveSteps: this.currentMoveSteps || 0 },
+        { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased, enhancedSelfErased, erasedRowInfos, erasedColumnInfos, moveDropPath: Array.from(this.moveDropPath || []), moveSteps: this.currentMoveSteps || 0, cursedComboRemoved: this.cursedComboRemoved || 0 },
         detailedShapes,
         this.lastTurnRemainingTimeMs || 0
       );
@@ -2479,6 +2520,9 @@ class PuzzleEngine {
     });
 
     this.processing = false;
+    // 自動早送りを解除し、早送り表示も消す
+    this.autoFastForward = false;
+    this.updateFastForwardState();
     this._flushPendingBoardOps();
   }
 
@@ -3309,7 +3353,7 @@ class PuzzleEngine {
   }
 
   updateFastForwardState() {
-    const shouldFast = this.processing && this.isPointerDown && !this.dragging;
+    const shouldFast = this.processing && !this.dragging && (this.isPointerDown || this.autoFastForward);
     if (shouldFast) {
       if (!this.isFastForward) {
         this.isFastForward = true;

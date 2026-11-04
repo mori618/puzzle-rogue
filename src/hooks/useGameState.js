@@ -423,6 +423,39 @@ export const useGameState = () => {
   const handleTurnEndRef = useRef(null);
   const onPassiveTriggerRef = useRef(null);
   const onStarEraseRef = useRef(null);
+  // スタードロップ消去で得たスターは、連鎖中にまとめて反映する（大量のリピート連鎖で再描画が詰まるのを防ぐ）
+  const pendingStarEraseRef = useRef({ amount: 0, passiveIds: new Set(), crossBoostMsg: null, timer: null });
+  const STAR_ERASE_FLUSH_MS = 400;
+  const flushPendingStarErase = useCallback(() => {
+    const pending = pendingStarEraseRef.current;
+    if (pending.timer) {
+      clearTimeout(pending.timer);
+      pending.timer = null;
+    }
+    const amount = pending.amount;
+    const passiveIds = [...pending.passiveIds];
+    const crossBoostMsg = pending.crossBoostMsg;
+    pending.amount = 0;
+    pending.passiveIds = new Set();
+    pending.crossBoostMsg = null;
+    if (amount <= 0 && passiveIds.length === 0) return;
+
+    if (crossBoostMsg) notify(crossBoostMsg);
+    if (amount > 0) {
+      setStars((st) => st + amount);
+      notify(`+ ${amount} STARS!`);
+      setCurrentRunStats(prev => ({
+        ...prev,
+        totalStarEarnedByDrops: (prev.totalStarEarnedByDrops || 0) + amount
+      }));
+      setStats(prev => ({
+        ...prev,
+        lifetimeStarEarnedByDrops: (prev.lifetimeStarEarnedByDrops || 0) + amount
+      }));
+    }
+    passiveIds.forEach(id => onPassiveTriggerRef.current?.(id));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const totalMoveTimeRef = useRef(0);
   // 二つ名判定用: この手番に使用したスキル数
   const skillsThisTurnRef = useRef(0);
@@ -796,6 +829,10 @@ export const useGameState = () => {
       }
     });
     engineRef.current.setNoEraseColors(noEraseColors);
+
+    // 呪い「絶望の癒し」: ハートを消してもコンボにならない（リアルタイム表示からも除く）
+    const isCurseHeartActive = tokens.some(t => t?.id === "curse_heart") && !hasSaintToken;
+    engineRef.current.setNoComboColors(isCurseHeartActive ? ["heart"] : []);
   }, [activeBuffs, buffsInEffect, tokens, effectTokens, isTitlePassiveSealed, hasSaintToken, titleEffects, isPracticeMode]);
 
   const getTimeLimit = useCallback(() => {
@@ -893,6 +930,8 @@ export const useGameState = () => {
     );
 
     engine.init(savedBoard);
+    // 呪い「絶望の癒し」: 盤面を作り直したときも、ハートをコンボ表示から除く設定を引き継ぐ
+    engine.setNoComboColors((tokens.some(t => t?.id === "curse_heart") && !hasSaintToken) ? ["heart"] : []);
     engineRef.current = engine;
 
     return () => {
@@ -1236,6 +1275,8 @@ export const useGameState = () => {
   }, [tokens, getTimeLimit, minMatchLength, activeBuffs, settings?.speedMultiplier, titleEffects, isPracticeMode]);
 
   const handleTurnEnd = async (turnCombo, colorComboCounts, erasedColorCounts, hasSkyfallCombo, shapes = [], overLinkMultiplier = 1, erasedByBombTotal = 0, erasedByRepeatTotal = 0, erasedByStarTotal = 0, isAllClear = false, extraStats = {}, detailedShapes = [], remainingTimeMs = 0) => {
+    // 連鎖中に貯めたスタードロップのスターを先に反映する
+    flushPendingStarErase();
     // スキルによって消去されたドロップ数をマージ
     const finalErasedColorCounts = { ...erasedColorCounts };
     Object.keys(skillErasedCounts).forEach(color => {
@@ -1548,8 +1589,10 @@ export const useGameState = () => {
 
     const isCurseHeartActive = tokens.some(t => t?.id === "curse_heart") && !hasSaintToken;
     if (isCurseHeartActive) {
+      // エンジン側でリアルタイム表示から差し引き済みの分は、ここでは引かない
       const heartMatches = colorComboCounts["heart"] || 0;
-      tc = Math.max(0, tc - heartMatches);
+      const alreadyRemoved = extraStats?.cursedComboRemoved || 0;
+      tc = Math.max(0, tc - Math.max(0, heartMatches - alreadyRemoved));
     }
 
     setLastTurnCombo(tc);
@@ -3211,13 +3254,10 @@ export const useGameState = () => {
       comboBeforeCurseHalf = Math.min(Math.floor(baseWithoutHalf * finalComboMultiplier), MAX_COMBO);
     }
 
+    // 限界到達のダイアログは、コンボ数の演出を見せ終わってから出す（下の showComboBreakdownLocal の後）
+    const isFirstMaxComboReach = effectiveCombo >= MAX_COMBO && !currentRunStats.hasReachedMaxCombo && !isPracticeMode;
     if (effectiveCombo >= MAX_COMBO) {
-      setCurrentRunStats(prev => {
-        if (!prev.hasReachedMaxCombo && !isPracticeMode) {
-          setShowMaxComboWarpDialog(true);
-        }
-        return { ...prev, hasReachedMaxCombo: true };
-      });
+      setCurrentRunStats(prev => ({ ...prev, hasReachedMaxCombo: true }));
     }
 
     if (isPracticeMode) {
@@ -3376,6 +3416,11 @@ export const useGameState = () => {
       tc, logData, turnCombo, bonus, effectiveCombo, MAX_COMBO,
       finalBaseCombo, finalComboMultiplier, debuffMultiplier, addedMultiplier
     });
+
+    if (isFirstMaxComboReach) {
+      // 確定したコンボ数を少し見せてからダイアログを出す
+      setTimeout(() => setShowMaxComboWarpDialog(true), getAnimDelay(1200));
+    }
 
     let totalReduction = 0;
     effectTokens.forEach((t) => {
@@ -5034,31 +5079,26 @@ export const useGameState = () => {
       // 明星の十字架 (star_cross_boost) の倍率処理
       let starEraseMultiplier = 1;
       const starCrossBoostToken = effectiveTokens.find(t => t && t.effect === "star_cross_boost");
+      const pending = pendingStarEraseRef.current;
       if (starCrossBoostToken && engineRef.current && engineRef.current.starCrossBoostActive) {
         const lv = starCrossBoostToken.level || 1;
         const multVal = starCrossBoostToken.values[lv - 1] || 1;
         starEraseMultiplier *= multVal;
-        triggerPassive(starCrossBoostToken.instanceId || starCrossBoostToken.id);
-        notify(`${starCrossBoostToken.name}発動！このターン獲得するすべてのスター量が${multVal}倍！`);
+        pending.passiveIds.add(starCrossBoostToken.instanceId || starCrossBoostToken.id);
+        pending.crossBoostMsg = `${starCrossBoostToken.name}発動！このターン獲得するすべてのスター量が${multVal}倍！`;
       }
 
       const amount = (2 + extraStarsPerStarDropErase) * count * starEraseMultiplier;
-      setStars((s) => s + amount);
-      notify(`+ ${amount} STARS!`);
-      setCurrentRunStats(prev => ({
-        ...prev,
-        totalStarEarnedByDrops: (prev.totalStarEarnedByDrops || 0) + amount
-      }));
-      setStats(prev => ({
-        ...prev,
-        lifetimeStarEarnedByDrops: (prev.lifetimeStarEarnedByDrops || 0) + amount
-      }));
-
+      pending.amount += amount;
       effectiveTokens.forEach(t => {
         if (t && t.effect === "star_earn_boost") {
-          triggerPassive(t.instanceId || t.id);
+          pending.passiveIds.add(t.instanceId || t.id);
         }
       });
+
+      // 連鎖が続く間はまとめ、一定時間途切れたら反映する（ターン終了時にも必ず反映する）
+      if (pending.timer) clearTimeout(pending.timer);
+      pending.timer = setTimeout(flushPendingStarErase, STAR_ERASE_FLUSH_MS);
     };
   });
 
