@@ -16,7 +16,6 @@ import PlayLogPanel from "./PlayLogPanel";
 import playLog from "./utils/playLogger";
 import { loadTitleState, isTitleSealedActive } from "./utils/titleManager";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
-import { getEnchantDescription } from './constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, INITIAL_TOKEN_SLOTS, getMaxTokenSlotExpansions } from './constants/gameConstants.js';
 import { formatJapaneseNumber } from './utils/numberUtils.js';
 import { resolveCopiedToken } from './utils/effectiveTokens.js';
@@ -24,6 +23,7 @@ import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
 import { getEffectiveCost, getTokenDescription } from './utils/tokenUtils';
 import { useGameState } from "./hooks/useGameState";
+import { safeRemoveItem } from "./utils/safeStorage.js";
 
 const App = () => {
   const gameState = useGameState();
@@ -78,7 +78,6 @@ const App = () => {
     levelUpTokenId,
     isEndlessMode,
     selectedTokenDetail, setSelectedTokenDetail,
-    selectedEnchantDetail, setSelectedEnchantDetail,
     tokenMoveInput, setTokenMoveInput,
     showGameClear, setShowGameClear,
     isPracticeMode,
@@ -133,7 +132,6 @@ const App = () => {
     moveToken,
     handleChoice,
     handleStartPractice,
-    toggleEnchantStatus,
     openShop,
     refreshShop,
     handleDragStart,
@@ -220,7 +218,7 @@ const App = () => {
           // if (engineRef.current && savedBoard) engineRef.current.init(savedBoard);
         }}
         onStart={() => {
-          localStorage.removeItem(SAVE_KEY);
+          safeRemoveItem(SAVE_KEY);
           setHasSaveData(false);
           resetGame();
           setShowStartOption(true);
@@ -1463,7 +1461,6 @@ const App = () => {
               const cost = getEffectiveCost(t);
               const isSealedByTitle = isTitleSealedActive(t);
               const isReady = isSkill && charge >= cost && !isSealedByTitle;
-              const enchList = t.enchantments || [];
               return (
                 <div className="fixed inset-0 z-[450] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6" onClick={() => setSelectedTokenDetail(null)}>
                   {selectedTokenDetail.actionText && (

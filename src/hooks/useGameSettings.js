@@ -2,11 +2,17 @@
 import { useState, useEffect, useCallback } from "react";
 import { SETTINGS_KEY, DEFAULT_SETTINGS } from "../constants/gameConstants.js";
 import soundManager from "../utils/SoundManager";
+import { safeSetItem } from "../utils/safeStorage.js";
 
 export const useGameSettings = () => {
   // 初期ロード時に設定を localStorage から復元（useStateの初期値関数を使用）
   const [settings, setSettings] = useState(() => {
-    const savedSettings = localStorage.getItem(SETTINGS_KEY);
+    let savedSettings = null;
+    try {
+      savedSettings = localStorage.getItem(SETTINGS_KEY);
+    } catch (e) {
+      console.error("設定データの読み込みに失敗しました:", e);
+    }
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
@@ -28,7 +34,7 @@ export const useGameSettings = () => {
   const handleSettingsChange = useCallback((key, value) => {
     setSettings(prev => {
       const next = { ...prev, [key]: value };
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+      safeSetItem(SETTINGS_KEY, JSON.stringify(next));
       return next;
     });
   }, []);

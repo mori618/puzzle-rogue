@@ -12,13 +12,14 @@ import TokenEncyclopediaScreen from "../TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, ENCHANTMENTS } from '../constants/enchantments.js';
 import { getComboStarUnits } from '../utils/starEconomy.js';
-import { MAX_COMBO, MAX_TARGET, TRIAL_TIME_LIMIT_MS, TRIAL_BOARD_COMBOS, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost, TIME_BANK_MAX_MS } from '../constants/gameConstants.js';
+import { MAX_COMBO, MAX_TARGET, TRIAL_TIME_LIMIT_MS, TRIAL_BOARD_COMBOS, SAVE_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost, TIME_BANK_MAX_MS } from '../constants/gameConstants.js';
 import { calcBaseCombo, calcComboMultiplier, applyComboMultiplier, INUGAMI_THRESHOLD } from '../utils/comboFormula';
 import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, applyNewTokenLevel, isProbabilityToken, isRabbitToken, countRabbitTokens, RABBIT_TOKEN_IDS } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { buildEffectiveTokens, resolveCopiedToken, getBuffsInEffect, decrementBuffDurations, isTrialStageActive } from '../utils/effectiveTokens.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
+import { safeSetItem, safeRemoveItem } from '../utils/safeStorage.js';
 import soundManager from '../utils/SoundManager';
 import { useGameSettings } from './useGameSettings';
 import { usePuzzleBoard } from './usePuzzleBoard';
@@ -59,7 +60,8 @@ import {
 export const useGameState = () => {
   // フック本体のロジック
   // セーブデータをマウント前に同期的にロード（初期表示時のフラッシュ防止およびパズル盤面の確実な復元のため）
-  const savedData = (() => {
+  // useState の初期化関数で読むことで、再レンダーごとの JSON.parse を避ける（参照はマウント時のみ）
+  const [savedData] = useState(() => {
     try {
       const data = localStorage.getItem(SAVE_KEY);
       return data ? JSON.parse(data) : null;
@@ -67,7 +69,7 @@ export const useGameState = () => {
       console.error("Failed to parse saved data from localStorage:", e);
       return null;
     }
-  })();
+  });
 
   // Game State
   const [isLoaded, setIsLoaded] = useState(false);
@@ -644,26 +646,14 @@ export const useGameState = () => {
       generateShop();
     }
 
-    const savedStats = localStorage.getItem('puzzle_rogue_stats');
-    if (savedStats) {
-      try {
-        setStats(JSON.parse(savedStats));
-      } catch (e) {
-        console.error("Stats data corrupted:", e);
-      }
+    try {
+      const savedStats = localStorage.getItem('puzzle_rogue_stats');
+      if (savedStats) setStats(JSON.parse(savedStats));
+    } catch (e) {
+      console.error("Stats data corrupted:", e);
     }
 
-    const savedSettings = localStorage.getItem(SETTINGS_KEY);
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings);
-        setSettings(prev => ({ ...prev, ...parsed }));
-        soundManager.updateSettings(parsed);
-      } catch (e) {
-        console.error("Settings data corrupted:", e);
-      }
-    }
-
+    // 設定の復元は useGameSettings の初期化で行っている
     setIsLoaded(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -736,7 +726,7 @@ export const useGameState = () => {
     if (isPracticeMode) return;
 
     if (isGameOver) {
-      localStorage.removeItem(SAVE_KEY);
+      safeRemoveItem(SAVE_KEY);
       setHasSaveData(false);
       return;
     }
@@ -766,14 +756,15 @@ export const useGameState = () => {
       board: (!showTitle && engineRef.current) ? engineRef.current.getState() : (savedBoard || null)
     };
 
-    localStorage.setItem(SAVE_KEY, JSON.stringify(saveObj));
-    setHasSaveData(true);
+    if (safeSetItem(SAVE_KEY, JSON.stringify(saveObj))) {
+      setHasSaveData(true);
+    }
 
   }, [turn, cycleTotalCombo, target, goalReached, stars, tokens, isGameOver, isLoaded, totalPurchases, totalStarsSpent, sandsOfTimeSeconds, shopRerollBasePrice, shopRerollPrice, currentRunTotalCombo, shopItems, savedBoard, isEnchantShopUnlocked, tokenSlotExpansionCount, titleSwitchCount, freeRerolls, isAwakeningLevelUpBought, currentRunStats, isPracticeMode, showTitle]);
 
   useEffect(() => {
     if (!isLoaded) return;
-    localStorage.setItem('puzzle_rogue_stats', JSON.stringify(stats));
+    safeSetItem('puzzle_rogue_stats', JSON.stringify(stats));
   }, [stats, isLoaded]);
 
   useEffect(() => {
