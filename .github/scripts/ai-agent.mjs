@@ -85,13 +85,14 @@ function getProjectFiles(dir, baseDir = dir) {
 // Call Gemini API with Retry & JSON Parsing Error Protection
 async function callGeminiWithRetry(prompt, maxRetries = 3) {
   const model = 'gemini-3.8-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // APIキーはURLではなくヘッダーで渡す（URLはログ等に残りやすいため）
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
@@ -271,8 +272,10 @@ JSONスキーマ:
     }
 
     // Try building and testing
-    console.log('Testing build: npm run build && npm test');
+    console.log('Testing: npm run lint && npm run build && npm test');
     try {
+      execFileSync('npm', ['run', 'lint'], { stdio: 'pipe' });
+      console.log('Lint passed!');
       execFileSync('npm', ['run', 'build'], { stdio: 'pipe' });
       console.log('Build succeeded!');
       execFileSync('npm', ['test'], { stdio: 'pipe' });
@@ -285,6 +288,15 @@ JSONスキーマ:
 
       const commitMessage = `fix: ${ISSUE_TITLE || 'auto update from issue'} (#${ISSUE_NUMBER})\n\n${result.summary || ''}`;
       execFileSync('git', ['commit', '-m', commitMessage]);
+      // 実行中に main が進んでいても push できるよう、最新の main に載せ直してから push する
+      try {
+        execFileSync('git', ['pull', '--rebase', 'origin', 'main'], { stdio: 'pipe' });
+      } catch (rebaseErr) {
+        try { execFileSync('git', ['rebase', '--abort']); } catch { /* rebase 中でなければ無視 */ }
+        await postIssueComment('⚠️ **mainへの反映に失敗しました**: 実行中に main が更新され、変更が衝突しました。もう一度依頼してください。');
+        console.error('Rebase failed:', rebaseErr.message);
+        process.exit(1);
+      }
       execFileSync('git', ['push', 'origin', 'main']);
 
       const successComment = `✅ **修正が完了し、mainブランチに反映されました！**

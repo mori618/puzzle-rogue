@@ -27,3 +27,6 @@ scratch/
 # NotebookLM generated docs
 notebooklm-docs/
 
+
+# Vite のキャッシュ
+.vite/
