@@ -12,6 +12,7 @@ import TokenEncyclopediaScreen from "../TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, ENCHANTMENTS } from '../constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, TRIAL_TIME_LIMIT_MS, TRIAL_BOARD_COMBOS, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost, TIME_BANK_MAX_MS } from '../constants/gameConstants.js';
+import { calcBaseCombo, calcComboMultiplier, applyComboMultiplier, INUGAMI_THRESHOLD } from '../utils/comboFormula';
 import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, applyNewTokenLevel, isProbabilityToken, isRabbitToken, countRabbitTokens, RABBIT_TOKEN_IDS } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { buildEffectiveTokens, resolveCopiedToken, getBuffsInEffect, decrementBuffDurations, isTrialStageActive } from '../utils/effectiveTokens.js';
@@ -1295,12 +1296,14 @@ export const useGameState = () => {
     const showComboBreakdownLocal = async (params) => {
       const {
         tc, logData, turnCombo, bonus, effectiveCombo, MAX_COMBO,
-        finalBaseCombo, finalComboMultiplier, debuffMultiplier, addedMultiplier
+        finalBaseCombo, finalComboMultiplier, addedMultiplier, totalPenaltyMultiplier = 1
       } = params;
       const el = comboRef.current;
       if (!el) return;
 
       const mode = settings?.comboAnimationMode || 'instant';
+      // 倍率は ×N 系がすべて MULT 側に乗るため大きくなりやすい。1万以上は日本語の単位で表示する
+      const formatMult = (v) => (Math.abs(v) >= 10000 ? formatJapaneseNumber(v) : formatNum(v));
 
       if (mode === 'step' && turnCombo > 0) {
         let currentBase = tc;
@@ -1335,7 +1338,7 @@ export const useGameState = () => {
               </div>
               <div class="combo-formula-op">×</div>
               <div class="combo-formula-part">
-                <span class="combo-number" id="formula-mult">${formatNum(currentMult)}</span>
+                <span class="combo-number" id="formula-mult">${formatMult(currentMult)}</span>
                 <span class="combo-label">MULT</span>
               </div>
             </div>
@@ -1386,99 +1389,90 @@ export const useGameState = () => {
           }
         }
 
-        // 2. 呪い（デバフ）適用フェーズ
-        if (logData.debuffSteps && logData.debuffSteps.length > 0) {
-          for (const step of logData.debuffSteps) {
-            if (!comboRef.current) break;
-            currentBase = Math.floor(currentBase * step.value);
-            
-            const eEl = comboRef.current;
-            const baseEl = eEl.querySelector('#formula-base');
-            
-            if (baseEl) {
-              baseEl.className = 'combo-number';
-              // 古い演出要素をすべて削除して重複を防ぐ
-              baseEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
-              
-              void baseEl.offsetWidth;
-              
-              baseEl.innerText = formatJapaneseNumber(currentBase);
-              baseEl.className = 'combo-number text-red-glow animate-number-bounce';
-              
-              const newBonus = document.createElement('span');
-              newBonus.className = 'combo-bonus-mult text-red-400';
-              newBonus.innerHTML = `×${step.value}<span class="combo-step-label"> ${step.label}</span>`;
-              baseEl.parentNode.appendChild(newBonus);
-            }
-            
-            // 呪い用の動的ディレイの適用
-            await new Promise(r => setTimeout(r, getAnimDelay(getStepDelay(step, 'debuff'))));
-            if (!comboRef.current) break;
+        // 2〜4. コンボ倍率フェーズ
+        // 実際の計算は (1 + 加算の合計) × 乗算 × 減少系 なので、表示も「加算 → 乗算 → 減少」の順に並べる
+        const showStep = async (targetId, { numberText, glowClass, bonusClass, bonusHtml, delay }) => {
+          const eEl = comboRef.current;
+          if (!eEl) return false;
+          const numEl = eEl.querySelector(targetId);
+          if (numEl) {
+            numEl.className = 'combo-number';
+            // 古い演出要素をすべて削除して重複を防ぐ
+            numEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
+            void numEl.offsetWidth; // リフロー
+            numEl.innerText = numberText;
+            numEl.className = `combo-number ${glowClass} animate-number-bounce`;
+            const newBonus = document.createElement('span');
+            newBonus.className = bonusClass;
+            newBonus.innerHTML = bonusHtml;
+            numEl.parentNode.appendChild(newBonus);
           }
-          const baseEl = comboRef.current?.querySelector('#formula-base');
-          if (baseEl) {
-            baseEl.className = 'combo-number';
-            baseEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
-          }
-        }
+          await new Promise(r => setTimeout(r, getAnimDelay(delay)));
+          return !!comboRef.current;
+        };
 
-        // 3. コンボ倍率加算・乗算フェーズ
-        for (const step of logData.multiplierSteps) {
+        const addSteps = logData.multiplierSteps.filter(step => step.type === 'add');
+        const mulSteps = logData.multiplierSteps.filter(step => step.type !== 'add');
+
+        // 2. コンボ倍率 加算フェーズ
+        for (const step of addSteps) {
           if (!comboRef.current) break;
           if (step.tokenId) triggerPassive(step.tokenId, true);
-          
-          const eEl = comboRef.current;
-          
-          if (step.type === 'add') {
-            const addedVal = isNaN(step.addedValue) ? 0 : step.addedValue;
-            currentMult += addedVal;
-            const sign = addedVal >= 0 ? '+' : '';
-            
-            const multEl = eEl.querySelector('#formula-mult');
-            if (multEl) {
-              multEl.className = 'combo-number';
-              // 古い演出要素をすべて削除して重複を防ぐ
-              multEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
-              
-              void multEl.offsetWidth;
-              
-              multEl.innerText = formatNum(currentMult);
-              multEl.className = 'combo-number text-yellow-glow animate-number-bounce';
-              
-              const newBonus = document.createElement('span');
-              newBonus.className = 'combo-bonus-add';
-              newBonus.innerHTML = `${sign}${addedVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span>`;
-              multEl.parentNode.appendChild(newBonus);
-            }
+          const addedVal = isNaN(step.addedValue) ? 0 : step.addedValue;
+          currentMult += addedVal;
+          const sign = addedVal >= 0 ? '+' : '';
+          const ok = await showStep('#formula-mult', {
+            numberText: formatMult(currentMult),
+            glowClass: 'text-yellow-glow',
+            bonusClass: 'combo-bonus-add',
+            bonusHtml: `${sign}${addedVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span>`,
+            delay: getStepDelay(step, 'multiplier_add'),
+          });
+          if (!ok) break;
+        }
 
-            // 倍率加算用の動的ディレイの適用
-            await new Promise(r => setTimeout(r, getAnimDelay(getStepDelay(step, 'multiplier_add'))));
-            if (!comboRef.current) break;
-          } else {
-            const multVal = isNaN(step.value) ? 1.0 : step.value;
+        // 3. コンボ倍率 乗算フェーズ
+        for (const step of mulSteps) {
+          if (!comboRef.current) break;
+          if (step.tokenId) triggerPassive(step.tokenId, true);
+          const multVal = isNaN(step.value) ? 1.0 : step.value;
+          let ok;
+          if (step.isAdditiveMastery) {
+            // 加算の極意はコンボ加算を増幅する効果なので、BASE 側に表示する
             currentBase = Math.floor(currentBase * multVal);
-            
-            const baseEl = eEl.querySelector('#formula-base');
-            if (baseEl) {
-              baseEl.className = 'combo-number';
-              // 古い演出要素をすべて削除して重複を防ぐ
-              baseEl.parentNode.querySelectorAll('.combo-bonus-add, .combo-bonus-mult').forEach(item => item.remove());
-              
-              void baseEl.offsetWidth; // リフロー
-              
-              baseEl.innerText = formatJapaneseNumber(currentBase);
-              baseEl.className = 'combo-number text-yellow-glow animate-number-bounce';
-              
-              const newBonus = document.createElement('span');
-              newBonus.className = 'combo-bonus-mult';
-              newBonus.innerHTML = `×${multVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span>`;
-              baseEl.parentNode.appendChild(newBonus);
-            }
-
-            // 倍率乗算用の動的ディレイの適用
-            await new Promise(r => setTimeout(r, getAnimDelay(getStepDelay(step, 'multiplier_mult'))));
-            if (!comboRef.current) break;
+            ok = await showStep('#formula-base', {
+              numberText: formatJapaneseNumber(currentBase),
+              glowClass: 'text-yellow-glow',
+              bonusClass: 'combo-bonus-mult',
+              bonusHtml: `×${multVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span>`,
+              delay: getStepDelay(step, 'multiplier_mult'),
+            });
+          } else {
+            currentMult *= multVal;
+            ok = await showStep('#formula-mult', {
+              numberText: formatMult(currentMult),
+              glowClass: 'text-yellow-glow',
+              bonusClass: 'combo-bonus-mult',
+              bonusHtml: `×${multVal.toFixed(1)}<span class="combo-step-label"> ${step.label}</span>`,
+              delay: getStepDelay(step, 'multiplier_mult'),
+            });
           }
+          if (!ok) break;
+        }
+
+        // 4. 減少系（呪い・ペナルティ）フェーズ
+        for (const step of (logData.debuffSteps || [])) {
+          if (!comboRef.current) break;
+          if (step.tokenId) triggerPassive(step.tokenId, true);
+          currentMult *= step.value;
+          const ok = await showStep('#formula-mult', {
+            numberText: formatMult(currentMult),
+            glowClass: 'text-red-glow',
+            bonusClass: 'combo-bonus-mult text-red-400',
+            bonusHtml: `×${step.value}<span class="combo-step-label"> ${step.label}</span>`,
+            delay: getStepDelay(step, 'debuff'),
+          });
+          if (!ok) break;
         }
 
         // すべてのループフェーズが完了したら、数値を通常色に戻し、すべての加算演出要素を削除
@@ -1508,23 +1502,24 @@ export const useGameState = () => {
         }
       } else {
         if (turnCombo > 0) {
-          const multMultiplier = (1.0 + addedMultiplier) > 0 ? (finalComboMultiplier / (1.0 + addedMultiplier)) : 1.0;
-          const displayBaseCombo = Math.floor(finalBaseCombo * multMultiplier);
-          const displayComboMultiplier = 1.0 + addedMultiplier;
+          // BASE = 基礎コンボ（盤面 + 加算）、MULT = (1 + 加算倍率) × 乗算倍率 × 減少系
+          const addPart = 1.0 + addedMultiplier;
+          const penalty = totalPenaltyMultiplier || 1;
+          const mulPart = (addPart !== 0 && penalty !== 0) ? (finalComboMultiplier / addPart / penalty) : 1.0;
 
           el.innerHTML = `
             <div class="combo-formula">
               <div class="combo-formula-expr">
                 <div class="combo-formula-part">
-                  <span class="combo-number">${formatJapaneseNumber(displayBaseCombo)}</span>
+                  <span class="combo-number">${formatJapaneseNumber(finalBaseCombo)}</span>
                   ${bonus > 0 ? `<span class="combo-bonus-add">+${bonus}</span>` : ''}
-                  ${debuffMultiplier < 1 ? `<span class="combo-bonus-mult">×${debuffMultiplier}</span>` : ''}
-                  ${multMultiplier > 1.01 || multMultiplier < 0.99 ? `<span class="combo-bonus-mult">×${multMultiplier.toFixed(1)}</span>` : ''}
                 </div>
                 <div class="combo-formula-op">×</div>
                 <div class="combo-formula-part">
-                  <span class="combo-number">${formatNum(displayComboMultiplier)}</span>
+                  <span class="combo-number">${formatMult(finalComboMultiplier)}</span>
                   ${addedMultiplier > 0 ? `<span class="combo-bonus-add">+${addedMultiplier.toFixed(1)}</span>` : ''}
+                  ${mulPart > 1.01 || mulPart < 0.99 ? `<span class="combo-bonus-mult">×${mulPart.toFixed(1)}</span>` : ''}
+                  ${penalty < 1 ? `<span class="combo-bonus-mult text-red-400">×${penalty}</span>` : ''}
                 </div>
               </div>
             </div>
@@ -1611,7 +1606,10 @@ export const useGameState = () => {
     let addedMultiplier = 0.0;
     let multMultiplier = 1.0;
     let debuffMultiplier = 1.0;
-    let baseMultiplier = 1.0; // 新規追加: からっぽの財布、重力逆転、一筆書きの誓約用の基礎コンボ倍率
+    // 旧「基礎コンボ数 ×N」系の倍率。現在はすべて「コンボ倍率」側に掛かる（加算の極意で無効化される）
+    let baseMultiplier = 1.0;
+    // 減少系の倍率（誓約の契約違反・方陣の審判の失敗など）。コンボ倍率側に掛かり、加算の極意でも無効化されない
+    let penaltyMultiplier = 1.0;
     let exponentialBonus = 0;
     let exponentialMultiplier = 0.0;
     let timeMultiplier = 1;
@@ -1754,7 +1752,7 @@ export const useGameState = () => {
             multMultiplier *= 2.0;
             logData.multipliers.push(`double_combo_chance:x2.0`);
             logData.multiplierSteps.push({ label: tokenName || '強撃の刻印', value: 2.0, type: 'mult', tokenId });
-            notify("強撃の刻印発動！基礎コンボ数が2倍になった！");
+            notify("強撃の刻印発動！コンボ倍率が2倍になった！");
           }
         }
         if (effect === "last_turn_mult" && turn === maxTurns) {
@@ -2487,9 +2485,9 @@ export const useGameState = () => {
         const v = (t.values?.[lv - 1] || 1) * removedCount;
         if (v > 0) {
           if (isInstant) triggerPassive(tId);
-          addedMultiplier += v;
-          logData.multipliers.push(`curse_eater:+${v}(removed:${removedCount})`);
-          logData.multiplierSteps.push({ label: t.name || '呪い喰い', value: 1.0 + v, addedValue: v, type: 'add', tokenId: tId });
+          multMultiplier *= (1.0 + v);
+          logData.multipliers.push(`curse_eater:x${(1.0 + v).toFixed(2)}(removed:${removedCount})`);
+          logData.multiplierSteps.push({ label: t.name || '呪い喰い', value: 1.0 + v, type: 'mult', tokenId: tId });
         }
       }
       if (t.effect === "stat_heart_chalice") {
@@ -2535,9 +2533,9 @@ export const useGameState = () => {
         let v = erasedByRepeatTotal * baseMult;
         v = applyMultiplierCap(v, t);
         if (isInstant) triggerPassive(tId);
-        addedMultiplier += (v - 1.0);
-        logData.multipliers.push(`repeat_combo_mult:+${(v - 1.0).toFixed(2)}`);
-        logData.multiplierSteps.push({ label: t.name || 'リピート消去倍率', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
+        multMultiplier *= (1.0 + v);
+        logData.multipliers.push(`repeat_combo_mult:x${(1.0 + v).toFixed(2)}`);
+        logData.multiplierSteps.push({ label: t.name || 'リピート消去倍率', value: 1.0 + v, type: 'mult', tokenId: tId });
       }
 
       if (t.effect === "skyfall_bonus" && hasSkyfallCombo) {
@@ -3020,9 +3018,10 @@ export const useGameState = () => {
           logData.multipliers.push(`buff_square_judgment(success):x10.0`);
           logData.multiplierSteps.push({ label: '方陣の審判（成功）', value: 10.0, type: 'mult' });
         } else {
-          baseMultiplier *= 0.25;
+          penaltyMultiplier *= 0.25;
           logData.multipliers.push(`buff_square_judgment(fail):x0.25`);
-          logData.multiplierSteps.push({ label: '方陣の審判（失敗）', value: 0.25, type: 'mult' });
+          logData.debuffSteps = logData.debuffSteps || [];
+          logData.debuffSteps.push({ label: '方陣の審判（失敗）', value: 0.25 });
         }
       } else if (buff.action === 'gravity_overdrive') {
         // 重力逆転発動ターンの基礎コンボ数×2
@@ -3073,9 +3072,10 @@ export const useGameState = () => {
       if (enemyCombo > 0) {
         // 敵対色を1コンボでも消した場合：半分
         if (isInstant) triggerPassive(tId);
-        baseMultiplier *= 0.5;
+        penaltyMultiplier *= 0.5;
         logData.multipliers.push(`${t.name}(ペナルティ):x0.5`);
-        logData.multiplierSteps.push({ label: `${t.name} (契約違反)`, value: 0.5, type: 'mult', tokenId: tId });
+        logData.debuffSteps = logData.debuffSteps || [];
+        logData.debuffSteps.push({ label: `${t.name} (契約違反)`, value: 0.5, tokenId: tId });
       } else if (myCombo > 0) {
         // 自色を消し、かつ敵対色を消していない場合：倍率アップ
         if (isInstant) triggerPassive(tId);
@@ -3088,6 +3088,7 @@ export const useGameState = () => {
     if (hasMastery) {
       addedMultiplier = 0.0;
       multMultiplier = 1.0;
+      baseMultiplier = 1.0;
       exponentialMultiplier = 0.0;
       logData.multipliers = [`additive_mastery_active: multipliers disabled`];
       logData.multiplierSteps = [{ label: '加算の極意', value: masteryVal, isAdditiveMastery: true }];
@@ -3098,7 +3099,7 @@ export const useGameState = () => {
       logData.bonusSteps.push({ label: '極意・加算増幅', value: `x${masteryVal}`, tokenId: masteryToken.instanceId || masteryToken.id });
     }
 
-    // デバフである「半減の呪い」は基礎コンボに掛ける
+    // デバフである「半減の呪い」はコンボ倍率に掛ける（加算の極意でも無効化されない）
     const isCurseHalfActive = tokens.some(t => t?.id === "curse_half") && !hasSaintToken;
     if (isCurseHalfActive) {
       debuffMultiplier *= 0.5;
@@ -3128,7 +3129,7 @@ export const useGameState = () => {
       if (hasOtherCombo) {
         isZeroComboDueToDevotion = true;
         notify(`${token.name}のデメリット発動：他属性を消したため獲得コンボが0になります。`);
-      } else if ((colorComboCounts[targetColor] || 0) > 0) {
+      } else if ((colorComboCounts[targetColor] || 0) > 0 && !hasMastery) {
         devotionMultiplier *= multVal;
         if (isInstant) triggerPassive(token.instanceId || token.id);
         logData.multipliers.push(`${token.effect}:x${multVal}`);
@@ -3146,7 +3147,8 @@ export const useGameState = () => {
     const fourMatchRestrToken = effectiveTokens.find(t => t && t.effect === 'four_match_restriction');
     const rowMatchRestrToken = effectiveTokens.find(t => t && t.effect === 'row_match_restriction');
     
-    if (!isCursePassiveNull) {
+    // 倍率部分は加算の極意で無効化（「その消し方しかできない」制約は残る）
+    if (!isCursePassiveNull && !hasMastery) {
       if (fourMatchRestrToken) {
         const len4Count = shapes.filter(s => s === "len4").length;
         if (len4Count > 0) {
@@ -3199,6 +3201,8 @@ export const useGameState = () => {
     if (!isPracticeMode && tc > 0) {
       const titleMods = computeTitleComboModifiers(titleCtx, titleEffects);
       titleMods.steps.forEach(step => {
+        // 加算の極意中は、旧「基礎コンボ ×」系の二つ名倍率は無効
+        if (hasMastery && step.scope === 'base') return;
         if (step.kind === 'bonus') {
           logData.bonuses.push(`title:+${step.value}`);
           logData.bonusSteps.push({ label: step.label, value: step.value });
@@ -3215,25 +3219,30 @@ export const useGameState = () => {
         bonus = scaledBonus;
       }
       addedMultiplier += titleMods.addedMult;
-      baseMultiplier *= titleMods.baseMult;
+      if (!hasMastery) baseMultiplier *= titleMods.baseMult;
       multMultiplier *= titleMods.finalMult;
     }
 
-    // 指示に基づき、マイナス倍率は基礎コンボのほうに掛け算する
+    // 基礎コンボ = 盤面のコンボ + コンボ加算。×N 系の倍率（減少系も含む）はすべてコンボ倍率側に掛ける
     const finalBaseComboBeforeDebuff = tc + bonus;
-    const finalBaseCombo = (tc > 0) ? Math.floor(finalBaseComboBeforeDebuff * debuffMultiplier * baseMultiplier * devotionMultiplier * restrictionMultiplier) : 0;
-    
-    // 犬神（コンボ数100以上で倍率10倍）
+    const finalBaseCombo = calcBaseCombo(tc, bonus);
+    // 旧・基礎コンボ側の倍率（増加系）と、減少系の倍率
+    const movedMultiplier = baseMultiplier * devotionMultiplier * restrictionMultiplier;
+    const totalPenaltyMultiplier = debuffMultiplier * penaltyMultiplier;
+
+    // 犬神（基礎コンボ100以上で倍率10倍）
     const inugamiToken = effectiveTokens.find(t => t?.effect === "inugami");
-    if (inugamiToken && finalBaseCombo >= 100) {
+    if (inugamiToken && finalBaseCombo >= INUGAMI_THRESHOLD) {
       if (isInstant) triggerPassive(inugamiToken.instanceId || inugamiToken.id);
       multMultiplier *= 10.0;
       logData.multipliers.push(`inugami:x10.0`);
       logData.multiplierSteps.push({ label: inugamiToken.name || '犬神', value: 10.0, type: 'mult', tokenId: inugamiToken.instanceId || inugamiToken.id });
     }
 
-    // コンボ倍率の計算
-    const finalComboMultiplier = (1.0 + addedMultiplier) * multMultiplier;
+    // コンボ倍率の計算: (1 + 加算) × 乗算 × 旧基礎側の倍率 × 減少系
+    const finalComboMultiplier = calcComboMultiplier({
+      addedMultiplier, multMultiplier, movedMultiplier, penaltyMultiplier: totalPenaltyMultiplier,
+    });
     multiplier = finalComboMultiplier; // 念のため multiplier 変数にも入れておく
 
     logData.finalMultiplier = finalComboMultiplier;
@@ -3249,16 +3258,15 @@ export const useGameState = () => {
     if (isZeroComboDueToDevotion) {
       effectiveCombo = 0;
     } else if (isBeyondMode) {
-      effectiveCombo = (tc > 0) ? Math.floor(finalBaseCombo * finalComboMultiplier) : 0;
+      effectiveCombo = applyComboMultiplier(finalBaseCombo, finalComboMultiplier);
     } else {
-      effectiveCombo = (tc > 0) ? Math.min(Math.floor(finalBaseCombo * finalComboMultiplier), MAX_COMBO) : 0;
+      effectiveCombo = applyComboMultiplier(finalBaseCombo, finalComboMultiplier, { maxCombo: MAX_COMBO });
     }
 
     // 「脆弱の断層」の解除判定用: 半減効果がかかる前のコンボ数（他のトークン効果は全て反映済み）
     let comboBeforeCurseHalf = effectiveCombo;
     if (isCurseHalfActive && !isZeroComboDueToDevotion && tc > 0) {
-      const baseWithoutHalf = Math.floor(finalBaseComboBeforeDebuff * (debuffMultiplier / 0.5) * baseMultiplier * devotionMultiplier * restrictionMultiplier);
-      comboBeforeCurseHalf = Math.min(Math.floor(baseWithoutHalf * finalComboMultiplier), MAX_COMBO);
+      comboBeforeCurseHalf = applyComboMultiplier(finalBaseCombo, finalComboMultiplier / 0.5, { maxCombo: MAX_COMBO });
     }
 
     // 限界到達のダイアログは、コンボ数の演出を見せ終わってから出す（下の showComboBreakdownLocal の後）
@@ -3274,7 +3282,7 @@ export const useGameState = () => {
       }));
       await showComboBreakdownLocal({
         tc, logData, turnCombo, bonus, multiplier, effectiveCombo, isBeyondMode, MAX_COMBO,
-        finalBaseCombo, finalComboMultiplier, debuffMultiplier, addedMultiplier
+        finalBaseCombo, finalComboMultiplier, debuffMultiplier, addedMultiplier, totalPenaltyMultiplier
       });
       return;
     }
@@ -3331,6 +3339,7 @@ export const useGameState = () => {
         finalBaseBeforeDebuff: finalBaseComboBeforeDebuff,
         finalBase: finalBaseCombo,
         debuffMult: debuffMultiplier,
+        penaltyMult: penaltyMultiplier,
         devotionMult: devotionMultiplier,
         restrictMult: restrictionMultiplier,
         addMult: addedMultiplier,
@@ -3421,7 +3430,7 @@ export const useGameState = () => {
 
     await showComboBreakdownLocal({
       tc, logData, turnCombo, bonus, effectiveCombo, MAX_COMBO,
-      finalBaseCombo, finalComboMultiplier, debuffMultiplier, addedMultiplier
+      finalBaseCombo, finalComboMultiplier, debuffMultiplier, addedMultiplier, totalPenaltyMultiplier
     });
 
     if (isFirstMaxComboReach) {
@@ -4148,7 +4157,7 @@ export const useGameState = () => {
                   duration: 1,
                   name: `${b.name} (コンボ倍率)`
                 });
-                notify(`烈風の残滓発動！次ターンの操作時間+${extraTimeSec}秒、基礎コンボ${baseMult}倍！`);
+                notify(`烈風の残滓発動！次ターンの操作時間+${extraTimeSec}秒、コンボ倍率${baseMult}倍！`);
               }
             }
             if (b.action === "residual_thunder_active") {
@@ -4171,7 +4180,7 @@ export const useGameState = () => {
                   duration: 1,
                   name: `${b.name} (コンボ倍率)`
                 });
-                notify(`迅雷の残滓発動！次ターンの操作時間+${extraTimeSec}秒、基礎コンボ${baseMult}倍！`);
+                notify(`迅雷の残滓発動！次ターンの操作時間+${extraTimeSec}秒、コンボ倍率${baseMult}倍！`);
               }
             }
             // 月・心 (10個以下消去)
@@ -6008,10 +6017,10 @@ export const useGameState = () => {
                               duration: 1,
                               maxDuration: 1,
                               tokenId: t.instanceId,
-                              name: `焔の滅尽 (基礎コンボx${effectVal})`
+                              name: `焔の滅尽 (コンボ倍率x${effectVal})`
                             }
                           ]);
-                          notify(`追加効果発動！ 盤面をプラス炎ドロップにし、1ターン基礎コンボを${effectVal}倍！`);
+                          notify(`追加効果発動！ 盤面をプラス炎ドロップにし、1ターンコンボ倍率を${effectVal}倍！`);
                           break;
 
                         case "water":
@@ -6391,7 +6400,7 @@ export const useGameState = () => {
           }
         ]);
         const dirJapanese = dir === 'right' ? '右' : '左';
-        notify(`${token.name} 発動！ドロップが「${dirJapanese}」に落下する！ (基礎コンボ数×${val}倍)`);
+        notify(`${token.name} 発動！ドロップが「${dirJapanese}」に落下する！ (コンボ倍率×${val}倍)`);
         break;
       }
       case "op_time_boost": {

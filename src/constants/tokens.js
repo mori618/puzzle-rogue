@@ -30,7 +30,7 @@ const ALL_TOKEN_BASES = [
     effectValues: [3, 4, 5],
     rarity: 3,
     price: 31,
-    desc: "盤面上の炎ドロップを全て削除し、削除分コンボ追加（特殊は2倍、Lvに応じて1/2/3倍）。累計30個消去ごとに、盤面を全てプラス炎にし1ターン基礎コンボを[3/4/5]倍にする。消費E:{cost}",
+    desc: "盤面上の炎ドロップを全て削除し、削除分コンボ追加（特殊は2倍、Lvに応じて1/2/3倍）。累計30個消去ごとに、盤面を全てプラス炎にし1ターンコンボ倍率を[3/4/5]倍にする。消費E:{cost}",
     attributes: ["fire"]
   },
   {
@@ -373,10 +373,10 @@ const ALL_TOKEN_BASES = [
   { id: "time_burst", name: "タイム・バースト", icon: "timer", type: "skill", cost: 3, action: "op_time_boost", params: { extraTime: 5000, duration: 3 }, rarity: 1, price: 14, desc: "3ターンの間、操作時間+5秒。消費E:{cost}", attributes: [], canBeInitial: true },
   { id: "eternal_moment", name: "エターナル・モーメント", icon: "timer", type: "skill", cost: 3, action: "op_time_boost", params: { extraTime: 10000, duration: 2 }, rarity: 1, price: 14, desc: "2ターンの間、操作時間+10秒。消費E:{cost}", attributes: [], canBeInitial: true },
   { id: "chronos_master", name: "クロノス・マスター", icon: "timer", type: "skill", cost: 3, action: "op_time_boost", params: { extraTime: 20000, duration: 1 }, rarity: 1, price: 14, desc: "1ターンの間、操作時間+20秒。消費E:{cost}", attributes: [], canBeInitial: true },
-  { id: "active_mult_1", name: "覚醒の鼓動", icon: "trending_up", type: "skill", cost: 6, costLevels: true, action: "temp_mult", params: { multiplier: 2, duration: 3 }, rarity: 2, price: 15, desc: "3手番、基礎コンボ数が2倍になる。消費E:{cost}", attributes: [], canBeInitial: true },
-  { id: "active_mult_2", name: "一刃の極意", icon: "trending_up", type: "skill", cost: 6, costLevels: true, action: "temp_mult", params: { multiplier: 5, duration: 1 }, rarity: 3, price: 26, desc: "1手番、基礎コンボ数が5倍になる。消費E:{cost}", attributes: [] },
+  { id: "active_mult_1", name: "覚醒の鼓動", icon: "trending_up", type: "skill", cost: 6, costLevels: true, action: "temp_mult", params: { multiplier: 2, duration: 3 }, rarity: 2, price: 15, desc: "3手番、コンボ倍率が2倍になる。消費E:{cost}", attributes: [], canBeInitial: true },
+  { id: "active_mult_2", name: "一刃の極意", icon: "trending_up", type: "skill", cost: 6, costLevels: true, action: "temp_mult", params: { multiplier: 5, duration: 1 }, rarity: 3, price: 26, desc: "1手番、コンボ倍率が5倍になる。消費E:{cost}", attributes: [] },
   /* エンチャント廃止に伴いコメントアウト
-  { id: "seal_of_power", name: "力の封印", icon: "dangerous", type: "skill", cost: 6, costLevels: true, action: "seal_of_power", params: { multiplier: 7, duration: 1 }, rarity: 3, price: 26, desc: "1手番、全エンチャント効果が無効になるが、基礎コンボ数が7倍になる。消費E:{cost}", attributes: [] },
+  { id: "seal_of_power", name: "力の封印", icon: "dangerous", type: "skill", cost: 6, costLevels: true, action: "seal_of_power", params: { multiplier: 7, duration: 1 }, rarity: 3, price: 26, desc: "1手番、全エンチャント効果が無効になるが、コンボ倍率が7倍になる。消費E:{cost}", attributes: [] },
   */
   { id: "trial", name: "試練", icon: "offline_bolt", type: "skill", cost: 6, action: "trial_stage", params: { duration: 1 }, rarity: 3, price: 26, desc: "1手番プラス。盤面を10コンボ盤面に変え、このターンは操作時間が5秒に固定。特殊ドロップ・トークン効果・発動中のバフが止まる（バフの残り手番は減らない）。このターンに8コンボ以上すると、ターン終了時に全ドロップがスタープラスリピート化、1ターン全てのトークン効果が2度発動＆確率系トークンの確率が+100%。消費E:{cost}", attributes: [] },
   { id: "gen_token_s1", name: "一星の招来", icon: "auto_awesome", type: "skill", cost: 3, action: "spawn_token_s1", rarity: 1, price: 14, desc: "自身以外のランダムな★1トークンを1つ生成する。消費E:{cost}", attributes: [] },
@@ -912,7 +912,7 @@ const ALL_TOKEN_BASES = [
     effect: "forbidden",
     values: [2, 3, 4],
     rarity: 2, price: 19,
-    desc: "常時落ちコン停止。基礎コンボ数が{values}倍になる。",
+    desc: "常時落ちコン停止。コンボ倍率が{values}倍になる。",
     attributes: [],
     canBeInitial: true
   },
@@ -1033,37 +1033,37 @@ const ALL_TOKEN_BASES = [
   {
     id: "combo2_mult_fire", name: "炎の二重奏", icon: "queue_play_next", type: "passive", effect: "color_combo_multiplier",
     params: { color: "fire" }, values: [1.5, 2.0, 3.0], rarity: 2, price: 20,
-    desc: "炎ドロップで2コンボ以上すると、基礎コンボ数が{values}倍される。",
+    desc: "炎ドロップで2コンボ以上すると、コンボ倍率が{values}倍される。",
     attributes: ["fire"], canBeInitial: true
   },
   {
     id: "combo2_mult_water", name: "雨の二重奏", icon: "queue_play_next", type: "passive", effect: "color_combo_multiplier",
     params: { color: "water" }, values: [1.5, 2.0, 3.0], rarity: 2, price: 20,
-    desc: "雨ドロップで2コンボ以上すると、基礎コンボ数が{values}倍される。",
+    desc: "雨ドロップで2コンボ以上すると、コンボ倍率が{values}倍される。",
     attributes: ["water"], canBeInitial: true
   },
   {
     id: "combo2_mult_wood", name: "風の二重奏", icon: "queue_play_next", type: "passive", effect: "color_combo_multiplier",
     params: { color: "wood" }, values: [1.5, 2.0, 3.0], rarity: 2, price: 20,
-    desc: "風ドロップで2コンボ以上すると、基礎コンボ数が{values}倍される。",
+    desc: "風ドロップで2コンボ以上すると、コンボ倍率が{values}倍される。",
     attributes: ["wood"], canBeInitial: true
   },
   {
     id: "combo2_mult_light", name: "雷の二重奏", icon: "queue_play_next", type: "passive", effect: "color_combo_multiplier",
     params: { color: "light" }, values: [1.5, 2.0, 3.0], rarity: 2, price: 20,
-    desc: "雷ドロップで2コンボ以上すると、基礎コンボ数が{values}倍される。",
+    desc: "雷ドロップで2コンボ以上すると、コンボ倍率が{values}倍される。",
     attributes: ["light"], canBeInitial: true
   },
   {
     id: "combo2_mult_dark", name: "月の二重奏", icon: "queue_play_next", type: "passive", effect: "color_combo_multiplier",
     params: { color: "dark" }, values: [1.5, 2.0, 3.0], rarity: 2, price: 20,
-    desc: "月ドロップで2コンボ以上すると、基礎コンボ数が{values}倍される。",
+    desc: "月ドロップで2コンボ以上すると、コンボ倍率が{values}倍される。",
     attributes: ["dark"], canBeInitial: true
   },
   {
     id: "combo2_mult_heart", name: "癒の二重奏", icon: "queue_play_next", type: "passive", effect: "color_combo_multiplier",
     params: { color: "heart" }, values: [1.5, 2.0, 3.0], rarity: 2, price: 20,
-    desc: "ハートドロップで2コンボ以上すると、基礎コンボ数が{values}倍される。",
+    desc: "ハートドロップで2コンボ以上すると、コンボ倍率が{values}倍される。",
     attributes: ["heart"], canBeInitial: true
   },
 
@@ -1071,37 +1071,37 @@ const ALL_TOKEN_BASES = [
   {
     id: "connect4_mult_fire", name: "炎の四重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
     params: { color: "fire" }, values: [1.2, 1.5, 2.0], rarity: 2, price: 20,
-    desc: "炎ドロップを4個以上繋げて消すと、基礎コンボ数が{values}倍される。",
+    desc: "炎ドロップを4個以上繋げて消すと、コンボ倍率が{values}倍される。",
     attributes: ["fire"], canBeInitial: true
   },
   {
     id: "connect4_mult_water", name: "雨の四重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
     params: { color: "water" }, values: [1.2, 1.5, 2.0], rarity: 2, price: 20,
-    desc: "雨ドロップを4個以上繋げて消すと、基礎コンボ数が{values}倍される。",
+    desc: "雨ドロップを4個以上繋げて消すと、コンボ倍率が{values}倍される。",
     attributes: ["water"], canBeInitial: true
   },
   {
     id: "connect4_mult_wood", name: "風の四重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
     params: { color: "wood" }, values: [1.2, 1.5, 2.0], rarity: 2, price: 20,
-    desc: "風ドロップを4個以上繋げて消すと、基礎コンボ数が{values}倍される。",
+    desc: "風ドロップを4個以上繋げて消すと、コンボ倍率が{values}倍される。",
     attributes: ["wood"], canBeInitial: true
   },
   {
     id: "connect4_mult_light", name: "雷の四重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
     params: { color: "light" }, values: [1.2, 1.5, 2.0], rarity: 2, price: 20,
-    desc: "雷ドロップを4個以上繋げて消すと、基礎コンボ数が{values}倍される。",
+    desc: "雷ドロップを4個以上繋げて消すと、コンボ倍率が{values}倍される。",
     attributes: ["light"], canBeInitial: true
   },
   {
     id: "connect4_mult_dark", name: "月の四重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
     params: { color: "dark" }, values: [1.2, 1.5, 2.0], rarity: 2, price: 20,
-    desc: "月ドロップを4個以上繋げて消すと、基礎コンボ数が{values}倍される。",
+    desc: "月ドロップを4個以上繋げて消すと、コンボ倍率が{values}倍される。",
     attributes: ["dark"], canBeInitial: true
   },
   {
     id: "connect4_mult_heart", name: "癒の四重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
     params: { color: "heart" }, values: [1.2, 1.5, 2.0], rarity: 2, price: 20,
-    desc: "ハートドロップを4個以上繋げて消すと、基礎コンボ数が{values}倍される。",
+    desc: "ハートドロップを4個以上繋げて消すと、コンボ倍率が{values}倍される。",
     attributes: ["heart"], canBeInitial: true
   },
 
@@ -1109,37 +1109,37 @@ const ALL_TOKEN_BASES = [
   {
     id: "connect6_mult_fire", name: "炎の六重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
     params: { color: "fire", count: 6 }, values: [2.0, 3.0, 4.0], rarity: 3, price: 26,
-    desc: "炎ドロップを6個以上繋げて消すと、基礎コンボ数が{values}倍される。",
+    desc: "炎ドロップを6個以上繋げて消すと、コンボ倍率が{values}倍される。",
     attributes: ["fire"], canBeInitial: true
   },
   {
     id: "connect6_mult_water", name: "雨の六重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
     params: { color: "water", count: 6 }, values: [2.0, 3.0, 4.0], rarity: 3, price: 26,
-    desc: "雨ドロップを6個以上繋げて消すと、基礎コンボ数が{values}倍される。",
+    desc: "雨ドロップを6個以上繋げて消すと、コンボ倍率が{values}倍される。",
     attributes: ["water"], canBeInitial: true
   },
   {
     id: "connect6_mult_wood", name: "風の六重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
     params: { color: "wood", count: 6 }, values: [2.0, 3.0, 4.0], rarity: 3, price: 26,
-    desc: "風ドロップを6個以上繋げて消すと、基礎コンボ数が{values}倍される。",
+    desc: "風ドロップを6個以上繋げて消すと、コンボ倍率が{values}倍される。",
     attributes: ["wood"], canBeInitial: true
   },
   {
     id: "connect6_mult_light", name: "雷の六重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
     params: { color: "light", count: 6 }, values: [2.0, 3.0, 4.0], rarity: 3, price: 26,
-    desc: "雷ドロップを6個以上繋げて消すと、基礎コンボ数が{values}倍される。",
+    desc: "雷ドロップを6個以上繋げて消すと、コンボ倍率が{values}倍される。",
     attributes: ["light"], canBeInitial: true
   },
   {
     id: "connect6_mult_dark", name: "月の六重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
     params: { color: "dark", count: 6 }, values: [2.0, 3.0, 4.0], rarity: 3, price: 26,
-    desc: "月ドロップを6個以上繋げて消すと、基礎コンボ数が{values}倍される。",
+    desc: "月ドロップを6個以上繋げて消すと、コンボ倍率が{values}倍される。",
     attributes: ["dark"], canBeInitial: true
   },
   {
     id: "connect6_mult_heart", name: "癒の六重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
     params: { color: "heart", count: 6 }, values: [2.0, 3.0, 4.0], rarity: 3, price: 26,
-    desc: "ハートドロップを6個以上繋げて消すと、基礎コンボ数が{values}倍される。",
+    desc: "ハートドロップを6個以上繋げて消すと、コンボ倍率が{values}倍される。",
     attributes: ["heart"], canBeInitial: true
   },
 
@@ -1165,21 +1165,21 @@ const ALL_TOKEN_BASES = [
   {
     id: "bonus_4c_fwlh", name: "四天の秘儀", icon: "filter_vintage", type: "passive", effect: "color_multiplier",
     params: { colors: ["fire", "water", "light", "heart"] }, values: [1.5, 2, 3], rarity: 2, price: 26,
-    desc: "炎/雨/雷/ハートを同時に消すと、基礎コンボ数が{values}倍になる。",
+    desc: "炎/雨/雷/ハートを同時に消すと、コンボ倍率が{values}倍になる。",
     attributes: ["fire", "water", "light", "heart"],
     canBeInitial: true
   },
   {
     id: "bonus_5c", name: "五色の秘儀", icon: "filter_vintage", type: "passive", effect: "color_multiplier",
     params: { count: 5 }, values: [2, 3, 4], rarity: 2, price: 31,
-    desc: "5色以上を同時に消すと、基礎コンボ数が{values}倍になる。",
+    desc: "5色以上を同時に消すと、コンボ倍率が{values}倍になる。",
     attributes: ["fire", "water", "wood", "light", "dark"],
     canBeInitial: true
   },
   {
     id: "bonus_6c", name: "六色の秘儀", icon: "filter_vintage", type: "passive", effect: "color_multiplier",
     params: { count: 6 }, values: [3, 4, 5], rarity: 2, price: 39,
-    desc: "6色すべてを同時に消すと、基礎コンボ数が{values}倍になる。",
+    desc: "6色すべてを同時に消すと、コンボ倍率が{values}倍になる。",
     attributes: ["fire", "water", "wood", "light", "dark", "heart"],
     canBeInitial: true
   },
@@ -1268,7 +1268,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "square", name: "四方の型", icon: "category", type: "passive", effect: "shape_bonus",
     params: { shape: "square" }, values: [2, 3, 5], maxMultipliers: [10, 20, 50], rarity: 1, price: 24,
-    desc: "3x3正方形消し1回につき、基礎コンボ数が{values}倍される。",
+    desc: "3x3正方形消し1回につき、コンボ倍率が{values}倍される。",
     attributes: [], canBeInitial: true
   },
   {
@@ -1304,7 +1304,7 @@ const ALL_TOKEN_BASES = [
     effect: "expand_board",
     values: [2, 3, 4],
     rarity: 3, price: 24,
-    desc: "装備中、盤面が7x6に拡張。基礎コンボ数が{values}倍になる。",
+    desc: "装備中、盤面が7x6に拡張。コンボ倍率が{values}倍になる。",
     attributes: [],
     canBeCurseReward: true
   },
@@ -1344,7 +1344,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "bomb_erase_mult", name: "爆熱の余韻", icon: "emergency", type: "passive", effect: "bomb_erase_mult",
     values: [2, 3, 4], maxMultipliers: [10, 20, 50], rarity: 3, price: 24,
-    desc: "基礎コンボ数が（1 + ボムの効果で消えたドロップ数 × {values}）倍になる。",
+    desc: "コンボ倍率が（1 + ボムの効果で消えたドロップ数 × {values}）倍になる。",
     attributes: []
   },
   {
@@ -1366,7 +1366,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "repeat_combo_mult", name: "連鎖の共鳴", icon: "autorenew", type: "passive", effect: "repeat_combo_mult",
     values: [2, 3, 4], maxMultipliers: [10, 20, 50], rarity: 3, price: 24,
-    desc: "基礎コンボ数が（1 + リピートドロップの消去数 × {values}）倍になる。",
+    desc: "コンボ倍率が（1 + リピートドロップの消去数 × {values}）倍になる。",
     attributes: []
   },
   {
@@ -1414,7 +1414,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "star_erase_mult", name: "星屑の共鳴", icon: "stars", type: "passive", effect: "star_erase_mult",
     values: [1, 2, 3], maxMultipliers: [10, 20, 50], rarity: 3, price: 26,
-    desc: "基礎コンボ数が（1 + ターン中にスタードロップが消えた数 × {values}）倍になる。",
+    desc: "コンボ倍率が（1 + ターン中にスタードロップが消えた数 × {values}）倍になる。",
     attributes: []
   },
   {
@@ -1465,7 +1465,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "legend_acrobat", name: "曲芸師", icon: "sports_gymnastics", type: "passive", effect: "acrobat",
     rarity: 4, price: 77, noLevelUp: true,
-    desc: "ハートドロップの2コンボ以上達成で、基礎コンボ数が7倍になる。",
+    desc: "ハートドロップの2コンボ以上達成で、コンボ倍率が7倍になる。",
     attributes: ["heart"]
   },
   {
@@ -1477,13 +1477,13 @@ const ALL_TOKEN_BASES = [
   {
     id: "legend_inugami", name: "犬神", icon: "pets", type: "passive", effect: "inugami",
     rarity: 4, price: 77, noLevelUp: true,
-    desc: "基礎コンボ数が100以上の時、基礎コンボ数が10倍になる。",
+    desc: "基礎コンボ数が100以上の時、コンボ倍率が10倍になる。",
     attributes: []
   },
   {
     id: "legend_sky_god", name: "空の神", icon: "cloud", type: "passive", effect: "sky_god",
     rarity: 4, price: 77, noLevelUp: true,
-    desc: "所持トークンが合計10個以下のとき、基礎コンボ数が4倍になる。",
+    desc: "所持トークンが合計10個以下のとき、コンボ倍率が4倍になる。",
     attributes: []
   },
   {
@@ -1561,14 +1561,14 @@ const ALL_TOKEN_BASES = [
   {
     id: "star3_mult_boost", name: "三星の極雷", icon: "trending_up", type: "passive", effect: "star_count_combo_mult",
     params: { rarity: 3 }, values: [2, 3, 4], maxMultipliers: [10, 20, 50], rarity: 3, price: 24,
-    desc: "所持している★3トークン1個につき、基礎コンボ数が{values}倍される。",
+    desc: "所持している★3トークン1個につき、コンボ倍率が{values}倍される。",
     attributes: []
   },
   /* エンチャント廃止に伴いコメントアウト
   {
     id: "enchant_mult_boost", name: "魔導の共犯", icon: "auto_fix_normal", type: "passive", effect: "enchant_count_combo_mult",
     values: [2, 3, 4], maxMultipliers: [10, 20, 50], rarity: 3, price: 24,
-    desc: "所持しているエンチャント1個につき、基礎コンボ数が{values}倍される。",
+    desc: "所持しているエンチャント1個につき、コンボ倍率が{values}倍される。",
     attributes: []
   },
   */
@@ -1629,19 +1629,19 @@ const ALL_TOKEN_BASES = [
   {
     id: "thousand_arms", name: "千手観音", icon: "query_stats", type: "passive", effect: "stat_mult_千手",
     values: [2, 3, 4], maxMultipliers: [10, 20, 50], rarity: 3, price: 26,
-    desc: "現在のゲーム中の「累計コンボ数」100ごとに、基礎コンボ数が{values}倍される。",
+    desc: "現在のゲーム中の「累計コンボ数」100ごとに、コンボ倍率が{values}倍される。",
     attributes: []
   },
   {
     id: "curse_eater", name: "呪い喰い", icon: "psychology", type: "passive", effect: "stat_curse_removed",
     values: [2, 3, 5], rarity: 3, price: 39,
-    desc: "基礎コンボ数が（1 + 解除した呪いトークンの累計数 × {values}）倍になる。",
+    desc: "コンボ倍率が（1 + 解除した呪いトークンの累計数 × {values}）倍になる。",
     attributes: []
   },
   {
     id: "chalice_of_life", name: "生命の器", icon: "favorite", type: "passive", effect: "stat_heart_chalice",
     values: [2, 3, 4], rarity: 2, price: 26,
-    desc: "累計で消去したハートドロップ数30個ごとに、基礎コンボ数が{values}倍される。",
+    desc: "累計で消去したハートドロップ数30個ごとに、コンボ倍率が{values}倍される。",
     attributes: ["heart"],
     canBeInitial: true
   },
@@ -1657,43 +1657,43 @@ const ALL_TOKEN_BASES = [
   {
     id: "attr_res_fire", name: "紅炎の共鳴", icon: "layers", type: "passive", effect: "attribute_count_multiplier",
     params: { attribute: "fire" }, values: [0.1, 0.2, 0.5], rarity: 2, price: 20,
-    desc: "基礎コンボ数が（1 + 所持している炎属性トークン数 × {values}）倍になる。",
+    desc: "コンボ倍率が（1 + 所持している炎属性トークン数 × {values}）倍になる。",
     attributes: ["fire"], canBeInitial: true
   },
   {
     id: "attr_res_water", name: "蒼氷の共鳴", icon: "layers", type: "passive", effect: "attribute_count_multiplier",
     params: { attribute: "water" }, values: [0.1, 0.2, 0.5], rarity: 2, price: 20,
-    desc: "基礎コンボ数が（1 + 所持している雨属性トークン数 × {values}）倍になる。",
+    desc: "コンボ倍率が（1 + 所持している雨属性トークン数 × {values}）倍になる。",
     attributes: ["water"], canBeInitial: true
   },
   {
     id: "attr_res_wood", name: "翠嵐の共鳴", icon: "layers", type: "passive", effect: "attribute_count_multiplier",
     params: { attribute: "wood" }, values: [0.1, 0.2, 0.5], rarity: 2, price: 20,
-    desc: "基礎コンボ数が（1 + 所持している風属性トークン数 × {values}）倍になる。",
+    desc: "コンボ倍率が（1 + 所持している風属性トークン数 × {values}）倍になる。",
     attributes: ["wood"], canBeInitial: true
   },
   {
     id: "attr_res_light", name: "閃光の共鳴", icon: "layers", type: "passive", effect: "attribute_count_multiplier",
     params: { attribute: "light" }, values: [0.1, 0.2, 0.5], rarity: 2, price: 20,
-    desc: "基礎コンボ数が（1 + 所持している雷属性トークン数 × {values}）倍になる。",
+    desc: "コンボ倍率が（1 + 所持している雷属性トークン数 × {values}）倍になる。",
     attributes: ["light"], canBeInitial: true
   },
   {
     id: "attr_res_dark", name: "常闇の共鳴", icon: "layers", type: "passive", effect: "attribute_count_multiplier",
     params: { attribute: "dark" }, values: [0.1, 0.2, 0.5], rarity: 2, price: 20,
-    desc: "基礎コンボ数が（1 + 所持している月属性トークン数 × {values}）倍になる。",
+    desc: "コンボ倍率が（1 + 所持している月属性トークン数 × {values}）倍になる。",
     attributes: ["dark"], canBeInitial: true
   },
   {
     id: "attr_res_heart", name: "慈愛の共鳴", icon: "layers", type: "passive", effect: "attribute_count_multiplier",
     params: { attribute: "heart" }, values: [0.1, 0.2, 0.5], rarity: 2, price: 20,
-    desc: "基礎コンボ数が（1 + 所持している心属性トークン数 × {values}）倍になる。",
+    desc: "コンボ倍率が（1 + 所持している心属性トークン数 × {values}）倍になる。",
     attributes: ["heart"], canBeInitial: true
   },
   {
     id: "pure_power", name: "純粋なる力", icon: "stars", type: "passive", effect: "no_attribute_multiplier",
     values: [4, 5, 6], maxMultipliers: [100, 500, 1000], rarity: 3, price: 39,
-    desc: "「時の砂」以外の無属性トークンを所持していない場合、基礎コンボ数が{values}倍になる。",
+    desc: "「時の砂」以外の無属性トークンを所持していない場合、コンボ倍率が{values}倍になる。",
     attributes: ["fire", "water", "wood", "light", "dark", "heart"],
     canBeInitial: false
   },
@@ -1767,7 +1767,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "desperate_stance", name: "背水の陣", icon: "warning", type: "passive", effect: "desperate_stance",
     values: [2, 3, 4], rarity: 3, price: 31,
-    desc: "操作時間が常に4秒固定。基礎コンボ数が{values}倍になる。",
+    desc: "操作時間が常に4秒固定。コンボ倍率が{values}倍になる。",
     attributes: [],
     canBeCurseReward: true
   },
@@ -1847,7 +1847,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "contract_of_void", name: "虚無の契約", icon: "history_edu", type: "passive", effect: "contract_of_void",
     values: [3, 4, 5], rarity: 3, price: 31,
-    desc: "全エンチャント効果が無効になる代わりに、基礎コンボ数が{values}倍になる。",
+    desc: "全エンチャント効果が無効になる代わりに、コンボ倍率が{values}倍になる。",
     attributes: [],
     canBeCurseReward: true
   },
@@ -1881,7 +1881,7 @@ const ALL_TOKEN_BASES = [
     values: [2, 3, 4],
     rarity: 2,
     price: 20,
-    desc: "サイクルの最終ターン目のみ、基礎コンボ数が{values}倍になる。",
+    desc: "サイクルの最終ターン目のみ、コンボ倍率が{values}倍になる。",
     attributes: [],
     canBeInitial: true
   },
@@ -2313,7 +2313,7 @@ const ALL_TOKEN_BASES = [
     values: [2, 3, 7],
     rarity: 2,
     price: 20,
-    desc: "確率系トークンの効果が発動したターン、基礎コンボ数を[2/3/7]倍にする。",
+    desc: "確率系トークンの効果が発動したターン、コンボ倍率を[2/3/7]倍にする。",
     attributes: [],
     canBeInitial: true
   },
@@ -2701,7 +2701,7 @@ const ALL_TOKEN_BASES = [
     values: [1.5, 2.2, 3.5],
     params: { maxStars: [3, 5, 10] },
     rarity: 2, price: 20,
-    desc: "所持スターが[3/5/10]個以下のとき、基礎コンボ数が[1.5/2.2/3.5]倍になる。",
+    desc: "所持スターが[3/5/10]個以下のとき、コンボ倍率が[1.5/2.2/3.5]倍になる。",
     attributes: [],
     canBeInitial: false
   },
@@ -2762,7 +2762,7 @@ const ALL_TOKEN_BASES = [
     action: "gravity_overdrive",
     params: { direction: "up", duration: 1 },
     rarity: 3, price: 26,
-    desc: "１ターンの間、ドロップの落下方向が「上」に逆転する。さらに基礎コンボ数が2倍になる。消費E:{cost}",
+    desc: "１ターンの間、ドロップの落下方向が「上」に逆転する。さらにコンボ倍率が2倍になる。消費E:{cost}",
     attributes: [],
     canBeInitial: false,
     canBeCurseReward: true
@@ -2777,7 +2777,7 @@ const ALL_TOKEN_BASES = [
     effect: "one_stroke_seal",
     values: [4.0, 6.5, 10.0],
     rarity: 3, price: 31,
-    desc: "ドラッグ操作中に一度通過したマスを二度と通過できなくなる（一筆書きルール）。その代わり、基礎コンボ数が[4.0/6.5/10.0]倍になる。",
+    desc: "ドラッグ操作中に一度通過したマスを二度と通過できなくなる（一筆書きルール）。その代わり、コンボ倍率が[4.0/6.5/10.0]倍になる。",
     attributes: [],
     canBeInitial: false,
     canBeCurseReward: true
@@ -2794,7 +2794,7 @@ const ALL_TOKEN_BASES = [
     values: [2, 3, 4],
     rarity: 3,
     price: 26,
-    desc: "１ターンの間、ドロップの落下方向が「右」に変化する（レベルアップで「左」も選択可能）。さらに基礎コンボ数が{values}倍になる。消費E:{cost}",
+    desc: "１ターンの間、ドロップの落下方向が「右」に変化する（レベルアップで「左」も選択可能）。さらにコンボ倍率が{values}倍になる。消費E:{cost}",
     attributes: [],
     canBeInitial: false,
     canBeCurseReward: true
@@ -3010,7 +3010,7 @@ const ALL_TOKEN_BASES = [
     effectValues: [1.5, 2.0, 2.5],
     rarity: 2,
     price: 20,
-    desc: "スキル使用ターンに風を10個以上消すと、次のターン操作時間+[1.0/2.0/3.0]秒、基礎コンボ[1.5/2.0/2.5]倍。消費E:{cost}",
+    desc: "スキル使用ターンに風を10個以上消すと、次のターン操作時間+[1.0/2.0/3.0]秒、コンボ倍率[1.5/2.0/2.5]倍。消費E:{cost}",
     attributes: ["wood"],
     canBeInitial: true
   },
@@ -3027,7 +3027,7 @@ const ALL_TOKEN_BASES = [
     effectValues: [1.5, 2.0, 2.5],
     rarity: 2,
     price: 20,
-    desc: "スキル使用ターンに雷を10個以上消すと、次のターン操作時間+[1.0/2.0/3.0]秒、基礎コンボ[1.5/2.0/2.5]倍。消費E:{cost}",
+    desc: "スキル使用ターンに雷を10個以上消すと、次のターン操作時間+[1.0/2.0/3.0]秒、コンボ倍率[1.5/2.0/2.5]倍。消費E:{cost}",
     attributes: ["light"],
     canBeInitial: true
   },
@@ -3152,7 +3152,7 @@ const ALL_TOKEN_BASES = [
     values: [3, 5, 8],
     rarity: 2,
     price: 20,
-    desc: "炎ドロップを消すと基礎コンボ数[3/5/8]倍。雨ドロップを1コンボでも消すと、そのターンの基礎コンボ数が半分になる（両方消すと半分）。",
+    desc: "炎ドロップを消すとコンボ倍率[3/5/8]倍。雨ドロップを1コンボでも消すと、そのターンのコンボ倍率が半分になる（両方消すと半分）。",
     attributes: ["fire"],
     canBeInitial: true
   },
@@ -3166,7 +3166,7 @@ const ALL_TOKEN_BASES = [
     values: [3, 5, 8],
     rarity: 2,
     price: 20,
-    desc: "雨ドロップを消すと基礎コンボ数[3/5/8]倍。炎ドロップを1コンボでも消すと、そのターンの基礎コンボ数が半分になる（両方消すと半分）。",
+    desc: "雨ドロップを消すとコンボ倍率[3/5/8]倍。炎ドロップを1コンボでも消すと、そのターンのコンボ倍率が半分になる（両方消すと半分）。",
     attributes: ["water"],
     canBeInitial: true
   },
@@ -3180,7 +3180,7 @@ const ALL_TOKEN_BASES = [
     values: [3, 5, 8],
     rarity: 2,
     price: 20,
-    desc: "風ドロップを消すと基礎コンボ数[3/5/8]倍。雷ドロップを1コンボでも消すと、そのターンの基礎コンボ数が半分になる（両方消すと半分）。",
+    desc: "風ドロップを消すとコンボ倍率[3/5/8]倍。雷ドロップを1コンボでも消すと、そのターンのコンボ倍率が半分になる（両方消すと半分）。",
     attributes: ["wood"],
     canBeInitial: true
   },
@@ -3194,7 +3194,7 @@ const ALL_TOKEN_BASES = [
     values: [3, 5, 8],
     rarity: 2,
     price: 20,
-    desc: "雷ドロップを消すと基礎コンボ数[3/5/8]倍。風ドロップを1コンボでも消すと、そのターンの基礎コンボ数が半分になる（両方消すと半分）。",
+    desc: "雷ドロップを消すとコンボ倍率[3/5/8]倍。風ドロップを1コンボでも消すと、そのターンのコンボ倍率が半分になる（両方消すと半分）。",
     attributes: ["light"],
     canBeInitial: true
   },
@@ -3208,7 +3208,7 @@ const ALL_TOKEN_BASES = [
     values: [3, 5, 8],
     rarity: 2,
     price: 20,
-    desc: "月ドロップを消すと基礎コンボ数[3/5/8]倍。回復ドロップを1コンボでも消すと、そのターンの基礎コンボ数が半分になる（両方消すと半分）。",
+    desc: "月ドロップを消すとコンボ倍率[3/5/8]倍。回復ドロップを1コンボでも消すと、そのターンのコンボ倍率が半分になる（両方消すと半分）。",
     attributes: ["dark"],
     canBeInitial: true
   },
@@ -3222,7 +3222,7 @@ const ALL_TOKEN_BASES = [
     values: [3, 5, 8],
     rarity: 2,
     price: 20,
-    desc: "回復ドロップを消すと基礎コンボ数[3/5/8]倍。月ドロップを1コンボでも消すと、そのターンの基礎コンボ数が半分になる（両方消すと半分）。",
+    desc: "回復ドロップを消すとコンボ倍率[3/5/8]倍。月ドロップを1コンボでも消すと、そのターンのコンボ倍率が半分になる（両方消すと半分）。",
     attributes: ["heart"],
     canBeInitial: true
   },
@@ -3527,7 +3527,7 @@ const ALL_TOKEN_BASES = [
     values: [4, 7, 12],
     rarity: 3,
     price: 26,
-    desc: "炎以外の属性を消すと獲得コンボが0になるが、炎のみを消したターンの基礎コンボ数が{values}倍になる。",
+    desc: "炎以外の属性を消すと獲得コンボが0になるが、炎のみを消したターンのコンボ倍率が{values}倍になる。",
     attributes: ["fire"]
   },
   {
@@ -3538,7 +3538,7 @@ const ALL_TOKEN_BASES = [
     values: [4, 7, 12],
     rarity: 3,
     price: 26,
-    desc: "雨以外の属性を消すと獲得コンボが0になるが、雨のみを消したターンの基礎コンボ数が{values}倍になる。",
+    desc: "雨以外の属性を消すと獲得コンボが0になるが、雨のみを消したターンのコンボ倍率が{values}倍になる。",
     attributes: ["water"]
   },
   {
@@ -3613,7 +3613,7 @@ const ALL_TOKEN_BASES = [
     params: { duration: 2 },
     rarity: 3,
     price: 20,
-    desc: "2ターンの間、基礎コンボ倍率を『十字消しの数プラス1』倍する。消費E:{cost}",
+    desc: "2ターンの間、コンボ倍率を『十字消しの数プラス1』倍する。消費E:{cost}",
     attributes: []
   },
   {
@@ -3626,7 +3626,7 @@ const ALL_TOKEN_BASES = [
     params: { duration: 2 },
     rarity: 3,
     price: 20,
-    desc: "2ターンの間、基礎コンボ倍率を『正方形消しの数×3』倍する（1個以上消去時）。消費E:{cost}",
+    desc: "2ターンの間、コンボ倍率を『正方形消しの数×3』倍する（1個以上消去時）。消費E:{cost}",
     attributes: []
   },
   {
@@ -3649,7 +3649,7 @@ const ALL_TOKEN_BASES = [
     effect: "four_match_restriction",
     rarity: 3,
     price: 10,
-    desc: "ドロップを4つ消しでしか消せなくなるが、基礎コンボ数が4つ消しをした回数倍される。",
+    desc: "ドロップを4つ消しでしか消せなくなるが、コンボ倍率が4つ消しをした回数倍される。",
     attributes: []
   },
   {
@@ -3660,7 +3660,7 @@ const ALL_TOKEN_BASES = [
     effect: "row_match_restriction",
     rarity: 3,
     price: 10,
-    desc: "ドロップを横1列消しでしか消せなくなるが、基礎コンボ数が横1列消しをした回数倍される。",
+    desc: "ドロップを横1列消しでしか消せなくなるが、コンボ倍率が横1列消しをした回数倍される。",
     attributes: []
   },
   {
@@ -3673,7 +3673,7 @@ const ALL_TOKEN_BASES = [
     params: { duration: 1 },
     rarity: 3,
     price: 30,
-    desc: "1手番、基礎コンボ数を10倍にする。しかし、正方形消しをしてなければ基礎コンボ数を4分の1にする。消費E:{cost}",
+    desc: "1手番、コンボ倍率を10倍にする。しかし、正方形消しをしてなければコンボ倍率を4分の1にする。消費E:{cost}",
     attributes: []
   },
   {
@@ -3712,7 +3712,7 @@ const ALL_TOKEN_BASES = [
     values: [1.5, 2.0, 3.0],
     rarity: 2,
     price: 18,
-    desc: "L字消しを2個同時にすると、基礎コンボ数を[1.5/2/3]倍する。",
+    desc: "L字消しを2個同時にすると、コンボ倍率を[1.5/2/3]倍する。",
     attributes: [],
     canBeInitial: true
   },
@@ -3766,7 +3766,7 @@ const ALL_TOKEN_BASES = [
     values: [3.0, 4.0, 5.0],
     rarity: 3,
     price: 30,
-    desc: "L字消しと十字消しを同時にすると、基礎コンボ数を[3/4/5]倍する。",
+    desc: "L字消しと十字消しを同時にすると、コンボ倍率を[3/4/5]倍する。",
     attributes: [],
     canBeInitial: true
   },
@@ -3780,7 +3780,7 @@ const ALL_TOKEN_BASES = [
     values: [2.0, 3.0, 4.0],
     rarity: 2,
     price: 20,
-    desc: "十字消しを2個同時にすると、基礎コンボ数を[2/3/4]倍する。",
+    desc: "十字消しを2個同時にすると、コンボ倍率を[2/3/4]倍する。",
     attributes: [],
     canBeInitial: true
   },
@@ -3906,7 +3906,7 @@ const ALL_TOKEN_BASES = [
     values: [2.0, 3.0, 4.0],
     rarity: 3,
     price: 24,
-    desc: "横1列消しを3個同時にすると、基礎コンボ数を[2/3/4]倍する。",
+    desc: "横1列消しを3個同時にすると、コンボ倍率を[2/3/4]倍する。",
     attributes: [],
     canBeInitial: true
   },
@@ -3946,7 +3946,7 @@ const ALL_TOKEN_BASES = [
     values: [2.0, 3.0, 4.0],
     rarity: 2,
     price: 24,
-    desc: "4個消しを4個同時にすると、基礎コンボ数を[2/3/4]倍する。",
+    desc: "4個消しを4個同時にすると、コンボ倍率を[2/3/4]倍する。",
     attributes: [],
     canBeInitial: true
   },
@@ -4029,7 +4029,7 @@ const ALL_TOKEN_BASES = [
     values: [1.5, 2.0, 3.0],
     rarity: 3,
     price: 36,
-    desc: "「エンチャントが3つ以上付与されているトークン」 1つにつき、基礎コンボ数が[1.5/2.0/3.0]倍になる。",
+    desc: "「エンチャントが3つ以上付与されているトークン」 1つにつき、コンボ倍率が[1.5/2.0/3.0]倍になる。",
     attributes: []
   },
   {
@@ -4069,7 +4069,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "col_double_mult", name: "支柱の共鳴", icon: "view_column", type: "passive", effect: "shape_double_column_mult",
     values: [2, 3, 4], rarity: 2, price: 20,
-    desc: "縦1列消しを2本以上同時にすると、基礎コンボ数が[2/3/4]倍になる。",
+    desc: "縦1列消しを2本以上同時にすると、コンボ倍率が[2/3/4]倍になる。",
     attributes: []
   },
   {
@@ -4087,13 +4087,13 @@ const ALL_TOKEN_BASES = [
   {
     id: "same_color_streak", name: "一途の誓い", icon: "favorite", type: "passive", effect: "same_color_streak",
     values: [0.3, 0.5, 1], rarity: 2, price: 20,
-    desc: "前の手番とまったく同じ属性の組み合わせを消すと、基礎コンボ数が（1 + 連続した手番数 × [0.3/0.5/1]）倍になる。消す属性の組み合わせが変わると連続数はリセット。",
+    desc: "前の手番とまったく同じ属性の組み合わせを消すと、コンボ倍率が（1 + 連続した手番数 × [0.3/0.5/1]）倍になる。消す属性の組み合わせが変わると連続数はリセット。",
     attributes: []
   },
   {
     id: "empty_slot_beauty", name: "余白の美学", icon: "crop_free", type: "passive", effect: "empty_slot_mult",
     values: [1.3, 1.5, 2], maxMultipliers: [10, 30, 100], rarity: 3, price: 31,
-    desc: "空いているトークン枠1つにつき、基礎コンボ数が[1.3/1.5/2]倍になる（パッシブ枠とアクティブ枠の両方を数える）。",
+    desc: "空いているトークン枠1つにつき、コンボ倍率が[1.3/1.5/2]倍になる（パッシブ枠とアクティブ枠の両方を数える）。",
     attributes: []
   },
   {

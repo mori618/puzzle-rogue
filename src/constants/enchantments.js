@@ -91,7 +91,7 @@ const ENCHANT_DESCRIPTIONS = {
   full_drop_light: "ターン終了時、10%の確率で盤面を全て雷ドロップにする。",
   full_drop_dark: "ターン終了時、10%の確率で盤面を全て月ドロップにする。",
   full_drop_heart: "ターン終了時、10%の確率で盤面を全てハートドロップにする。",
-  double_combo_chance: "10%の確率で基礎コンボ数を2倍にする。"
+  double_combo_chance: "10%の確率でコンボ倍率を2倍にする。"
 };
 
 

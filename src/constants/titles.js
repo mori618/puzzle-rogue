@@ -10,7 +10,7 @@
  * ■ 強さの段階（解放難易度に合わせる）
  *   序盤（緩い条件）: 操作時間・ショップ出現率・ドロップ出現率などの補助効果
  *   中盤            : 条件付きのコンボ加算 / 小さめの条件付き倍率
- *   終盤（厳しい条件）・進化: 常時倍率・基礎コンボ倍率・最終倍率
+ *   終盤（厳しい条件）・進化: 常時倍率・コンボ倍率(×)・最終倍率
  *
  * ■ 効果 (effects)
  *   宣言的な効果リスト。titleManager.js の computeTitleComboModifiers / getTitleEffectTotal 等で解釈される。
@@ -22,8 +22,8 @@
  *   コンボ計算系:
  *     combo_add       : 基礎コンボ +value
  *     add_mult        : コンボ倍率 +value（加算）
- *     base_mult       : 基礎コンボ ×value（per 指定時は value^count）
- *     base_mult_step  : 基礎コンボ ×(1 + value × count)
+ *     base_mult       : コンボ倍率 ×value（per 指定時は value^count）。旧「基礎コンボ ×」。加算の極意で無効
+ *     base_mult_step  : コンボ倍率 ×(1 + value × count)。旧「基礎コンボ ×」。加算の極意で無効
  *     final_mult      : 最終コンボ倍率 ×value
  *     combo_add_scale : すべてのコンボ加算(+N)の合計 ×value
  *   操作時間: time_add (ms), time_fixed (ms), time_scale (倍率・積)
@@ -220,7 +220,7 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A23', name: '消滅者の', category: 'やり込み',
-    desc: '基礎コンボ数が 1.2倍 に強化',
+    desc: 'コンボ倍率が 1.2倍 に強化',
     conditionType: 'erase_total', targetValue: 50000,
     conditionDesc: 'ドロップを累計 50,000個 消去',
     effects: [{ type: 'base_mult', value: 1.2 }],
@@ -641,7 +641,7 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B08', name: '無双', category: '基礎コンボ',
-    desc: '基礎コンボ数 1.5倍',
+    desc: 'コンボ倍率 1.5倍',
     conditionType: 'base_combo_turn_max', targetValue: 300,
     conditionDesc: '1手で基礎コンボ300を達成',
     effects: [{ type: 'base_mult', value: 1.5 }],
@@ -767,7 +767,7 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B26', name: '呪術師', category: '呪い',
-    desc: '所持中の呪い1つにつき基礎コンボ数 1.3倍（最大5個分）',
+    desc: '所持中の呪い1つにつきコンボ倍率 1.3倍（最大5個分）',
     conditionType: 'curses_removed', targetValue: 10,
     conditionDesc: '呪いを累計10回解呪',
     effects: [{ type: 'base_mult', value: 1.3, per: 'curse', max: 5 }],
@@ -900,7 +900,7 @@ export const SUFFIX_TITLES = [
   },
   {
     id: 'B45', name: '不死鳥', category: '逆境',
-    desc: '所持スター5以下の時、基礎コンボ数 1.3倍',
+    desc: '所持スター5以下の時、コンボ倍率 1.3倍',
     conditionType: 'game_overs', targetValue: 30,
     conditionDesc: 'ゲームオーバー累計30回',
     effects: [{ type: 'base_mult', value: 1.3, when: { stars_le: 5 } }],
@@ -1138,7 +1138,7 @@ export const EVOLVED_TITLES = [
     requireMode: 'equipped',
     challengeDesc: '「狂戦士の」を装備して、残り操作時間1秒未満で1手20コンボ（倍率適用前）',
     trigger: { event: 'turn', when: { time_left_lt: 1000, tc_ge: 20 } },
-    desc: '操作時間 -3秒、基礎コンボ数 2.0倍、コンボによるスター獲得量 1.5倍。',
+    desc: '操作時間 -3秒、コンボ倍率 2.0倍、コンボによるスター獲得量 1.5倍。',
     effects: [{ type: 'time_add', value: -3000 }, { type: 'base_mult', value: 2.0 }, { type: 'star_gain_mult', value: 1.5 }],
   },
   {
@@ -1162,7 +1162,7 @@ export const EVOLVED_TITLES = [
     requireMode: 'equipped',
     challengeDesc: '「厄災の」を装備して、呪いを5つ同時に所持した状態でサイクルクリア',
     trigger: { event: 'clear', when: { curses_ge: 5 } },
-    desc: '全呪いのデメリットが消滅し、所持中の呪い1つにつき基礎コンボ数 1.5倍（最大5個分）。',
+    desc: '全呪いのデメリットが消滅し、所持中の呪い1つにつきコンボ倍率 1.5倍（最大5個分）。',
     effects: [{ type: 'curse_null' }, { type: 'base_mult', value: 1.5, per: 'curse', max: 5 }],
   },
   {
@@ -1218,7 +1218,7 @@ export const EVOLVED_TITLES = [
     requireMode: 'equipped',
     challengeDesc: '「背水の」を装備して、サイクル10以降をクリア',
     trigger: { event: 'clear', when: { cycle_ge: 10 } },
-    desc: '操作時間4秒固定、基礎コンボ数 2.0倍。',
+    desc: '操作時間4秒固定、コンボ倍率 2.0倍。',
     effects: [{ type: 'time_fixed', value: 4000 }, { type: 'base_mult', value: 2.0 }],
   },
   {
@@ -1282,7 +1282,7 @@ export const EVOLVED_TITLES = [
     requireMode: 'equipped',
     challengeDesc: '「無双」を装備して、1手で基礎コンボ60を達成',
     trigger: { event: 'turn', when: { base_combo_ge: 60 } },
-    desc: '基礎コンボ数 1.6倍。',
+    desc: 'コンボ倍率 1.6倍。',
     effects: [{ type: 'base_mult', value: 1.6 }],
   },
   {
@@ -1356,7 +1356,7 @@ export const EVOLVED_TITLES = [
     requireMode: 'equipped',
     challengeDesc: '「神速の」と「無双」を装備して、操作時間を3秒以上残してサイクルクリア',
     trigger: { event: 'clear', when: { time_left_ge: 3000 } },
-    desc: '操作時間 +1秒。手番終了時の残り操作時間1秒につき基礎コンボ数 ×+0.15（最大5秒分、×1.75）。',
+    desc: '操作時間 +1秒。手番終了時の残り操作時間1秒につきコンボ倍率 ×+0.15（最大5秒分、×1.75）。',
     effects: [{ type: 'time_add', value: 1000 }, { type: 'base_mult_step', value: 0.15, per: 'time_left_sec', max: 5 }],
   },
   {
@@ -1444,7 +1444,7 @@ export const EVOLVED_TITLES = [
     requireMode: 'unlocked',
     challengeDesc: '「慈愛の」と「不死鳥」を解放した状態で、所持スター5以下のままサイクルクリア',
     trigger: { event: 'clear', when: { stars_le: 5 } },
-    desc: '所持スター5以下の時、基礎コンボ数 1.3倍・最終コンボ倍率 1.3倍。',
+    desc: '所持スター5以下の時、コンボ倍率 1.3倍・最終コンボ倍率 1.3倍。',
     effects: [{ type: 'base_mult', value: 1.3, when: { stars_le: 5 } }, { type: 'final_mult', value: 1.3, when: { stars_le: 5 } }],
   },
   {
