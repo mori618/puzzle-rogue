@@ -19,16 +19,16 @@ const DEFAULT_SETTINGS = {
 };
 
 /**
- * トークン価格の段階上昇設定（所持トークン総数ベース）
- * - 所持数が startOwned 未満なら定価
- * - startOwned 以上で1段階目、以降 stepOwned 個増えるごとに1段階上昇
- * - 価格倍率 = 1 + multiplierPerStep × 段階数
- *   例: 5-6個 ×1.2 / 7-8個 ×1.4 / 9-10個 ×1.6 / 11-12個 ×1.8 / 13-14個 ×2.0 ...
+ * トークン価格の上昇設定（★ごとに管理）
+ * - 新しく並ぶトークンの価格は、同じ★のトークンをいくつ所持しているかで上がる（呪いは数えない）
+ * - 価格倍率 = 1 + perOwned[★] × 同じ★の所持数
+ *   例: ★3（定価31）… 0個 31 / 1個 46 / 2個 62 / 3個 77
+ *       ★2（定価20）… 0個 20 / 1個 23 / 2個 26 / 3個 29
+ *       ★1（定価15）… 0個 15 / 2個 16 / 4個 18
+ * - ★1はほとんど上がらず、★2はそこそこ、★3は大きく上がる
  */
-const TOKEN_PRICE_TIER = {
-  startOwned: 5,
-  stepOwned: 2,
-  multiplierPerStep: 0.2,
+const TOKEN_PRICE_BY_RARITY = {
+  perOwned: { 1: 0.05, 2: 0.15, 3: 0.5, 4: 0.5 },
 };
 const SHOP_REROLL_GROWTH_FACTOR = 1.3;
 // 前提トークン（requires）を満たした関連トークンのショップ出現重み倍率（例: ムーブドロップ所持時の関連トークン）
@@ -48,7 +48,7 @@ const TITLE_SWITCH_COST = { base: 5, step: 5 };
 /** 切り替え回数から次回の価格を求める */
 const getTitleSwitchCost = (switchCount = 0) => TITLE_SWITCH_COST.base + TITLE_SWITCH_COST.step * Math.max(0, switchCount);
 
-export { TRIAL_TIME_LIMIT_MS, TRIAL_BOARD_COMBOS, TIME_BANK_MAX_MS, TITLE_SWITCH_COST, getTitleSwitchCost, MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_TIER, SHOP_REROLL_GROWTH_FACTOR, SYNERGY_WEIGHT_MULTIPLIER, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS };
+export { TRIAL_TIME_LIMIT_MS, TRIAL_BOARD_COMBOS, TIME_BANK_MAX_MS, TITLE_SWITCH_COST, getTitleSwitchCost, MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_BY_RARITY, SHOP_REROLL_GROWTH_FACTOR, SYNERGY_WEIGHT_MULTIPLIER, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS };
 
 
 /**
