@@ -512,7 +512,7 @@ export const useShop = ({
 
   /** トークン枠の拡張価格を取得 */
   const getTokenSlotExpandPrice = useCallback(() => {
-    return AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpansionCount, 4)] || 50000;
+    return AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpansionCount, AWAKENING_TOKEN_SLOT_PRICES.length - 1)];
   }, [tokenSlotExpansionCount]);
 
   /** ショップアイテムの購入 */

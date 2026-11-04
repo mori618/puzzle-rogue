@@ -225,7 +225,7 @@ const ShopScreen = ({
 
     const tokenSlotExpCount = tokenSlotExpansionCount || 0;
     const isTokenSlotMaxed = tokenSlotExpCount >= 5;
-    const tokenSlotExpandPrice = isTokenSlotMaxed ? 0 : (AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpCount, 4)] || 50000);
+    const tokenSlotExpandPrice = isTokenSlotMaxed ? 0 : (AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpCount, AWAKENING_TOKEN_SLOT_PRICES.length - 1)]);
     const currentMaxSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpCount;
     const nextMaxSlots = currentMaxSlots + 1;
 
