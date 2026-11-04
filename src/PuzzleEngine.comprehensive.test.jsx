@@ -986,13 +986,13 @@ describe('17. 特殊ドロップ: スタードロップ処理', () => {
     expect(onStarErase).toHaveBeenCalled();
   });
 
-  it('makeAllOrbsStarPlusRepeat: 全オーブがスター+強化+リピートになる', () => {
-    engine.makeAllOrbsStarPlusRepeat();
+  it('makeAllOrbsStarPlus: 全オーブがスター+強化になり、リピートは付かない', () => {
+    engine.makeAllOrbsStarPlus();
     engine.state.forEach(row => row.forEach(orb => {
       if (orb) {
         expect(orb.isStar).toBe(true);
         expect(orb.isEnhanced).toBe(true);
-        expect(orb.isRepeat).toBe(true);
+        expect(orb.isRepeat).toBeFalsy();
       }
     }));
   });
