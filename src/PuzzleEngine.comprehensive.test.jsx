@@ -829,6 +829,26 @@ describe('13. スキルアクション: クロノスストップ (chronos_stop)'
     expect(processSpy).not.toHaveBeenCalled();
   });
 
+  it('ドラッグ中にクロノスストップが終了しても、次の操作を受け付ける', async () => {
+    engine.activateChronosStop(100);
+    const orb = engine.state[0][0];
+    engine.onStart(new MouseEvent('mousedown'), orb);
+    expect(engine.activePointerId).not.toBeNull();
+
+    // ドラッグ中にタイムアウト → endChronosStop
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(engine.chronosStopActive).toBe(false);
+    expect(engine.dragging).toBeNull();
+    // 操作中のポインターが解放されていること（解放されないと盤面がロックされる）
+    expect(engine.activePointerId).toBeNull();
+
+    // 指を離した後、再びドラッグを開始できる
+    window.dispatchEvent(new MouseEvent('mouseup'));
+    engine.processing = false;
+    engine.onStart(new MouseEvent('mousedown'), engine.state[0][1]);
+    expect(engine.dragging).not.toBeNull();
+  });
+
   it('activateChronosStop メソッドがエンジンに存在する', () => {
     expect(typeof engine.activateChronosStop).toBe('function');
   });
