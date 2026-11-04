@@ -490,13 +490,13 @@ export const computeTitleComboModifiers = (ctx = {}, effects = getActiveTitleEff
       case 'base_mult': {
         const mult = Math.pow(v, count);
         result.baseMult *= mult;
-        result.steps.push({ kind: 'mult', label, value: mult, type: 'mult' });
+        result.steps.push({ kind: 'mult', label, value: mult, type: 'mult', scope: 'base' });
         break;
       }
       case 'base_mult_step': {
         const mult = 1 + v * count;
         result.baseMult *= mult;
-        result.steps.push({ kind: 'mult', label, value: mult, type: 'mult' });
+        result.steps.push({ kind: 'mult', label, value: mult, type: 'mult', scope: 'base' });
         break;
       }
       case 'final_mult': {
