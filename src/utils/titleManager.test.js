@@ -53,10 +53,10 @@ const unlockAndEquip = ({ prefixes = [], suffixes = [], evolved = [], prefixId =
 };
 
 describe('二つ名マスターデータ', () => {
-  it('全191件・ID重複なし（セットシナジーは廃止・B61 継承者は削除）', () => {
+  it('全194件・ID重複なし（セットシナジーは廃止・B61 継承者は削除）', () => {
     const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES];
-    expect(all).toHaveLength(191);
-    expect(new Set(all.map(t => t.id)).size).toBe(191);
+    expect(all).toHaveLength(194);
+    expect(new Set(all.map(t => t.id)).size).toBe(194);
     expect(EVOLVED_TITLES).toHaveLength(50);
   });
 

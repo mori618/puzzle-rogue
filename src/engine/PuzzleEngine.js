@@ -1559,7 +1559,7 @@ class PuzzleEngine {
         const safeCombo = isNaN(this.currentCombo) ? 0 : this.currentCombo;
 
         // 先に comboEl の HTML をコンボ数で更新（既存のコンボカウンタ自体は更新）
-        this.comboEl.innerHTML = `<span class="combo-number" id="rt-combo-num">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
+        this.comboEl.innerHTML = `<span class="combo-number combo-number--token" id="rt-combo-num">${formatJapaneseNumber(safeCombo)}</span><span class="combo-label">COMBO</span>`;
         this.comboEl.classList.remove('animate-combo-pop');
         void this.comboEl.offsetWidth;
         this.comboEl.classList.add('animate-combo-pop');
@@ -2818,6 +2818,78 @@ class PuzzleEngine {
         this.applyAlchemyToOrb(orb, type);
       }
     }
+  }
+
+  /**
+   * 試練用: 盤面を「理論上ちょうど comboCount コンボ組める」盤面に変える。
+   * 3個1組を comboCount 組、基本属性に順番に割り振る（5属性×10コンボなら各属性6個）。
+   * 特殊ドロップ（プラス・ボム・リピート・スター）の印も外し、素の盤面にする。
+   * 虹ドロップとムーブドロップはそのまま残す。
+   */
+  changeBoardToComboCount(comboCount = 10) {
+    let basicTypes = ["fire", "water", "wood", "light", "dark"];
+    if (this.vacationMode) {
+      basicTypes = ["fire", "water", "wood"];
+    }
+
+    const cells = [];
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const orb = this.state[r][c];
+        if (orb && !orb.isRainbow && !orb.isMoveDrop) cells.push(orb);
+      }
+    }
+
+    // 盤面に収まる組数までに抑える
+    const sets = Math.min(comboCount, Math.floor(cells.length / 3));
+    const deck = [];
+    for (let i = 0; i < sets; i++) {
+      const type = basicTypes[i % basicTypes.length];
+      deck.push(type, type, type);
+    }
+    // 余りのマス（盤面が30マスより大きい場合など）はハートで埋める。
+    // ハートは3個未満になるようにし、コンボ数が増えないようにする。
+    while (deck.length < cells.length) {
+      const heartCount = deck.filter(t => t === "heart").length;
+      if (heartCount < 2) {
+        deck.push("heart");
+      } else {
+        // それ以上余る場合は、既存の属性に1個ずつ足す（3個1組の数は変わらない範囲で）
+        const counts = {};
+        deck.forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+        const addType = basicTypes.find(t => (counts[t] || 0) % 3 !== 2) || basicTypes[0];
+        deck.push(addType);
+      }
+    }
+
+    // シャッフル
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+
+    cells.forEach((orb, idx) => {
+      const type = deck[idx];
+      orb.type = type;
+      orb.isBomb = false;
+      orb.isEnhanced = false;
+      orb.isRepeat = false;
+      orb.isStar = false;
+      if (orb.el) {
+        orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-${type}`;
+        orb.el.querySelectorAll('.bomb-mark, .repeat-mark, .star-mark, .enhanced-mark').forEach(m => m.remove());
+        const inner = orb.el.querySelector('.orb-inner');
+        if (inner) {
+          inner.className = `orb-inner orb-${type} shadow-lg`;
+          inner.innerHTML = '';
+          const iconSpan = document.createElement("span");
+          iconSpan.className = "material-icons-round text-white text-3xl select-none";
+          iconSpan.innerText = this.icons[type];
+          inner.appendChild(iconSpan);
+        }
+      }
+      // 試練中はパッシブ（錬金術）が止まるので、強化・特殊化はしない
+    });
   }
 
   // 落雷の柱: 指定した列のランダムなドロップをプラスドロップにする
