@@ -43,8 +43,8 @@ const INITIAL_TOKEN_SLOTS = 4;
 /** トークン枠の最大拡張回数（通常モード: 4 + 6 = 最大10枠） */
 const MAX_TOKEN_SLOT_EXPANSIONS = 6;
 
-/** トークン枠の最大拡張回数（ビヨンドモード: 4 + 10 = 最大14枠） */
-const BEYOND_MAX_TOKEN_SLOT_EXPANSIONS = 10;
+/** トークン枠の最大拡張回数（ビヨンドモード: 4 + 11 = 最大15枠） */
+const BEYOND_MAX_TOKEN_SLOT_EXPANSIONS = 11;
 
 /** モードに応じたトークン枠の最大拡張回数 */
 const getMaxTokenSlotExpansions = (isBeyondMode) => (isBeyondMode ? BEYOND_MAX_TOKEN_SLOT_EXPANSIONS : MAX_TOKEN_SLOT_EXPANSIONS);
