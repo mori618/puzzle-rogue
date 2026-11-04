@@ -1,0 +1,11 @@
+metric,value
+baseline_eff,7.94
+baseline_sd,1.55
+baseline_stars,1.56
+tokens_tested,476
+runs_random,240
+runs_smart,150
+fullrun_turns,4107
+single_test_turns,14446
+c6_reached,173
+c6_cleared,32
