@@ -1955,7 +1955,7 @@ export const useGameState = () => {
             if (isInstant) triggerPassive(tokenId);
             multMultiplier *= 4.0;
             logData.multipliers.push(`sky_god:x4.0`);
-            logData.multiplierSteps.push({ label: tokenName || '空の神', value: 4.0, type: 'mult', tokenId });
+            logData.multiplierSteps.push({ label: tokenName || '身軽', value: 4.0, type: 'mult', tokenId });
           }
         }
         // --- 特殊形状（L字・十字・正方形・列・4個・5個消し）の即時効果 ---
@@ -2021,7 +2021,7 @@ export const useGameState = () => {
           const columnInfos = extraStats?.erasedColumnInfos || [];
           if (columnInfos.length > 0 && engineRef.current) {
             if (isInstant) triggerPassive(tokenId);
-            notify(`${tokenName || "落雷の柱"}発動！縦一列にプラスドロップを${val}個生成！`);
+            notify(`${tokenName || "柱の祝福"}発動！縦一列にプラスドロップを${val}個生成！`);
             setTimeout(() => {
               if (engineRef.current && !engineRef.current._isDestroyed) {
                 columnInfos.forEach(info => engineRef.current.makeColumnPlus(info.c, val));
@@ -2502,7 +2502,7 @@ export const useGameState = () => {
           multMultiplier *= v;
           exponentialMultiplier += (v - 1.0);
           logData.multipliers.push(`heart_chalice:x${v.toFixed(2)}(hearts:${heartCount})`);
-          logData.multiplierSteps.push({ label: t.name || '生命の器', value: v, type: 'mult', tokenId: tId });
+          logData.multiplierSteps.push({ label: t.name || '癒の器', value: v, type: 'mult', tokenId: tId });
         }
       }
       if (t.effect === "stat_time_skipper") {
@@ -2515,7 +2515,7 @@ export const useGameState = () => {
           if (isInstant) triggerPassive(tId);
           addedMultiplier += (v - 1.0);
           logData.multipliers.push(`time_skipper:+${(v - 1.0).toFixed(2)}(skips:${skipCount})`);
-          logData.multiplierSteps.push({ label: t.name || '早送りの極意', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
+          logData.multiplierSteps.push({ label: t.name || '飛び石', value: v, addedValue: v - 1.0, type: 'add', tokenId: tId });
         }
       }
 
@@ -2574,7 +2574,7 @@ export const useGameState = () => {
             totalMult = applyMultiplierCap(totalMult, t);
             multMultiplier *= totalMult;
             logData.multipliers.push(`shape_square:mult_x${v}_count_${matchCount}`);
-            logData.multiplierSteps.push({ label: t.name || '四方の型', value: totalMult, type: 'mult', tokenId: tId });
+            logData.multiplierSteps.push({ label: t.name || '方陣の型', value: totalMult, type: 'mult', tokenId: tId });
           } else if (shape === "len5") {
             for (let i = 0; i < matchCount; i++) timeMultiplier *= v;
             logData.bonuses.push(`shape_len5:time_x${v}_count_${matchCount}`);
@@ -2841,7 +2841,7 @@ export const useGameState = () => {
         if (isInstant) triggerPassive(tId);
         addedMultiplier += addVal;
         logData.multipliers.push(`medal_of_spendthrift:+${addVal.toFixed(1)}`);
-        logData.multiplierSteps.push({ label: t.name || '浪費の勲章', value: 1.0 + addVal, addedValue: addVal, type: 'add', tokenId: tId });
+        logData.multiplierSteps.push({ label: t.name || 'こだわりの証', value: 1.0 + addVal, addedValue: addVal, type: 'add', tokenId: tId });
       }
     });
 
@@ -2855,7 +2855,7 @@ export const useGameState = () => {
       if (isInstant) triggerPassive(tId);
       baseMultiplier *= multVal;
       logData.multipliers.push(`one_stroke_seal:x${multVal.toFixed(1)}`);
-      logData.multiplierSteps.push({ label: t.name || '一筆書きの誓約', value: multVal, type: 'mult', tokenId: tId });
+      logData.multiplierSteps.push({ label: t.name || '一筆書き', value: multVal, type: 'mult', tokenId: tId });
     });
 
     // --- 神速の思考: 操作時間2秒(2000ms)以上残しでコンボ倍率乗算 ---
@@ -2884,7 +2884,7 @@ export const useGameState = () => {
         if (isInstant) triggerPassive(tId);
         baseMultiplier *= multVal;
         logData.multipliers.push(`probability_trigger_multiplier:x${multVal}`);
-        logData.multiplierSteps.push({ label: t.name || '運命の反響', value: multVal, type: 'mult', tokenId: tId });
+        logData.multiplierSteps.push({ label: t.name || '運の力', value: multVal, type: 'mult', tokenId: tId });
       }
     });
 
@@ -2901,7 +2901,7 @@ export const useGameState = () => {
         if (isInstant) triggerPassive(tId);
         addedMultiplier += addVal;
         logData.multipliers.push(`probability_trigger_add_combo:+${addVal}`);
-        logData.multiplierSteps.push({ label: t.name || '確率の集束', value: 1.0 + addVal, addedValue: addVal, type: 'add', tokenId: tId });
+        logData.multiplierSteps.push({ label: t.name || '集束した確率', value: 1.0 + addVal, addedValue: addVal, type: 'add', tokenId: tId });
       }
     });
 
@@ -2916,7 +2916,7 @@ export const useGameState = () => {
         if (isInstant) triggerPassive(tId);
         baseMultiplier *= multVal;
         logData.multipliers.push(`last_turn_burst:x${multVal.toFixed(1)}`);
-        logData.multiplierSteps.push({ label: t.name || '最後の輝き', value: multVal, type: 'mult', tokenId: tId });
+        logData.multiplierSteps.push({ label: t.name || '火事場の馬鹿力', value: multVal, type: 'mult', tokenId: tId });
       }
     });
 
@@ -2977,7 +2977,7 @@ export const useGameState = () => {
           const addVal = count;
           addedMultiplier += addVal;
           logData.multipliers.push(`buff_len4_mult:+${addVal}`);
-          logData.multiplierSteps.push({ label: '四重奏の響き', value: 1.0 + addVal, addedValue: addVal, type: 'add' });
+          logData.multiplierSteps.push({ label: '4本の矢', value: 1.0 + addVal, addedValue: addVal, type: 'add' });
         }
       } else if (buff.action === "buff_row_mult") {
         const count = shapes.filter(s => s === 'row').length;
@@ -2993,7 +2993,7 @@ export const useGameState = () => {
           const addVal = count;
           addedMultiplier += addVal;
           logData.multipliers.push(`buff_l_shape_mult:+${addVal}`);
-          logData.multiplierSteps.push({ label: '屈折の魔角', value: 1.0 + addVal, addedValue: addVal, type: 'add' });
+          logData.multiplierSteps.push({ label: '屈折の角', value: 1.0 + addVal, addedValue: addVal, type: 'add' });
         }
       } else if (buff.action === "buff_cross_mult") {
         const count = shapes.filter(s => s === 'cross').length;
@@ -3034,7 +3034,7 @@ export const useGameState = () => {
         const mult = buff.params.multiplier || 2.0;
         baseMultiplier *= mult;
         logData.multipliers.push(`gale_gravity:x${mult.toFixed(1)}`);
-        logData.multiplierSteps.push({ label: '烈風の重力', value: mult, type: 'mult' });
+        logData.multiplierSteps.push({ label: '横流れの重力', value: mult, type: 'mult' });
       } else if (buff.action === "residual_multiplier_boost" && buff.params?.color) {
         const color = buff.params.color;
         const multVal = buff.params.multiplier;
@@ -3769,7 +3769,7 @@ export const useGameState = () => {
         const color = inheritedAttr || ['fire', 'water', 'wood', 'light', 'dark'][Math.floor(Math.random() * 5)];
         const colorNames = { fire: '炎', water: '雨', wood: '風', light: '雷', dark: '月', heart: '心' };
         const colorName = colorNames[color] || 'ランダム';
-        notify(`左下の伝承発動！左下3x3のドロップを${colorName}ドロップに変換します！`);
+        notify(`方陣の伝承発動！左下3x3のドロップを${colorName}ドロップに変換します！`);
         setTimeout(() => {
           if (engineRef.current && !engineRef.current._isDestroyed) {
             engineRef.current.convertAreaToColor(rows - 3, 0, 3, 3, color);
@@ -3828,7 +3828,7 @@ export const useGameState = () => {
                   const color = inheritedAttr || ['fire', 'water', 'wood', 'light', 'dark'][Math.floor(Math.random() * 5)];
                   const colorNames = { fire: '炎', water: '雨', wood: '風', light: '雷', dark: '月', heart: '心' };
                   const colorName = colorNames[color] || 'ランダム';
-                  notify(`上部の伝承: 最上部1列を${colorName}ドロップに変換！`);
+                  notify(`列の伝承: 最上部1列を${colorName}ドロップに変換！`);
                   setTimeout(() => {
                     if (engineRef.current && !engineRef.current._isDestroyed) {
                       engineRef.current.convertAreaToColor(0, 0, 1, cols, color);
@@ -3868,7 +3868,7 @@ export const useGameState = () => {
                   if (upgradeable.length > 0) {
                     const targetToken = upgradeable[Math.floor(Math.random() * upgradeable.length)];
                     const newLevel = (targetToken.level || 1) + 1;
-                    notify(`5連の成長発動！「${targetToken.name}」のレベルが ${newLevel} に上がった！`);
+                    notify(`5連コック発動！「${targetToken.name}」のレベルが ${newLevel} に上がった！`);
                     const idx = nextTokens.findIndex(tok => tok && tok.instanceId === targetToken.instanceId);
                     if (idx !== -1) {
                       nextTokens[idx] = {
@@ -3878,7 +3878,7 @@ export const useGameState = () => {
                       };
                     }
                   } else {
-                    notify("5連の成長: レベルアップ可能なトークンがありません。");
+                    notify("5連コック: レベルアップ可能なトークンがありません。");
                   }
                   break;
                 }
@@ -4230,7 +4230,7 @@ export const useGameState = () => {
                   duration: 1,
                   name: `${b.name} (コンボ加算)`
                 });
-                notify(`心の残滓発動！次ターンの操作時間+${extraTimeSec}秒、回復消去時コンボ+${comboAdd}！`);
+                notify(`癒の残滓発動！次ターンの操作時間+${extraTimeSec}秒、回復消去時コンボ+${comboAdd}！`);
               }
             }
           });
@@ -4291,7 +4291,7 @@ export const useGameState = () => {
         if (Math.random() < prob) {
           triggerPassive(chainExplosionToken.instanceId || chainExplosionToken.id);
           const colorList = [...engineRef.current.erasedByBombColors];
-          notify(`爆炎の連鎖！ 消滅した通常ドロップを ${Math.min(colorList.length, 30)} 個再生成します。`);
+          notify(`爆裂の連鎖！ 消滅した通常ドロップを ${Math.min(colorList.length, 30)} 個再生成します。`);
           setTimeout(() => {
             if (engineRef.current && !engineRef.current._isDestroyed) {
               engineRef.current.spawnRegeneratedDrops(colorList);
@@ -6762,7 +6762,7 @@ export const useGameState = () => {
         if (hasMagicEcho && !hasMagicalLeadership) {
           notify("魔力反響！エネルギーを消費しませんでした。");
         } else if (hasMagicalLeadership && !hasMagicEcho) {
-          notify("魔導教陣の指揮！エネルギーを消費しませんでした。");
+          notify("指導者！エネルギーを消費しませんでした。");
         } else {
           notify("エネルギーを消費しませんでした。");
         }
