@@ -398,6 +398,76 @@ const ALL_TOKEN_BASES = [
     desc: "3つの宝箱から1つを選ぶ。中身は「所持スター2倍」「何も起きない」「所持スター半減」のいずれか。2倍を引くと[20/30/40]%の確率でダブルアップチャンス（挑戦は任意）：「所持スター3倍」「ランダムなトークン1つをレベルアップ」「所持スター10分の1」の宝箱から1つを選ぶ。消費E:{cost}",
     attributes: []
   },
+  // --- スキル: ミニゲーム系（専用ダイアログが開く） ---
+  {
+    id: "minigame_janken",
+    name: "じゃんけん",
+    icon: "back_hand",
+    type: "skill",
+    cost: 3,
+    costLevels: true,
+    action: "minigame_janken",
+    values: [3, 4, 5],
+    rarity: 1,
+    price: 14,
+    desc: "負けるまでじゃんけんを続ける（あいこはやり直し）。3手番の間、連勝数 × {values} をコンボに加算。3連勝以上でランダムなトークン1つをレベルアップ、5連勝以上でさらに3手番の間コンボ倍率×2。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "minigame_fishing",
+    name: "釣り",
+    icon: "phishing",
+    type: "skill",
+    cost: 3,
+    costLevels: true,
+    action: "minigame_fishing",
+    rarity: 2,
+    price: 20,
+    desc: "釣りをする。釣れたものに応じて効果が発生（完全ランダム）。長靴：何も起きない／クラゲ：スター-5／小魚：スター+5／タイ：スター+15／タコ：他スキルのエネルギー+3／フグ：3手番コンボ+8／マグロ：3手番コンボ倍率×2／宝箱：ランダムなトークン1つLvUP／伝説の魚：所持スター2倍＆トークン1つLvUP。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "minigame_target",
+    name: "的当て",
+    icon: "track_changes",
+    type: "skill",
+    cost: 3,
+    costLevels: true,
+    action: "minigame_target",
+    values: [2, 2.5, 3],
+    rarity: 2,
+    price: 20,
+    desc: "動く照準をタップで止めて的を撃つ。中心に近いほど良い効果。ど真ん中：2手番コンボ倍率×{values}＆スター+10／内側：2手番コンボ倍率+1／中間：2手番コンボ+5／外側：スター+3／外れ：何も起きない。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "minigame_mash",
+    name: "連打",
+    icon: "touch_app",
+    type: "skill",
+    cost: 3,
+    costLevels: true,
+    action: "minigame_mash",
+    values: [0.2, 0.3, 0.4],
+    rarity: 1,
+    price: 14,
+    desc: "5秒間ボタンを連打する。3手番の間、連打数 × {values}（切り捨て）をコンボに加算。40回以上連打すると他スキルのエネルギー+2。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "minigame_dice",
+    name: "サイコロ",
+    icon: "casino",
+    type: "skill",
+    cost: 3,
+    costLevels: true,
+    action: "minigame_dice",
+    values: [0, 1, 2],
+    rarity: 1,
+    price: 14,
+    desc: "サイコロを振り、出た目に応じた効果を得る（{values}回まで振り直し可）。1：スター-5／2：スター+8／3：3手番コンボ+6／4：他スキルのエネルギー+3／5：3手番コンボ倍率+1／6：ランダムなトークン1つLvUP＆スター+10。消費E:{cost}",
+    attributes: []
+  },
   // --- スキル: うさぎ / 狼 ---
   {
     id: "rabbit_active",
