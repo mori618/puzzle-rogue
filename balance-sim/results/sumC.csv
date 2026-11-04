@@ -1,0 +1,49 @@
+group,key,label,tokens,rarities,n,eff,median,se,gainPct,medianMult,predMul,predAdd,synergy,missing,errs
+A 加算と乗算の重ね,A1_add1x2,★1 連舞×2（炎・雨）,bonus_1c_fire bonus_1c_water,11,45,22,21,1.01,172,3,30.57,23.37,0.72,,0
+A 加算と乗算の重ね,A1_add1x4,★1 連舞×4（炎・雨・風・雷）,bonus_1c_fire bonus_1c_water bonus_1c_wood bonus_1c_light,1111,45,36.84,36,1.39,355.5,4,91.76,35.26,0.4,,0
+A 加算と乗算の重ね,A1_add1best4,★1 上位4個（金満・呪われた力・雨の連舞・癒の連舞）,greed_power cursed_power bonus_1c_water bonus_1c_heart,1111,45,241.67,252,4.26,2887.6,7,1442.3,125.6,0.17,,0
+A 加算と乗算の重ね,A2_mul3x2,★3 乗算×2（巨人・背水）,giant desperate_stance,33,45,40,40,1.47,394.5,4,36.35,26.98,1.1,,0
+A 加算と乗算の重ね,A2_mul3x3,★3 乗算×3（巨人・背水・一筆書き）,giant desperate_stance one_stroke_seal,333,45,142.22,144,4.24,1658.2,16,121.02,45.82,1.18,,0
+A 加算と乗算の重ね,A2_mul3x4,★3 乗算×4（巨人・背水・一筆書き・三星の極雷）,giant desperate_stance one_stroke_seal star3_mult_boost,3333,45,1383.11,1440,48.01,16998.9,160,221.43,52.53,6.25,,0
+A 加算と乗算の重ね,A3_mix,★1 連舞×2 + ★3 乗算×2（巨人・背水）,bonus_1c_fire bonus_1c_water giant desperate_stance,1133,45,116.53,120,4.08,1340.7,12,137.38,42.26,0.85,,0
+A 加算と乗算の重ね,A3_pure_add,純粋なる力 + ★1 連舞×3,pure_power bonus_1c_fire bonus_1c_water bonus_1c_heart,3111,45,115.91,112,5.72,1333,16,232.3,54.59,0.5,,0
+A 加算と乗算の重ね,A3_pure,純粋なる力（単体・比較用）,pure_power,3,45,29.07,28,0.68,259.3,4,31.73,31.73,0.92,,0
+B ★3の複数所持,B_star3_0,三星の極雷 単体（★3は自分のみ＝1個）,star3_mult_boost,3,45,15.96,16,0.55,97.3,2,14.8,14.8,1.08,,0
+B ★3の複数所持,B_star3_2,三星の極雷 + ★3（効果なし）×1,star3_mult_boost duration_booster,33,45,33.07,32,1.12,308.8,4,16.1,15.51,2.05,,0
+B ★3の複数所持,B_star3_3,三星の極雷 + ★3（効果なし）×2,star3_mult_boost duration_booster cross_count_token,333,45,65.96,64,1.95,715.4,8,16.98,15.95,3.88,,0
+B ★3の複数所持,B_star3_4,三星の極雷 + ★3（効果なし）×3（2^4=16 → 上限10）,star3_mult_boost duration_booster cross_count_token move_drop_lucky,3333,45,85.78,80,2.44,960.4,10,17.78,16.33,4.82,,0
+B ★3の複数所持,B_star3_4lb,三星の極雷 + ★3×2 + 限界突破（上限20）,star3_mult_boost duration_booster cross_count_token limit_breaker,3333,45,131.56,128,3.76,1526.4,16,17.07,15.99,7.71,,0
+B ★3の複数所持,B_star3_lv3,三星の極雷 Lv3 + ★3（効果なし）×3（4^4 → 上限50）,star3_mult_boost@3 duration_booster cross_count_token move_drop_lucky,3333,45,435.56,450,12.34,5284.6,50,39.73,34.6,10.96,,0
+B ★3の複数所持,B_f3x3,★3（効果なし）×3 のみ（比較用）,duration_booster cross_count_token move_drop_lucky,333,45,8.42,8,0.23,4.1,1,9.72,9.62,0.87,,0
+C レベル系,C_lv3cnt_1,三魂の極致 + Lv3（効果なし）×1,level3_count_mult shop_rarity_boost@3,31,45,15.69,16,0.51,94,2,7.37,7.37,2.13,,0
+C レベル系,C_lv3cnt_3,三魂の極致 + Lv3（効果なし）×3,level3_count_mult shop_rarity_boost@3 shop_expand@3 bargain@3,3111,45,46.8,48,1.38,478.6,6,6.9,6.86,6.79,,0
+C レベル系,C_lv3cnt_3self,三魂の極致 Lv3 + Lv3（効果なし）×3,level3_count_mult@3 shop_rarity_boost@3 shop_expand@3 bargain@3,3111,45,134.76,128,3.75,1565.9,16,30.11,31.53,4.48,,0
+C レベル系,C_totlv_3,全霊の共鳴 + Lv3（効果なし）×3（合計Lv10）,total_level_boost shop_rarity_boost@3 shop_expand@3 bargain@3,3111,45,17.93,18,0.24,121.7,1,8.59,8.66,2.09,,0
+C レベル系,C_king_add,キング + ★1 連舞×3（すべてLv3扱い）,legend_king bonus_1c_fire bonus_1c_water bonus_1c_heart,4111,45,73.22,80,3.08,805.2,10,56.59,30.59,1.29,,0
+C レベル系,C_add_lv1x3,★1 連舞×3 Lv1（キングとの比較用）,bonus_1c_fire bonus_1c_water bonus_1c_heart,111,45,28.98,28,1.48,258.2,4,59.22,30.95,0.49,,0
+C レベル系,C_add_lv3x3,★1 連舞×3 Lv3（キングとの比較用）,bonus_1c_fire@3 bonus_1c_water@3 bonus_1c_heart@3,111,45,71.62,70,3.61,785.4,10,431.13,75.16,0.17,,0
+C レベル系,C_king_lv3cnt,キング + 三魂の極致 + ★1 連舞×2,legend_king level3_count_mult bonus_1c_fire bonus_1c_water,4311,45,150.73,144,5.01,1763.5,18,26.47,22.25,5.69,,0
+D 先導・コピー・殿,D_fire3,炎の★1×3（連舞・真髄・脈動）,bonus_1c_fire req_6_fire cc_add_fire,111,45,24.62,18,2.6,204.4,2,32.31,23.22,0.76,,0
+D 先導・コピー・殿,D_lead_fire3,炎王の先導（1番目）+ 炎の★1×3,lead_fire bonus_1c_fire req_6_fire cc_add_fire,3111,45,58,36,6.47,617,3,30.64,22.8,1.89,,0
+D 先導・コピー・殿,D_water3,雨の★1×3（連舞・真髄・脈動）,bonus_1c_water req_6_water cc_add_water,111,45,31,22,2.68,283.2,2,38.09,24.82,0.81,,0
+D 先導・コピー・殿,D_lead_water3,蒼海の軍師（1番目）+ 雨の★1×3,lead_water bonus_1c_water req_6_water cc_add_water,3111,45,58.71,36,6.59,625.8,3,34.84,24.13,1.69,,0
+D 先導・コピー・殿,D_lead_rear,蒼海の軍師 + 雨の連舞・真髄 + 殿の構え,lead_water bonus_1c_water req_6_water rearguard_stance,3113,45,51.6,32,5.42,537.9,4,23.67,20.26,2.18,,0
+D 先導・コピー・殿,D_water2,雨の連舞・真髄（殿との比較用）,bonus_1c_water req_6_water,11,45,22.82,18,1.74,182.1,2,25.52,20.84,0.89,,0
+D 先導・コピー・殿,D_copy_add,雨の連舞 + 模倣の魔鏡,bonus_1c_water copy_token,13,45,23.29,24,1.23,187.9,3,17.55,16.84,1.33,,0
+D 先導・コピー・殿,D_copy_curse,呪われた力 + 模倣の魔鏡,cursed_power copy_token,13,45,67.27,67,0.23,731.6,1,40.76,38.18,1.65,,0
+D 先導・コピー・殿,D_copy_giant,背水の陣 + 模倣の魔鏡,desperate_stance copy_token,33,45,27.47,24,0.84,239.6,4,15.09,14.58,1.82,,0
+D 先導・コピー・殿,D_sandwich,合わせ鏡 + 雨の連舞 + 模倣の魔鏡（3回発動）,mirror_pair bonus_1c_water copy_token,313,45,27.36,32,1.64,238.2,4,16.64,16.42,1.64,,0
+D 先導・コピー・殿,D_sandwich_mul,合わせ鏡 + 背水の陣 + 模倣の魔鏡（3回発動）,mirror_pair desperate_stance copy_token,333,45,56.89,56,1.67,603.3,8,14.31,14.16,3.98,,0
+D 先導・コピー・殿,D_rear_curse,呪われた力 + 殿の構え,cursed_power rearguard_stance,13,45,67.44,67,0.24,733.8,1,37.98,37.58,1.78,,0
+E 累計値（中盤以降を再現）,E_thousand_0,千手観音（累計0コンボ＝序盤）,thousand_arms,3,45,8.49,8,0.52,4.9,1,9.87,9.87,0.86,,0
+E 累計値（中盤以降を再現）,E_thousand_300,千手観音（累計300コンボ＝サイクル5前後）,thousand_arms,3,45,75.02,72,2.26,827.5,10,9.87,9.87,7.6,,0
+E 累計値（中盤以降を再現）,E_thousand_1000,千手観音（累計1000コンボ）,thousand_arms,3,45,82.67,80,3.05,922,10,9.87,9.87,8.38,,0
+E 累計値（中盤以降を再現）,E_pride_100,浪費家の意地（累計消費100★）,pride_of_spendthrift,3,45,32.53,32,1.06,302.2,4,8.47,8.47,3.84,,0
+E 累計値（中盤以降を再現）,E_pride_200,浪費家の意地（累計消費200★）,pride_of_spendthrift,3,45,82.67,80,3.39,922,10,8.47,8.47,9.76,,0
+E 累計値（中盤以降を再現）,E_medal_15,浪費の勲章（リロール累計15回）,medal_of_spendthrift,3,45,19.02,17,0.59,135.2,2.5,8.67,8.67,2.19,,0
+E 累計値（中盤以降を再現）,E_echo_10,極大の余韻（最大倍率10倍を記録済み）,echo_of_max,3,45,15.33,16,0.44,89.6,2,7.67,7.67,2,,0
+E 累計値（中盤以降を再現）,E_echo_mul,極大の余韻 + 巨人・背水（自前で倍率を作る）,echo_of_max giant desperate_stance,333,45,62.49,59,1.96,672.5,6.66,34.47,26.56,1.81,,0
+E 累計値（中盤以降を再現）,E_curse_eater_2,呪い喰い（呪い解除2回済み）,curse_eater,3,45,39.67,40,1.44,390.4,5,7.73,7.73,5.13,,0
+F 所持数で変わる系,F_empty_1,余白の美学 単体（空き枠7）,empty_slot_beauty,3,45,48.04,50,1.47,494,6.27,52.73,52.73,0.91,,0
+F 所持数で変わる系,F_empty_4,余白の美学 + ★1×3（空き枠4）,empty_slot_beauty bonus_1c_fire bonus_1c_water bonus_1c_heart,3111,45,81.53,79,3.13,908,11.42,386.04,75.59,0.21,,0
+F 所持数で変わる系,F_sky_4,空の神 + ★1 連舞×3,legend_sky_god bonus_1c_fire bonus_1c_water bonus_1c_heart,4111,45,111.73,112,4.88,1281.3,16,255.73,57.79,0.44,,0
