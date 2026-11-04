@@ -1537,7 +1537,7 @@ const App = () => {
                         </div>
                       )}
 
-                      {/* コピー状態の表示（模倣の魔鏡: 左隣 / 合わせ鏡: 右隣。パッシブ欄の並びで判定） */}
+                      {/* コピー状態の表示（コピー鏡: 左隣 / 合わせ鏡: 右隣。パッシブ欄の並びで判定） */}
                       {(t.effect === 'copy_left' || t.effect === 'copy_right') && (() => {
                         const currentIndex = tokens.findIndex(tok => tok?.instanceId === t.instanceId);
                         const target = currentIndex >= 0 ? resolveCopiedToken(tokens, tokens, currentIndex) : null;

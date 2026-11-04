@@ -269,18 +269,18 @@ const TabShapes = () => {
             key: 'l_shape',
             label: 'L字消し',
             colorClass: 'bg-blue-500',
-            passiveId: '鉤十字の型',
+            passiveId: 'L字の型',
             effect: 'コンボ加算 +1',
-            tip: '「鉤十字の型」装備でさらにコンボ加算',
+            tip: '「L字の型」装備でさらにコンボ加算',
             tipColor: 'text-blue-300',
         },
         {
             key: 'square',
             label: '3×3 正方形消し',
             colorClass: 'bg-green-500',
-            passiveId: '四方の型',
+            passiveId: '方陣の型',
             effect: 'コンボ倍率にプラス1',
-            tip: '「四方の型」装備でさらに +1.5〜4 強化',
+            tip: '「方陣の型」装備でさらに +1.5〜4 強化',
             tipColor: 'text-green-300',
         },
         {
@@ -296,9 +296,9 @@ const TabShapes = () => {
             key: 'len5',
             label: '5個以上連結消し',
             colorClass: 'bg-purple-500',
-            passiveId: '五星の印',
+            passiveId: '五連の印',
             effect: 'コンボ加算 +1',
-            tip: '「五星の印」装備でさらに操作時間延長',
+            tip: '「五連の印」装備でさらに操作時間延長',
             tipColor: 'text-purple-300',
         },
         {
@@ -663,7 +663,7 @@ const TabScore = () => (
                             <div className="text-xs text-slate-400 mt-0.5">残ターン数 × ★獲得</div>
                         </div>
                         <div className="bg-black/20 rounded-lg p-2 text-center">
-                            <div className="text-purple-400 font-bold text-sm">時短の心得</div>
+                            <div className="text-purple-400 font-bold text-sm">スキップの心得</div>
                             <div className="text-xs text-slate-400 mt-0.5">スキップ報酬 ×3〜10倍</div>
                         </div>
                     </div>
@@ -695,7 +695,7 @@ const TabScore = () => (
                     <p>• <strong className="text-white">スタードロップ消去</strong>：確定で★を追加獲得</p>
                     <p>• <strong className="text-white">ターンスキップ</strong>：残りターン数に応じてボーナス★</p>
                     <p>• <strong className="text-white">トークン売却</strong>：パッシブトークンをショップで売却</p>
-                    <p className="text-yellow-300/80 mt-2">💡「黄金の収集者」パッシブで★獲得に必要なコンボ数が大幅減少！</p>
+                    <p className="text-yellow-300/80 mt-2">💡「お金好き」パッシブで★獲得に必要なコンボ数が大幅減少！</p>
                 </div>
             </InfoCard>
         </section>
@@ -775,8 +775,8 @@ const TabShop = () => (
             <SectionTitle>ショップを強化するパッシブ</SectionTitle>
             <div className="grid grid-cols-2 gap-2">
                 {[
-                    { name: '陳列の極意', effect: '商品枠を +1〜3拡張' },
-                    { name: '商談の極意', effect: 'セール（半額）枠 +1〜5' },
+                    { name: '陳列指導', effect: '商品枠を +1〜3拡張' },
+                    { name: 'セール狙い', effect: 'セール（半額）枠 +1〜5' },
                     { name: '招福の鈴', effect: 'レア出現率アップ' },
                     // { name: '魔道の極意', effect: 'エンチャント枠 +1〜3' },
                 ].map(({ name, effect }) => (

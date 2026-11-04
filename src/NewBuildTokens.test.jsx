@@ -73,13 +73,13 @@ describe('buildEffectiveTokens（コピー・先導・殿・呪印）', () => {
     expect(result[1].effect).toBe('copy_right');
   });
 
-  it('「合わせ鏡・トークン・模倣の魔鏡」と並べると、真ん中のトークンが3回発動する', () => {
+  it('「合わせ鏡・トークン・コピー鏡」と並べると、真ん中のトークンが3回発動する', () => {
     const tokens = [make('mirror_pair'), make('forbidden'), make('copy_token')];
     const result = buildEffectiveTokens({ effectTokens: tokens, tokens });
     expect(result.filter(t => t.effect === 'forbidden')).toHaveLength(3);
   });
 
-  it('模倣の魔鏡もパッシブ欄の左隣をコピーする（間にアクティブがあってもよい）', () => {
+  it('コピー鏡もパッシブ欄の左隣をコピーする（間にアクティブがあってもよい）', () => {
     const tokens = [make('forbidden'), make('fired'), make('copy_token')];
     expect(resolveCopiedToken(tokens, tokens, 2).effect).toBe('forbidden');
   });
