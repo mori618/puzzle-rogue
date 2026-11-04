@@ -13,6 +13,7 @@ import UIPreviewScreen from "./UIPreviewScreen";
 import TitleEncyclopediaScreen from "./TitleEncyclopediaScreen";
 import TitleInfoPanel, { EquippedTitleChip } from "./TitleInfoPanel";
 import PlayLogPanel from "./PlayLogPanel";
+import MinigameModal from "./MinigameModal";
 import playLog from "./utils/playLogger";
 import { loadTitleState, isTitleSealedActive } from "./utils/titleManager";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
@@ -38,6 +39,9 @@ const App = () => {
     pickGambleChest,
     startGambleDoubleUp,
     closeGamble,
+    minigameState,
+    resolveMinigame,
+    closeMinigame,
     isGameOver,
     setIsGameOver,
     target,
@@ -1451,6 +1455,16 @@ const App = () => {
               );
             })()
           }
+
+          {/* Minigame Modal（じゃんけん/釣り/的当て/連打/サイコロ） */}
+          {minigameState && (
+            <MinigameModal
+              key={`${minigameState.type}-${minigameState.tokenInstanceId}`}
+              state={minigameState}
+              onResolve={resolveMinigame}
+              onClose={closeMinigame}
+            />
+          )}
 
           {/* Token Detail Modal */}
           {

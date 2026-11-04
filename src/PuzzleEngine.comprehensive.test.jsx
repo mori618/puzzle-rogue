@@ -165,6 +165,7 @@ describe('0. トークン定義の完全性チェック', () => {
     const KNOWN_ACTIONS = [
       'board_balance', 'board_change',
       'gamble', 'rabbit_combo', 'wolf_hunt',
+      'minigame_janken', 'minigame_fishing', 'minigame_target', 'minigame_mash', 'minigame_dice',
       'buff_cross_mult', 'buff_l_shape_mult', 'buff_len4_mult',
       'buff_row_mult', 'buff_square_judgment', 'buff_square_mult',
       'calm', 'charge_boost', 'col_fix',
