@@ -11,6 +11,8 @@
 //   { type: 'mult', value, duration }         duration手番の間、コンボ倍率 ×value
 //   { type: 'levelup', value }                ランダムなトークン value 個をレベルアップ
 //   { type: 'energy', value }                 自身以外のスキルのエネルギー +value
+//   { type: 'time', value, duration }         duration手番の間、操作時間 +value 秒
+//   { type: 'token', rarity }                 ランダムな★rarity トークンを1つ獲得（枠に空きがある場合）
 // =============================================================================
 
 /** トークンのレベルに応じた values の値 */
@@ -36,7 +38,11 @@ export const describeReward = (r) => {
     case 'levelup':
       return `トークン${r.value}つLvUP`;
     case 'energy':
-      return `他スキルのエネルギー+${r.value}`;
+      return r.value >= 99 ? '他スキルのエネルギー全回復' : `他スキルのエネルギー+${r.value}`;
+    case 'time':
+      return `${r.duration}手番 操作時間+${r.value}秒`;
+    case 'token':
+      return `★${r.rarity}トークン獲得`;
     default:
       return '';
   }
@@ -84,15 +90,28 @@ export const getJankenRewards = (streak, perWin) => {
 // --- 釣り ---------------------------------------------------------------------
 
 export const FISH_TABLE = [
-  { id: 'boot', name: '長靴', icon: '👢', weight: 15, rewards: [] },
-  { id: 'jellyfish', name: 'クラゲ', icon: '🪼', weight: 5, rewards: [{ type: 'stars_add', value: -5 }] },
-  { id: 'small_fish', name: '小魚', icon: '🐟', weight: 25, rewards: [{ type: 'stars_add', value: 5 }] },
-  { id: 'sea_bream', name: 'タイ', icon: '🐠', weight: 15, rewards: [{ type: 'stars_add', value: 15 }] },
+  { id: 'boot', name: '長靴', icon: '👢', weight: 12, rewards: [] },
+  { id: 'jellyfish', name: 'クラゲ', icon: '🪼', weight: 6, rewards: [{ type: 'stars_add', value: -5 }] },
+  { id: 'small_fish', name: '小魚', icon: '🐟', weight: 20, rewards: [{ type: 'stars_add', value: 8 }] },
+  { id: 'sea_bream', name: 'タイ', icon: '🐠', weight: 12, rewards: [{ type: 'stars_mult', value: 1.5 }] },
   { id: 'octopus', name: 'タコ', icon: '🐙', weight: 12, rewards: [{ type: 'energy', value: 3 }] },
   { id: 'pufferfish', name: 'フグ', icon: '🐡', weight: 12, rewards: [{ type: 'combo_add', value: 8, duration: 3 }] },
-  { id: 'tuna', name: 'マグロ', icon: '🐋', weight: 8, rewards: [{ type: 'mult', value: 2, duration: 3 }] },
-  { id: 'treasure', name: '宝箱', icon: '🎁', weight: 6, rewards: [{ type: 'levelup', value: 1 }] },
-  { id: 'legend', name: '伝説の魚', icon: '🐉', weight: 2, rewards: [{ type: 'stars_mult', value: 2 }, { type: 'levelup', value: 1 }] },
+  { id: 'eel', name: 'ウナギ', icon: '🐍', weight: 10, rewards: [{ type: 'time', value: 5, duration: 3 }] },
+  { id: 'swordfish', name: 'カジキ', icon: '🗡️', weight: 6, rewards: [{ type: 'mult_add', value: 1.5, duration: 3 }] },
+  { id: 'tuna', name: 'マグロ', icon: '🐋', weight: 5, rewards: [{ type: 'mult', value: 2, duration: 3 }] },
+  { id: 'legend', name: '伝説の魚', icon: '🐉', weight: 3, rewards: [{ type: 'token', rarity: 3 }] },
+  {
+    id: 'treasure', name: '宝箱', icon: '🎁', weight: 2,
+    rewards: [
+      { type: 'stars_mult', value: 3 },
+      { type: 'levelup', value: 3 },
+      { type: 'energy', value: 99 },
+      { type: 'mult', value: 3, duration: 3 },
+      { type: 'combo_add', value: 20, duration: 3 },
+      { type: 'time', value: 10, duration: 3 },
+      { type: 'token', rarity: 2 },
+    ],
+  },
 ];
 
 /** 釣れる魚を重み付きで抽選する */

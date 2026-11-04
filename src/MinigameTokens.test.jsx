@@ -28,7 +28,8 @@ describe('ミニゲームトークンの定義', () => {
     expect(getTokenDescription({ ...findBase('minigame_dice'), level: 3 }, 3)).toContain('2回まで振り直し');
     // 釣りの説明は数値が崩れない
     const fish = getTokenDescription({ ...findBase('minigame_fishing'), level: 1 }, 1);
-    expect(fish).toContain('スター+15');
+    expect(fish).toContain('スター1.5倍');
+    expect(fish).toContain('トークン3つLvUP');
     expect(fish).toContain('スター-5');
   });
 });
@@ -53,7 +54,16 @@ describe('釣り', () => {
   });
   it('乱数に応じて魚が決まる', () => {
     expect(rollFish(() => 0).id).toBe(FISH_TABLE[0].id);
-    expect(rollFish(() => 0.9999).id).toBe('legend');
+    expect(rollFish(() => 0.9999).id).toBe('treasure');
+  });
+  it('魚ごとに効果が全て異なる', () => {
+    const keys = FISH_TABLE.map(f => JSON.stringify(f.rewards));
+    expect(new Set(keys).size).toBe(FISH_TABLE.length);
+  });
+  it('宝箱は効果てんこ盛り', () => {
+    const treasure = FISH_TABLE.find(f => f.id === 'treasure');
+    expect(treasure.rewards.length).toBeGreaterThanOrEqual(5);
+    expect(describeRewards(treasure.rewards)).toContain('エネルギー全回復');
   });
 });
 

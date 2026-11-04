@@ -5924,6 +5924,49 @@ export const useGameState = () => {
           ]);
           break;
         }
+        case 'time': {
+          hasGood = true;
+          setActiveBuffs(prev => [
+            ...prev,
+            {
+              id: Date.now() + Math.random() + i,
+              action: 'op_time_boost',
+              params: { extraTime: (r.value || 0) * 1000 },
+              duration: r.duration || 1,
+              maxDuration: r.duration || 1,
+              tokenId: sourceId,
+              name: `${sourceName} (操作時間+${r.value}秒)`,
+            },
+          ]);
+          break;
+        }
+        case 'token': {
+          const maxSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount;
+          const pool = filterPoolByFreeSlots(
+            ALL_TOKEN_BASES.filter(b =>
+              b.rarity === r.rarity && b.type !== 'curse' && !b.isCurse &&
+              !["gen_token_s1", "gen_token_s2", "gen_token_s3"].includes(b.id)
+            ),
+            tokens, maxSlots
+          );
+          const base = pool[Math.floor(Math.random() * pool.length)];
+          if (!base) {
+            notify('トークン枠がいっぱいで獲得できませんでした');
+            break;
+          }
+          hasGood = true;
+          const isSkill = base.type === 'skill';
+          const newToken = applyNewTokenLevel({
+            ...base,
+            instanceId: Date.now() + Math.random() + i,
+            level: 1,
+            charge: isSkill ? (base.cost || 0) : 0,
+            startValue: base.condition ? getStatByCondition(base.condition) : 0,
+          }, { currentRunStats, tokens, activeBuffs });
+          setTokens(prev => [...prev.filter(t => t !== null), newToken]);
+          addTokenToast(newToken, `を手に入れた！ (${sourceName})`);
+          break;
+        }
         case 'levelup':
           hasGood = true;
           levelUpRandomTokens(r.value || 1);
