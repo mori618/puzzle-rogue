@@ -23,41 +23,6 @@ const getItemColors = (item) => {
     }
 };
 
-// エンチャントのレアリティに応じたデザインスタイルを返すヘルパー
-const getEnchantRarityStyle = (rarity) => {
-    if (rarity === 3) {
-        return {
-            cardBg: 'from-purple-950/80 to-slate-900/90',
-            border: 'border-fuchsia-500/40',
-            glow: 'shadow-fuchsia-500/10',
-            iconBg: 'from-fuchsia-500 to-purple-600',
-            iconBorder: 'border-fuchsia-400/50',
-            iconColor: 'text-white',
-            badge: 'bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30'
-        };
-    } else if (rarity === 2) {
-        return {
-            cardBg: 'from-blue-950/80 to-slate-900/90',
-            border: 'border-blue-500/40',
-            glow: 'shadow-blue-500/10',
-            iconBg: 'from-blue-500 to-indigo-600',
-            iconBorder: 'border-blue-400/50',
-            iconColor: 'text-white',
-            badge: 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-        };
-    } else {
-        return {
-            cardBg: 'from-slate-900/90 to-slate-950/90',
-            border: 'border-slate-800',
-            glow: '',
-            iconBg: 'from-slate-700 to-slate-800',
-            iconBorder: 'border-slate-600/30',
-            iconColor: 'text-slate-300',
-            badge: 'bg-slate-800 text-slate-400 border border-slate-700/30'
-        };
-    }
-};
-
 // 通常アイテムのカードを描画するコンポーネント
 const NormalItemCard = ({ item, stars, onBuy, isBought, creditLimit = 0 }) => {
     const styles = getItemColors(item);
@@ -203,7 +168,7 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
 
 const ShopScreen = ({
     items, stars, onBuy, onClose, onRefresh, rerollPrice, onPause,
-    isEnchantShopUnlocked, tokenSlotExpansionCount, isBeyondMode = false, onAwakeningBuy,
+    tokenSlotExpansionCount, isBeyondMode = false, onAwakeningBuy,
     isAwakeningLevelUpBought, freeRerolls, creditLimit = 0, isInDebt = false,
 }) => {
     const [activeTab, setActiveTab] = React.useState('normal');
@@ -232,7 +197,6 @@ const ShopScreen = ({
     const nextMaxSlots = currentMaxSlots + 1;
 
     // アイテムをカテゴリごとに分類
-    const enchantItems = items.filter(item => item.type === 'enchant_grant' || item.type === 'enchant_random');
     const normalItems = items.filter(item => item.type !== 'enchant_grant' && item.type !== 'enchant_random');
     const passiveItems = normalItems.filter(item => item.type === 'passive' || item.type === 'collector' || item.type === 'upgrade_random' || item.type === 'grant_random_curse');
     const activeItems = normalItems.filter(item => item.type === 'skill');
