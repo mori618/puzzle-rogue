@@ -19,7 +19,7 @@ import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { buildEffectiveTokens, resolveCopiedToken, getBuffsInEffect, decrementBuffDurations, isTrialStageActive } from '../utils/effectiveTokens.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
-import { describeRewards } from '../utils/minigames.js';
+import { describeRewards, isPenaltyReward } from '../utils/minigames.js';
 import soundManager from '../utils/SoundManager';
 import { useGameSettings } from './useGameSettings';
 import { usePuzzleBoard } from './usePuzzleBoard';
@@ -5893,19 +5893,17 @@ export const useGameState = () => {
     let hasGood = false;
     let hasBad = false;
     (rewards || []).forEach((r, i) => {
+      if (isPenaltyReward(r)) hasBad = true; else if (r.type !== 'token') hasGood = true;
       switch (r.type) {
         case 'stars_add':
-          if (r.value >= 0) hasGood = true; else hasBad = true;
           setStars(s => Math.max(0, s + r.value));
           break;
         case 'stars_mult':
-          hasGood = true;
           setStars(s => Math.floor(s * r.value));
           break;
         case 'combo_add':
         case 'mult_add':
         case 'mult': {
-          hasGood = true;
           const action = r.type === 'combo_add' ? 'minigame_combo_add'
             : r.type === 'mult_add' ? 'minigame_mult_add' : 'temp_mult';
           const label = r.type === 'combo_add' ? `コンボ+${r.value}`
@@ -5925,7 +5923,6 @@ export const useGameState = () => {
           break;
         }
         case 'time': {
-          hasGood = true;
           setActiveBuffs(prev => [
             ...prev,
             {
@@ -5968,22 +5965,20 @@ export const useGameState = () => {
           break;
         }
         case 'levelup':
-          hasGood = true;
           levelUpRandomTokens(r.value || 1);
           break;
         case 'energy':
-          hasGood = true;
           setTokens(prev => prev.map(t => {
             if (!t || t.type !== 'skill' || t.instanceId === sourceId) return t;
-            return { ...t, charge: Math.min(t.cost || 0, (t.charge || 0) + r.value) };
+            return { ...t, charge: Math.max(0, Math.min(t.cost || 0, (t.charge || 0) + r.value)) };
           }));
           break;
         default:
           break;
       }
     });
-    if (hasGood) soundManager.playSE(SE_IDS.MATCH_STAR);
-    else if (hasBad) soundManager.playSE(SE_IDS.ERROR);
+    if (hasBad && !hasGood) soundManager.playSE(SE_IDS.ERROR);
+    else if (hasGood) soundManager.playSE(SE_IDS.MATCH_STAR);
     notify(`${sourceName}: ${describeRewards(rewards)}`);
     playLog.event('minigame', { type: minigameState.type, rewards, ...logInfo });
     setMinigameState(prev => (prev ? { ...prev, resolved: true } : prev));

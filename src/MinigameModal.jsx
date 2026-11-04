@@ -2,11 +2,11 @@
 // 結果が確定したら onResolve(rewards, logInfo) を1回だけ呼び、閉じるボタンで onClose を呼ぶ。
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  getLevelValue, describeRewards,
+  getLevelValue, describeRewards, isAllPenalty,
   judgeJanken, randomJankenHand, getJankenRewards,
   rollFish,
   getTargetResult, getAimPosition,
-  MASH_DURATION_MS, MASH_ENERGY_THRESHOLD, getMashRewards,
+  MASH_DURATION_MS, MASH_FAIL_THRESHOLD, MASH_ENERGY_THRESHOLD, MASH_MULT_THRESHOLD, getMashRewards,
   DICE_FACES, rollDie, getDiceRewards,
 } from './utils/minigames.js';
 
@@ -18,14 +18,19 @@ const TITLES = {
   dice: 'サイコロ',
 };
 
-const ResultBox = ({ title, titleClass = 'text-white', rewards }) => (
-  <div className="bg-slate-900/70 rounded-xl p-3 text-center border border-white/10">
-    <div className={`text-lg font-bold ${titleClass}`}>{title}</div>
-    <div className={`text-sm mt-1 font-bold ${rewards.length > 0 ? 'text-emerald-300' : 'text-slate-400'}`}>
-      {describeRewards(rewards)}
+const ResultBox = ({ title, titleClass, rewards }) => {
+  const penalty = isAllPenalty(rewards);
+  const tClass = titleClass || (penalty ? 'text-red-400' : 'text-amber-300');
+  return (
+    <div className={`bg-slate-900/70 rounded-xl p-3 text-center border ${penalty ? 'border-red-500/40' : 'border-white/10'}`}>
+      <div className={`text-lg font-bold ${tClass}`}>{title}</div>
+      {penalty && <div className="text-[10px] text-red-300 font-bold mt-1">代償</div>}
+      <div className={`text-sm mt-1 font-bold ${penalty ? 'text-red-300' : rewards.length > 0 ? 'text-emerald-300' : 'text-slate-400'}`}>
+        {describeRewards(rewards)}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ---------------------------------------------------------------------------
 // じゃんけん
@@ -78,7 +83,7 @@ const JankenGame = ({ state, onResolve }) => {
         {outcomeText}
       </p>
       {rewards ? (
-        <ResultBox title={`${streak}連勝！`} titleClass="text-amber-300" rewards={rewards} />
+        <ResultBox title={streak > 0 ? `${streak}連勝！` : '1回も勝てなかった…'} rewards={rewards} />
       ) : (
         <div className="grid grid-cols-3 gap-3">
           {['rock', 'scissors', 'paper'].map(h => (
@@ -145,7 +150,7 @@ const FishingGame = ({ onResolve }) => {
         )}
       </div>
       {phase === 'caught' && fish ? (
-        <ResultBox title={`${fish.name}が釣れた！`} titleClass={fish.rewards.length > 0 ? 'text-amber-300' : 'text-slate-300'} rewards={fish.rewards} />
+        <ResultBox title={`${fish.name}が釣れた！`} rewards={fish.rewards} />
       ) : phase === 'bite' ? (
         <button data-testid="fishing-reel" onClick={reel} className="bg-amber-500 text-slate-900 py-3 rounded-xl font-bold active:scale-95 shadow-lg animate-pulse">
           引き上げる！
@@ -301,10 +306,12 @@ const MashGame = ({ state, onResolve }) => {
         <div className="h-full bg-amber-400" style={{ width: `${(remaining / MASH_DURATION_MS) * 100}%` }} />
       </div>
       <p className="text-[11px] text-slate-400 text-center">
-        コンボ +{Math.floor(taps * perTap + 1e-9)}（{MASH_ENERGY_THRESHOLD}回以上でエネルギー+2）
+        {taps < MASH_FAIL_THRESHOLD
+          ? `${MASH_FAIL_THRESHOLD}回未満は代償あり！`
+          : `コンボ +${Math.floor(taps * perTap + 1e-9)}`}（{MASH_ENERGY_THRESHOLD}回でエネルギー+3／{MASH_MULT_THRESHOLD}回で倍率×2）
       </p>
       {phase === 'done' && rewards ? (
-        <ResultBox title={`${taps}回連打！`} titleClass="text-amber-300" rewards={rewards} />
+        <ResultBox title={`${taps}回連打！`} rewards={rewards} />
       ) : phase === 'ready' ? (
         <button data-testid="mash-start" onClick={() => setPhase('countdown')} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg">
           スタート
@@ -382,7 +389,7 @@ const DiceGame = ({ state, onResolve }) => {
         ))}
       </div>
       {confirmed ? (
-        <ResultBox title={`${face}の目！`} titleClass="text-amber-300" rewards={getDiceRewards(face)} />
+        <ResultBox title={`${face}の目！`} rewards={getDiceRewards(face)} />
       ) : face === null ? (
         <button data-testid="dice-roll" onClick={roll} disabled={rolling} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg disabled:opacity-50">
           {rolling ? '…' : 'サイコロを振る'}

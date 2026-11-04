@@ -5,7 +5,7 @@ import { getTokenDescription } from './utils/tokenUtils.js';
 import {
   judgeJanken, getJankenRewards, FISH_TABLE, rollFish,
   getTargetResult, getMashRewards, getDiceRewards, DICE_FACES,
-  describeRewards, getLevelValue,
+  describeRewards, getLevelValue, isAllPenalty,
 } from './utils/minigames.js';
 import MinigameModal from './MinigameModal.jsx';
 
@@ -22,15 +22,15 @@ describe('ミニゲームトークンの定義', () => {
   });
 
   it('説明文のレベル別置換', () => {
-    expect(getTokenDescription({ ...findBase('minigame_janken'), level: 2 }, 2)).toContain('連勝数 × 4');
-    expect(getTokenDescription({ ...findBase('minigame_target'), level: 3 }, 3)).toContain('×3');
-    expect(getTokenDescription({ ...findBase('minigame_mash'), level: 2 }, 2)).toContain('× 0.3');
+    expect(getTokenDescription({ ...findBase('minigame_janken'), level: 2 }, 2)).toContain('連勝数 × 7');
+    expect(getTokenDescription({ ...findBase('minigame_target'), level: 3 }, 3)).toContain('×5');
+    expect(getTokenDescription({ ...findBase('minigame_mash'), level: 2 }, 2)).toContain('× 0.6');
     expect(getTokenDescription({ ...findBase('minigame_dice'), level: 3 }, 3)).toContain('2回まで振り直し');
     // 釣りの説明は数値が崩れない
     const fish = getTokenDescription({ ...findBase('minigame_fishing'), level: 1 }, 1);
-    expect(fish).toContain('スター1.5倍');
+    expect(fish).toContain('所持スター2倍');
+    expect(fish).toContain('スター-15');
     expect(fish).toContain('トークン3つLvUP');
-    expect(fish).toContain('スター-5');
   });
 });
 
@@ -41,10 +41,13 @@ describe('じゃんけん', () => {
     expect(judgeJanken('paper', 'paper')).toBe(0);
   });
   it('連勝数に応じた報酬', () => {
-    expect(getJankenRewards(0, 3)).toEqual([]);
-    expect(getJankenRewards(2, 3)).toEqual([{ type: 'combo_add', value: 6, duration: 3 }]);
-    expect(getJankenRewards(3, 3).map(r => r.type)).toEqual(['combo_add', 'levelup']);
-    expect(getJankenRewards(5, 3).map(r => r.type)).toEqual(['combo_add', 'levelup', 'mult']);
+    // 0連勝は代償
+    expect(isAllPenalty(getJankenRewards(0, 5))).toBe(true);
+    expect(getJankenRewards(1, 5)).toEqual([{ type: 'combo_add', value: 5, duration: 3 }]);
+    expect(getJankenRewards(2, 5)).toEqual([{ type: 'combo_add', value: 10, duration: 3 }, { type: 'stars_add', value: 20 }]);
+    expect(getJankenRewards(3, 5).map(r => r.type)).toEqual(['combo_add', 'stars_add', 'levelup']);
+    expect(getJankenRewards(5, 5)).toContainEqual({ type: 'mult', value: 3, duration: 3 });
+    expect(getJankenRewards(5, 5)).toContainEqual({ type: 'levelup', value: 2 });
   });
 });
 
@@ -55,6 +58,11 @@ describe('釣り', () => {
   it('乱数に応じて魚が決まる', () => {
     expect(rollFish(() => 0).id).toBe(FISH_TABLE[0].id);
     expect(rollFish(() => 0.9999).id).toBe('treasure');
+  });
+  it('ハズレの魚は代償がある', () => {
+    ['boot', 'can', 'jellyfish'].forEach(id => {
+      expect(isAllPenalty(FISH_TABLE.find(f => f.id === id).rewards)).toBe(true);
+    });
   });
   it('魚ごとに効果が全て異なる', () => {
     const keys = FISH_TABLE.map(f => JSON.stringify(f.rewards));
@@ -70,25 +78,30 @@ describe('釣り', () => {
 describe('的当て', () => {
   it('中心に近いほど良い結果', () => {
     expect(getTargetResult(0.05, 2.5).id).toBe('bullseye');
-    expect(getTargetResult(0.05, 2.5).rewards[0]).toEqual({ type: 'mult', value: 2.5, duration: 2 });
+    expect(getTargetResult(0.05, 4).rewards[0]).toEqual({ type: 'mult', value: 4, duration: 3 });
     expect(getTargetResult(0.3, 2).id).toBe('inner');
     expect(getTargetResult(0.5, 2).id).toBe('middle');
     expect(getTargetResult(0.9, 2).id).toBe('outer');
-    expect(getTargetResult(1.2, 2).rewards).toEqual([]);
+    expect(isAllPenalty(getTargetResult(1.2, 2).rewards)).toBe(true);
+    expect(isAllPenalty(getTargetResult(0.9, 2).rewards)).toBe(false);
   });
 });
 
 describe('連打', () => {
   it('連打数×係数（切り捨て）＋40回以上でエネルギー', () => {
-    expect(getMashRewards(0, 0.2)).toEqual([]);
-    expect(getMashRewards(33, 0.3)).toEqual([{ type: 'combo_add', value: 9, duration: 3 }]);
-    expect(getMashRewards(40, 0.2).map(r => r.type)).toEqual(['combo_add', 'energy']);
+    expect(isAllPenalty(getMashRewards(19, 0.4))).toBe(true);
+    expect(getMashRewards(33, 0.6)).toEqual([{ type: 'combo_add', value: 19, duration: 3 }]);
+    expect(getMashRewards(40, 0.4).map(r => r.type)).toEqual(['combo_add', 'energy']);
+    expect(getMashRewards(55, 0.4).map(r => r.type)).toEqual(['combo_add', 'energy', 'mult']);
   });
 });
 
 describe('サイコロ', () => {
   it('全ての目に効果がある', () => {
     for (let i = 1; i <= 6; i++) expect(getDiceRewards(i).length).toBeGreaterThan(0);
+    expect(isAllPenalty(getDiceRewards(1))).toBe(true);
+    expect(isAllPenalty(getDiceRewards(2))).toBe(true);
+    expect(getDiceRewards(6).length).toBeGreaterThanOrEqual(3);
     expect(Object.keys(DICE_FACES)).toHaveLength(6);
   });
 });
@@ -97,6 +110,7 @@ describe('ユーティリティ', () => {
   it('describeRewards', () => {
     expect(describeRewards([])).toBe('何も起きない');
     expect(describeRewards([{ type: 'stars_add', value: -5 }, { type: 'levelup', value: 1 }])).toBe('スター-5 / トークン1つLvUP');
+    expect(describeRewards([{ type: 'stars_mult', value: 0.5 }, { type: 'energy', value: -3 }])).toBe('スター半減 / 他スキルのエネルギー-3');
   });
   it('getLevelValue', () => {
     expect(getLevelValue([1, 2, 3], 2)).toBe(2);
@@ -107,7 +121,7 @@ describe('ユーティリティ', () => {
 describe('MinigameModal', () => {
   it('じゃんけん: 負けたら連勝数に応じた報酬で onResolve が呼ばれる', () => {
     const calls = [];
-    const state = { type: 'janken', level: 1, values: [3, 4, 5], tokenName: 'じゃんけん', resolved: false };
+    const state = { type: 'janken', level: 1, values: [5, 7, 10], tokenName: 'じゃんけん', resolved: false };
     const orig = Math.random;
     // 相手の手: 1回目チョキ（勝ち）→ 2回目パー（負け）
     const seq = [0.5, 0.9];
@@ -122,7 +136,7 @@ describe('MinigameModal', () => {
     }
     expect(calls).toHaveLength(1);
     expect(calls[0].info.streak).toBe(1);
-    expect(calls[0].r).toEqual([{ type: 'combo_add', value: 3, duration: 3 }]);
+    expect(calls[0].r).toEqual([{ type: 'combo_add', value: 5, duration: 3 }]);
   });
 
   it('サイコロ: Lv1は振り直しなしで即確定', () => {
