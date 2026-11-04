@@ -50,3 +50,17 @@ const getTitleSwitchCost = (switchCount = 0) => TITLE_SWITCH_COST.base + TITLE_S
 
 export { TRIAL_TIME_LIMIT_MS, TRIAL_BOARD_COMBOS, TIME_BANK_MAX_MS, TITLE_SWITCH_COST, getTitleSwitchCost, MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_TIER, SHOP_REROLL_GROWTH_FACTOR, SYNERGY_WEIGHT_MULTIPLIER, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS };
 
+
+/**
+ * コンボによるスター獲得のスケーリング（スターインフレ対策）
+ * - 目標が refTarget 以下の序盤は従来通り「コンボ数そのまま」でスター進捗を計算する
+ * - 目標が refTarget を超えると「目標に対する割合」で計算する（目標1回分 = refTarget コンボ相当）
+ * - 1手番で数えるコンボは「capRatio × max(目標, refTarget)」まで（序盤は実質無制限）
+ *   例: 目標10億の手番で10億コンボ → 100コンボ相当（★20）、上限は500コンボ相当（★100）
+ */
+const STAR_COMBO_SCALING = {
+  refTarget: 100,
+  capRatio: 5,
+};
+
+export { STAR_COMBO_SCALING };
