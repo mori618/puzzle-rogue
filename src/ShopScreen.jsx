@@ -3,7 +3,7 @@ import { getTokenIcon, getAttributeBarStyles, canAffordWithCredit } from './util
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
 import { formatJapaneseNumber } from './utils/numberUtils';
-import { AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS } from './constants/gameConstants';
+import { INITIAL_TOKEN_SLOTS, getMaxTokenSlotExpansions, getTokenSlotExpandPriceFor } from './constants/gameConstants';
 
 // 通常アイテムの背景・ボーダー色を返すヘルパー
 const getItemColors = (item) => {
@@ -203,7 +203,7 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
 
 const ShopScreen = ({
     items, stars, onBuy, onClose, onRefresh, rerollPrice, onPause,
-    isEnchantShopUnlocked, tokenSlotExpansionCount, onAwakeningBuy,
+    isEnchantShopUnlocked, tokenSlotExpansionCount, isBeyondMode = false, onAwakeningBuy,
     isAwakeningLevelUpBought, freeRerolls, creditLimit = 0, isInDebt = false,
 }) => {
     const [activeTab, setActiveTab] = React.useState('normal');
@@ -224,8 +224,10 @@ const ShopScreen = ({
 
 
     const tokenSlotExpCount = tokenSlotExpansionCount || 0;
-    const isTokenSlotMaxed = tokenSlotExpCount >= 5;
-    const tokenSlotExpandPrice = isTokenSlotMaxed ? 0 : (AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpCount, 4)] || 50000);
+    const maxTokenSlotExpansions = getMaxTokenSlotExpansions(isBeyondMode);
+    const maxTokenSlots = INITIAL_TOKEN_SLOTS + maxTokenSlotExpansions;
+    const isTokenSlotMaxed = tokenSlotExpCount >= maxTokenSlotExpansions;
+    const tokenSlotExpandPrice = isTokenSlotMaxed ? 0 : getTokenSlotExpandPriceFor(tokenSlotExpCount);
     const currentMaxSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpCount;
     const nextMaxSlots = currentMaxSlots + 1;
 
@@ -521,9 +523,9 @@ const ShopScreen = ({
                                     stars={stars}
                                     onBuy={handleAwakeningBuy}
                                     disabled={isTokenSlotMaxed}
-                                    disabledReason={isTokenSlotMaxed ? `最大拡張済み (上限${INITIAL_TOKEN_SLOTS + 5}枠)` : null}
+                                    disabledReason={isTokenSlotMaxed ? `最大拡張済み (上限${maxTokenSlots}枠)` : null}
                                     color="amber"
-                                    badgeText={isTokenSlotMaxed ? `最大拡張済 (${INITIAL_TOKEN_SLOTS + 5}枠)` : `現在 ${currentMaxSlots} 枠`}
+                                    badgeText={isTokenSlotMaxed ? `最大拡張済 (${maxTokenSlots}枠)` : `現在 ${currentMaxSlots} 枠`}
                                     type="expand_token_slots"
                                     isBought={boughtItemId === 'expand_token_slots'}
                                 />

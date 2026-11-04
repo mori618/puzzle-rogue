@@ -44,7 +44,7 @@ const shopRoutine = async (SCORE) => {
     const nPas = tokens.filter(t => t.type !== 'skill').length;
     // 枠拡張: 満杯で余裕があれば
     const expPrice = g.getTokenSlotExpandPrice ? g.getTokenSlotExpandPrice() : 1e9;
-    if ((nPas >= slotsMax() || nAct >= slotsMax()) && g.stars >= expPrice + 5 && (g.tokenSlotExpansionCount || 0) < 5) {
+    if ((nPas >= slotsMax() || nAct >= slotsMax()) && g.stars >= expPrice + 5 && (g.tokenSlotExpansionCount || 0) < 6) {
       g.buyAwakeningItem('expand_token_slots'); log.push(['expand', expPrice]); await wait(); continue;
     }
     const cands = [];
