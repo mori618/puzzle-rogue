@@ -40,6 +40,7 @@ import {
   isEvolvedBaseUnlocked,
   VISIBLE_EVOLVED_TITLES,
   getTitleSkillFizzleChance,
+  applyTitleProbability,
 } from './titleManager.js';
 
 const STORAGE_KEY = 'pazuru_roguelike_title_state';
@@ -53,10 +54,10 @@ const unlockAndEquip = ({ prefixes = [], suffixes = [], evolved = [], prefixId =
 };
 
 describe('二つ名マスターデータ', () => {
-  it('全191件・ID重複なし（セットシナジーは廃止・B61 継承者は削除）', () => {
+  it('全195件・ID重複なし（セットシナジーは廃止・B61 継承者は削除）', () => {
     const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES];
-    expect(all).toHaveLength(191);
-    expect(new Set(all.map(t => t.id)).size).toBe(191);
+    expect(all).toHaveLength(195);
+    expect(new Set(all.map(t => t.id)).size).toBe(195);
     expect(EVOLVED_TITLES).toHaveLength(50);
   });
 
@@ -1078,5 +1079,49 @@ describe('B枠・進化レビューの確認事項（グループ15）', () => {
     expect(findTitle('E25').trigger).toMatchObject({ count: 10, when: { tc_ge: 12 } });
     expect(findTitle('E26').trigger).toMatchObject({ count: 10, when: { tc_ge: 14 } });
     expect(findTitle('E26').targetValue).toBe(10);
+  });
+});
+
+describe('確率系トークンの二つ名（強運の・幸運の・勝負師・ギャンブラー）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    resetTitleCache();
+  });
+
+  it('A71 強運の: 発動確率 +10%（加算）', () => {
+    unlockAndEquip({ prefixes: ['A71'], prefixId: 'A71' });
+    expect(applyTitleProbability(30, 0)).toBeCloseTo(40);
+  });
+
+  it('A72 幸運の: 発動確率 1.5倍', () => {
+    unlockAndEquip({ prefixes: ['A72'], prefixId: 'A72' });
+    expect(applyTitleProbability(30, 0)).toBeCloseTo(45);
+  });
+
+  it('B73 勝負師: 連続不発1回につき +5%', () => {
+    unlockAndEquip({ suffixes: ['B73'], suffixId: 'B73' });
+    expect(applyTitleProbability(30, 0)).toBeCloseTo(30);
+    expect(applyTitleProbability(30, 3)).toBeCloseTo(45);
+  });
+
+  it('A72 幸運の + B73 勝負師: 加算してから倍率をかける', () => {
+    unlockAndEquip({ prefixes: ['A72'], suffixes: ['B73'], prefixId: 'A72', suffixId: 'B73' });
+    expect(applyTitleProbability(30, 2)).toBeCloseTo((30 + 10) * 1.5);
+  });
+
+  it('二つ名なしでは確率は変わらない', () => {
+    expect(applyTitleProbability(30, 5, [])).toBe(30);
+  });
+
+  it('B74 ギャンブラー: 確率系トークンのショップ出現重み 3倍', () => {
+    unlockAndEquip({ suffixes: ['B74'], suffixId: 'B74' });
+    expect(getActiveTitleEffects()).toContainEqual(expect.objectContaining({ type: 'shop_probability_weight', value: 3 }));
+  });
+
+  it('解放条件の進捗で解放される', () => {
+    recordTitleProgress({ max: { probability_tokens_max: 2, probability_miss_streak_max: 5 }, add: { probability_triggers: 50, probability_tokens_bought: 5 } });
+    const { prefixes, suffixes } = loadTitleState().unlockedTitles;
+    expect(prefixes).toEqual(expect.arrayContaining(['A71', 'A72']));
+    expect(suffixes).toEqual(expect.arrayContaining(['B73', 'B74']));
   });
 });

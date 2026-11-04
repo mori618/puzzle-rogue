@@ -596,6 +596,19 @@ export const getTitleNewTokenLevel = (effects = getActiveTitleEffects()) => {
 };
 
 /**
+ * 確率系トークンの発動確率（%）への補正
+ *   (確率 + probability_add の合計 + probability_miss_step × 連続不発回数) × probability_mult の積
+ * @param {number} prob 補正前の発動確率（%）
+ * @param {number} missStreak そのトークンが連続で発動しなかった回数（勝負師）
+ */
+export const applyTitleProbability = (prob, missStreak = 0, effects = getActiveTitleEffects()) => {
+  const add = getTitleEffectTotal('probability_add', {}, effects);
+  const step = getTitleEffectTotal('probability_miss_step', {}, effects) * Math.max(0, missStreak || 0);
+  const mult = getTitleEffectProduct('probability_mult', {}, effects);
+  return ((Number(prob) || 0) + add + step) * mult;
+};
+
+/**
  * ショップのリロール価格への補正（reroll_fixed で固定 → reroll_sub で値引き。1★未満にはならない）
  */
 export const applyTitleRerollPrice = (basePrice, effects = getActiveTitleEffects()) => {

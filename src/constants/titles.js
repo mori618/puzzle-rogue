@@ -1,6 +1,6 @@
 /**
  * 二つ名（称号）システム 全マスターデータ
- * A枠パーツ(70種) + B枠パーツ(71種) + 派生進化(50種) = 全191件
+ * A枠パーツ(72種) + B枠パーツ(73種) + 派生進化(50種) = 全195件
  * （隠しセットシナジー S01〜S49 は廃止し、進化二つ名に移した。docs/title-evolution-plan.md）
  *
  * ■ 解放条件
@@ -32,7 +32,9 @@
  *         enhance_rate, enhance_color {color}, star_rate
  *   借金: debt_interest（サイクルクリア時、借金に value の割合の利子がつく）, exact_clear_stars（目標の超過10%以内でクリアすると最大 +value★）
  *   スター: cycle_clear_stars（サイクルクリア時に +value★。per: 'stars_10' で所持スター10につき）, star_threshold_sub, star_gain_mult, cycle_interest, clear_reward_add, reward_mult
- *   ショップ: shop_attr_weight {attribute}（その属性のトークンの出現重み ×value）, shop_slot_add, shop_discount, reroll_fixed, reroll_sub（リロール価格 -value★）, sale_add,
+ *   確率系トークン（tokenUtils.isProbabilityToken）: probability_add（発動確率 +value%）, probability_mult（発動確率 ×value）,
+ *         probability_miss_step（発動しなかったたびにそのトークンの次の判定 +value%。発動したらリセット）
+ *   ショップ: shop_attr_weight {attribute}（その属性のトークンの出現重み ×value）, shop_probability_weight（確率系トークンの出現重み ×value）, shop_slot_add, shop_discount, reroll_fixed, reroll_sub（リロール価格 -value★）, sale_add,
  *         cycle_free_reroll（サイクルクリア時に無料リロール +value。使わなかった分は持ち越す）, sell_rate, sell_bonus, curse_sell_bonus
  *   トークン/スキル: new_token_level（新しく手に入れたトークンの初期レベル。呪い等は除く）, skill_cost_sub {attribute?}, skill_charge_cycle_start (数値 or 'full', {attribute?}),
  *         skill_refund_chance, skill_fizzle_chance（アクティブスキルの効果が発動しない確率。エネルギーは消費する）, skill_charge_add, levelup_on_cycle_start, max_turns_add, curse_null
@@ -51,7 +53,7 @@
  *   定義は残すが、解放・装備・図鑑表示の対象から外す（titleManager.isTitleDisabled）。
  */
 
-// 1. A枠パーツ（接頭辞）マスターデータ（全70種）
+// 1. A枠パーツ（接頭辞）マスターデータ（全72種）
 // 特殊消し（A26〜A30・A61）の強さは消し方の難しさの順:
 //   4つ消し(A61) ≤ 5個以上消し(A30) < L字消し(A28) < 横一列(A29) < 十字消し(A26) < 正方形消し(A27)
 export const PREFIX_TITLES = [
@@ -555,9 +557,23 @@ export const PREFIX_TITLES = [
     conditionDesc: '目標達成率80%以上の状態から、その手番でサイクルクリア（累計10回）',
     effects: [{ type: 'final_mult', value: 1.5, when: { progress_ge: 0.8 } }],
   },
+  {
+    id: 'A71', name: '強運の', category: '確率',
+    desc: '確率系トークンの発動確率 +10%（加算）',
+    conditionType: 'probability_tokens_max', targetValue: 2,
+    conditionDesc: '確率で発動するトークン（ターン終了時の生成・変換・侵食など）を2個同時に所持',
+    effects: [{ type: 'probability_add', value: 10 }],
+  },
+  {
+    id: 'A72', name: '幸運の', category: '確率',
+    desc: '確率系トークンの発動確率 1.5倍',
+    conditionType: 'probability_triggers', targetValue: 50,
+    conditionDesc: '確率で発動するトークンを累計50回発動させる',
+    effects: [{ type: 'probability_mult', value: 1.5 }],
+  },
 ];
 
-// 2. B枠パーツ（接尾辞）マスターデータ（全71種）
+// 2. B枠パーツ（接尾辞）マスターデータ（全73種）
 export const SUFFIX_TITLES = [
   {
     id: 'B01', name: '覇王', category: '火力',
@@ -1055,6 +1071,20 @@ export const SUFFIX_TITLES = [
     conditionType: 'debt_clear', targetValue: 1,
     conditionDesc: '所持スターがマイナスの状態でサイクルクリア',
     effects: [{ type: 'final_mult', value: 1.5, when: { stars_le: -1 } }, { type: 'debt_interest', value: 0.1 }],
+  },
+  {
+    id: 'B73', name: '勝負師', category: '確率',
+    desc: '確率系トークンが発動しなかったたびに、そのトークンの次の判定 +5%（発動したらリセット）',
+    conditionType: 'probability_miss_streak_max', targetValue: 5,
+    conditionDesc: '同じ確率系トークンが5回連続で発動しない',
+    effects: [{ type: 'probability_miss_step', value: 5 }],
+  },
+  {
+    id: 'B74', name: 'ギャンブラー', category: '確率',
+    desc: '確率系トークンがショップに出やすくなる（3倍）',
+    conditionType: 'probability_tokens_bought', targetValue: 5,
+    conditionDesc: '確率で発動するトークンを累計5個購入',
+    effects: [{ type: 'shop_probability_weight', value: 3 }],
   },
 ];
 
