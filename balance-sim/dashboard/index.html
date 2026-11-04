@@ -1,0 +1,469 @@
+<meta name="dash-one-writer">
+<style>
+  .pr { display: flex; flex-direction: column; gap: var(--cds-gap-xl); font-family: var(--font-anthropic-sans); color: var(--color-fg); }
+  .pr h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; text-wrap: balance; }
+  .pr h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; text-wrap: balance; }
+  .pr h3 { font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); margin: 0; }
+  .pr p { margin: 0; line-height: 1.6; max-width: 72ch; }
+  .pr .muted { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .pr .head { display: flex; flex-direction: column; gap: var(--cds-gap-sm); }
+  .pr .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: var(--cds-gap-md); }
+  .pr .tile { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: flex; flex-direction: column; gap: var(--cds-gap-xs); }
+  .pr .tile .big { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; }
+  .pr section { display: flex; flex-direction: column; gap: var(--cds-gap-md); }
+  .pr .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: var(--cds-gap-md); }
+  .pr .card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-width: 0; }
+  .pr .chart { position: relative; min-height: 260px; }
+  .pr .chart.tall { min-height: 380px; }
+  .pr .tip { position: absolute; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); pointer-events: none; white-space: nowrap; z-index: 2; }
+  .pr .tip .k { color: var(--cds-text-secondary); }
+  .pr .legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .pr .legend span { display: inline-flex; align-items: center; gap: var(--cds-gap-xs); }
+  .pr .sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .pr .sw.s0 { background: var(--cds-chart-series-1, currentColor); }
+  .pr .tablebox { max-height: 560px; overflow: auto; }
+  .pr table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+  .pr th, .pr td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); text-align: right; white-space: nowrap; }
+  .pr th:first-child, .pr td:first-child, .pr th.l, .pr td.l { text-align: left; }
+  .pr thead th { position: sticky; top: 0; background: var(--color-panel); z-index: 1; }
+  .pr th button { all: unset; cursor: pointer; font-weight: var(--cds-font-weight-medium); }
+  .pr th button:focus-visible { outline: 2px solid var(--color-fg-muted); border-radius: 2px; }
+  .pr .controls { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm); align-items: center; }
+  .pr .controls input, .pr .controls select { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); }
+  .pr .barcell { display: inline-block; height: 8px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  .pr .good { color: var(--color-ok); }
+  .pr .bad { color: var(--color-bad); }
+  .pr .warn { color: var(--color-warn); }
+  .pr ul { margin: 0; padding-left: 1.2em; line-height: 1.6; max-width: 80ch; }
+  .pr .tiles b, .pr p b { font-weight: var(--cds-font-weight-medium); }
+  [data-dash-source-state=refreshing] { opacity: .5; }
+  [data-dash-source-state=empty] { color: transparent; }
+</style>
+
+<div class="pr">
+  <div class="head">
+    <h1 id="top">Puzzle Rogue トークンバランス調査</h1>
+    <p>ボットに実際のゲームを遊ばせて集めたデータです（<span data-draw="kpi" data-source="summary" data-field="value" data-where="metric=single_test_turns">—</span> 手番の単体テスト＋<span data-draw="kpi" data-source="summary" data-field="value" data-where="metric=fullrun_turns">—</span> 手番のフルラン）。難しさはサイクル6に集中していて、一部のトークンが桁違いに強く、パッシブの半数以上は単体では効果が見えません。</p>
+  </div>
+
+  <div class="tiles">
+    <div class="tile">
+      <span class="muted">トークンなしの平均コンボ／手番</span>
+      <span class="big" data-draw="kpi" data-source="summary" data-field="value" data-where="metric=baseline_eff">—</span>
+      <span class="muted">ブレ ±<span data-draw="kpi" data-source="summary" data-field="value" data-where="metric=baseline_sd">—</span>（比較の基準）</span>
+    </div>
+    <div class="tile">
+      <span class="muted">サイクル6のクリア率（全フルラン）</span>
+      <span class="big" data-draw="c6" data-source="c6rate" data-field="rate">—</span>
+      <span class="muted">到達 <span data-draw="kpi" data-source="summary" data-field="value" data-where="metric=c6_reached">—</span> ラン中 <span data-draw="kpi" data-source="summary" data-field="value" data-where="metric=c6_cleared">—</span> ランが突破</span>
+    </div>
+    <div class="tile">
+      <span class="muted">フルラン本数</span>
+      <span class="big"><span data-draw="kpi" data-source="summary" data-field="value" data-where="metric=runs_random">—</span> ＋ <span data-draw="kpi" data-source="summary" data-field="value" data-where="metric=runs_smart">—</span></span>
+      <span class="muted">ランダム購入 ＋ 強いトークン優先</span>
+    </div>
+    <div class="tile">
+      <span class="muted">テストしたトークン</span>
+      <span class="big" data-draw="kpi" data-source="summary" data-field="value" data-where="metric=tokens_tested">—</span>
+      <span class="muted">Lv1 と最大Lv をそれぞれ15手番ずつ</span>
+    </div>
+  </div>
+
+  <section id="curve">
+    <h2>難易度カーブ：サイクル6が壁</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>サイクル別のクリア率</h3>
+        <p class="muted">そのサイクルに到達したランのうち、クリアできた割合。点にカーソルを合わせると到達ラン数と目標が出ます。サイクル7以降は到達ランが少なく、ブレが大きいです。</p>
+        <div class="legend"><span><i class="sw" data-draw="sw0"></i>ランダム購入</span><span><i class="sw" data-draw="sw1"></i>強いトークン優先</span></div>
+        <div class="chart" id="clear-chart" data-draw="clearChart" data-source="cycles"></div>
+      </div>
+      <div class="card">
+        <h3>ゲームオーバーになったサイクル</h3>
+        <p class="muted">購入方針ごとの、全ランに占める割合。サイクル4〜6で大半が終わります。</p>
+        <div class="legend"><span><i class="sw" data-draw="sw0"></i>ランダム購入</span><span><i class="sw" data-draw="sw1"></i>強いトークン優先</span></div>
+        <div class="chart" id="death-chart" data-draw="deathChart" data-source="deathShare"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>スタートの種類別 平均到達サイクル</h3>
+      <div class="tablebox">
+        <table data-source="starts" data-row-key="policy,start">
+          <thead><tr><th class="l" data-field="policy">購入方針</th><th class="l" data-field="start">スタート</th><th data-field="runs">ラン数</th><th data-field="avg_cycle">平均到達サイクル</th></tr></thead>
+          <tbody data-draw="startRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="strength">
+    <h2>トークンの強さ（単体テスト）</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>価格と効果（Lv1）</h3>
+        <p class="muted">トークンを1個だけ持って15手番プレイしたときの平均コンボ（縦軸は対数）。点線がトークンなしの基準です。右上ほど高く強い、左上ほど安くて強いトークンです。</p>
+        <div class="legend"><span><i class="sw" data-draw="sw0"></i>パッシブ</span><span><i class="sw" data-draw="sw1"></i>スキル</span><span><i class="sw" data-draw="sw2"></i>呪い</span></div>
+        <div class="chart tall" id="scatter-chart" data-draw="scatter" data-source="tokens summary"></div>
+      </div>
+      <div class="card">
+        <h3>レアリティ別の効果（中央値）</h3>
+        <p class="muted">Lv1単体での、トークンなしからのコンボ増加率の中央値。★1パッシブが最も高く、★2以上はほぼ横ばいです。</p>
+        <div class="chart" id="rarity-chart" data-draw="rarityChart" data-source="rarity"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="all-tokens">
+    <h2>全トークン一覧</h2>
+    <div class="card">
+      <p class="muted">見出しを押すと並べ替えます。増加率はトークンなし（基準）との比較です。平均は数手番に1回の大爆発に引っ張られるため、中央値も並べています。発動は15手番中に効果が発動した回数です（スキルは使用のみで0になることがあります）。</p>
+      <div class="controls">
+        <input id="tok-search" type="search" placeholder="名前・IDで検索" aria-label="トークンを検索">
+        <select id="tok-type" aria-label="種類で絞り込む">
+          <option value="">すべての種類</option>
+          <option value="パッシブ">パッシブ</option>
+          <option value="スキル">スキル</option>
+          <option value="呪い">呪い</option>
+        </select>
+        <span class="muted" data-draw="tokCount" data-source="tokens">—</span>
+      </div>
+      <div class="tablebox">
+        <table id="tok-table" data-source="tokens" data-row-key="id">
+          <thead><tr>
+            <th class="l" data-field="name"><button data-sort="name">名前</button></th>
+            <th class="l" data-field="type"><button data-sort="type">種類</button></th>
+            <th data-field="rarity"><button data-sort="rarity">★</button></th>
+            <th data-field="price"><button data-sort="price">価格</button></th>
+            <th class="l" data-field="gain_lv1_pct"><button data-sort="gain_lv1_pct">増加率 Lv1</button></th>
+            <th data-field="eff_lv1"><button data-sort="eff_lv1">平均 Lv1</button></th>
+            <th data-field="median_lv1"><button data-sort="median_lv1">中央値 Lv1</button></th>
+            <th data-field="eff_lvmax"><button data-sort="eff_lvmax">平均 最大Lv</button></th>
+            <th data-field="median_lvmax"><button data-sort="median_lvmax">中央値 最大Lv</button></th>
+            <th data-field="stars_lv1"><button data-sort="stars_lv1">★獲得／手番</button></th>
+            <th data-field="triggers_lv1"><button data-sort="triggers_lv1">発動</button></th>
+          </tr></thead>
+          <tbody data-draw="tokRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="cycle6">
+    <h2>サイクル6を突破したランが持っていたトークン</h2>
+    <div class="card">
+      <p class="muted">サイクル6の開始時に持っていたトークン別の、サイクル6クリア率（6ラン以上で所持されたものだけ）。全体平均は <span data-draw="c6" data-source="c6rate" data-field="rate">—</span> です。所持ラン数が少ないので目安として見てください。</p>
+      <div class="tablebox">
+        <table data-source="cycle6_tokens" data-row-key="id">
+          <thead><tr><th class="l" data-field="name">トークン</th><th data-field="runs">所持ラン</th><th data-field="cleared">突破</th><th class="l" data-field="clear_rate">突破率</th></tr></thead>
+          <tbody data-draw="c6Rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="method">
+    <h2>方法と注意点</h2>
+    <div class="card">
+      <ul>
+        <li>実際のゲームをヘッドレスブラウザで動かし、ボットが盤面を読んで手順を探索し、1マス0.2秒の人間並みの速さでドラッグしています。ゲームのソースは変更していません。</li>
+        <li>単体テストは「堅実」スタート後にトークンを1個だけにし、スター30・目標なしで15手番プレイしています。所持数・累計値・スター残高で伸びるトークン（余白の美学、金満の暴力など）は、序盤の条件で強く出ています。</li>
+        <li>ボットは形消しを少し優先するだけで、L字や十字などを狙い撃ちはしません。そのため形消し系と変換スキルは過小評価の可能性があります。</li>
+        <li>〇の手・〇の誓約・横列の制約・四連の制約のマイナスは、ボットがそのルールを考慮して手を探していないためで、ボット側の弱点です。</li>
+        <li>「強いトークン優先」は、単体テストの中央値が高いトークンを優先して買う方針です。加算の極意を倍率ビルドの途中で買い、サイクル22から全滅したランが1本あります。</li>
+        <li>偏食家は手番数が変わる影響で1手番分しかデータがありません。</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+  const num = (v) => (v === '' || v == null ? null : Number(v));
+  const f1 = d3.format(',.1f');
+  const f0 = d3.format(',');
+  const fpct = d3.format('.0%');
+  const fsign = (v) => (v == null ? '' : (v > 0 ? '+' : '') + d3.format(',.0f')(v) + '%');
+  window.prFmt = { num, f1, f0, fpct, fsign };
+  window.prSort = { key: 'gain_lv1_pct', dir: -1 };
+
+  dash.calc('c6rate', {
+    title: 'サイクル6のクリア率',
+    description: '全フルランのうちサイクル6に到達したランの中で、クリアしたランの割合。',
+    inputs: ['summary'],
+    fn: (summary) => {
+      const get = (k) => Number((summary.find((r) => r.metric === k) || {}).value);
+      return [{ rate: get('c6_cleared') / get('c6_reached') }];
+    },
+  });
+
+  dash.calc('deathShare', {
+    title: 'ゲームオーバー時のサイクル（割合）',
+    description: '購入方針ごとに、最終サイクルごとのラン数をその方針の全ラン数で割ったもの。',
+    inputs: ['deaths'],
+    fn: (deaths) => {
+      const total = {};
+      deaths.forEach((r) => { total[r.policy] = (total[r.policy] || 0) + Number(r.runs); });
+      return deaths.map((r) => ({ policy: r.policy, final_cycle: Number(r.final_cycle), runs: Number(r.runs), share: Number(r.runs) / total[r.policy] }));
+    },
+  });
+
+  dash.calc('rarity', {
+    title: 'レアリティ別の増加率（中央値）',
+    description: '種類×レアリティごとに、Lv1単体テストの増加率の中央値。',
+    inputs: ['tokens'],
+    fn: (tokens) => {
+      const groups = {};
+      tokens.filter((t) => t.type !== '呪い').forEach((t) => {
+        const k = t.type + ' ★' + t.rarity;
+        (groups[k] = groups[k] || []).push(Number(t.gain_lv1_pct));
+      });
+      return Object.entries(groups).map(([group, v]) => {
+        const s = v.slice().sort((a, b) => a - b);
+        return { group, tokens: s.length, median_gain_pct: s[Math.floor(s.length / 2)] };
+      }).sort((a, b) => a.group.localeCompare(b.group, 'ja'));
+    },
+  });
+
+  document.querySelectorAll('#tok-search').forEach((el) => el.addEventListener('input', () => { dash.draw('tokRows'); dash.draw('tokCount'); }));
+  document.querySelectorAll('#tok-type').forEach((el) => el.addEventListener('change', () => { dash.draw('tokRows'); dash.draw('tokCount'); }));
+  document.querySelectorAll('#tok-table th button').forEach((b) => b.addEventListener('click', () => {
+    const k = b.dataset.sort;
+    window.prSort = { key: k, dir: window.prSort.key === k ? -window.prSort.dir : (k === 'name' || k === 'type' ? 1 : -1) };
+    document.querySelectorAll('#tok-table th').forEach((th) => th.removeAttribute('aria-sort'));
+    b.parentElement.setAttribute('aria-sort', window.prSort.dir > 0 ? 'ascending' : 'descending');
+    dash.draw('tokRows');
+  }));
+</script>
+
+<script>
+  // 数値タイル
+  dash.draw('kpi', (el) => {
+    const d = dash.data('summary');
+    if (d.status !== 'ok') { el.textContent = '—'; return; }
+    const key = decodeURIComponent((el.dataset.where || '').split('=')[1] || '');
+    const row = d.data.find((r) => r.metric === key);
+    const v = row ? Number(row.value) : null;
+    el.textContent = v == null ? '—' : (Number.isInteger(v) ? window.prFmt.f0(v) : window.prFmt.f1(v));
+  });
+  dash.draw('c6', (el) => {
+    const d = dash.data('c6rate');
+    el.textContent = d.status === 'ok' && d.data[0] ? window.prFmt.fpct(d.data[0].rate) : '—';
+  });
+  ['sw0', 'sw1', 'sw2'].forEach((n, i) => dash.draw(n, (el) => { el.style.background = dash.colors[i]; }));
+
+  dash.draw('startRows', (tb) => {
+    const d = dash.data('starts');
+    tb.replaceChildren();
+    if (d.status !== 'ok') return;
+    d.data.forEach((r) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = encodeURIComponent(r.policy) + ',' + encodeURIComponent(r.start);
+      [r.policy, r.start, window.prFmt.f0(Number(r.runs)), window.prFmt.f1(Number(r.avg_cycle))].forEach((t, i) => {
+        const td = document.createElement('td'); if (i < 2) td.className = 'l'; td.textContent = t; tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+  });
+
+  dash.draw('c6Rows', (tb) => {
+    const d = dash.data('cycle6_tokens');
+    tb.replaceChildren();
+    if (d.status !== 'ok') return;
+    d.data.forEach((r) => {
+      const rate = Number(r.clear_rate);
+      const tr = document.createElement('tr');
+      tr.dataset.key = r.id;
+      const td1 = document.createElement('td'); td1.className = 'l'; td1.textContent = r.name;
+      const td2 = document.createElement('td'); td2.textContent = window.prFmt.f0(Number(r.runs));
+      const td3 = document.createElement('td'); td3.textContent = window.prFmt.f0(Number(r.cleared));
+      const td4 = document.createElement('td'); td4.className = 'l';
+      const bar = document.createElement('span'); bar.className = 'barcell'; bar.style.width = Math.round(rate * 120) + 'px'; bar.style.background = dash.colors[0];
+      const t = document.createElement('span'); t.textContent = window.prFmt.fpct(rate);
+      td4.append(bar, t);
+      tr.append(td1, td2, td3, td4);
+      tb.appendChild(tr);
+    });
+  });
+
+  const tokFiltered = () => {
+    const d = dash.data('tokens');
+    if (d.status !== 'ok') return null;
+    const q = (document.querySelector('#tok-search')?.value || '').trim().toLowerCase();
+    const ty = document.querySelector('#tok-type')?.value || '';
+    return d.data.filter((r) => (!ty || r.type === ty) && (!q || r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q)));
+  };
+  dash.draw('tokCount', (el) => {
+    const rows = tokFiltered();
+    el.textContent = rows ? window.prFmt.f0(rows.length) + ' 件' : '—';
+  });
+  dash.draw('tokRows', (tb) => {
+    const rows = tokFiltered();
+    tb.replaceChildren();
+    if (!rows) return;
+    const { key, dir } = window.prSort;
+    const isText = key === 'name' || key === 'type';
+    const sorted = rows.slice().sort((a, b) => {
+      if (isText) return dir * a[key].localeCompare(b[key], 'ja');
+      const x = window.prFmt.num(a[key]), y = window.prFmt.num(b[key]);
+      if (x == null) return 1; if (y == null) return -1;
+      return dir * (x - y);
+    });
+    const { f1, f0, fsign, num } = window.prFmt;
+    const logMax = Math.log10(1 + 11000);
+    sorted.forEach((r) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = r.id;
+      const cell = (text, cls) => { const td = document.createElement('td'); if (cls) td.className = cls; td.textContent = text; tr.appendChild(td); return td; };
+      cell(r.name, 'l');
+      cell(r.type, 'l');
+      cell(r.rarity === '0' ? '—' : '★' + r.rarity);
+      cell(r.price === '' ? '—' : f0(Number(r.price)));
+      const g = num(r.gain_lv1_pct);
+      const td = document.createElement('td'); td.className = 'l';
+      const bar = document.createElement('span'); bar.className = 'barcell';
+      const w = g == null ? 0 : Math.round((Math.log10(1 + Math.abs(g)) / logMax) * 80);
+      bar.style.width = w + 'px';
+      bar.style.background = g != null && g < 0 ? 'var(--cds-chart-status-critical)' : dash.colors[0];
+      const t = document.createElement('span'); t.textContent = fsign(g);
+      if (g != null && g >= 200) t.className = 'warn'; else if (g != null && g <= -10) t.className = 'bad';
+      td.append(bar, t); tr.appendChild(td);
+      cell(r.eff_lv1 === '' ? '—' : f1(Number(r.eff_lv1)));
+      cell(r.median_lv1 === '' ? '—' : f0(Number(r.median_lv1)));
+      cell(r.eff_lvmax === '' ? '—' : f1(Number(r.eff_lvmax)));
+      cell(r.median_lvmax === '' ? '—' : f0(Number(r.median_lvmax)));
+      cell(r.stars_lv1 === '' ? '—' : f1(Number(r.stars_lv1)));
+      cell(r.triggers_lv1 === '' ? '—' : f0(Number(r.triggers_lv1)));
+      tb.appendChild(tr);
+    });
+  });
+</script>
+
+<script>
+  // 共通: 軸のスタイル
+  const prAxis = (g) => {
+    g.attr('font-size', null).attr('font-family', null);
+    g.selectAll('text').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)');
+    g.selectAll('line').attr('stroke', 'var(--cds-chart-grid)');
+    g.select('.domain').attr('stroke', 'var(--cds-chart-axis)');
+  };
+  const prTip = (el) => {
+    const tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; el.appendChild(tip);
+    const show = (lines, x, y) => {
+      tip.replaceChildren();
+      lines.forEach(([k, v], i) => { const div = document.createElement('div'); if (i === 0) div.className = 'k'; div.textContent = v == null ? k : k + '：' + v; tip.appendChild(div); });
+      tip.hidden = false;
+      const w = tip.offsetWidth, h = tip.offsetHeight, W = el.clientWidth;
+      tip.style.left = Math.max(0, Math.min(W - w, x + 12)) + 'px';
+      tip.style.top = Math.max(0, y - h - 8) + 'px';
+    };
+    return { show, hide: () => { tip.hidden = true; } };
+  };
+  window.prAxis = prAxis; window.prTip = prTip;
+
+  const POLICIES = ['ランダム購入', '強いトークン優先'];
+
+  dash.draw('clearChart', (el) => {
+    el.replaceChildren();
+    const d = dash.data('cycles');
+    if (d.status !== 'ok') return;
+    const rows = d.data.map((r) => ({ policy: r.policy, cycle: Number(r.cycle), rate: Number(r.clear_rate), reached: Number(r.reached), target: Number(r.target) })).filter((r) => r.cycle <= 10);
+    const W = el.clientWidth || 360, H = 260, m = { t: 12, r: 16, b: 32, l: 44 };
+    const x = d3.scaleLinear([1, 10], [m.l, W - m.r]);
+    const y = d3.scaleLinear([0, 1], [H - m.b, m.t]);
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`);
+    svg.append('rect').attr('x', x(5.5)).attr('width', x(6.5) - x(5.5)).attr('y', m.t).attr('height', H - m.b - m.t).attr('fill', 'var(--cds-chart-grid)').attr('opacity', 0.6);
+    svg.append('g').attr('transform', `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(10).tickFormat((v) => 'C' + v)).call(prAxis);
+    svg.append('g').attr('transform', `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(d3.format('.0%')).tickSize(-(W - m.l - m.r))).call(prAxis).call((g) => g.select('.domain').remove());
+    POLICIES.forEach((p, i) => {
+      const pts = rows.filter((r) => r.policy === p);
+      svg.append('path').datum(pts).attr('fill', 'none').attr('stroke', dash.colors[i]).attr('stroke-width', 2).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
+        .attr('d', d3.line().x((r) => x(r.cycle)).y((r) => y(r.rate)));
+      svg.append('g').selectAll('circle').data(pts).join('circle').attr('cx', (r) => x(r.cycle)).attr('cy', (r) => y(r.rate)).attr('r', 3.5).attr('fill', dash.colors[i]);
+    });
+    const tip = prTip(el);
+    svg.on('mousemove', (ev) => {
+      const [mx] = d3.pointer(ev);
+      const c = Math.max(1, Math.min(10, Math.round(x.invert(mx))));
+      const here = rows.filter((r) => r.cycle === c);
+      if (!here.length) { tip.hide(); return; }
+      const lines = [['サイクル' + c + '（目標 ' + d3.format(',')(here[0].target) + '）', null]];
+      here.forEach((r) => lines.push([r.policy, d3.format('.0%')(r.rate) + '（到達 ' + r.reached + '）']));
+      tip.show(lines, x(c), y(d3.max(here, (r) => r.rate)));
+    }).on('mouseleave', tip.hide);
+  });
+
+  dash.draw('deathChart', (el) => {
+    el.replaceChildren();
+    const d = dash.data('deathShare');
+    if (d.status !== 'ok') return;
+    const rows = d.data.filter((r) => r.final_cycle <= 12);
+    const cycles = d3.range(2, 13);
+    const W = el.clientWidth || 360, H = 260, m = { t: 12, r: 12, b: 32, l: 44 };
+    const x0 = d3.scaleBand(cycles, [m.l, W - m.r]).padding(0.2);
+    const x1 = d3.scaleBand(POLICIES, [0, x0.bandwidth()]).padding(0.1);
+    const y = d3.scaleLinear([0, d3.max(rows, (r) => r.share) * 1.1], [H - m.b, m.t]);
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`);
+    svg.append('g').attr('transform', `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(d3.format('.0%')).tickSize(-(W - m.l - m.r))).call(prAxis).call((g) => g.select('.domain').remove());
+    svg.append('g').attr('transform', `translate(0,${H - m.b})`).call(d3.axisBottom(x0).tickFormat((v) => 'C' + v)).call(prAxis);
+    const tip = prTip(el);
+    svg.append('g').selectAll('rect').data(rows).join('rect')
+      .attr('x', (r) => x0(r.final_cycle) + x1(r.policy)).attr('width', x1.bandwidth())
+      .attr('y', (r) => y(r.share)).attr('height', (r) => y(0) - y(r.share)).attr('rx', 2)
+      .attr('fill', (r) => dash.colors[POLICIES.indexOf(r.policy)])
+      .on('mousemove', (ev, r) => { const [mx, my] = d3.pointer(ev, el); tip.show([['サイクル' + r.final_cycle + 'で終了', null], [r.policy, d3.format('.0%')(r.share) + '（' + r.runs + 'ラン）']], mx, my); })
+      .on('mouseleave', tip.hide);
+  });
+
+  dash.draw('scatter', (el) => {
+    el.replaceChildren();
+    const d = dash.data('tokens'), s = dash.data('summary');
+    if (d.status !== 'ok' || s.status !== 'ok') return;
+    const TYPES = ['パッシブ', 'スキル', '呪い'];
+    const base = Number((s.data.find((r) => r.metric === 'baseline_eff') || {}).value);
+    const rows = d.data.filter((r) => r.price !== '').map((r) => ({ id: r.id, name: r.name, type: r.type, rarity: r.rarity, price: Number(r.price), eff: Math.max(1, Number(r.eff_lv1)), med: Number(r.median_lv1), gain: Number(r.gain_lv1_pct) }));
+    const W = el.clientWidth || 360, H = 380, m = { t: 14, r: 20, b: 36, l: 48 };
+    const x = d3.scaleLinear([0, d3.max(rows, (r) => r.price) * 1.05], [m.l, W - m.r]);
+    const y = d3.scaleLog([1, d3.max(rows, (r) => r.eff) * 1.3], [H - m.b, m.t]);
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`);
+    svg.append('g').attr('transform', `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(6).tickFormat((v) => v + '★')).call(prAxis);
+    svg.append('g').attr('transform', `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues([1, 3, 10, 30, 100, 300, 1000].filter((v) => v <= y.domain()[1])).tickFormat(d3.format(',')).tickSize(-(W - m.l - m.r))).call(prAxis).call((g) => g.select('.domain').remove());
+    svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(base)).attr('y2', y(base)).attr('stroke', 'var(--cds-chart-reference)').attr('stroke-dasharray', '4 3');
+    svg.append('text').attr('x', W - m.r).attr('y', y(base) - 4).attr('text-anchor', 'end').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text('トークンなし ' + d3.format('.1f')(base));
+    const jitter = (id) => { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 997; return (h / 997 - 0.5) * 6; };
+    const tip = prTip(el);
+    svg.append('g').selectAll('circle').data(rows).join('circle')
+      .attr('cx', (r) => x(r.price) + jitter(r.id)).attr('cy', (r) => y(r.eff)).attr('r', 4)
+      .attr('fill', (r) => dash.colors[TYPES.indexOf(r.type)]).attr('fill-opacity', 0.75)
+      .on('mousemove', (ev, r) => { const [mx, my] = d3.pointer(ev, el); tip.show([[r.name + '（' + r.type + (r.rarity !== '0' ? ' ★' + r.rarity : '') + '）', null], ['価格', r.price + '★'], ['平均', d3.format(',.1f')(r.eff)], ['中央値', d3.format(',')(r.med)], ['増加率', (r.gain > 0 ? '+' : '') + d3.format(',.0f')(r.gain) + '%']], mx, my); })
+      .on('mouseleave', tip.hide);
+    const labeled = rows.filter((r) => r.eff >= 60).sort((a, b) => b.eff - a.eff).slice(0, 6);
+    const placed = [];
+    labeled.forEach((r) => {
+      let ly = y(r.eff) + 4;
+      while (placed.some((p) => Math.abs(p - ly) < 13)) ly += 13;
+      placed.push(ly);
+      const left = x(r.price) > W * 0.6;
+      svg.append('text').attr('x', x(r.price) + (left ? -8 : 8)).attr('y', ly).attr('text-anchor', left ? 'end' : 'start')
+        .attr('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').text(r.name);
+    });
+  });
+
+  dash.draw('rarityChart', (el) => {
+    el.replaceChildren();
+    const d = dash.data('rarity');
+    if (d.status !== 'ok') return;
+    const rows = d.data;
+    const W = el.clientWidth || 360, rowH = 30, H = rows.length * rowH + 30;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`);
+    const probe = svg.append('text').style('font-size', 'var(--cds-font-size-caption)').text('パッシブ ★4（00）');
+    const lw = probe.node().getComputedTextLength() + 12; probe.remove();
+    const x = d3.scaleLinear([Math.min(0, d3.min(rows, (r) => r.median_gain_pct)), Math.max(10, d3.max(rows, (r) => r.median_gain_pct)) * 1.2], [lw, W - 12]);
+    const yb = d3.scaleBand(rows.map((r) => r.group), [10, H - 20]).padding(0.25);
+    svg.append('g').attr('transform', `translate(0,${H - 20})`).call(d3.axisBottom(x).ticks(5).tickFormat((v) => v + '%').tickSize(-(H - 30))).call(prAxis).call((g) => g.select('.domain').remove());
+    rows.forEach((r) => {
+      const i = r.group.startsWith('スキル') ? 1 : 0;
+      svg.append('rect').attr('x', x(Math.min(0, r.median_gain_pct))).attr('y', yb(r.group)).attr('height', yb.bandwidth()).attr('width', Math.abs(x(r.median_gain_pct) - x(0))).attr('rx', 2).attr('fill', dash.colors[i]);
+      svg.append('text').attr('x', lw - 8).attr('y', yb(r.group) + yb.bandwidth() / 2).attr('dy', '0.35em').attr('text-anchor', 'end').attr('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').text(r.group + '（' + r.tokens + '）');
+      svg.append('text').attr('x', x(Math.max(0, r.median_gain_pct)) + 4).attr('y', yb(r.group) + yb.bandwidth() / 2).attr('dy', '0.35em').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text((r.median_gain_pct > 0 ? '+' : '') + d3.format('.1f')(r.median_gain_pct) + '%');
+    });
+  });
+</script>
