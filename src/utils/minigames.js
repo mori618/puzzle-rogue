@@ -122,6 +122,21 @@ export const getJankenRewards = (streak, perWin) => {
   return rewards;
 };
 
+// 隠し要素: あいこ3回連続で「以心伝心」発動（説明文には記載しない）
+// 発動ごとに以下の報酬が最終結果に追加され、勝負はそのまま続く。
+export const JANKEN_DRAW_BONUS_COUNT = 3;
+export const JANKEN_DRAW_BONUS = [
+  { type: 'energy', value: 99 },
+  { type: 'levelup', value: 1 },
+  { type: 'stars_add', value: 20 },
+];
+
+/** 連勝数の報酬に、以心伝心の発動回数分のボーナスを加える */
+export const getJankenFinalRewards = (streak, perWin, drawBonusCount = 0) => [
+  ...getJankenRewards(streak, perWin),
+  ...Array.from({ length: drawBonusCount }, () => JANKEN_DRAW_BONUS).flat(),
+];
+
 // --- 釣り ---------------------------------------------------------------------
 
 export const FISH_TABLE = [

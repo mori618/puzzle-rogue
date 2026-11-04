@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   getLevelValue, describeRewards, isAllPenalty,
-  judgeJanken, randomJankenHand, getJankenRewards,
+  judgeJanken, randomJankenHand, getJankenFinalRewards, JANKEN_DRAW_BONUS_COUNT,
   rollFish,
   getTargetResult, getAimPosition,
   MASH_DURATION_MS, MASH_FAIL_THRESHOLD, MASH_ENERGY_THRESHOLD, MASH_MULT_THRESHOLD, getMashRewards,
@@ -43,24 +43,42 @@ const JankenGame = ({ state, onResolve }) => {
   const [streak, setStreak] = useState(0);
   const [last, setLast] = useState(null); // { player, cpu, outcome }
   const [rewards, setRewards] = useState(null);
+  // 隠し要素: あいこ連続回数と「以心伝心」の発動回数
+  const [drawStreak, setDrawStreak] = useState(0);
+  const [drawBonusCount, setDrawBonusCount] = useState(0);
+  const [bonusJustTriggered, setBonusJustTriggered] = useState(false);
 
   const play = (hand) => {
     if (rewards) return;
     const cpu = randomJankenHand();
     const outcome = judgeJanken(hand, cpu);
     setLast({ player: hand, cpu, outcome });
+    setBonusJustTriggered(false);
+    if (outcome === 0) {
+      const nextDraw = drawStreak + 1;
+      if (nextDraw >= JANKEN_DRAW_BONUS_COUNT) {
+        setDrawBonusCount(c => c + 1);
+        setDrawStreak(0);
+        setBonusJustTriggered(true);
+      } else {
+        setDrawStreak(nextDraw);
+      }
+      return;
+    }
+    setDrawStreak(0);
     if (outcome === 1) {
       setStreak(s => s + 1);
-    } else if (outcome === -1) {
-      const r = getJankenRewards(streak, perWin);
+    } else {
+      const r = getJankenFinalRewards(streak, perWin, drawBonusCount);
       setRewards(r);
-      onResolve(r, { streak });
+      onResolve(r, { streak, drawBonus: drawBonusCount });
     }
   };
 
   const outcomeText = !last ? '手を選んでください'
-    : last.outcome === 1 ? '勝ち！続けて勝負！'
-      : last.outcome === 0 ? 'あいこ！もう一度！' : '負け…';
+    : bonusJustTriggered ? '以心伝心！あいこ3連続で特殊効果発動！'
+      : last.outcome === 1 ? '勝ち！続けて勝負！'
+        : last.outcome === 0 ? 'あいこ！もう一度！' : '負け…';
 
   return (
     <div className="flex flex-col gap-4">
@@ -79,9 +97,15 @@ const JankenGame = ({ state, onResolve }) => {
           <div className="text-[10px] text-slate-400 mt-1">相手</div>
         </div>
       </div>
-      <p className={`text-center text-sm font-bold ${last?.outcome === 1 ? 'text-amber-300' : last?.outcome === -1 ? 'text-red-400' : 'text-slate-200'}`}>
+      <p
+        data-testid="janken-message"
+        className={`text-center text-sm font-bold ${bonusJustTriggered ? 'text-fuchsia-300 animate-pulse' : last?.outcome === 1 ? 'text-amber-300' : last?.outcome === -1 ? 'text-red-400' : 'text-slate-200'}`}
+      >
         {outcomeText}
       </p>
+      {drawBonusCount > 0 && !rewards && (
+        <p className="text-center text-[11px] text-fuchsia-300 font-bold -mt-2">以心伝心 ×{drawBonusCount}（終了時に効果追加）</p>
+      )}
       {rewards ? (
         <ResultBox title={streak > 0 ? `${streak}連勝！` : '1回も勝てなかった…'} rewards={rewards} />
       ) : (

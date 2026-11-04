@@ -5,7 +5,7 @@ import { getTokenDescription } from './utils/tokenUtils.js';
 import {
   judgeJanken, getJankenRewards, FISH_TABLE, rollFish,
   getTargetResult, getMashRewards, getDiceRewards, DICE_FACES,
-  describeRewards, getLevelValue, isAllPenalty,
+  describeRewards, getLevelValue, isAllPenalty, getJankenFinalRewards, JANKEN_DRAW_BONUS,
 } from './utils/minigames.js';
 import MinigameModal from './MinigameModal.jsx';
 
@@ -48,6 +48,42 @@ describe('じゃんけん', () => {
     expect(getJankenRewards(3, 5).map(r => r.type)).toEqual(['combo_add', 'stars_add', 'levelup']);
     expect(getJankenRewards(5, 5)).toContainEqual({ type: 'mult', value: 3, duration: 3 });
     expect(getJankenRewards(5, 5)).toContainEqual({ type: 'levelup', value: 2 });
+  });
+});
+
+describe('じゃんけん: あいこ3連続（隠し要素）', () => {
+  it('発動回数分のボーナスが最終報酬に追加される', () => {
+    expect(getJankenFinalRewards(1, 5, 0)).toHaveLength(1);
+    expect(getJankenFinalRewards(1, 5, 2)).toHaveLength(1 + JANKEN_DRAW_BONUS.length * 2);
+    // 0連勝でもボーナスは付く（代償＋ボーナス）
+    expect(isAllPenalty(getJankenFinalRewards(0, 5, 1))).toBe(false);
+  });
+
+  it('説明文には書かれていない', () => {
+    expect(findBase('minigame_janken').desc).not.toContain('あいこ3');
+  });
+
+  it('あいこ3連続で発動し、負けた時の報酬に加わる', () => {
+    const calls = [];
+    const state = { type: 'janken', level: 1, values: [5, 7, 10], tokenName: 'じゃんけん', resolved: false };
+    const orig = Math.random;
+    // 相手: グー×3（あいこ3連続）→ パー（負け）
+    const seq = [0, 0, 0, 0.9];
+    Math.random = () => seq.shift() ?? 0;
+    try {
+      render(<MinigameModal state={state} onResolve={(r, info) => calls.push({ r, info })} onClose={() => {}} />);
+      fireEvent.click(screen.getByTestId('janken-rock'));
+      fireEvent.click(screen.getByTestId('janken-rock'));
+      expect(screen.getByTestId('janken-message').textContent).toContain('あいこ');
+      fireEvent.click(screen.getByTestId('janken-rock'));
+      expect(screen.getByTestId('janken-message').textContent).toContain('以心伝心');
+      fireEvent.click(screen.getByTestId('janken-rock'));
+    } finally {
+      Math.random = orig;
+    }
+    expect(calls).toHaveLength(1);
+    expect(calls[0].info.drawBonus).toBe(1);
+    expect(calls[0].r).toEqual(getJankenFinalRewards(0, 5, 1));
   });
 });
 
