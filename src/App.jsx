@@ -17,7 +17,7 @@ import playLog from "./utils/playLogger";
 import { loadTitleState, isTitleSealedActive } from "./utils/titleManager";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { getEnchantDescription } from './constants/enchantments.js';
-import { MAX_COMBO, MAX_TARGET, SAVE_KEY, INITIAL_TOKEN_SLOTS } from './constants/gameConstants.js';
+import { MAX_COMBO, MAX_TARGET, SAVE_KEY, INITIAL_TOKEN_SLOTS, getMaxTokenSlotExpansions } from './constants/gameConstants.js';
 import { formatJapaneseNumber } from './utils/numberUtils.js';
 import { resolveCopiedToken } from './utils/effectiveTokens.js';
 import soundManager from './utils/SoundManager';
@@ -535,7 +535,7 @@ const App = () => {
                                 const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
                                 const t = passiveTokens[globalSlot];
                                 const isLocked = globalSlot >= maxSlots;
-                                const isExpandable = isLocked && globalSlot === maxSlots && (tokenSlotExpansionCount < (isBeyondMode ? 10 : 5));
+                                const isExpandable = isLocked && globalSlot === maxSlots && (tokenSlotExpansionCount < getMaxTokenSlotExpansions(isBeyondMode));
                                 const isSlot1OnlyToken = t && SLOT1_ONLY_EFFECTS.includes(t.effect);
                                 const isSlot1Active = isSlot1OnlyToken && globalSlot === 0;
                                 const isSlot1Inactive = isSlot1OnlyToken && globalSlot !== 0;
@@ -704,7 +704,7 @@ const App = () => {
                                 const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
                                 const t = activeTokens[globalSlot];
                                 const isLocked = globalSlot >= maxSlots;
-                                const isExpandable = isLocked && globalSlot === maxSlots && (tokenSlotExpansionCount < (isBeyondMode ? 10 : 5));
+                                const isExpandable = isLocked && globalSlot === maxSlots && (tokenSlotExpansionCount < getMaxTokenSlotExpansions(isBeyondMode));
                                 const isSkill = t?.type === 'skill';
                                 const charge = t?.charge || 0;
                                 const cost = getEffectiveCost(t, currentRunStats, tokens, activeBuffs);
@@ -1135,6 +1135,7 @@ const App = () => {
                   onPause={() => setShowPause(true)}
                   isEnchantShopUnlocked={isEnchantShopUnlocked}
                   tokenSlotExpansionCount={tokenSlotExpansionCount}
+                  isBeyondMode={isBeyondMode}
                   onAwakeningBuy={buyAwakeningItem}
                   isAwakeningLevelUpBought={isAwakeningLevelUpBought}
                   freeRerolls={freeRerolls}

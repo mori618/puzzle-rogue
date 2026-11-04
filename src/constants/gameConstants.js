@@ -35,10 +35,23 @@ const SHOP_REROLL_GROWTH_FACTOR = 1.3;
 const SYNERGY_WEIGHT_MULTIPLIER = 2;
 
 /** 覚醒ショップでのトークン枠拡張に必要なスター数 */
-const AWAKENING_TOKEN_SLOT_PRICES = [50, 500, 2000, 10000, 50000];
+const AWAKENING_TOKEN_SLOT_PRICES = [50, 500, 2000, 10000, 50000, 200000];
 
 /** 初期トークン枠（スロット）数 */
 const INITIAL_TOKEN_SLOTS = 4;
+
+/** トークン枠の最大拡張回数（通常モード: 4 + 6 = 最大10枠） */
+const MAX_TOKEN_SLOT_EXPANSIONS = 6;
+
+/** トークン枠の最大拡張回数（ビヨンドモード: 4 + 10 = 最大14枠） */
+const BEYOND_MAX_TOKEN_SLOT_EXPANSIONS = 10;
+
+/** モードに応じたトークン枠の最大拡張回数 */
+const getMaxTokenSlotExpansions = (isBeyondMode) => (isBeyondMode ? BEYOND_MAX_TOKEN_SLOT_EXPANSIONS : MAX_TOKEN_SLOT_EXPANSIONS);
+
+/** 拡張回数に応じたトークン枠拡張価格（価格表を超えた分は最終価格を据え置き） */
+const getTokenSlotExpandPriceFor = (expansionCount) =>
+  AWAKENING_TOKEN_SLOT_PRICES[Math.min(expansionCount || 0, AWAKENING_TOKEN_SLOT_PRICES.length - 1)];
 
 /** 時の貯金箱: 貯められる操作時間の上限（ミリ秒） */
 const TIME_BANK_MAX_MS = 20000;
@@ -48,7 +61,7 @@ const TITLE_SWITCH_COST = { base: 5, step: 5 };
 /** 切り替え回数から次回の価格を求める */
 const getTitleSwitchCost = (switchCount = 0) => TITLE_SWITCH_COST.base + TITLE_SWITCH_COST.step * Math.max(0, switchCount);
 
-export { TRIAL_TIME_LIMIT_MS, TRIAL_BOARD_COMBOS, TIME_BANK_MAX_MS, TITLE_SWITCH_COST, getTitleSwitchCost, MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_BY_RARITY, SHOP_REROLL_GROWTH_FACTOR, SYNERGY_WEIGHT_MULTIPLIER, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS };
+export { TRIAL_TIME_LIMIT_MS, TRIAL_BOARD_COMBOS, TIME_BANK_MAX_MS, TITLE_SWITCH_COST, getTitleSwitchCost, MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, TOKEN_PRICE_BY_RARITY, SHOP_REROLL_GROWTH_FACTOR, SYNERGY_WEIGHT_MULTIPLIER, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, MAX_TOKEN_SLOT_EXPANSIONS, BEYOND_MAX_TOKEN_SLOT_EXPANSIONS, getMaxTokenSlotExpansions, getTokenSlotExpandPriceFor };
 
 
 /**

@@ -6,8 +6,9 @@ import { ENCHANTMENTS, getEnchantDescription } from "../constants/enchantments.j
 import {
   SHOP_REROLL_GROWTH_FACTOR,
   SYNERGY_WEIGHT_MULTIPLIER,
-  AWAKENING_TOKEN_SLOT_PRICES,
   INITIAL_TOKEN_SLOTS,
+  getMaxTokenSlotExpansions,
+  getTokenSlotExpandPriceFor,
 } from "../constants/gameConstants.js";
 import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel, isTokenRequirementMet, getDebtCreditLimit, canAffordWithCredit, isProbabilityToken } from "../utils/tokenUtils";
 import { getTokenDynamicPrice as calcTokenDynamicPrice, repriceShopItems } from "../utils/tokenPricing.js";
@@ -516,7 +517,7 @@ export const useShop = ({
 
   /** トークン枠の拡張価格を取得 */
   const getTokenSlotExpandPrice = useCallback(() => {
-    return AWAKENING_TOKEN_SLOT_PRICES[Math.min(tokenSlotExpansionCount, 4)] || 50000;
+    return getTokenSlotExpandPriceFor(tokenSlotExpansionCount);
   }, [tokenSlotExpansionCount]);
 
   /** ショップアイテムの購入 */
@@ -902,7 +903,7 @@ export const useShop = ({
       }
       */
       case 'expand_token_slots': {
-        const beyondSlotMax = isBeyondMode ? 10 : 5;
+        const beyondSlotMax = getMaxTokenSlotExpansions(isBeyondMode);
         if (tokenSlotExpansionCount >= beyondSlotMax) return notify(`これ以上拡張できません (最大${INITIAL_TOKEN_SLOTS + beyondSlotMax}枠)`);
         const price = getTokenSlotExpandPrice();
         if (stars < price) {
