@@ -1,16 +1,16 @@
 // ショップ関連の状態とロジックを管理するカスタムフック
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import playLog, { compactToken } from '../utils/playLogger.js';
 import { ALL_TOKEN_BASES } from "../constants/tokens.js";
 import { ENCHANTMENTS, getEnchantDescription } from "../constants/enchantments.js";
 import {
-  TOKEN_PRICE_TIER,
   SHOP_REROLL_GROWTH_FACTOR,
   SYNERGY_WEIGHT_MULTIPLIER,
   AWAKENING_TOKEN_SLOT_PRICES,
   INITIAL_TOKEN_SLOTS,
 } from "../constants/gameConstants.js";
 import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel, isTokenRequirementMet, getDebtCreditLimit, canAffordWithCredit, isProbabilityToken } from "../utils/tokenUtils";
+import { getTokenDynamicPrice as calcTokenDynamicPrice, repriceShopItems } from "../utils/tokenPricing.js";
 import soundManager from "../utils/SoundManager";
 import { SE_IDS } from "../constants/sounds";
 import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress, recordTitleTrigger, applyTitleRerollPrice, applyTitlePassiveSeal } from "../utils/titleManager";
@@ -101,19 +101,14 @@ export const useShop = ({
   // 借金中（所持スターがマイナス）はリロールできず、サイクルクリアしても商品が補充されない
   const isInDebt = stars < 0;
 
-  /** トークンの動的価格を取得するヘルパー関数 */
-  const getTokenDynamicPrice = useCallback((baseToken, currentTokens) => {
-    // 所持トークンの総数（パッシブ・スキル・呪いすべて）で段階的に上昇
-    const possessionCount = currentTokens.filter(Boolean).length;
-    const { startOwned, stepOwned, multiplierPerStep } = TOKEN_PRICE_TIER;
-    const tierLevel = possessionCount >= startOwned
-      ? Math.floor((possessionCount - startOwned) / stepOwned) + 1
-      : 0;
-    const multiplier = 1 + multiplierPerStep * tierLevel;
+  /** トークンの動的価格を取得するヘルパー関数（同じ★の所持数で上がる。詳細は utils/tokenPricing.js） */
+  const getTokenDynamicPrice = useCallback((baseToken, currentTokens) => calcTokenDynamicPrice(baseToken, currentTokens), []);
 
-    const dynamicPrice = Math.floor(baseToken.price * multiplier);
-    return Math.max(1, dynamicPrice);
-  }, []);
+  // 所持トークンが変わったら（購入・売却・生成など）、並んでいる商品の価格を付け直す。
+  // 同じショップで★3を続けて買うと、2個目以降が値上がりする。
+  useEffect(() => {
+    setShopItems(prev => repriceShopItems(prev, tokens));
+  }, [tokens]);
 
   /** レベルアップ成功判定（炎・雷レベルアップ失敗の呪い効果） */
   const checkLevelUpSuccess = useCallback((token) => {
@@ -297,6 +292,8 @@ export const useShop = ({
 
       const baseItem = { ...selectedBase, level: 1, charge: selectedBase.cost || 0 };
       baseItem.price = getTokenDynamicPrice(selectedBase, tokens);
+      // 所持トークンが変わったときに価格を付け直すための元値
+      baseItem.priceBase = selectedBase.price;
       baseItem.desc = getTokenDescription(baseItem, 1, currentRunStats, tokens, activeBuffs);
       // 二つ名「先達の」: 装備中は Lv2 として効果文を表示する（価格は変えない）
       return applyNewTokenLevel(baseItem, { currentRunStats, tokens, activeBuffs });
@@ -408,6 +405,13 @@ export const useShop = ({
         }
       });
     }
+
+    // 価格の付け直し（repriceShopItems）で同じ補正をかけるために記録しておく
+    finalItems.forEach(item => {
+      if (item && item.priceBase !== undefined) {
+        item.priceMods = { sale: !!item.isSale, greed: hasGreed, titleMult: titlePriceMult };
+      }
+    });
 
     setShopItems(finalItems);
     playLog.event('shopItems', { items: finalItems.map(it => ({ ...compactToken(it), itype: it.type, price: it.price, sale: it.isSale ? 1 : undefined })) });

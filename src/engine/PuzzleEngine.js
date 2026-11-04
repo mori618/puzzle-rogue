@@ -1424,18 +1424,17 @@ class PuzzleEngine {
     }
   }
 
-  makeAllOrbsStarPlusRepeat() {
+  /** 全ドロップをスター＋プラスにする（試練の合格時。リピートは付けない） */
+  makeAllOrbsStarPlus() {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
         if (orb) {
           orb.isStar = true;
           orb.isEnhanced = true;
-          orb.isRepeat = true;
           if (orb.el) {
             this.addStarMark(orb.el);
             this.addPlusMark(orb.el);
-            this.addRepeatMark(orb.el);
           }
         }
       }

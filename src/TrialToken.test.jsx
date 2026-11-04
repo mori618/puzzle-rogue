@@ -87,7 +87,8 @@ describe('エンジン: 10コンボ盤面', () => {
   });
 
   it('特殊ドロップの印が外れる', () => {
-    engine.makeAllOrbsStarPlusRepeat();
+    engine.makeAllOrbsStarPlus();
+    engine.state[0][0].isRepeat = true;
     engine.state[0][0].isBomb = true;
     engine.changeBoardToComboCount(10);
     engine.state.forEach(row => row.forEach(orb => {

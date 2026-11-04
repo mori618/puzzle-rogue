@@ -378,7 +378,7 @@ const ALL_TOKEN_BASES = [
   /* エンチャント廃止に伴いコメントアウト
   { id: "seal_of_power", name: "力の封印", icon: "dangerous", type: "skill", cost: 6, costLevels: true, action: "seal_of_power", params: { multiplier: 7, duration: 1 }, rarity: 3, price: 26, desc: "1手番、全エンチャント効果が無効になるが、コンボ倍率が7倍になる。消費E:{cost}", attributes: [] },
   */
-  { id: "trial", name: "試練", icon: "offline_bolt", type: "skill", cost: 6, action: "trial_stage", params: { duration: 1 }, rarity: 3, price: 26, desc: "1手番プラス。盤面を10コンボ盤面に変え、このターンは操作時間が5秒に固定。特殊ドロップ・トークン効果・発動中のバフが止まる（バフの残り手番は減らない）。このターンに8コンボ以上すると、ターン終了時に全ドロップがスタープラスリピート化、1ターン全てのトークン効果が2度発動＆確率系トークンの確率が+100%。消費E:{cost}", attributes: [] },
+  { id: "trial", name: "試練", icon: "offline_bolt", type: "skill", cost: 6, action: "trial_stage", params: { duration: 1 }, rarity: 3, price: 26, desc: "1手番プラス。盤面を10コンボ盤面に変え、このターンは操作時間が5秒に固定。特殊ドロップ・トークン効果・発動中のバフが止まる（バフの残り手番は減らない）。このターンに8コンボ以上すると、ターン終了時に全ドロップがスタープラス化、1ターン全てのトークン効果が2度発動＆確率系トークンの確率が+100%。消費E:{cost}", attributes: [] },
   { id: "gen_token_s1", name: "一星の招来", icon: "auto_awesome", type: "skill", cost: 3, action: "spawn_token_s1", rarity: 1, price: 14, desc: "自身以外のランダムな★1トークンを1つ生成する。消費E:{cost}", attributes: [] },
   { id: "gen_token_s2", name: "二星の招来", icon: "auto_awesome", type: "skill", cost: 5, action: "spawn_token_s2", rarity: 2, price: 20, desc: "自身以外のランダムな★2トークンを1つ生成する。消費E:{cost}", attributes: [] },
   { id: "gen_token_s3", name: "三星の代償", icon: "auto_awesome", type: "skill", cost: 6, action: "spawn_token_s3", rarity: 3, price: 31, desc: "ランダムな★3トークンを1つ生成する。30%の確率で呪いトークンが生成される。消費E:{cost}", attributes: [] },

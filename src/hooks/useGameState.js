@@ -4110,9 +4110,9 @@ export const useGameState = () => {
     // 試練の合格判定
     if (isTrialActive) {
       if (effectiveCombo >= 8) {
-        notify("試練合格！全ドロップがスタープラスリピート化し、1ターン効果2倍＆確率+100%！");
+        notify("試練合格！全ドロップがスタープラス化し、1ターン効果2倍＆確率+100%！");
         if (engineRef.current) {
-          engineRef.current.makeAllOrbsStarPlusRepeat();
+          engineRef.current.makeAllOrbsStarPlus();
         }
         // trial_success バフを追加。次の減衰処理で duration 1 になるように 2 で追加
         setActiveBuffs(prev => [
