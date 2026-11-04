@@ -11,10 +11,10 @@ import StartOptionScreen from "../StartOptionScreen";
 import TokenEncyclopediaScreen from "../TokenEncyclopediaScreen";
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { ENCHANT_DESCRIPTIONS, ENCHANTMENTS } from '../constants/enchantments.js';
-import { MAX_COMBO, MAX_TARGET, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost, TIME_BANK_MAX_MS } from '../constants/gameConstants.js';
+import { MAX_COMBO, MAX_TARGET, TRIAL_TIME_LIMIT_MS, TRIAL_BOARD_COMBOS, SAVE_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost, TIME_BANK_MAX_MS } from '../constants/gameConstants.js';
 import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, applyNewTokenLevel, isProbabilityToken, isRabbitToken, countRabbitTokens, RABBIT_TOKEN_IDS } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
-import { buildEffectiveTokens, resolveCopiedToken } from '../utils/effectiveTokens.js';
+import { buildEffectiveTokens, resolveCopiedToken, getBuffsInEffect, decrementBuffDurations, isTrialStageActive } from '../utils/effectiveTokens.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
 import soundManager from '../utils/SoundManager';
@@ -83,6 +83,8 @@ export const useGameState = () => {
   /* const [maxEnergy] = useState(10); // REMOVED: Global Energy */
 
   const [activeBuffs, setActiveBuffs] = useState([]);
+  // 効果を発揮しているバフ（試練のターン中は試練以外のバフを止める）
+  const buffsInEffect = useMemo(() => getBuffsInEffect(activeBuffs), [activeBuffs]);
   const [skippedTurnsBonus, setSkippedTurnsBonus] = useState(0);
   // スキップ直前の手番（HUD表示用。スキップ後はこの値を表示し続ける）
   const [turnBeforeSkip, setTurnBeforeSkip] = useState(null);
@@ -737,7 +739,7 @@ export const useGameState = () => {
     const weights = {};
     const ALL_COLORS = ["fire", "water", "wood", "light", "dark", "heart"];
     ALL_COLORS.forEach((c) => (weights[c] = 1));
-    const isEnchantDisabled = effectTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
+    const isEnchantDisabled = effectTokens.some(tok => tok?.effect === "contract_of_void") || buffsInEffect.some(b => b?.action === "seal_of_power");
 
     effectTokens.forEach((t) => {
       if (t?.effect === "picky_eater" && t.params?.excludeColors) {
@@ -755,7 +757,7 @@ export const useGameState = () => {
       }
     });
 
-    activeBuffs.forEach((buff) => {
+    buffsInEffect.forEach((buff) => {
       if (buff.action === "skyfall") {
         buff.params.colors.forEach((c) => {
           weights[c] *= buff.params.weight;
@@ -775,9 +777,10 @@ export const useGameState = () => {
     engineRef.current.setSpawnWeights(weights);
 
     // 錬金術パッシブと消去禁止設定の同期
-    const isCursePassiveNull = (activeBuffs.some(b => b?.action === "curse_passive_null") && !hasSaintToken) || isTitlePassiveSealed;
+    const isCursePassiveNull = (buffsInEffect.some(b => b?.action === "curse_passive_null") && !hasSaintToken) || isTitlePassiveSealed;
     const alchPassives = {};
-    if (!isCursePassiveNull) {
+    // 試練のターン中はパッシブが発動しないので、錬金術も止める
+    if (!isCursePassiveNull && !isTrialStageActive(activeBuffs)) {
       effectTokens.forEach(t => {
         if (t && t.effect === 'alchemy' && t.params?.color) {
           alchPassives[t.params.color] = Math.max(alchPassives[t.params.color] || 0, t.level || 1);
@@ -787,17 +790,19 @@ export const useGameState = () => {
     engineRef.current.setAlchemyPassives(alchPassives);
 
     const noEraseColors = [];
-    activeBuffs.forEach(b => {
+    buffsInEffect.forEach(b => {
       if (b.action === "no_match_erase" && b.params?.color) {
         noEraseColors.push(b.params.color);
       }
     });
     engineRef.current.setNoEraseColors(noEraseColors);
-  }, [activeBuffs, tokens, effectTokens, isTitlePassiveSealed, hasSaintToken, titleEffects, isPracticeMode]);
+  }, [activeBuffs, buffsInEffect, tokens, effectTokens, isTitlePassiveSealed, hasSaintToken, titleEffects, isPracticeMode]);
 
   const getTimeLimit = useCallback(() => {
     if (isPracticeMode) return practiceTimeLimit;
-    const isEnchantDisabled = effectTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
+    // 試練のターンは操作時間を5秒に固定する（トークン・バフ・二つ名の補正を受けない）
+    if (isTrialStageActive(activeBuffs)) return TRIAL_TIME_LIMIT_MS;
+    const isEnchantDisabled = effectTokens.some(tok => tok?.effect === "contract_of_void") || buffsInEffect.some(b => b?.action === "seal_of_power");
     const hasDesperateStance = effectTokens.some(t => t?.effect === "desperate_stance");
     // 暴君の号令 (tyrant_decree): 1番目スロットに装備時、操作時間が常に2秒(2000ms)になる
     const isTyrantDecreeActive = effectTokens[0] && effectTokens[0].effect === "tyrant_decree";
@@ -807,7 +812,7 @@ export const useGameState = () => {
     if (hasDesperateStance) {
       return 4000;
     }
-    const curseTimeFixBuff = activeBuffs.find(b => b?.action === "curse_op_time_fix");
+    const curseTimeFixBuff = buffsInEffect.find(b => b?.action === "curse_op_time_fix");
     if (curseTimeFixBuff) {
       return curseTimeFixBuff.params?.timeMs ?? 1000;
     }
@@ -838,7 +843,7 @@ export const useGameState = () => {
         if (count > 0) base += (v * 1000) * count;
       }
     });
-    activeBuffs.forEach(b => {
+    buffsInEffect.forEach(b => {
       if (b.action === "op_time_boost") {
         base += (b.params?.extraTime || 0);
       }
@@ -853,7 +858,7 @@ export const useGameState = () => {
 
     base *= nextTurnTimeMultiplier;
     return Math.max(1000, base);
-  }, [tokens, effectTokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs, isPracticeMode, practiceTimeLimit, hasSaintToken, titleEffects]);
+  }, [tokens, effectTokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs, buffsInEffect, isPracticeMode, practiceTimeLimit, hasSaintToken, titleEffects]);
 
   useEffect(() => {
     if (!boardRef.current || !timerRef.current) return;
@@ -918,7 +923,7 @@ export const useGameState = () => {
         engineRef.current.updateTimerDisplay(limit);
       }
 
-      const isTrialActive = activeBuffs.some(b => b?.action === "trial_stage_active");
+      const isTrialActive = buffsInEffect.some(b => b?.action === "trial_stage_active");
       // 二つ名「苦行者」: この手番に2回発動するパッシブ
       const titleDoubledPassiveIds = getTitleDoubledPassiveIds(effectTokens);
       const effectiveTokens = buildEffectiveTokens({ effectTokens, tokens, activeBuffs, titleDoubledPassiveIds });
@@ -933,7 +938,7 @@ export const useGameState = () => {
       engineRef.current.fourMatchRestriction = effectiveTokens.some(t => t?.effect === "four_match_restriction");
       engineRef.current.rowMatchRestriction = effectiveTokens.some(t => t?.effect === "row_match_restriction");
 
-      const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power") || isTrialActive;
+      const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || buffsInEffect.some(b => b?.action === "seal_of_power") || isTrialActive;
 
       const masteryToken = effectiveTokens.find(t => t?.effect === "additive_mastery");
       const hasMastery = !!masteryToken;
@@ -1069,7 +1074,7 @@ export const useGameState = () => {
         });
       });
 
-      activeBuffs.forEach(buff => {
+      buffsInEffect.forEach(buff => {
         if (buff.action === "color_combo_add_residual" && buff.params?.color) {
           const color = buff.params.color;
           const val = buff.params.value;
@@ -1205,12 +1210,12 @@ export const useGameState = () => {
       engineRef.current.hasOneStrokeSeal = effectiveTokens.some(t => t?.effect === 'one_stroke_seal');
 
       // 冷静の同期
-      const calmActive = activeBuffs.some(b => b?.action === "calm");
+      const calmActive = buffsInEffect.some(b => b?.action === "calm");
       engineRef.current.setCalmActive(calmActive);
 
       // 指・魔指・手の同期
       let fingerConfig = null;
-      const activeFingerBuff = activeBuffs.find(b => b?.action === "finger_transform_active");
+      const activeFingerBuff = buffsInEffect.find(b => b?.action === "finger_transform_active");
       if (activeFingerBuff && activeFingerBuff.params) {
         fingerConfig = {
           color: activeFingerBuff.params.color,
@@ -1584,7 +1589,7 @@ export const useGameState = () => {
       });
     }
 
-    const isTrialActive = activeBuffs.some(b => b?.action === "trial_stage_active");
+    const isTrialActive = buffsInEffect.some(b => b?.action === "trial_stage_active");
 
     // 二つ名「苦行者」: この手番に2回発動するパッシブ
     const titleDoubledPassiveIds = getTitleDoubledPassiveIds(effectTokens);
@@ -1601,8 +1606,8 @@ export const useGameState = () => {
     const hasMastery = !!masteryToken;
     const masteryVal = hasMastery ? masteryToken.values[(masteryToken.level || 1) - 1] : 1;
 
-    const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power") || isTrialActive;
-    const isCursePassiveNull = (activeBuffs.some(b => b?.action === "curse_passive_null") && !hasSaintToken) || isTitlePassiveSealed;
+    const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || buffsInEffect.some(b => b?.action === "seal_of_power") || isTrialActive;
+    const isCursePassiveNull = (buffsInEffect.some(b => b?.action === "curse_passive_null") && !hasSaintToken) || isTitlePassiveSealed;
     const animationMode = settings?.comboAnimationMode || 'instant';
     const isInstant = animationMode === 'instant';
 
@@ -2886,7 +2891,7 @@ export const useGameState = () => {
 
     setNextTurnTimeMultiplier(timeMultiplier);
 
-    activeBuffs.forEach(buff => {
+    buffsInEffect.forEach(buff => {
       if (buff.action === "skill_combo_bonus") {
         // 消滅スキル・スキルLv3ボーナスによる基礎コンボ加算（バフとして登録される）
         const val = buff.params?.value || 0;
@@ -4064,11 +4069,11 @@ export const useGameState = () => {
 
     if (!skipTurnProgressRef.current) {
       setActiveBuffs((prev) => {
-        let nextBuffs = prev
-          .map((b) => ({ ...b, duration: b.duration - 1 }))
-          .filter((b) => b.duration > 0);
+        // 試練のターン中は試練以外のバフの残り手番を減らさない
+        let nextBuffs = decrementBuffDurations(prev);
 
-        if (hasUsedActiveSkillThisTurn) {
+        // 残滓系のバフも試練のターン中は効果を止める
+        if (hasUsedActiveSkillThisTurn && !isTrialStageActive(prev)) {
           prev.forEach(b => {
             // 風・雷 (10個以上消去)
             if (b.action === "residual_wind_active") {
@@ -4244,8 +4249,10 @@ export const useGameState = () => {
       const hasTitleNoSkyfall = !isPracticeMode && hasTitleEffect('no_skyfall', {}, titleEffects);
       engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall || hasTitleNoSkyfall;
       // 重力逆転バフや烈風の重力バフがターン終了で失效した場合は重力方向をリセット
-      const gravityOverdriveBuff = activeBuffs.find(b => b.action === 'gravity_overdrive' && b.duration > 1);
-      const galeGravityBuff = activeBuffs.find(b => b.action === 'gale_gravity' && b.duration > 1);
+      // 試練のターン中は残り手番が減らないので、次のターンも残るかどうかの判定を変える
+      const survivesNextTurn = (b) => (isTrialActive ? b.duration > 0 : b.duration > 1);
+      const gravityOverdriveBuff = activeBuffs.find(b => b.action === 'gravity_overdrive' && survivesNextTurn(b));
+      const galeGravityBuff = activeBuffs.find(b => b.action === 'gale_gravity' && survivesNextTurn(b));
       if (galeGravityBuff) {
         engineRef.current.gravityDirection = galeGravityBuff.params?.direction || 'right';
       } else if (gravityOverdriveBuff) {
@@ -4256,8 +4263,8 @@ export const useGameState = () => {
 
       // --- ターン終了時パッシブによる盤面変化効果の処理 ---
       let boardChanged = false;
-      const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
-      const isCursePassiveNull = (activeBuffs.some(b => b?.action === "curse_passive_null") && !hasSaintToken) || isTitlePassiveSealed;
+      const isEnchantDisabled = effectiveTokens.some(tok => tok?.effect === "contract_of_void") || buffsInEffect.some(b => b?.action === "seal_of_power");
+      const isCursePassiveNull = (buffsInEffect.some(b => b?.action === "curse_passive_null") && !hasSaintToken) || isTitlePassiveSealed;
 
       // 確率系トークンの確率計算用ヘルパー
       const getModifiedProbability = (baseProb, tokenInstanceId) => {
@@ -4271,15 +4278,15 @@ export const useGameState = () => {
         });
         let result = baseProb + addedProb;
         // バフによる倍増
-        if (activeBuffs.some(b => b.action === "double_probability")) {
+        if (buffsInEffect.some(b => b.action === "double_probability")) {
           result *= 2;
         }
         // 試練合格バフによる確率+100%
-        if (activeBuffs.some(b => b.action === "trial_success")) {
+        if (buffsInEffect.some(b => b.action === "trial_success")) {
           result += 100;
         }
         // 即時発動バフ
-        if (activeBuffs.some(b => b.action === "force_trigger_probabilities")) {
+        if (buffsInEffect.some(b => b.action === "force_trigger_probabilities")) {
           return 100;
         }
         return result;
@@ -4344,7 +4351,7 @@ export const useGameState = () => {
         });
 
         // 2b. アクティブバフによる確率変換 (turn_end_convert)
-        activeBuffs.forEach(buff => {
+        buffsInEffect.forEach(buff => {
           if (!buff || buff.action !== 'turn_end_convert') return;
           const fromColor = buff.params?.from;
           const toColor = buff.params?.to;
@@ -4368,7 +4375,7 @@ export const useGameState = () => {
         });
 
         // 2c. アクティブバフによる多色確率変換 (turn_end_convert_multi)
-        activeBuffs.forEach(buff => {
+        buffsInEffect.forEach(buff => {
           if (!buff || buff.action !== 'turn_end_convert_multi') return;
           const fromTypes = buff.params?.types;
           const toColor = buff.params?.to;
@@ -4486,7 +4493,7 @@ export const useGameState = () => {
         });
 
         // 4b. アクティブバフによるターン終了後ランダム生成 (turn_end_spawn)
-        activeBuffs.forEach(buff => {
+        buffsInEffect.forEach(buff => {
           if (!buff || buff.action !== 'turn_end_spawn') return;
           const color = buff.params?.color || 'heart';
           const count = buff.params?.count || 5;
@@ -5796,6 +5803,11 @@ export const useGameState = () => {
       if (curseTokens.length === 0) return notify("消滅させる呪いトークンがありません");
       if (sealTargets.length === 0) return notify("呪印を刻めるパッシブトークンがありません");
     }
+    // 試練のターン中の制限（重ねがけ不可、操作時間を伸ばすスキル不可）
+    if (isTrialStageActive(activeBuffs)) {
+      if (token.action === "trial_stage") return notify("すでに試練のターンです");
+      if (token.action === "chronos_stop") return notify("試練のターン中は使用できません");
+    }
     if (token.action === "time_bank_release" && !((currentRunStats.timeBankMs || 0) > 0)) {
       return notify("「時の貯金箱」に時間が貯まっていません");
     }
@@ -6206,8 +6218,17 @@ export const useGameState = () => {
         ]);
         if (engine) {
           engine.noSpecialEffects = true;
+          // 盤面を10コンボ盤面に変える
+          engine.changeBoardToComboCount(TRIAL_BOARD_COMBOS);
+          // 発動中のバフは止まるので、重力の向きと時間停止も元に戻す
+          engine.gravityDirection = 'down';
+          if (engine.chronosStopActive) {
+            engine.chronosStopActive = false;
+            clearTimeout(engine.chronosTimerId);
+            engine.chronosTimerId = null;
+          }
         }
-        notify(`${token.name} 発動！ (試練のターン)`);
+        notify(`${token.name} 発動！ (試練のターン: 10コンボ盤面・操作5秒)`);
         break;
       }
       case "calm": {
@@ -6243,7 +6264,8 @@ export const useGameState = () => {
       }
       case 'gravity_overdrive': {
         // 重力逆転: エンジンの重力方向を上に切り替え、コンボ倍率×2のバフを追加
-        if (engine) {
+        // 試練のターン中はバフが止まるので、重力は次のターンから効く
+        if (engine && !isTrialStageActive(activeBuffs)) {
           engine.gravityDirection = 'up';
         }
         const finalDuration = (token.params?.duration || 1) + extraDuration;
@@ -6269,7 +6291,8 @@ export const useGameState = () => {
         if (lv >= 2) {
           dir = Math.random() < 0.5 ? 'left' : 'right';
         }
-        if (engine) {
+        // 試練のターン中はバフが止まるので、重力は次のターンから効く
+        if (engine && !isTrialStageActive(activeBuffs)) {
           engine.gravityDirection = dir;
         }
         const finalDuration = (token.params?.duration || 1) + extraDuration;
