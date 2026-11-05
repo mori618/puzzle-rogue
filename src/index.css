@@ -1395,7 +1395,8 @@ body {
 
 /* パズル盤面セクションのセーフエリア制御 */
 /* 盤面セクションは「盤面の高さ＋余白」までしか伸ばさず（App.jsx の maxHeight）、
-   余った縦スペースはタイマーの上（mt-auto）に回して盤面を画面下側に寄せる */
+   余った縦スペースは HUD の各ブロックの間（.hud-flex-spacer）に均等に配分する */
+.hud-flex-spacer { flex: 1 1 0; min-height: 0; }
 .puzzle-grid-section {
   --grid-pb: calc(20px + env(safe-area-inset-bottom, 0px));
   padding-bottom: var(--grid-pb);

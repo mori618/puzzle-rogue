@@ -333,6 +333,7 @@ const App = () => {
             )}
           </header>
 
+          <div className="hud-flex-spacer" aria-hidden="true"></div>
           {/* Main Stats Area */}
           {isPracticeMode ? (
             <section className="relative z-10 px-4 py-1.5 flex-none w-full animate-fade-in h-[9dvh] min-h-[64px] max-h-[80px] flex flex-col justify-center">
@@ -439,6 +440,7 @@ const App = () => {
             </section>
           )}
 
+          <div className="hud-flex-spacer" aria-hidden="true"></div>
           {/* Token/Skill Belt */}
           {(() => {
             const TOKENS_PER_PAGE = 5;
@@ -776,8 +778,7 @@ const App = () => {
           {/* 1. パズルグリッド・メイン盤面エリア                             */}
           {/* ======================================================== */}
           {/* 操作時間ゲージ（盤面との境目に重ねる。秒数は左） */}
-          {/* 余った縦スペースを吸収して盤面を下に寄せるスペーサー */}
-          <div className="flex-1 min-h-0" aria-hidden="true"></div>
+          <div className="hud-flex-spacer" aria-hidden="true"></div>
           <div className="hud-timer-edge" aria-label="残り操作時間">
             <span ref={timerTextRef} className="hud-timer-text"></span>
             <div className="hud-timer-track">
