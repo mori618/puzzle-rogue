@@ -1037,6 +1037,18 @@ class PuzzleEngine {
     }
   }
 
+  /** ドラッグ中に window へ登録したイベントリスナーをすべて解除する */
+  _removeDragListeners() {
+    window.removeEventListener("pointermove", this.onMove);
+    window.removeEventListener("pointerup", this.onEnd);
+    window.removeEventListener("pointercancel", this.onEnd);
+    window.removeEventListener("mousemove", this.onMove);
+    window.removeEventListener("mouseup", this.onEnd);
+    window.removeEventListener("touchmove", this.onMove);
+    window.removeEventListener("touchend", this.onEnd);
+    window.removeEventListener("touchcancel", this.onEnd);
+  }
+
   onEnd(e) {
     if (e) {
       const pid = e && typeof e.pointerId !== 'undefined' ? e.pointerId : 'fallback-id';
@@ -1097,14 +1109,7 @@ class PuzzleEngine {
     this.dragging = null;
 
     // 全てのイベントハンドラをクリーンアップ
-    window.removeEventListener("pointermove", this.onMove);
-    window.removeEventListener("pointerup", this.onEnd);
-    window.removeEventListener("pointercancel", this.onEnd);
-    window.removeEventListener("mousemove", this.onMove);
-    window.removeEventListener("mouseup", this.onEnd);
-    window.removeEventListener("touchmove", this.onMove);
-    window.removeEventListener("touchend", this.onEnd);
-    window.removeEventListener("touchcancel", this.onEnd);
+    this._removeDragListeners();
 
     // 一筆書きインジケーターのクリーンアップ
     this._clearOneStrokeIndicators();
@@ -1742,10 +1747,12 @@ class PuzzleEngine {
       this.dragging.el.style.zIndex = "";
       this.dragging = null;
     }
-    window.removeEventListener("mousemove", this.onMove);
-    window.removeEventListener("mouseup", this.onEnd);
-    window.removeEventListener("touchmove", this.onMove);
-    window.removeEventListener("touchend", this.onEnd);
+    // ドラッグ中に終了した場合も操作中ポインターを解放する
+    // （解放しないと onEnd が dragging=null で早期 return し、以降の操作がすべて弾かれる）
+    this.activePointerId = null;
+    this._lastMovePoint = null;
+    this._boardRect = null;
+    this._removeDragListeners();
     this.render();
     this.process();
   }
@@ -3520,9 +3527,7 @@ class PuzzleEngine {
     if (this.resizeListener) {
       window.removeEventListener('resize', this.resizeListener);
     }
-    window.removeEventListener("pointermove", this.onMove);
-    window.removeEventListener("pointerup", this.onEnd);
-    window.removeEventListener("pointercancel", this.onEnd);
+    this._removeDragListeners();
     window.removeEventListener('mousedown', this.onPointerDownForSpeed);
     window.removeEventListener('mouseup', this.onPointerUpForSpeed);
     window.removeEventListener('touchstart', this.onPointerDownForSpeed);

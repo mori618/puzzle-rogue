@@ -16,7 +16,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # lint・テスト・ビルドが通った場合のみデプロイする
+  check:
+    uses: ./.github/workflows/ci.yml
+
   build-and-deploy:
+    needs: check
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

@@ -2,7 +2,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import playLog, { compactToken } from '../utils/playLogger.js';
 import { ALL_TOKEN_BASES } from "../constants/tokens.js";
-import { ENCHANTMENTS, getEnchantDescription } from "../constants/enchantments.js";
+import { ENCHANTMENTS } from "../constants/enchantments.js";
 import {
   SHOP_REROLL_GROWTH_FACTOR,
   SYNERGY_WEIGHT_MULTIPLIER,
@@ -50,7 +50,6 @@ export const useShop = ({
   setStars,
   activeBuffs,
   isBeyondMode,
-  totalPurchases,
   setTotalPurchases,
   setTotalStarsSpent,
   setStats,
@@ -63,8 +62,6 @@ export const useShop = ({
   getStatByCondition,
   setSelectedTokenDetail,
   setIsAwakeningLevelUpBought,
-  isEnchantShopUnlocked,
-  setIsEnchantShopUnlocked,
   setSandsOfTimeSeconds,
   hasSaintToken,
 }) => {
@@ -127,21 +124,15 @@ export const useShop = ({
 
   /** ショップアイテムの生成 */
   const generateShop = useCallback((overrideCycleCount = null) => {
-    const isLuxury = totalPurchases >= 6;
     // 二つ名「詠唱者」でパッシブを封印しているときは、パッシブのショップ効果も発動しない
     const shopEffectTokens = applyTitlePassiveSeal(tokens, getActiveTitleEffects());
 
     let saleBonus = 0;
-    let enchantGrantBonus = 0;
     let shopExpandBonus = 0;
     shopEffectTokens.forEach((t) => {
       if (t?.id === "bargain") {
         const value = t.values[(t.level || 1) - 1];
         saleBonus += value;
-      }
-      if (t?.effect === "enchant_grant_boost") {
-        const value = t.values[(t.level || 1) - 1];
-        enchantGrantBonus += value;
       }
       if (t?.effect === "shop_expand") {
         const value = t.values[(t.level || 1) - 1];
@@ -155,8 +146,6 @@ export const useShop = ({
 
     const basePassiveCount = 4 + shopExpandBonus + titleShopSlots;
     const baseActiveCount = 4 + shopExpandBonus + titleShopSlots;
-    const enchantCount = 3;
-    const extraEnchantCount = enchantGrantBonus + (isLuxury ? 1 : 0);
     const saleCount = 1 + saleBonus + titleSaleSlots;
 
     setIsAwakeningLevelUpBought(false);
@@ -417,7 +406,7 @@ export const useShop = ({
     setShopItems(finalItems);
     playLog.event('shopItems', { items: finalItems.map(it => ({ ...compactToken(it), itype: it.type, price: it.price, sale: it.isSale ? 1 : undefined })) });
     return finalItems;
-  }, [tokens, totalPurchases, currentRunStats, activeBuffs, getTokenDynamicPrice, setIsAwakeningLevelUpBought, hasSaintToken]);
+  }, [tokens, currentRunStats, activeBuffs, getTokenDynamicPrice, setIsAwakeningLevelUpBought, hasSaintToken]);
 
   /** 呪いの解除 */
   const purifyCurse = useCallback((token) => {
@@ -922,7 +911,7 @@ export const useShop = ({
       default:
         break;
     }
-  }, [stars, tokens, isEnchantShopUnlocked, setIsEnchantShopUnlocked, isBeyondMode, tokenSlotExpansionCount, getTokenSlotExpandPrice, setTokens, setStars, setTotalPurchases, setTotalStarsSpent, setStats, currentRunStats, setCurrentRunStats, setIsAwakeningLevelUpBought, notify, spawnParticles, addTokenToast, triggerLevelUp, activeBuffs, checkLevelUpSuccess]);
+  }, [stars, tokens, isBeyondMode, tokenSlotExpansionCount, getTokenSlotExpandPrice, setTokens, setStars, setTotalPurchases, setTotalStarsSpent, setStats, currentRunStats, setCurrentRunStats, setIsAwakeningLevelUpBought, notify, spawnParticles, addTokenToast, triggerLevelUp, activeBuffs, checkLevelUpSuccess]);
 
   /** 重複トークン購入時の選択処理 (強化 or 2つ目所持) */
   const handleChoice = useCallback((choice) => {
