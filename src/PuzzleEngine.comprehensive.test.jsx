@@ -165,6 +165,7 @@ describe('0. トークン定義の完全性チェック', () => {
     const KNOWN_ACTIONS = [
       'board_balance', 'board_change',
       'gamble', 'rabbit_combo', 'wolf_hunt',
+      'minigame_janken', 'minigame_fishing', 'minigame_target', 'minigame_mash', 'minigame_dice',
       'buff_cross_mult', 'buff_l_shape_mult', 'buff_len4_mult',
       'buff_row_mult', 'buff_square_judgment', 'buff_square_mult',
       'calm', 'charge_boost', 'col_fix',
@@ -1689,7 +1690,7 @@ describe('31. パッシブトークンの全効果タイプ存在確認', () => 
       'shape_double_cross_mult', 'shape_double_l_mult', 'shape_quad_len4_mult', 'shape_triple_row_mult',
       'shape_variety_mult', 'shop_attribute_weight', 'shop_expand',
       'shop_rarity_weight', 'skip_bonus_multiplier', 'sky_god',
-      'skyfall_bonus', 'speed_of_light_thought',
+      'skyfall_bonus', 'speed_of_light_thought', 'move_time_rhythm',
       'square_count', 'square_convert_left_bottom', 'square_repeat', 'square_combo_add',
       'star_chance_color', 'star_count_combo_add', 'star_count_combo_mult',
       'star_count_time_ext', 'star_cross_boost', 'star_earn_boost',

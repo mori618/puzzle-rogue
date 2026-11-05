@@ -1082,10 +1082,12 @@ class PuzzleEngine {
 
     // --- 操作時間の計測と記録 ---
     this.lastTurnRemainingTimeMs = 0;
+    this.lastTurnElapsedMs = 0;
     if (this.moveStart) {
       const elapsed = Date.now() - this.moveStart;
       this.totalMoveTimeRef.current += elapsed;
       this.lastTurnRemainingTimeMs = Math.max(0, this.timeLimit - elapsed);
+      this.lastTurnElapsedMs = Math.min(this.timeLimit, Math.max(0, elapsed));
     }
 
     const target = this.dragging;
@@ -2504,7 +2506,7 @@ class PuzzleEngine {
         erasedByRepeatTotal,
         erasedByStarTotal,
         isPerfect || allInitialOrbsCleared,
-        { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased, enhancedSelfErased, erasedRowInfos, erasedColumnInfos, moveDropPath: Array.from(this.moveDropPath || []), moveSteps: this.currentMoveSteps || 0, cursedComboRemoved: this.cursedComboRemoved || 0 },
+        { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased, enhancedSelfErased, erasedRowInfos, erasedColumnInfos, moveDropPath: Array.from(this.moveDropPath || []), moveSteps: this.currentMoveSteps || 0, moveElapsedMs: this.lastTurnElapsedMs || 0, cursedComboRemoved: this.cursedComboRemoved || 0 },
         detailedShapes,
         this.lastTurnRemainingTimeMs || 0
       );
@@ -2512,6 +2514,7 @@ class PuzzleEngine {
 
     this.currentMoveSteps = 0;
     this.moveDropPath = new Set();
+    this.lastTurnElapsedMs = 0;
 
     // ターン終了したため、盤面上のすべてのムーブドロップのカウントとステップをリセットする
     this.state.forEach(row => {

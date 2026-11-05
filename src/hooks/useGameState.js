@@ -18,8 +18,10 @@ import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, 
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { buildEffectiveTokens, resolveCopiedToken, getBuffsInEffect, decrementBuffDurations, isTrialStageActive } from '../utils/effectiveTokens.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
+import { getMoveTimeRhythmEffect } from '../utils/moveTimeRhythm.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
 import { safeSetItem, safeRemoveItem } from '../utils/safeStorage.js';
+import { describeRewards, isPenaltyReward } from '../utils/minigames.js';
 import soundManager from '../utils/SoundManager';
 import { useGameSettings } from './useGameSettings';
 import { usePuzzleBoard } from './usePuzzleBoard';
@@ -101,6 +103,8 @@ export const useGameState = () => {
   const [hasUsedActiveSkillThisTurn, setHasUsedActiveSkillThisTurn] = useState(false);
   // ギャンブルスキルの宝箱選択状態（null のとき非表示）
   const [gambleState, setGambleState] = useState(null);
+  // ミニゲーム系スキル（じゃんけん/釣り/的当て/連打/サイコロ）の状態（null のとき非表示）
+  const [minigameState, setMinigameState] = useState(null);
   // スキル使用によって消去されたドロップ数をターン終了時にマージするための一時的な状態
   const [skillErasedCounts, setSkillErasedCounts] = useState({});
 
@@ -2864,6 +2868,28 @@ export const useGameState = () => {
       }
     });
 
+    // --- 緩急の心得: 操作時間 4〜10秒で基礎コンボ加算、10秒超で操作秒数ぶんコンボ倍率加算 ---
+    if ((extraStats.moveSteps || 0) > 0) {
+      effectiveTokens.forEach(t => {
+        if (!t || t.effect !== 'move_time_rhythm') return;
+        if (isCursePassiveNull && t.type === 'passive') return;
+        const lv = t.level || 1;
+        const tId = t.instanceId || t.id;
+        const rhythm = getMoveTimeRhythmEffect(extraStats.moveElapsedMs, t.values?.[lv - 1] || 0);
+        if (rhythm.kind === 'combo') {
+          if (isInstant) triggerPassive(tId);
+          bonus += rhythm.bonus;
+          logData.bonuses.push(`move_time_rhythm:+${rhythm.bonus}`);
+          logData.bonusSteps.push({ label: t.name || '緩急の心得', value: rhythm.bonus, tokenId: tId });
+        } else if (rhythm.kind === 'multiplier' && rhythm.addMultiplier > 0) {
+          if (isInstant) triggerPassive(tId);
+          addedMultiplier += rhythm.addMultiplier;
+          logData.multipliers.push(`move_time_rhythm:+${rhythm.addMultiplier.toFixed(1)}`);
+          logData.multiplierSteps.push({ label: t.name || '緩急の心得', value: 1.0 + rhythm.addMultiplier, addedValue: rhythm.addMultiplier, type: 'add', tokenId: tId });
+        }
+      });
+    }
+
     // --- 確率系発動基礎コンボ乗算 ---
     effectiveTokens.forEach(t => {
       if (!t || t.effect !== 'probability_trigger_multiplier') return;
@@ -2946,6 +2972,20 @@ export const useGameState = () => {
           bonus += val;
           logData.bonuses.push(`rabbit_combo_add:+${val}`);
           logData.bonusSteps.push({ label: buff.name || 'うさぎ', value: val });
+        }
+      } else if (buff.action === "minigame_combo_add") {
+        const val = buff.params?.value || 0;
+        if (val > 0) {
+          bonus += val;
+          logData.bonuses.push(`minigame_combo_add:+${val}`);
+          logData.bonusSteps.push({ label: buff.name || 'ミニゲーム', value: val });
+        }
+      } else if (buff.action === "minigame_mult_add") {
+        const addVal = buff.params?.value || 0;
+        if (addVal > 0) {
+          addedMultiplier += addVal;
+          logData.multipliers.push(`minigame_mult_add:+${addVal}`);
+          logData.multiplierSteps.push({ label: buff.name || 'ミニゲーム', value: 1.0 + addVal, addedValue: addVal, type: 'add' });
         }
       } else if (buff.action === "wolf_mult_add") {
         const addVal = buff.params?.value || 0;
@@ -3680,6 +3720,18 @@ export const useGameState = () => {
         }
       }
     });
+
+    // 緩急の心得: 操作時間2秒以下ならアクティブスキルのエネルギーをチャージ
+    if (!isCursePassiveNull && (extraStats.moveSteps || 0) > 0) {
+      effectiveTokens.forEach(t => {
+        if (!t || t.effect !== 'move_time_rhythm') return;
+        const rhythm = getMoveTimeRhythmEffect(extraStats.moveElapsedMs, t.values?.[(t.level || 1) - 1] || 0);
+        if (rhythm.kind === 'charge') {
+          triggerPassive(t.instanceId || t.id);
+          extraAutoCharge += rhythm.charge;
+        }
+      });
+    }
 
     // --- ターン終了時の呪い処理 ---
     const hasRoulette = tokens.some(t => t?.id === "curse_roulette") && !hasSaintToken;
@@ -5859,6 +5911,112 @@ export const useGameState = () => {
     setGambleState(null);
   };
 
+  // --- ミニゲーム: 報酬を適用する（1回のみ） ---
+  const resolveMinigame = (rewards = [], logInfo = {}) => {
+    if (!minigameState || minigameState.resolved) return;
+    const sourceName = minigameState.tokenName || 'ミニゲーム';
+    const sourceId = minigameState.tokenInstanceId;
+    let hasGood = false;
+    let hasBad = false;
+    (rewards || []).forEach((r, i) => {
+      if (isPenaltyReward(r)) hasBad = true; else if (r.type !== 'token') hasGood = true;
+      switch (r.type) {
+        case 'stars_add':
+          setStars(s => Math.max(0, s + r.value));
+          break;
+        case 'stars_mult':
+          setStars(s => Math.floor(s * r.value));
+          break;
+        case 'combo_add':
+        case 'mult_add':
+        case 'mult': {
+          const action = r.type === 'combo_add' ? 'minigame_combo_add'
+            : r.type === 'mult_add' ? 'minigame_mult_add' : 'temp_mult';
+          const label = r.type === 'combo_add' ? `コンボ+${r.value}`
+            : r.type === 'mult_add' ? `倍率+${r.value}` : `倍率×${r.value}`;
+          setActiveBuffs(prev => [
+            ...prev,
+            {
+              id: Date.now() + Math.random() + i,
+              action,
+              params: r.type === 'mult' ? { multiplier: r.value } : { value: r.value },
+              duration: r.duration || 1,
+              maxDuration: r.duration || 1,
+              tokenId: sourceId,
+              name: `${sourceName} (${label})`,
+            },
+          ]);
+          break;
+        }
+        case 'time': {
+          setActiveBuffs(prev => [
+            ...prev,
+            {
+              id: Date.now() + Math.random() + i,
+              action: 'op_time_boost',
+              params: { extraTime: (r.value || 0) * 1000 },
+              duration: r.duration || 1,
+              maxDuration: r.duration || 1,
+              tokenId: sourceId,
+              name: `${sourceName} (操作時間+${r.value}秒)`,
+            },
+          ]);
+          break;
+        }
+        case 'token': {
+          const maxSlots = INITIAL_TOKEN_SLOTS + tokenSlotExpansionCount;
+          const pool = filterPoolByFreeSlots(
+            ALL_TOKEN_BASES.filter(b =>
+              b.rarity === r.rarity && b.type !== 'curse' && !b.isCurse &&
+              !["gen_token_s1", "gen_token_s2", "gen_token_s3"].includes(b.id)
+            ),
+            tokens, maxSlots
+          );
+          const base = pool[Math.floor(Math.random() * pool.length)];
+          if (!base) {
+            notify('トークン枠がいっぱいで獲得できませんでした');
+            break;
+          }
+          hasGood = true;
+          const isSkill = base.type === 'skill';
+          const newToken = applyNewTokenLevel({
+            ...base,
+            instanceId: Date.now() + Math.random() + i,
+            level: 1,
+            charge: isSkill ? (base.cost || 0) : 0,
+            startValue: base.condition ? getStatByCondition(base.condition) : 0,
+          }, { currentRunStats, tokens, activeBuffs });
+          setTokens(prev => [...prev.filter(t => t !== null), newToken]);
+          addTokenToast(newToken, `を手に入れた！ (${sourceName})`);
+          break;
+        }
+        case 'levelup':
+          levelUpRandomTokens(r.value || 1);
+          break;
+        case 'energy':
+          setTokens(prev => prev.map(t => {
+            if (!t || t.type !== 'skill' || t.instanceId === sourceId) return t;
+            return { ...t, charge: Math.max(0, Math.min(t.cost || 0, (t.charge || 0) + r.value)) };
+          }));
+          break;
+        default:
+          break;
+      }
+    });
+    if (hasBad && !hasGood) soundManager.playSE(SE_IDS.ERROR);
+    else if (hasGood) soundManager.playSE(SE_IDS.MATCH_STAR);
+    notify(`${sourceName}: ${describeRewards(rewards)}`);
+    playLog.event('minigame', { type: minigameState.type, rewards, ...logInfo });
+    setMinigameState(prev => (prev ? { ...prev, resolved: true } : prev));
+  };
+
+  // --- ミニゲーム: 終了 ---
+  const closeMinigame = () => {
+    // 結果が出る前に閉じることはできない
+    if (minigameState && !minigameState.resolved) return;
+    setMinigameState(null);
+  };
+
   const activateSkill = (token) => {
     if (!token || token.type !== "skill") return;
 
@@ -6541,6 +6699,22 @@ export const useGameState = () => {
         notify(`${token.name} 発動！宝箱を1つ選んでください`);
         break;
       }
+      case "minigame_janken":
+      case "minigame_fishing":
+      case "minigame_target":
+      case "minigame_mash":
+      case "minigame_dice": {
+        setMinigameState({
+          type: token.action.replace('minigame_', ''),
+          level: token.level || 1,
+          values: token.values,
+          tokenName: token.name,
+          tokenInstanceId: token.instanceId,
+          resolved: false,
+        });
+        notify(`${token.name} 発動！`);
+        break;
+      }
       case "rabbit_combo": {
         const lv = token.level || 1;
         const perRabbit = token.values?.[lv - 1] || 3;
@@ -6801,6 +6975,7 @@ export const useGameState = () => {
     hasSaveData, setHasSaveData,
     tokens, setTokens,
     gambleState, pickGambleChest, startGambleDoubleUp, closeGamble,
+    minigameState, resolveMinigame, closeMinigame,
     sandsOfTimeSeconds, setSandsOfTimeSeconds,
     isGameOver, setIsGameOver,
     target, setTarget,
