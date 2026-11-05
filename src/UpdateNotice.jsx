@@ -72,8 +72,8 @@ export const UpdateSettingsSection = () => {
     };
 
     return (
-        <div className="bg-slate-950/40 rounded-xl p-4 border border-white/5">
-            <p className="text-slate-300 text-sm font-bold mb-2 flex items-center gap-1.5">
+        <div className="ui-card p-4">
+            <p className="text-slate-200 text-sm font-bold mb-2 flex items-center gap-1.5">
                 <span className="material-icons-round text-base text-indigo-400">system_update</span>
                 アプリの更新
             </p>

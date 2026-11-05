@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScreenShell from './ScreenShell';
 
 // ============================================================
 // ヘルパーコンポーネント群
@@ -155,8 +156,8 @@ const ShapeGrid = ({ shape, colorClass = 'bg-purple-500' }) => {
  * セクションヘッダー
  */
 const SectionTitle = ({ children }) => (
-    <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
-        <span className="block w-1 h-3.5 bg-primary rounded-full" />
+    <h4 className="ui-section-label">
+        <span className="block w-1 h-3.5 bg-violet-400 rounded-full" />
         {children}
     </h4>
 );
@@ -165,7 +166,7 @@ const SectionTitle = ({ children }) => (
  * 情報カード
  */
 const InfoCard = ({ children, className = '' }) => (
-    <div className={`bg-slate-800/50 border border-white/8 rounded-xl p-3.5 ${className}`}>
+    <div className={`ui-card p-3.5 ${className}`}>
         {children}
     </div>
 );
@@ -893,65 +894,31 @@ const HelpScreen = ({ onClose }) => {
     const ActiveComponent = TABS.find(t => t.id === activeTab)?.component ?? TabBasic;
 
     return (
-        <div
-            className="w-full h-screen bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-fade-in font-game-cyber"
-            onClick={onClose}
+        <ScreenShell
+            icon="menu_book"
+            title="ヘルプ・遊び方"
+            subtitle={TABS.find(t => t.id === activeTab)?.label}
+            onClose={onClose}
+            bodyKey={activeTab}
+            toolbar={
+                <div className="screen-tabs no-scrollbar" role="tablist">
+                    {TABS.map(({ id, label, icon }) => (
+                        <button
+                            key={id}
+                            role="tab"
+                            aria-selected={activeTab === id}
+                            onClick={() => setActiveTab(id)}
+                            className={`screen-tab ${activeTab === id ? 'is-active' : ''}`}
+                        >
+                            <span className="material-icons-round">{icon}</span>
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            }
         >
-            <div
-                className="game-panel-cyber rounded-2xl w-full max-w-md h-full max-h-[90vh] flex flex-col overflow-hidden"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* ヘッダー */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-slate-950/40 shrink-0">
-                    <h2 className="text-base font-game-header text-indigo-300 flex items-center gap-2">
-                        <span className="material-icons-round text-indigo-400 text-[20px]">menu_book</span>
-                        ヘルプ・遊び方
-                    </h2>
-                    <button
-                        onClick={onClose}
-                        className="btn-game-cyber rounded-xl w-8 h-8 p-0 flex items-center justify-center text-slate-400"
-                    >
-                        <span className="material-icons-round text-[18px]">close</span>
-                    </button>
-                </div>
-
-                {/* タブナビゲーション */}
-                <div className="flex gap-0 border-b border-white/10 bg-slate-950/20 shrink-0 overflow-x-auto no-scrollbar">
-                    {TABS.map(({ id, label, icon }) => {
-                        const isActive = activeTab === id;
-                        return (
-                            <button
-                                key={id}
-                                onClick={() => setActiveTab(id)}
-                                className={`flex flex-col items-center gap-0.5 px-3 py-2 text-[10px] font-bold whitespace-nowrap shrink-0 border-b-2 transition-all ${
-                                    isActive
-                                        ? 'border-indigo-500 text-indigo-300 bg-indigo-500/10'
-                                        : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
-                                }`}
-                            >
-                                <span className={`material-icons-round text-[16px] ${isActive ? 'text-indigo-300' : ''}`}>{icon}</span>
-                                {label}
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {/* コンテンツエリア */}
-                <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
-                    <ActiveComponent />
-                </div>
-
-                {/* フッター */}
-                <div className="p-3 border-t border-white/10 shrink-0 bg-slate-950/40">
-                    <button
-                        onClick={onClose}
-                        className="w-full btn-game-primary py-3 text-base"
-                    >
-                        ゲームに戻る
-                    </button>
-                </div>
-            </div>
-        </div>
+            <ActiveComponent />
+        </ScreenShell>
     );
 };
 
