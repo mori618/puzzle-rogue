@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { ScreenHeader } from './ScreenShell';
 import {
   loadTitleState,
   saveTitleState,
@@ -135,28 +136,15 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
       </div>
 
       {/* Header */}
-      <header className="flex-none px-5 py-3.5 bg-slate-950/80 border-b border-white/10 backdrop-blur-md z-20 flex justify-between items-center relative">
-        <div className="flex items-center gap-2.5">
-          <span className="material-icons-round text-amber-400 text-2xl">military_tech</span>
-          <div>
-            <h1 className="text-base font-game-header tracking-wider text-amber-300">
-              二つ名図鑑 (全{PREFIX_TITLES.length + SUFFIX_TITLES.length + EVOLVED_TITLES.length}種・解放 {unlockedCount}/{PREFIX_TITLES.length + SUFFIX_TITLES.length + EVOLVED_TITLES.length})
-            </h1>
-            <p className="text-[10px] text-slate-400 font-mono tracking-tight">
-              TITLE ENCYCLOPEDIA (ALL {PREFIX_TITLES.length + SUFFIX_TITLES.length + EVOLVED_TITLES.length} TITLES)
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => {
-            soundManager.playSE(SE_IDS.UI_CLICK);
-            onClose();
-          }}
-          className="btn-game-cyber rounded-xl w-9 h-9 p-0 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
-        >
-          <span className="material-icons-round text-lg">close</span>
-        </button>
-      </header>
+      <div className="relative z-20">
+        <ScreenHeader
+          icon="military_tech"
+          accent="amber"
+          title="二つ名図鑑"
+          subtitle={`解放 ${unlockedCount} / ${PREFIX_TITLES.length + SUFFIX_TITLES.length + EVOLVED_TITLES.length}`}
+          onClose={onClose}
+        />
+      </div>
 
       {isPaid && (
         <div className={`flex-none px-4 py-2 text-xs font-bold z-10 border-b flex items-center justify-between ${
@@ -197,8 +185,8 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
               : 'bg-slate-950/50 text-slate-400 hover:text-slate-200 border border-white/5'
           }`}
         >
-          <span className="material-icons-round text-sm">label</span>
-          <span>A枠（接頭辞 全{PREFIX_TITLES.length}種）</span>
+          <span className="material-icons-round text-base">label</span>
+          <span className="flex flex-col items-start leading-tight"><span>A枠・接頭辞</span><span className="text-[10px] opacity-70 font-semibold">全{PREFIX_TITLES.length}種</span></span>
         </button>
         <button
           onClick={() => {
@@ -211,8 +199,8 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
               : 'bg-slate-950/50 text-slate-400 hover:text-slate-200 border border-white/5'
           }`}
         >
-          <span className="material-icons-round text-sm">loyalty</span>
-          <span>B枠（接尾辞 全{SUFFIX_TITLES.length}種）</span>
+          <span className="material-icons-round text-base">loyalty</span>
+          <span className="flex flex-col items-start leading-tight"><span>B枠・接尾辞</span><span className="text-[10px] opacity-70 font-semibold">全{SUFFIX_TITLES.length}種</span></span>
         </button>
         <button
           onClick={() => {
@@ -225,8 +213,8 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
               : 'bg-slate-950/50 text-slate-400 hover:text-slate-200 border border-white/5'
           }`}
         >
-          <span className="material-icons-round text-sm">flare</span>
-          <span>進化 ({EVOLVED_TITLES.length}種)</span>
+          <span className="material-icons-round text-base">flare</span>
+          <span className="flex flex-col items-start leading-tight"><span>進化</span><span className="text-[10px] opacity-70 font-semibold">全{EVOLVED_TITLES.length}種</span></span>
         </button>
       </div>
 

@@ -34,83 +34,72 @@ const StartOptionScreen = ({ onSelect }) => {
     },
   ];
 
+  // 各デッキの見た目（アイコン・アクセント色）
+  const looks = {
+    safety: { icon: 'shield', tag: 'おすすめ', accent: '#34d399', tint: 'rgba(16, 185, 129, 0.14)' },
+    solid: { icon: 'balance', tag: 'バランス', accent: '#60a5fa', tint: 'rgba(59, 130, 246, 0.14)' },
+    challenge: { icon: 'local_fire_department', tag: '上級者向け', accent: '#fb7185', tint: 'rgba(244, 63, 94, 0.14)' },
+  };
+
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-6 overflow-y-auto font-sans text-slate-200">
-      {/* サイバーグリッド背景 */}
-      <div className="cyber-grid-bg opacity-30" />
+    <div className="fixed inset-0 z-[100] bg-background-dark flex justify-center overflow-y-auto no-scrollbar font-game-cyber text-slate-200">
+      <div className="cyber-grid-bg opacity-40" />
+      <div className="screen-shell-glow" aria-hidden="true" />
 
-      {/* ネオン装飾背景 */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[20%] left-[10%] w-[35%] h-[35%] bg-violet-600/10 rounded-full blur-[130px]" />
-        <div className="absolute bottom-[20%] right-[10%] w-[35%] h-[35%] bg-indigo-500/10 rounded-full blur-[130px]" />
-      </div>
+      <div className="relative z-10 w-full max-w-md md:max-w-4xl my-auto px-4 py-[calc(24px+env(safe-area-inset-top,0px))] pb-[calc(24px+env(safe-area-inset-bottom,0px))]">
+        <div className="text-center mb-6">
+          <p className="text-violet-300/80 text-[11px] font-bold tracking-[0.35em] uppercase mb-2">
+            Select your deck
+          </p>
+          <h2 className="text-3xl font-game-header tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-amber-400 to-amber-600 drop-shadow-[0_2px_8px_rgba(245,158,11,0.3)]">
+            始まりの力を選択
+          </h2>
+        </div>
 
-      <div className="relative z-10 w-full max-w-4xl text-center px-4">
-        {/* サブタイトル */}
-        <p className="text-violet-400 text-xs font-bold tracking-[0.4em] uppercase mb-3 animate-in slide-in-from-bottom-2 duration-500">
-          SELECT YOUR INITIAL DECK
-        </p>
-        
-        {/* メインタイトル */}
-        <h2 className="text-3xl md:text-4xl font-game-header font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 mb-14 drop-shadow-[0_2px_8px_rgba(245,158,11,0.3)] animate-in slide-in-from-bottom-4 duration-700">
-          始まりの力を選択
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
-          {options.map((option) => (
-            <button
-              key={option.id}
-              onClick={() => onSelect(option.id)}
-              className="group relative flex flex-col justify-between p-6 bg-slate-900/80 rounded-2xl transition-all duration-300 hover:scale-[1.04] hover:-translate-y-1 shadow-2xl overflow-hidden min-h-[260px] text-left"
-              style={{
-                border: `1px solid ${option.borderColor}`,
-                boxShadow: `0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px ${option.glow}, 0 0 15px ${option.glow}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = option.borderColorHover;
-                e.currentTarget.style.boxShadow = `0 15px 35px rgba(0, 0, 0, 0.6), inset 0 0 25px ${option.glowHover}, 0 0 25px ${option.glowHover}`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = option.borderColor;
-                e.currentTarget.style.boxShadow = `0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px ${option.glow}, 0 0 15px ${option.glow}`;
-              }}
-            >
-              {/* カード上部の属性ラベルと装飾 */}
-              <div className="flex justify-between items-center w-full mb-4">
-                <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400">
-                  DECK MODULE
-                </span>
-                <span className={`w-2.5 h-2.5 rounded-full bg-gradient-to-r ${option.color} shadow-lg`} />
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {options.map((option) => {
+            const look = looks[option.id];
+            return (
+              <button
+                key={option.id}
+                onClick={() => onSelect(option.id)}
+                className="group relative flex flex-col gap-2 p-4 rounded-2xl text-left overflow-hidden bg-slate-950/70 border transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
+                style={{
+                  borderColor: option.borderColor,
+                  boxShadow: `0 8px 24px rgba(0, 0, 0, 0.45), inset 0 0 24px ${option.glow}`,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = option.borderColorHover; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = option.borderColor; }}
+              >
+                {/* 左端のアクセント */}
+                <span className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${option.color}`} aria-hidden="true" />
 
-              {/* タイトル（属性名） */}
-              <div className="mb-4">
-                <h3 className={`text-2xl md:text-3xl font-game-header font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-br ${option.color} group-hover:scale-105 transition-transform duration-300`}>
-                  {option.name}
-                </h3>
-              </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: look.tint, color: look.accent }}
+                  >
+                    <span className="material-icons-round text-[24px]">{look.icon}</span>
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`text-2xl font-game-header tracking-wide leading-none text-transparent bg-clip-text bg-gradient-to-br ${option.color}`}>
+                      {option.name}
+                    </h3>
+                    <span className="text-[10px] font-bold tracking-wider" style={{ color: look.accent }}>
+                      {look.tag}
+                    </span>
+                  </div>
+                  <span className="material-icons-round text-slate-500 group-hover:text-white group-hover:translate-x-0.5 transition-all">
+                    chevron_right
+                  </span>
+                </div>
 
-              {/* 説明文 */}
-              <div className="flex-grow">
-                <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   {option.desc}
                 </p>
-              </div>
-
-              {/* カード下部の選択表示 */}
-              <div className="mt-6 pt-4 border-t border-slate-800 flex justify-between items-center w-full">
-                <span className="text-[10px] font-bold tracking-[0.1em] text-slate-500 group-hover:text-slate-300 transition-colors">
-                  選択して開始
-                </span>
-                <span className="text-slate-500 group-hover:text-slate-300 group-hover:translate-x-1 transition-all">
-                  →
-                </span>
-              </div>
-
-              {/* 背景の光沢オーバーレイ */}
-              <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${option.color} opacity-0 group-hover:opacity-[0.03] transition-opacity pointer-events-none`} />
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
