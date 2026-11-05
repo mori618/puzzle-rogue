@@ -161,6 +161,19 @@ const getTokenDynamicInfo = (item, level, currentRunStats = null, currentTokens 
       infoList.push({ label: '加算値', value: `+${formatNum(count * v)}`, type: 'boost' });
     }
   }
+  // 遊び系: 道楽の極み / 負けの美学 の現在値を表示
+  if (item && item.id === 'play_count_mult') {
+    const count = countPlayTokens(currentTokens);
+    const v = base.values?.[targetLv - 1] || 1;
+    infoList.push({ label: '所持遊び系', value: `${count} 個`, type: 'stat' });
+    infoList.push({ label: '倍率加算値', value: `+${formatNum(count * v)}`, type: 'boost' });
+  }
+  if (item && item.id === 'play_loss_mult') {
+    const losses = item.charge || 0;
+    const v = base.values?.[targetLv - 1] || 0.3;
+    infoList.push({ label: '悪い結果', value: `${losses} 回`, type: 'stat' });
+    infoList.push({ label: '倍率加算値', value: `+${formatNum(losses * v)}`, type: 'boost' });
+  }
   if (item && item.id === 'wolf_active') {
     const eaten = item.eatenRabbits || 0;
     const v = base.values?.[targetLv - 1] || 2;
@@ -547,6 +560,26 @@ const PROBABILITY_TOKEN_EFFECTS = new Set([
 /** 確率で発動するトークンか */
 export const isProbabilityToken = (token) => !!token
     && (PROBABILITY_TOKEN_IDS.has(token.id) || PROBABILITY_TOKEN_EFFECTS.has(token.effect));
+
+// ---------------------------------------------------------------------------
+// 遊び系トークン（ギャンブル・ミニゲーム・ダイス・砥石など）
+// 二つ名「遊び人」「酔狂な」、パッシブ「道楽の極み」「負けの美学」で共通に使う
+// ---------------------------------------------------------------------------
+
+export const PLAY_TOKEN_IDS = [
+    "gamble", "gamble_high",
+    "minigame_janken", "minigame_fishing", "minigame_target", "minigame_mash", "minigame_dice",
+    "passive_star_gamble", "passive_star_gamble_2",
+    "passive_token_gamble", "passive_token_gamble_2",
+    "play_count_mult", "play_loss_mult",
+];
+const PLAY_TOKEN_ID_SET = new Set(PLAY_TOKEN_IDS);
+
+/** 遊び系トークンか */
+export const isPlayToken = (token) => !!token && PLAY_TOKEN_ID_SET.has(token.id);
+
+/** 所持している遊び系トークンの数 */
+export const countPlayTokens = (tokens = []) => (tokens || []).filter(isPlayToken).length;
 
 // ---------------------------------------------------------------------------
 // うさぎ / 狼

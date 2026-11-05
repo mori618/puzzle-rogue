@@ -10,7 +10,7 @@ import {
   getMaxTokenSlotExpansions,
   getTokenSlotExpandPriceFor,
 } from "../constants/gameConstants.js";
-import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel, isTokenRequirementMet, getDebtCreditLimit, canAffordWithCredit, isProbabilityToken } from "../utils/tokenUtils";
+import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel, isTokenRequirementMet, getDebtCreditLimit, canAffordWithCredit, isProbabilityToken, isPlayToken } from "../utils/tokenUtils";
 import { getTokenDynamicPrice as calcTokenDynamicPrice, repriceShopItems } from "../utils/tokenPricing.js";
 import soundManager from "../utils/SoundManager";
 import { SE_IDS } from "../constants/sounds";
@@ -166,6 +166,9 @@ export const useShop = ({
     // 二つ名「ギャンブラー」: 確率系トークンがショップに出やすくなる
     const probabilityWeight = getTitleEffects('shop_probability_weight', {}, titleEffects)
       .reduce((m, e) => m * (Number(e.value) || 1), 1);
+    // 二つ名「遊び人」: 遊び系トークンがショップに出やすくなる
+    const playWeight = getTitleEffects('shop_play_weight', {}, titleEffects)
+      .reduce((m, e) => m * (Number(e.value) || 1), 1);
 
     const getRarityProbabilities = (cycle) => {
       if (cycle <= 5) return { 1: 0.60, 2: 0.30, 3: 0.10, 4: 0.00 };
@@ -266,6 +269,7 @@ export const useShop = ({
         // 前提トークンを所持している関連トークンは出現率アップ（例: ムーブドロップ関連）
         if (base.requires) weight *= SYNERGY_WEIGHT_MULTIPLIER;
         if (probabilityWeight !== 1 && isProbabilityToken(base)) weight *= probabilityWeight;
+        if (playWeight !== 1 && isPlayToken(base)) weight *= playWeight;
         return { base, weight };
       });
 

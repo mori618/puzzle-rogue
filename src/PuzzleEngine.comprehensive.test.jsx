@@ -1703,6 +1703,7 @@ describe('31. パッシブトークンの全効果タイプ存在確認', () => 
       'time_permanent', 'total_level_combo_add',
       'turn_end_convert', 'turn_end_full_board', 'turn_end_spawn',
       'turn_end_special_spawn', 'turn_end_star_gamble', 'turn_end_token_gamble', 'tyrant_decree',
+      'play_count_combo_mult', 'play_loss_combo_mult',
       'vacation', 'zero_combo_charge',
       'magic_overload', 'sublimation_rune', 'contagious_enchant',
       'vertical_slash', 'shape_double_column_mult', 'column_plus',
@@ -1891,7 +1892,7 @@ describe('36. ターン終了時ギャンブルトークンのテスト', () => 
     expect(token.type).toBe('passive');
     expect(token.effect).toBe('turn_end_star_gamble');
     expect(token.values).toEqual([5, 7, 10]);
-    expect(token.rarity).toBe(2);
+    expect(token.rarity).toBe(1);
   });
 
   it('運命 of 研磨 (passive_token_gamble) が正しく定義されている', () => {
@@ -1900,6 +1901,6 @@ describe('36. ターン終了時ギャンブルトークンのテスト', () => 
     expect(token.type).toBe('passive');
     expect(token.effect).toBe('turn_end_token_gamble');
     expect(token.values).toEqual([5, 7, 10]);
-    expect(token.rarity).toBe(2);
+    expect(token.rarity).toBe(1);
   });
 });
