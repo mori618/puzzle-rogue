@@ -5,6 +5,7 @@ import TitleEncyclopediaScreen from './TitleEncyclopediaScreen';
 import { loadTitleState, getEquippedTitleInfo } from './utils/titleManager';
 import InstallGuideModal from './InstallGuideModal';
 import BackupScreen from './BackupScreen';
+import { UpdateBanner } from './UpdateNotice';
 import { shouldRecommendInstall, isInstallBannerDismissed, dismissInstallBanner } from './utils/pwaInstall';
 
 // --- 開発用更新情報設定（不要になったら false に変更、または本ブロックごと削除可能） ---
@@ -80,6 +81,8 @@ const TitleScreen = ({
                 />
             )}
             {showBackup && <BackupScreen onClose={() => setShowBackup(false)} />}
+
+            <UpdateBanner />
 
             {showInstallBanner && (
                 <div className="relative z-20 w-full max-w-sm flex items-center gap-2 rounded-xl bg-amber-500/15 border border-amber-500/40 px-3 py-2 backdrop-blur-sm">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import BackupScreen from './BackupScreen';
+import { UpdateSettingsSection } from './UpdateNotice';
 
 /**
  * SettingsScreen - ゲーム設定画面
@@ -149,6 +150,9 @@ const SettingsScreen = ({ settings, onSettingsChange, onClose }) => {
                             ))}
                         </div>
                     </div>
+
+                    {/* アプリの更新（オフライン用キャッシュの更新） */}
+                    <UpdateSettingsSection />
 
                     {/* セーブデータのバックアップ */}
                     <button
