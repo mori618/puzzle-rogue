@@ -3033,6 +3033,7 @@ button:disabled {
 
 @media (prefers-reduced-motion: reduce) {
   .deck-card, .deck-card-shine, .deck-emblem-ring { animation: none; }
+}
 
 /* ---- 縦長画面（PWA起動時など）：余った高さで上部HUDを大きく見せる ----
    横幅/高さ ≤ 0.5（例: iPhone 16 のホーム画面起動 393×852）のときだけ適用 */
