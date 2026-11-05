@@ -3,6 +3,10 @@ import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
 import TitleEncyclopediaScreen from './TitleEncyclopediaScreen';
 import { loadTitleState, getEquippedTitleInfo } from './utils/titleManager';
+import InstallGuideModal from './InstallGuideModal';
+import BackupScreen from './BackupScreen';
+import { UpdateBanner } from './UpdateNotice';
+import { shouldRecommendInstall, isInstallBannerDismissed, dismissInstallBanner } from './utils/pwaInstall';
 
 // --- 開発用更新情報設定（不要になったら false に変更、または本ブロックごと削除可能） ---
 const SHOW_DEV_UPDATE_INFO = true;
@@ -43,6 +47,10 @@ const TitleScreen = ({
     onEndless
 }) => {
     const [showTitleEncyclopedia, setShowTitleEncyclopedia] = useState(false);
+    // スマホのブラウザで開いている場合は「ホーム画面に追加」を勧める（データ消失対策）
+    const [showInstallBanner, setShowInstallBanner] = useState(() => shouldRecommendInstall() && !isInstallBannerDismissed());
+    const [showInstallGuide, setShowInstallGuide] = useState(false);
+    const [showBackup, setShowBackup] = useState(false);
     const titleState = loadTitleState();
     const equippedInfo = getEquippedTitleInfo(titleState.equippedTitle);
 
@@ -60,6 +68,47 @@ const TitleScreen = ({
             {/* 二つ名図鑑モーダル */}
             {showTitleEncyclopedia && (
                 <TitleEncyclopediaScreen onClose={() => setShowTitleEncyclopedia(false)} />
+            )}
+
+            {/* ホーム画面に追加の案内 */}
+            {showInstallGuide && (
+                <InstallGuideModal
+                    onClose={() => setShowInstallGuide(false)}
+                    onOpenBackup={() => {
+                        setShowInstallGuide(false);
+                        setShowBackup(true);
+                    }}
+                />
+            )}
+            {showBackup && <BackupScreen onClose={() => setShowBackup(false)} />}
+
+            <UpdateBanner />
+
+            {showInstallBanner && (
+                <div className="relative z-20 w-full max-w-sm flex items-center gap-2 rounded-xl bg-amber-500/15 border border-amber-500/40 px-3 py-2 backdrop-blur-sm">
+                    <button
+                        onClick={() => {
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                            setShowInstallGuide(true);
+                        }}
+                        className="flex-1 flex items-center gap-2 text-left"
+                    >
+                        <span className="material-icons-round text-amber-300 text-xl">add_to_home_screen</span>
+                        <span className="text-[11px] leading-snug text-slate-200">
+                            データ消失を防ぐため<span className="text-amber-300 font-bold">ホーム画面に追加</span>して遊ぶのがおすすめ
+                        </span>
+                    </button>
+                    <button
+                        onClick={() => {
+                            dismissInstallBanner();
+                            setShowInstallBanner(false);
+                        }}
+                        aria-label="閉じる"
+                        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-white"
+                    >
+                        <span className="material-icons-round text-base">close</span>
+                    </button>
+                </div>
             )}
 
             {/* メインエリア */}

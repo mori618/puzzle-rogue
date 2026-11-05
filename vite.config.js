@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import license from 'rollup-plugin-license'
+import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 import { execFileSync } from 'node:child_process'
 
@@ -35,7 +36,50 @@ function getLastUpdateInfo() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // オフライン対応（Service Worker）。更新は自動適用せず、画面の「更新」ボタンから反映する（registerType: 'prompt'）
+    VitePWA({
+      registerType: 'prompt',
+      injectRegister: false, // 登録は src/utils/swUpdate.js で行う
+      manifest: false, // public/manifest.webmanifest を使う
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,txt}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        cleanupOutdatedCaches: true,
+        clientsClaim: true, // 初回インストール直後からフォント等をキャッシュできるようにする
+        navigateFallback: 'index.html',
+        runtimeCaching: [
+          {
+            // Google Fonts の CSS（Material Icons 含む）
+            urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com',
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'google-fonts-stylesheets' },
+          },
+          {
+            // Google Fonts のフォント本体
+            urlPattern: ({ url }) => url.origin === 'https://fonts.gstatic.com',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-webfonts',
+              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // BGM・効果音（一度再生したものはオフラインでも鳴る）
+            urlPattern: ({ url }) => /\.(mp3|ogg|wav|m4a)$/i.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'sounds',
+              expiration: { maxEntries: 60 },
+              rangeRequests: true,
+            },
+          },
+        ],
+      },
+    }),
+  ],
   define: {
     __LAST_UPDATE_INFO__: JSON.stringify(getLastUpdateInfo()),
   },

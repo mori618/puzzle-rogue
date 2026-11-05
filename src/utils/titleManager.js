@@ -4,7 +4,7 @@ import {
   EVOLVED_TITLES
 } from '../constants/titles.js';
 
-const TITLE_STORAGE_KEY = 'pazuru_roguelike_title_state';
+export const TITLE_STORAGE_KEY = 'pazuru_roguelike_title_state';
 
 export const ALL_DROP_COLORS = ['fire', 'water', 'wood', 'light', 'dark', 'heart'];
 

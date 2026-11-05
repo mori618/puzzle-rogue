@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import BackupScreen from './BackupScreen';
+import { UpdateSettingsSection } from './UpdateNotice';
 
 /**
  * SettingsScreen - ゲーム設定画面
@@ -6,10 +8,11 @@ import React from 'react';
  */
 const SettingsScreen = ({ settings, onSettingsChange, onClose }) => {
     const { comboAnimationMode = 'instant' } = settings || {};
+    const [showBackup, setShowBackup] = useState(false);
 
     return (
         <div 
-            className="w-full h-full bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-fade-in font-game-cyber"
+            className="relative w-full h-full bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-fade-in font-game-cyber"
             onClick={onClose}
         >
             <div 
@@ -148,6 +151,22 @@ const SettingsScreen = ({ settings, onSettingsChange, onClose }) => {
                         </div>
                     </div>
 
+                    {/* アプリの更新（オフライン用キャッシュの更新） */}
+                    <UpdateSettingsSection />
+
+                    {/* セーブデータのバックアップ */}
+                    <button
+                        onClick={() => setShowBackup(true)}
+                        className="w-full btn-game-cyber py-3 flex items-center gap-3 px-4 text-sm text-indigo-200"
+                    >
+                        <span className="material-icons-round text-base text-indigo-400">backup</span>
+                        <div className="text-left leading-tight">
+                            <div className="font-black text-sm">セーブデータのバックアップ</div>
+                            <div className="text-[10px] font-normal mt-0.5 text-slate-500">書き出し・読み込み / 機種変更</div>
+                        </div>
+                        <span className="material-icons-round text-slate-500 ml-auto text-base">chevron_right</span>
+                    </button>
+
                     <div className="my-1 border-b border-white/10 w-full"></div>
 
                     {/* 戻るボタン */}
@@ -160,6 +179,12 @@ const SettingsScreen = ({ settings, onSettingsChange, onClose }) => {
                     </button>
                 </div>
             </div>
+
+            {showBackup && (
+                <div onClick={(e) => e.stopPropagation()}>
+                    <BackupScreen onClose={() => setShowBackup(false)} />
+                </div>
+            )}
         </div>
     );
 };
