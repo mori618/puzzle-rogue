@@ -4,6 +4,15 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <!-- PWA: ホーム画面に追加して単独アプリとして起動できるようにする
+       （iPhone の Safari は7日間開かないサイトのデータを消すが、ホーム画面アプリは対象外） -->
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="パズルローグ" />
+  <meta name="theme-color" content="#161022" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="description" content="パズル×ローグライクの爽快感！ドロップを揃えてコンボを繋ぎ、強力なトークンやエンチャントを獲得して最高到達目標スコアを目指す本格ローグライクパズルゲーム。" />
   <meta property="og:title" content="Pazuru Roguelike" />
