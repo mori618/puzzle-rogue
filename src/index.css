@@ -1394,14 +1394,18 @@ body {
 }
 
 /* パズル盤面セクションのセーフエリア制御 */
+/* 盤面セクションは「盤面の高さ＋余白」までしか伸ばさず（App.jsx の maxHeight）、
+   余った縦スペースは HUD の各ブロックの間（.hud-flex-spacer）に均等に配分する */
+.hud-flex-spacer { flex: 1 1 0; min-height: 0; }
 .puzzle-grid-section {
-  /* App.jsx側のTailwindでセーフエリアを考慮したpadding-bottomを指定しているため、CSS側での上書きは行いません */
+  --grid-pb: calc(20px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: var(--grid-pb);
 }
 
 @media (display-mode: standalone) {
   .puzzle-grid-section {
     /* ホーム画面追加時（スタンドアロンモード）は、ツールバーがないためセーフエリアにのみ追従させ、不要な隙間（54px）を34pxに削減します */
-    padding-bottom: max(20px, env(safe-area-inset-bottom, 20px)) !important;
+    --grid-pb: max(20px, env(safe-area-inset-bottom, 20px));
   }
 }
 
@@ -3029,4 +3033,38 @@ button:disabled {
 
 @media (prefers-reduced-motion: reduce) {
   .deck-card, .deck-card-shine, .deck-emblem-ring { animation: none; }
+}
+
+/* ---- 縦長画面（PWA起動時など）：余った高さで上部HUDを大きく見せる ----
+   横幅/高さ ≤ 0.5（例: iPhone 16 のホーム画面起動 393×852）のときだけ適用 */
+@media (max-aspect-ratio: 1/2) {
+  .hud-menu-btn { width: 42px; height: 42px; border-radius: 12px; }
+  .hud-menu-btn .material-icons-round { font-size: 24px; }
+
+  /* 余った高さは目標カードが受け持つ（カードが上限に達したときだけHUD間のスペーサーに回る） */
+  .hud-goal-sec { flex: 1000 1 auto; display: flex; flex-direction: column; min-height: 120px; max-height: 300px; }
+  .hud-goal-card {
+    flex: 1; min-height: 0; container-type: size;
+    display: flex; flex-direction: column; justify-content: center; gap: 4cqh;
+    border-radius: 20px; padding: 16px 16px 18px;
+  }
+  .hud-goal-row { margin-bottom: 0; }
+  .hud-goal-label { font-size: 14px; }
+  .hud-goal-label .material-icons-round { font-size: 16px; }
+  .hud-goal-now { font-size: clamp(30px, 42cqh, 76px); }
+  .hud-goal-of { font-size: clamp(16px, 16cqh, 30px); }
+  .hud-goal-pct { font-size: 13px; }
+  .hud-goal-bar { height: clamp(16px, 12cqh, 24px); }
+
+  .hud-belt { gap: 12px; }
+  .hud-title-chip { height: 34px; }
+  .hud-title-chip > span:nth-child(2) { font-size: 13px; }
+  .hud-tlab { font-size: 12px; }
+  .hud-tlab b { font-size: 18px; }
+  .hud-pips i { height: 8px; border-radius: 4px; }
+
+  .tk-cap { aspect-ratio: 1.6 / 1; }
+  .tk-cap .tk-ico { font-size: clamp(16px, 5.4vw, 22px); }
+  .tk-cap .tk-lv, .tk-cir .tk-lv { font-size: clamp(8px, 2.6vw, 10px); }
+  .tk-cir .tk-ico { font-size: clamp(22px, 7.4vw, 30px); }
 }

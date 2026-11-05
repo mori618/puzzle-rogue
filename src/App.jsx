@@ -333,6 +333,7 @@ const App = () => {
             )}
           </header>
 
+          <div className="hud-flex-spacer" aria-hidden="true"></div>
           {/* Main Stats Area */}
           {isPracticeMode ? (
             <section className="relative z-10 px-4 py-1.5 flex-none w-full animate-fade-in h-[9dvh] min-h-[64px] max-h-[80px] flex flex-col justify-center">
@@ -392,13 +393,13 @@ const App = () => {
               </div>
             </section>
           ) : (
-            <section className="relative z-10 px-4 pt-3 flex-none w-full">
+            <section className="hud-goal-sec relative z-10 px-4 pt-3 flex-none w-full">
               <div 
                 className="hud-goal-card w-full relative cursor-pointer" 
                 onClick={() => setShowComboDetails(!showComboDetails)}
               >
                 {/* テキスト情報 */}
-                <div className="flex items-baseline gap-1.5 mb-1.5 px-0.5 min-w-0">
+                <div className="hud-goal-row flex items-baseline gap-1.5 mb-1.5 px-0.5 min-w-0">
                   <span className={`hud-goal-label ${turn === maxTurns && !goalReached ? 'text-red-400' : goalReached ? 'text-green-400' : 'text-slate-400'}`}>
                     {goalReached ? (
                       <><span className="material-icons-round">check_circle</span>目標達成</>
@@ -416,7 +417,7 @@ const App = () => {
                 </div>
                 
                 {/* ゲージ本体 */}
-                <div className={`h-4 w-full rounded-full border overflow-hidden transition-all duration-300 relative ${turn === maxTurns && !goalReached ? 'bg-red-950/40 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake-tension' : goalReached ? 'bg-green-950/20 border-green-500/30' : 'bg-slate-800/40 border-white/10 shadow-inner'}`}>
+                <div className={`hud-goal-bar h-4 w-full rounded-full border overflow-hidden transition-all duration-300 relative ${turn === maxTurns && !goalReached ? 'bg-red-950/40 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake-tension' : goalReached ? 'bg-green-950/20 border-green-500/30' : 'bg-slate-800/40 border-white/10 shadow-inner'}`}>
                   {/* 塗りつぶしバー */}
                   <div 
                     className={`h-full transition-all duration-500 ease-out rounded-full relative ${goalReached ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]' : 'bg-gradient-to-r from-orange-600 to-yellow-500'}`}
@@ -439,6 +440,7 @@ const App = () => {
             </section>
           )}
 
+          <div className="hud-flex-spacer" aria-hidden="true"></div>
           {/* Token/Skill Belt */}
           {(() => {
             const TOKENS_PER_PAGE = 5;
@@ -453,7 +455,7 @@ const App = () => {
             const safeActivePage = Math.min(activeTokenPage, activePages - 1);
 
             return (
-              <section className="relative z-30 px-4 pt-2.5 flex-none flex flex-col gap-2 w-full">
+              <section className="hud-belt relative z-30 px-4 pt-2.5 flex-none flex flex-col gap-2 w-full">
                 {isPracticeMode ? (
                   <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-4 flex flex-col items-center justify-center backdrop-blur-md shadow-inner w-full min-h-[140px]">
                     <div className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 flex items-center gap-2">
@@ -776,6 +778,7 @@ const App = () => {
           {/* 1. パズルグリッド・メイン盤面エリア                             */}
           {/* ======================================================== */}
           {/* 操作時間ゲージ（盤面との境目に重ねる。秒数は左） */}
+          <div className="hud-flex-spacer" aria-hidden="true"></div>
           <div className="hud-timer-edge" aria-label="残り操作時間">
             <span ref={timerTextRef} className="hud-timer-text"></span>
             <div className="hud-timer-track">
@@ -783,7 +786,7 @@ const App = () => {
             </div>
           </div>
 
-          <section className="relative z-20 flex-1 min-h-0 bg-slate-900 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden puzzle-grid-section flex flex-col justify-start p-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom,0px))]" style={{ containerType: "size" }}>
+          <section className="relative z-20 flex-1 grow-[1000000] min-h-0 bg-slate-900 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden puzzle-grid-section flex flex-col justify-start p-4 pt-4" style={{ containerType: "size", maxHeight: `calc((min(100vw, 28rem) - 32px) * ${rows} / ${cols} + 16px + var(--grid-pb))` }}>
             
             {/* 盤面背景エフェクト（グラデーション） */}
             <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-90 pointer-events-none"></div>
