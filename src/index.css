@@ -2777,3 +2777,256 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .title-orb { animation: none; }
 }
+
+/* ==========================================================================
+   初期デッキ選択
+   ========================================================================== */
+.deck-heading { text-align: center; margin-bottom: 22px; }
+.deck-heading-sub {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4em;
+  padding-left: 0.4em;
+  color: rgba(196, 181, 253, 0.8);
+  margin-bottom: 8px;
+}
+.deck-heading-title {
+  font-family: var(--font-game-header), sans-serif;
+  font-size: 30px;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, #fde68a 0%, #fbbf24 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 3px 0 rgba(120, 53, 15, 0.5)) drop-shadow(0 0 18px rgba(251, 191, 36, 0.3));
+}
+.deck-heading-rule {
+  margin: 12px auto 0;
+  width: 180px;
+  height: 1px;
+  position: relative;
+  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.6), transparent);
+}
+.deck-heading-rule span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  background: #fbbf24;
+  transform: translate(-50%, -50%) rotate(45deg);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.8);
+}
+
+.deck-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 132px;
+  padding: 18px 18px 18px 20px;
+  border-radius: 20px;
+  text-align: left;
+  isolation: isolate;
+  background:
+    radial-gradient(120% 140% at 0% 50%, color-mix(in srgb, var(--c2) 30%, transparent) 0%, transparent 60%),
+    linear-gradient(135deg, rgba(20, 13, 36, 0.95), rgba(9, 6, 18, 0.95));
+  border: 1px solid color-mix(in srgb, var(--c2) 45%, transparent);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 30px color-mix(in srgb, var(--c2) 12%, transparent);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease, filter 0.3s ease;
+  animation: deck-card-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  animation-delay: calc(var(--i) * 0.09s + 0.1s);
+}
+/* 左端の色帯 */
+.deck-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--c1), var(--c2));
+  box-shadow: 0 0 12px var(--glow);
+}
+.deck-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--c1) 75%, transparent);
+  box-shadow:
+    0 14px 32px rgba(0, 0, 0, 0.55),
+    0 0 24px var(--glow),
+    inset 0 0 30px color-mix(in srgb, var(--c2) 18%, transparent);
+}
+.deck-card:active { transform: scale(0.98); }
+
+@keyframes deck-card-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 背景の大きな紋章 */
+.deck-card-watermark {
+  position: absolute;
+  right: -18px;
+  bottom: -34px;
+  font-size: 150px !important;
+  line-height: 1;
+  color: var(--c2);
+  opacity: 0.09;
+  transform: rotate(-14deg);
+  z-index: -1;
+  pointer-events: none;
+}
+/* 斜線パターン（右側だけにうっすら） */
+.deck-card-stripes {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 9px);
+  -webkit-mask-image: linear-gradient(90deg, transparent 35%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 35%, #000 100%);
+}
+/* ときどき走る光の筋 */
+.deck-card-shine {
+  position: absolute;
+  top: -50%;
+  bottom: -50%;
+  left: -40%;
+  width: 30%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  transform: skewX(-20deg) translateX(0);
+  animation: deck-shine 5s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.6s + 1s);
+}
+@keyframes deck-shine {
+  0% { transform: skewX(-20deg) translateX(0); }
+  25%, 100% { transform: skewX(-20deg) translateX(560%); }
+}
+
+/* 紋章（ひし形） */
+.deck-emblem {
+  position: relative;
+  flex: none;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.deck-emblem-ring {
+  position: absolute;
+  inset: 6px;
+  border-radius: 14px;
+  transform: rotate(45deg);
+  border: 1px solid color-mix(in srgb, var(--c1) 55%, transparent);
+  animation: deck-ring 2.8s ease-in-out infinite;
+}
+@keyframes deck-ring {
+  0%, 100% { transform: rotate(45deg) scale(1); opacity: 0.9; }
+  50% { transform: rotate(45deg) scale(1.12); opacity: 0.3; }
+}
+.deck-emblem-core {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, var(--c1), var(--c2));
+  box-shadow:
+    0 0 20px var(--glow),
+    inset 0 2px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.deck-emblem-core .material-icons-round {
+  transform: rotate(-45deg);
+  font-size: 26px;
+  color: #fff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+.deck-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.deck-card-code {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: color-mix(in srgb, var(--c1) 70%, #94a3b8);
+}
+.deck-card-name {
+  font-family: var(--font-game-header), sans-serif;
+  font-size: 36px;
+  line-height: 1.05;
+  letter-spacing: 0.08em;
+  background: linear-gradient(180deg, #fff 0%, var(--c1) 55%, var(--c2) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 12px var(--glow));
+}
+.deck-card-meta { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+.deck-card-tag {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 999px;
+  color: var(--c1);
+  background: color-mix(in srgb, var(--c2) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c1) 35%, transparent);
+}
+/* 難易度（3段） */
+.deck-card-level { display: flex; gap: 3px; }
+.deck-card-level span {
+  width: 14px;
+  height: 5px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  transform: skewX(-20deg);
+}
+.deck-card-level span.is-on {
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+  box-shadow: 0 0 6px var(--glow);
+}
+
+.deck-card-go {
+  flex: none;
+  font-size: 18px !important;
+  color: color-mix(in srgb, var(--c1) 60%, #64748b);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+.deck-card:hover .deck-card-go { transform: translateX(3px); color: #fff; }
+
+/* 選んだ瞬間の演出 */
+.deck-card.is-picked {
+  border-color: var(--c1);
+  box-shadow: 0 0 0 2px var(--c1), 0 0 40px var(--glow), inset 0 0 40px color-mix(in srgb, var(--c2) 30%, transparent);
+  animation: deck-picked 0.45s ease-out both;
+}
+.deck-card.is-picked .deck-emblem-core { animation: deck-emblem-pop 0.45s ease-out both; }
+.deck-card.is-dimmed { opacity: 0.25; filter: grayscale(0.7); transform: scale(0.97); }
+@keyframes deck-picked {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.03); }
+  100% { transform: scale(1.01); }
+}
+@keyframes deck-emblem-pop {
+  0% { transform: rotate(45deg) scale(1); }
+  40% { transform: rotate(45deg) scale(1.25); filter: brightness(1.4); }
+  100% { transform: rotate(45deg) scale(1.1); }
+}
+
+@media (min-width: 768px) {
+  .deck-card { flex-direction: column; align-items: flex-start; min-height: 240px; padding: 22px; }
+  .deck-card-go { position: absolute; right: 18px; top: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-card, .deck-card-shine, .deck-emblem-ring { animation: none; }
+}
