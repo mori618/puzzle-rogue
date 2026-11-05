@@ -13,6 +13,8 @@ import UIPreviewScreen from "./UIPreviewScreen";
 import TitleEncyclopediaScreen from "./TitleEncyclopediaScreen";
 import TitleInfoPanel, { EquippedTitleChip } from "./TitleInfoPanel";
 import PlayLogPanel from "./PlayLogPanel";
+import { TurnCycleInfo } from "./GameHud";
+import { getAttributeArc } from "./utils/hudUtils.js";
 import MinigameModal from "./MinigameModal";
 import playLog from "./utils/playLogger";
 import { loadTitleState, isTitleSealedActive } from "./utils/titleManager";
@@ -282,65 +284,53 @@ const App = () => {
 
         {/* --- Top Area Swipe Handler --- */}
         <div
-          className="flex-none flex flex-col gap-2 relative z-30"
+          className="flex-1 min-h-0 flex flex-col gap-2 relative z-30"
         >
-          {/* Top Status Bar */}
-          <header className="relative z-10 px-4 pt-[calc(12px+env(safe-area-inset-top,20px))] pb-2 flex justify-between items-center glass-panel border-b border-white/5 h-[8dvh] min-h-[60px] max-h-[76px] shrink-0">
-            <div className="flex flex-col">
-              {isPracticeMode ? (
-                <>
-                  <EquippedTitleChip equippedTitle={equippedTitle} onClick={() => setShowTitleInfo(true)} />
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-black text-white whitespace-nowrap tracking-wide">PRACTICE</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <EquippedTitleChip equippedTitle={equippedTitle} onClick={() => setShowTitleInfo(true)} />
-                  <div className="flex items-center gap-2">
-                    {/* ターンを左・サイクルを右に表示（例: TURN 3 / CYCLE 6） */}
-                    <span className="text-lg font-bold text-white whitespace-nowrap">
-                      <span className="text-[10px] uppercase text-slate-400 mr-1">Turn</span>
-                      {displayTurn}{isEndlessMode ? ' ∞' : ''}
-                    </span>
-                    <span className="text-primary font-bold">/</span>
-                    <span className="text-lg font-bold text-white whitespace-nowrap">
-                      <span className="text-[10px] uppercase text-slate-400 mr-1">Cycle</span>
-                      {(currentRunStats?.currentClears || 0) + 1}
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
+          {/* Top Status Bar: 左=メニュー / 中央=ロゴ（押すとメニュー） / 右=★とショップ */}
+          <header className="hud-header relative z-10 px-4 pt-[calc(10px+env(safe-area-inset-top,20px))] pb-2 glass-panel border-b border-white/5 shrink-0">
+            <button
+              type="button"
+              onClick={() => { soundManager.playSE(SE_IDS.UI_CLICK); setShowPause(true); }}
+              className="hud-menu-btn"
+              aria-label="メニューを開く"
+            >
+              <span className="material-icons-round">menu</span>
+            </button>
+            <div className="hud-header-center">
               <button
-                onClick={() => setShowPause(true)}
-                className="flex items-center justify-center bg-slate-800/50 hover:bg-slate-700/50 w-8 h-8 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-all text-white"
-                aria-label="Pause"
+                type="button"
+                onClick={() => { soundManager.playSE(SE_IDS.UI_CLICK); setShowPause(true); }}
+                className="hud-logo"
+                aria-label="メニューを開く"
               >
-                <span className="material-icons-round text-sm">pause</span>
+                <span className="hud-logo-main">PUZZLE</span>
+                <span className="hud-logo-sub">{isPracticeMode ? 'PRACTICE' : 'ROGUE-LIKE'}</span>
               </button>
-              {!isPracticeMode && (
-                <>
-                  <div className="flex items-center gap-2 bg-slate-800/50 px-2 py-1 rounded-full border border-white/10 relative">
-                    <span className="material-icons-round text-yellow-400 text-sm">star</span>
-                    <span className="font-bold text-sm tracking-wide">{formatJapaneseNumber(stars)}</span>
-                    {starPopups.map((p) => (
-                      <div key={p.id} className="value-popup text-yellow-300 left-1/2 -top-4 -translate-x-1/2 animate-float-up-fade text-sm">
-                        +{formatJapaneseNumber(p.diff)}
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => { openShop(); setShowShop(true); }}
-                    className="flex items-center gap-1 bg-slate-800/50 hover:bg-slate-700/50 px-3 py-1 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-all text-sm font-bold text-white"
-                  >
-                    <span className="material-icons-round text-primary text-sm">storefront</span>
-                    <span>Shop</span>
-                  </button>
-                </>
-              )}
             </div>
+            {!isPracticeMode ? (
+              <div className="hud-starshop">
+                <span className="hud-star">
+                  <span className="material-icons-round">star</span>
+                  <span className="hud-star-num">{formatJapaneseNumber(stars)}</span>
+                  {starPopups.map((p) => (
+                    <div key={p.id} className="value-popup text-yellow-300 left-1/2 -top-4 -translate-x-1/2 animate-float-up-fade text-sm">
+                      +{formatJapaneseNumber(p.diff)}
+                    </div>
+                  ))}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { openShop(); setShowShop(true); }}
+                  className="hud-shop-btn"
+                  aria-label="ショップを開く"
+                >
+                  <span className="material-icons-round">storefront</span>
+                  <span className="hud-shop-label">ショップ</span>
+                </button>
+              </div>
+            ) : (
+              <span className="hud-header-spacer" aria-hidden="true" />
+            )}
           </header>
 
           {/* Main Stats Area */}
@@ -402,26 +392,27 @@ const App = () => {
               </div>
             </section>
           ) : (
-            <section className="relative z-10 px-4 py-1.5 flex-none w-full h-[9dvh] min-h-[64px] max-h-[80px] flex flex-col justify-center">
+            <section className="relative z-10 px-4 pt-3 flex-none w-full">
               <div 
-                className="w-full relative cursor-pointer" 
+                className="hud-goal-card w-full relative cursor-pointer" 
                 onClick={() => setShowComboDetails(!showComboDetails)}
               >
                 {/* テキスト情報 */}
-                <div className="flex justify-between items-end mb-1 px-1">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${turn === maxTurns && !goalReached ? 'text-red-400' : goalReached ? 'text-green-400' : 'text-slate-400'}`}>
-                    {goalReached ? 'Goal Reached!' : 'Combo Progress'}
+                <div className="flex items-baseline gap-1.5 mb-1.5 px-0.5 min-w-0">
+                  <span className={`hud-goal-label ${turn === maxTurns && !goalReached ? 'text-red-400' : goalReached ? 'text-green-400' : 'text-slate-400'}`}>
+                    {goalReached ? (
+                      <><span className="material-icons-round">check_circle</span>目標達成</>
+                    ) : turn === maxTurns ? (
+                      <><span className="material-icons-round">warning</span>ラストターン</>
+                    ) : '目標'}
                   </span>
-                  <div className={`text-sm font-mono font-bold transition-all duration-300 flex items-baseline gap-1.5 ${goalReached ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'text-white'}`}>
-                    <span ref={targetComboRef} className={`flex items-baseline gap-1 ${targetPulse ? 'animate-target-pulse text-yellow-300' : ''}`}>
-                      <span className="text-sm font-bold">{formatJapaneseNumber(cycleTotalCombo)}</span>
-                      <span className="text-slate-400 text-xs font-normal">/</span>
-                      <span className="text-xs text-slate-300 font-semibold">{formatJapaneseNumber(isBeyondMode ? target : effectiveTarget)}</span>
-                    </span>
-                    <span className="text-[10px] font-normal text-slate-400 ml-0.5">
-                      ({Math.floor(Math.min(100, ((cycleTotalCombo / (isBeyondMode ? target : effectiveTarget)) * 100) || 0))}%)
-                    </span>
-                  </div>
+                  <span ref={targetComboRef} className={`ml-auto flex items-baseline gap-1 min-w-0 ${goalReached ? 'text-green-300' : 'text-white'} ${targetPulse ? 'animate-target-pulse text-yellow-300' : ''}`}>
+                    <span className="hud-goal-now">{formatJapaneseNumber(cycleTotalCombo)}</span>
+                    <span className="hud-goal-of">/ {formatJapaneseNumber(isBeyondMode ? target : effectiveTarget)}</span>
+                  </span>
+                  <span className="hud-goal-pct">
+                    {Math.floor(Math.min(100, ((cycleTotalCombo / (isBeyondMode ? target : effectiveTarget)) * 100) || 0))}%
+                  </span>
                 </div>
                 
                 {/* ゲージ本体 */}
@@ -462,9 +453,9 @@ const App = () => {
             const safeActivePage = Math.min(activeTokenPage, activePages - 1);
 
             return (
-              <section className="relative z-30 px-4 py-1.5 flex-none mb-2 flex flex-col justify-between w-full aspect-[2.1]">
+              <section className="relative z-30 px-4 pt-2.5 flex-none flex flex-col gap-2 w-full">
                 {isPracticeMode ? (
-                  <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-4 flex flex-col items-center justify-center backdrop-blur-md shadow-inner h-full w-full">
+                  <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-4 flex flex-col items-center justify-center backdrop-blur-md shadow-inner w-full min-h-[140px]">
                     <div className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 flex items-center gap-2">
                       <span className="w-8 h-[1px] bg-slate-800"></span>
                       Practice Best
@@ -486,28 +477,19 @@ const App = () => {
                   </div>
                 ) : (
                   <>
-                    {/* Passive Tokens Row */}
-                    <div className="w-full aspect-[4.3] flex flex-col justify-between">
-                      <h3 className="text-[10px] uppercase text-slate-500 font-bold tracking-wider flex justify-between items-center shrink-0">
-                        <span>Passive Artifacts</span>
-                        <div className="flex items-center gap-1">
-                          {passivePages > 1 && (
-                            <>
-                              <button onClick={() => setPassiveTokenPage(p => Math.max(p - 1, 0))} disabled={safePassivePage === 0}
-                                className="w-4 h-4 rounded flex items-center justify-center text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors active:scale-90">
-                                <span className="material-icons-round text-[12px]">chevron_left</span>
-                              </button>
-                              <span className="text-[9px] text-slate-600">{safePassivePage + 1}/{passivePages}</span>
-                              <button onClick={() => setPassiveTokenPage(p => Math.min(p + 1, passivePages - 1))} disabled={safePassivePage === passivePages - 1}
-                                className="w-4 h-4 rounded flex items-center justify-center text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors active:scale-90">
-                                <span className="material-icons-round text-[12px]">chevron_right</span>
-                              </button>
-                            </>
-                          )}
-                          <span className="text-[9px] ml-1">{passiveTokens.length}/{maxSlots}</span>
-                        </div>
-                      </h3>
-                      <div className="overflow-hidden w-full aspect-[5.375]"
+                    {/* Passive Tokens Row（見出しなし。上に二つ名・ターン・サイクルの行） */}
+                    <div className="w-full flex flex-col gap-2">
+                      <div className="hud-title-row">
+                        <EquippedTitleChip equippedTitle={equippedTitle} onClick={() => setShowTitleInfo(true)} className="hud-title-chip" />
+                        <TurnCycleInfo
+                          displayTurn={displayTurn}
+                          maxTurns={maxTurns}
+                          isEndlessMode={isEndlessMode}
+                          cycle={(currentRunStats?.currentClears || 0) + 1}
+                          danger={turn === maxTurns && !goalReached}
+                        />
+                      </div>
+                      <div className="overflow-hidden -mx-1 -my-1 px-1 py-1"
                         onTouchStart={e => { passiveSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
                         onTouchEnd={e => {
                           if (!passiveSwipeRef.current) return;
@@ -532,7 +514,7 @@ const App = () => {
                       >
                         <div className="flex transition-transform duration-300 ease-out h-full" style={{ transform: `translateX(-${safePassivePage * 100}%)` }}>
                           {Array.from({ length: passivePages }).map((_, pageIdx) => (
-                            <div key={pageIdx} className="grid grid-cols-5 gap-1.5 flex-shrink-0 w-full">
+                            <div key={pageIdx} className="grid grid-cols-5 gap-2 flex-shrink-0 w-full">
                               {Array.from({ length: TOKENS_PER_PAGE }).map((_, slotIdx) => {
                                 const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
                                 const t = passiveTokens[globalSlot];
@@ -545,13 +527,13 @@ const App = () => {
                                 let animClass = '';
                                 // スロット1のみ発動トークンの枠装飾
                                 if (isSlot1Active && !animClass) {
-                                  shadowClass = 'shadow-[0_0_12px_rgba(251,191,36,0.7)] animate-pulse';
+                                  shadowClass = 'tk-slot1';
                                 } else if (isSlot1Inactive && !animClass) {
                                   shadowClass = '';
                                 }
                                 if (t && triggeredPassives.includes(t.instanceId || t.id)) {
                                   animClass = 'token-trigger-pop';
-                                  shadowClass = 'token-card-triggered';
+                                  shadowClass = 'tk-triggered';
                                 }
                                 if (t && !animClass && !isSlot1Active && showLastTurnConditions) {
                                   let conditionMet = false;
@@ -572,7 +554,7 @@ const App = () => {
                                       break;
                                   }
                                   if (conditionMet) {
-                                    shadowClass = 'token-card-condition-met';
+                                    shadowClass = 'tk-cond';
                                   }
                                 }
                                 return (
@@ -590,54 +572,37 @@ const App = () => {
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, globalSlot + 1, false)}
                                     onDragEnd={() => setDraggedToken(null)}
-                                    className={`w-full aspect-square relative ${draggedToken === t ? 'opacity-40 scale-95' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isSlot1Inactive ? 'opacity-60' : ''} ${
-                                      isLocked 
-                                        ? (isExpandable ? 'token-card-empty-expandable cursor-pointer' : 'token-card-empty opacity-40 cursor-not-allowed')
-                                        : (t 
-                                            ? `${(t.isCurse || t.type === 'curse') ? 'token-card-curse' : 'token-card-passive'} cursor-pointer` 
-                                            : 'token-card-empty'
+                                    className={`tk-slot tk-cap ${draggedToken === t ? 'opacity-40 scale-95' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isSlot1Inactive ? 'opacity-60' : ''} ${
+                                      isLocked
+                                        ? (isExpandable ? 'tk-add cursor-pointer' : 'tk-empty tk-locked opacity-40 cursor-not-allowed')
+                                        : (t
+                                            ? `${(t.isCurse || t.type === 'curse') ? 'tk-on tk-curse' : 'tk-on'} cursor-pointer`
+                                            : 'tk-empty'
                                           )
                                     }`}
                                   >
-                                    <div className="absolute inset-0 overflow-hidden">
-                                      {/* 属性バー */}
-                                      {t && (
-                                        <div
-                                          className="absolute left-0 top-0 bottom-0 w-1.5 z-30"
-                                          style={getAttributeBarStyles(t?.attributes)}
-                                        />
-                                      )}
-                                      {isLocked ? (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                          {isExpandable ? (
-                                            <span className="material-icons-round text-amber-500/80 hover:text-amber-400 text-xl animate-pulse">add</span>
-                                          ) : (
-                                            <span className="material-icons-round text-slate-700 text-lg">lock</span>
-                                          )}
-                                        </div>
-                                      ) : t ? (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                          {t.isCountPassive && (
-                                            <div className="absolute inset-0 bg-primary/5 z-20">
-                                              <div
-                                                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-primary/30 to-indigo-500/10 transition-all duration-500 shadow-[inset_0_1px_0_rgba(99,102,241,0.4)]"
-                                                style={{ height: `${Math.min(100, ((t.charge || 0) / (t.values?.[(t.level || 1) - 1] || 30)) * 100)}%` }}
-                                              />
-                                            </div>
-                                          )}
-                                          <span className={`material-icons-round text-2xl relative z-35 ${t?.type === 'curse' || t?.isCurse ? 'text-red-500' : animClass ? 'text-white drop-shadow-[0_0_3px_rgba(255,255,255,0.45)]' : shadowClass === 'token-card-condition-met' ? 'text-green-300 drop-shadow-[0_0_3px_rgba(74,222,128,0.45)]' : 'text-slate-400'}`}>
-                                            {getTokenIcon(t)}
-                                          </span>
-                                        </div>
-                                      ) : null}
-                                    </div>
-                                    {t && !isLocked && (
+                                    {isLocked ? (
+                                      <span className="material-icons-round tk-ico">{isExpandable ? 'add' : 'lock'}</span>
+                                    ) : t ? (
                                       <>
-                                        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 token-level-tag-center">
-                                          Lv.{t.level || 1}
-                                        </div>
+                                        {/* 属性（左端の色） */}
+                                        {!(t.isCurse || t.type === 'curse') && (
+                                          <span className="tk-attr-bar" style={getAttributeBarStyles(t?.attributes)} />
+                                        )}
+                                        {/* カウント蓄積（左から右へ満ちる） */}
+                                        {t.isCountPassive && (
+                                          <span
+                                            className="tk-cap-fill"
+                                            style={{ width: `${Math.min(100, ((t.charge || 0) / (t.values?.[(t.level || 1) - 1] || 30)) * 100)}%` }}
+                                          />
+                                        )}
+                                        <span className={`material-icons-round tk-ico ${t?.type === 'curse' || t?.isCurse ? 'text-red-500' : animClass ? 'text-white' : shadowClass === 'tk-cond' ? 'text-green-300' : 'text-slate-300'}`}>
+                                          {getTokenIcon(t)}
+                                        </span>
+                                        <span className="tk-lv">Lv{t.level || 1}</span>
+                                        {isSlot1OnlyToken && <span className="tk-badge-one">1</span>}
                                       </>
-                                    )}
+                                    ) : null}
                                   </div>
                                 );
                               })}
@@ -655,28 +620,9 @@ const App = () => {
                       )}
                     </div>
 
-                    {/* Active Tokens Row */}
-                    <div className="w-full aspect-[4.3] flex flex-col justify-between">
-                      <h3 className="text-[10px] uppercase text-slate-500 font-bold tracking-wider flex justify-between items-center shrink-0">
-                        <span>Active Spells</span>
-                        <div className="flex items-center gap-1">
-                          {activePages > 1 && (
-                            <>
-                              <button onClick={() => setActiveTokenPage(p => Math.max(p - 1, 0))} disabled={safeActivePage === 0}
-                                className="w-4 h-4 rounded flex items-center justify-center text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors active:scale-90">
-                                <span className="material-icons-round text-[12px]">chevron_left</span>
-                              </button>
-                              <span className="text-[9px] text-slate-600">{safeActivePage + 1}/{activePages}</span>
-                              <button onClick={() => setActiveTokenPage(p => Math.min(p + 1, activePages - 1))} disabled={safeActivePage === activePages - 1}
-                                className="w-4 h-4 rounded flex items-center justify-center text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors active:scale-90">
-                                <span className="material-icons-round text-[12px]">chevron_right</span>
-                              </button>
-                            </>
-                          )}
-                          <span className="text-[9px] ml-1">{activeTokens.length}/{maxSlots}</span>
-                        </div>
-                      </h3>
-                      <div className="overflow-hidden w-full aspect-[5.375]"
+                    {/* Active Tokens Row（見出しなし） */}
+                    <div className="w-full flex flex-col gap-2">
+                      <div className="overflow-hidden -mx-1 -my-1 px-1 py-1"
                         onTouchStart={e => { activeSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
                         onTouchEnd={e => {
                           if (!activeSwipeRef.current) return;
@@ -701,7 +647,7 @@ const App = () => {
                       >
                         <div className="flex transition-transform duration-300 ease-out h-full" style={{ transform: `translateX(-${safeActivePage * 100}%)` }}>
                           {Array.from({ length: activePages }).map((_, pageIdx) => (
-                            <div key={pageIdx} className="grid grid-cols-5 gap-1.5 flex-shrink-0 w-full">
+                            <div key={pageIdx} className="grid grid-cols-5 gap-2 flex-shrink-0 w-full">
                               {Array.from({ length: TOKENS_PER_PAGE }).map((_, slotIdx) => {
                                 const globalSlot = pageIdx * TOKENS_PER_PAGE + slotIdx;
                                 const t = activeTokens[globalSlot];
@@ -725,29 +671,30 @@ const App = () => {
                                 let triggeredShadow = '';
                                 if (t && triggeredPassives.includes(t.instanceId || t.id)) {
                                   animClass = 'token-trigger-pop';
-                                  triggeredShadow = 'token-card-triggered';
+                                  triggeredShadow = 'tk-triggered';
                                 }
-                                const readyClass = isCurse
-                                  ? 'token-buff-cyan shadow-[0_0_12px_rgba(239,68,68,0.4)]'
-                                  : (t && t.rarity === 3 ? 'token-ready-gold' : t && t.rarity === 2 ? 'token-ready-sky' : '');
-                                const notReadyClass = '';
-                                const buffClass = stackCount > 0 ? 'token-buff-cyan' : '';
-                                // スロット1のみ発動トークンはスロット1時はゴールドグロー、それ以外は半透明化
-                                let slot1OnlyExtraClass = '';
-                                if (isActiveSlot1Active && !triggeredShadow) {
-                                  slot1OnlyExtraClass = 'token-ready-gold';
-                                } else if (isActiveSlot1Inactive) {
-                                  slot1OnlyExtraClass = 'opacity-50';
+                                const isSealed = !!t && isTitleSealedActive(t);
+                                const isCurseToken = !!t && (isCurse || t.type === 'curse');
+                                const readyRarityClass = t ? (t.rarity === 3 ? 'tk-ready-r3' : t.rarity === 2 ? 'tk-ready-r2' : 'tk-ready-r1') : '';
+                                let containerClasses;
+                                if (isLocked) {
+                                  containerClasses = isExpandable ? 'tk-add cursor-pointer' : 'tk-empty tk-locked opacity-40 cursor-not-allowed';
+                                } else if (!t) {
+                                  containerClasses = 'tk-empty';
+                                } else {
+                                  const parts = ['tk-on', 'cursor-pointer'];
+                                  if (isCurseToken) parts.push('tk-curse');
+                                  if (stackCount > 0) parts.push('tk-buff');
+                                  else if (isReady) parts.push('tk-ready', readyRarityClass);
+                                  if (isSealed) parts.push('tk-sealed');
+                                  // スロット1のみ発動トークン：スロット1では金枠、それ以外は半透明
+                                  if (isActiveSlot1Active && !triggeredShadow) parts.push('tk-slot1');
+                                  else if (isActiveSlot1Inactive) parts.push('opacity-50');
+                                  containerClasses = parts.join(' ');
                                 }
-                                const activeTokenBaseClass = t 
-                                  ? ((t.isCurse || t.type === 'curse') ? 'token-card-curse' : 'token-card-skill') 
-                                  : 'token-card-empty';
-                                let containerClasses = isLocked
-                                  ? (isExpandable ? 'token-card-empty-expandable cursor-pointer' : 'token-card-empty opacity-40 cursor-not-allowed')
-                                  : (t
-                                    ? (slot1OnlyExtraClass ? `${activeTokenBaseClass} ${slot1OnlyExtraClass} cursor-pointer group` : stackCount > 0 ? `${activeTokenBaseClass} ${buffClass} cursor-pointer group` : (isReady ? `${activeTokenBaseClass} ${readyClass} cursor-pointer group` : `${activeTokenBaseClass} ${notReadyClass} opacity-80 cursor-pointer`))
-                                    : 'token-card-empty');
                                 containerClasses = `${containerClasses} ${animClass} ${triggeredShadow}`;
+                                // リング：チャージ中はチャージ量、効果中は残りターンの割合
+                                const ringPercent = stackCount > 0 && activeBuff ? buffProgress : progress;
                                 return (
                                   <div
                                     key={`active-p${pageIdx}-${slotIdx}`}
@@ -763,67 +710,30 @@ const App = () => {
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, globalSlot + 1, true)}
                                     onDragEnd={() => setDraggedToken(null)}
-                                    className={`w-full aspect-square relative ${draggedToken === t ? 'opacity-40 scale-95' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isActiveSlot1Inactive ? 'opacity-60' : ''} ${containerClasses}`}
+                                    className={`tk-slot tk-cir ${draggedToken === t ? 'opacity-40 scale-95' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isActiveSlot1Inactive ? 'opacity-60' : ''} ${containerClasses}`}
+                                    style={t && !isLocked ? { '--p': `${ringPercent}%`, '--arc': getAttributeArc(t?.attributes) } : undefined}
                                   >
-
-                                    <div className="absolute inset-0 overflow-hidden">
-                                      {/* 属性バー */}
-                                      {t && (
-                                        <div
-                                          className="absolute left-0 top-0 bottom-0 w-1.5 z-30 transition-all"
-                                          style={getAttributeBarStyles(t?.attributes)}
-                                        />
-                                      )}
-                                      {isLocked ? (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                          {isExpandable ? (
-                                            <span className="material-icons-round text-amber-500/80 hover:text-amber-400 text-xl animate-pulse">add</span>
-                                          ) : (
-                                            <span className="material-icons-round text-slate-700 text-lg">lock</span>
-                                          )}
-                                        </div>
-                                      ) : t ? (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                          {/* 背景進捗ゲージ */}
-                                          <div className="absolute inset-0 bg-primary/5 z-20">
-                                            {isSkill && <div
-                                              className={`absolute bottom-0 left-0 right-0 transition-all duration-500 ${t?.isCurse ? 'bg-gradient-to-t from-red-500/30 to-red-500/10 shadow-[inset_0_1px_0_rgba(239,68,68,0.4)]' : 'bg-gradient-to-t from-primary/30 to-indigo-500/10 shadow-[inset_0_1px_0_rgba(99,102,241,0.4)]'}`}
-                                              style={{ height: `${progress}%` }}
-                                            />}
-                                            {stackCount > 0 && activeBuff && (
-                                              <div
-                                                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cyan-500/40 to-blue-400/10 transition-all duration-500 shadow-[inset_0_1px_0_rgba(34,211,238,0.4)]"
-                                                style={{ height: `${buffProgress}%` }}
-                                              />
-                                            )}
-                                          </div>
-                                          {/* Ready状態の回転ネオンマジックリング */}
-                                          {isReady && <div className="token-magic-ring z-25"></div>}
-                                          <span className={`material-icons-round text-2xl drop-shadow-md relative z-35 ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300 drop-shadow-[0_0_3px_rgba(34,211,238,0.45)]' : (t?.isCurse || t?.type === 'curse') ? (isReady ? 'text-red-400' : 'text-red-700') : (isReady ? 'text-primary' : 'text-slate-500')}`}>
-                                            {getTokenIcon(t)}
-                                          </span>
-                                        </div>
-                                      ) : null}
-                                    </div>
-
-                                    {t && !isLocked && (
+                                    {isLocked ? (
+                                      <span className="material-icons-round tk-ico">{isExpandable ? 'add' : 'lock'}</span>
+                                    ) : t ? (
                                       <>
-                                        {/* レベルタグ（中央下に配置） */}
-                                        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 token-level-tag-center">
-                                          Lv.{t.level || 1}
-                                        </div>
-                                        {/* チャージ・Readyステータスタグ（チャージ中のみ表示、Ready時はエフェクトがあるため非表示） */}
-                                        {isSkill && t.cost > 0 && !isReady && (
-                                          <span className="token-status-tag tag-charge text-[7px] absolute top-1 right-1 z-40">{charge}/{cost}</span>
+                                        {/* 属性（左側の弧） */}
+                                        {!isCurseToken && <span className="tk-attr-arc" />}
+                                        <span className={`material-icons-round tk-ico ${animClass ? 'text-white' : stackCount > 0 ? 'text-cyan-300' : isCurseToken ? (isReady ? 'text-red-300' : 'text-red-500') : isReady ? '' : 'text-slate-500'}`}>
+                                          {getTokenIcon(t)}
+                                        </span>
+                                        {stackCount > 0 && activeBuff ? (
+                                          <span className="tk-lv tk-lv-buff">{activeBuff.duration}T</span>
+                                        ) : (
+                                          <span className="tk-lv">Lv{t.level || 1}</span>
                                         )}
-                                        {/* バフ持続ターン数＆スタック数タグ（左上に統合して直接配置） */}
-                                        {stackCount > 0 && activeBuff && (
-                                          <span className="token-status-tag tag-active text-[7px] absolute top-1 left-1 z-40">
-                                            {activeBuff.duration}T{stackCount > 1 ? ` x${stackCount}` : ''}
-                                          </span>
+                                        {stackCount > 1 && <span className="tk-badge-stack">×{stackCount}</span>}
+                                        {isSealed && (
+                                          <span className="tk-badge-lock"><span className="material-icons-round">lock</span></span>
                                         )}
+                                        {isActiveSlot1OnlyToken && <span className="tk-badge-one">1</span>}
                                       </>
-                                    )}
+                                    ) : null}
                                   </div>
                                 );
                               })}
@@ -849,14 +759,6 @@ const App = () => {
 
 
 
-          {/* 操作時間ゲージ（トークンの下） */}
-          <div className="relative z-30 px-4 my-2 flex items-center gap-2 h-[3dvh] min-h-[18px] max-h-[24px]">
-            <span ref={timerTextRef} className="text-sm font-mono font-bold text-slate-300 min-w-[3ch] text-right"></span>
-            <div className="flex-1 h-3 bg-slate-800 rounded-full overflow-hidden border border-white/5 relative shadow-inner">
-              <div ref={timerRef} className="h-full bg-gradient-to-r from-green-400 to-emerald-600 w-full transition-all duration-0 ease-linear shadow-[0_0_10px_rgba(34,197,94,0.5)] rounded-full"></div>
-            </div>
-          </div>
-
           {/* スキップ確認を「いいえ」で閉じた後に再表示するための小ボタン */}
           {goalReached && turn <= maxTurns && skipPromptDismissed && !isGameOver && (
             <div className="absolute bottom-[50%] left-0 right-0 z-30 px-6 flex justify-end pointer-events-none">
@@ -873,7 +775,15 @@ const App = () => {
           {/* ======================================================== */}
           {/* 1. パズルグリッド・メイン盤面エリア                             */}
           {/* ======================================================== */}
-          <section className="relative z-20 flex-1 bg-slate-900 rounded-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden puzzle-grid-section flex flex-col justify-center p-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom,0px))]">
+          {/* 操作時間ゲージ（盤面との境目に重ねる。秒数は左） */}
+          <div className="hud-timer-edge" aria-label="残り操作時間">
+            <span ref={timerTextRef} className="hud-timer-text"></span>
+            <div className="hud-timer-track">
+              <div ref={timerRef} className="hud-timer-bar w-full transition-all duration-0 ease-linear"></div>
+            </div>
+          </div>
+
+          <section className="relative z-20 flex-1 min-h-0 bg-slate-900 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden puzzle-grid-section flex flex-col justify-start p-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom,0px))]" style={{ containerType: "size" }}>
             
             {/* 盤面背景エフェクト（グラデーション） */}
             <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-90 pointer-events-none"></div>
@@ -884,7 +794,8 @@ const App = () => {
             </div>
 
             {/* アスペクト比を維持するドロップ配置用グリッドコンテナ（cols/rows の比率で伸縮） */}
-            <div className="w-full max-h-full mx-auto my-auto relative flex-shrink-0" style={{ aspectRatio: `${cols} / ${rows}` }}>
+            {/* 横幅は「エリア幅」と「エリア高さ×縦横比」の小さいほう。縦が足りない端末では盤面ごと縮めて収める */}
+            <div className="mx-auto relative flex-shrink-0" style={{ aspectRatio: `${cols} / ${rows}`, width: `min(100cqw, calc(100cqh * ${cols} / ${rows}))` }}>
 
               {/* レイヤー 1: パズルボード本体（PuzzleEngine がオーブを描画する DOM ターゲット） */}
               <div
@@ -1150,7 +1061,7 @@ const App = () => {
 
           {
             showPause && (
-              <div className="absolute inset-0 z-[400] bg-background-dark">
+              <div className="absolute inset-0 z-[400]">
                 <PauseScreen
                   onResume={() => setShowPause(false)}
                   onTitle={() => {
@@ -1164,7 +1075,13 @@ const App = () => {
                   onStats={() => setShowStats(true)}
                   onCredits={() => setShowCredits(true)}
                   onSettings={() => setShowSettings(true)}
-                  onTitles={() => setShowTitleInfo(true)}
+                  runInfo={isPracticeMode ? null : {
+                    cycle: (currentRunStats?.currentClears || 0) + 1,
+                    turn: displayTurn,
+                    maxTurns,
+                    isEndlessMode,
+                    stars: formatJapaneseNumber(stars),
+                  }}
                   onDownloadLog={!isPracticeMode && playLog.getCurrent() ? () => playLog.download() : undefined}
                 />
               </div>
