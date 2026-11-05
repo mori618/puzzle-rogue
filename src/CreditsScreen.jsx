@@ -1,4 +1,5 @@
 import React from 'react';
+import ScreenShell, { UiSection } from './ScreenShell';
 
 const CreditsScreen = ({ onClose }) => {
     const licenses = [
@@ -83,87 +84,53 @@ SOFTWARE.`
     ];
 
     return (
-        <div 
-            className="w-full h-screen bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-fade-in font-game-cyber"
-            onClick={onClose}
-        >
-            <div 
-                className="game-panel-cyber rounded-2xl w-full max-w-md h-full max-h-[85vh] flex flex-col"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* ヘッダー */}
-                <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-950/40 shrink-0">
-                    <h2 className="text-base font-game-header text-indigo-300 flex items-center gap-2">
-                        <span className="material-icons-round text-indigo-400">info</span>
-                        CREDITS
-                    </h2>
-                    <button
-                        onClick={onClose}
-                        className="btn-game-cyber rounded-xl w-8 h-8 p-0 flex items-center justify-center text-slate-400"
-                    >
-                        <span className="material-icons-round text-[18px]">close</span>
-                    </button>
+        <ScreenShell icon="info" title="クレジット" subtitle="CREDITS" onClose={onClose}>
+            <div className="flex flex-col gap-6">
+                {/* 開発者 */}
+                <div className="ui-card py-5 flex flex-col items-center gap-1">
+                    <span className="text-[10px] font-bold text-slate-500 tracking-[0.3em]">DEVELOPER</span>
+                    <p className="text-2xl font-game-header tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-amber-500">
+                        MORI
+                    </p>
                 </div>
 
-                {/* スクロールエリア */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
-                    {/* 開発者 */}
-                    <div className="text-center">
-                        <h3 className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Developer</h3>
-                        <p className="text-xl font-game-header text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500 drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]">
-                            MORI
-                        </p>
-                    </div>
-
-                    {/* 素材 */}
-                    <section>
-                        <h3 className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-widest text-center">Assets & Materials</h3>
-                        <div className="space-y-3">
-                            <div className="bg-slate-950/40 p-3 rounded-xl border border-white/5">
-                                <p className="text-xs font-bold text-slate-300">BGM・効果音</p>
-                                <p className="text-sm text-slate-400 mt-1">魔王魂 / 効果音ラボ</p>
-                            </div>
-                            <div className="bg-slate-950/40 p-3 rounded-xl border border-white/5">
-                                <p className="text-xs font-bold text-slate-300">アイコン・フォント</p>
-                                <p className="text-sm text-slate-400 mt-1">Material Icons / Google Fonts</p>
-                            </div>
+                {/* 素材 */}
+                <UiSection title="素材" icon="palette">
+                    <div className="ui-card overflow-hidden">
+                        <div className="ui-row">
+                            <span className="text-slate-400 text-xs font-bold">BGM・効果音</span>
+                            <span className="text-slate-200 text-sm text-right">魔王魂 / 効果音ラボ</span>
                         </div>
-                    </section>
-
-                    {/* OSSライセンス */}
-                    <section>
-                        <h3 className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-widest text-center">Open Source Licenses</h3>
-                        <div className="space-y-4">
-                            {licenses.map((lib, i) => (
-                                <div key={i} className="bg-slate-950/50 p-4 rounded-xl border border-white/5">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <p className="text-sm font-bold text-indigo-400">{lib.name}</p>
-                                        <p className="text-[10px] text-slate-500">v{lib.version} / {lib.license}</p>
-                                    </div>
-                                    <pre className="text-[9px] text-slate-500 font-mono leading-relaxed overflow-x-auto p-2 bg-black/30 rounded-lg max-h-32">
-                                        {lib.text}
-                                    </pre>
-                                </div>
-                            ))}
+                        <div className="ui-row">
+                            <span className="text-slate-400 text-xs font-bold">アイコン・フォント</span>
+                            <span className="text-slate-200 text-sm text-right">Material Icons / Google Fonts</span>
                         </div>
-                    </section>
-
-                    <div className="text-center pb-4">
-                        <p className="text-[10px] text-slate-600 font-mono tracking-widest">© 2026 MORI</p>
                     </div>
-                </div>
+                </UiSection>
 
-                {/* フッター */}
-                <div className="p-4 border-t border-white/10 shrink-0 bg-slate-950/40">
-                    <button
-                        onClick={onClose}
-                        className="w-full btn-game-secondary py-3 text-sm"
-                    >
-                        閉じる
-                    </button>
-                </div>
+                {/* OSSライセンス */}
+                <UiSection title="オープンソースライセンス" icon="gavel">
+                    <div className="flex flex-col gap-2">
+                        {licenses.map((lib) => (
+                            <details key={lib.name} className="ui-card group overflow-hidden">
+                                <summary className="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer list-none select-none">
+                                    <span className="text-sm font-bold text-indigo-300">{lib.name}</span>
+                                    <span className="flex items-center gap-2 text-[11px] text-slate-500">
+                                        v{lib.version} / {lib.license}
+                                        <span className="material-icons-round text-[18px] transition-transform group-open:rotate-180">expand_more</span>
+                                    </span>
+                                </summary>
+                                <pre className="text-[9.5px] text-slate-400 font-mono leading-relaxed whitespace-pre-wrap px-4 pb-4">
+                                    {lib.text}
+                                </pre>
+                            </details>
+                        ))}
+                    </div>
+                </UiSection>
+
+                <p className="text-center text-[10px] text-slate-600 font-mono tracking-widest">© 2026 MORI</p>
             </div>
-        </div>
+        </ScreenShell>
     );
 };
 

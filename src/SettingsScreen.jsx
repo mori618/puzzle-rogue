@@ -1,191 +1,163 @@
 import React, { useState } from 'react';
 import BackupScreen from './BackupScreen';
 import { UpdateSettingsSection } from './UpdateNotice';
+import ScreenShell, { UiSection } from './ScreenShell';
+
+/** 音量スライダー（ミュート切り替え付き） */
+const VolumeRow = ({ icon, label, volume, muted, onVolume, onToggleMute }) => {
+    const value = muted ? 0 : volume;
+    return (
+        <div className="px-4 py-3.5">
+            <div className="flex items-center justify-between mb-3">
+                <span className="text-slate-200 text-sm font-bold flex items-center gap-2">
+                    <span className="material-icons-round text-[18px] text-violet-300">{icon}</span>
+                    {label}
+                </span>
+                <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs text-slate-400 w-9 text-right">{Math.round(value * 100)}%</span>
+                    <button
+                        type="button"
+                        onClick={onToggleMute}
+                        aria-label={muted ? `${label}のミュートを解除` : `${label}をミュート`}
+                        aria-pressed={muted}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors ${muted
+                            ? 'bg-rose-500/20 border-rose-400/50 text-rose-300'
+                            : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
+                            }`}
+                    >
+                        <span className="material-icons-round text-[18px]">{muted ? 'volume_off' : 'volume_up'}</span>
+                    </button>
+                </div>
+            </div>
+            <input
+                type="range" min="0" max="1" step="0.05"
+                value={value}
+                onChange={(e) => onVolume(parseFloat(e.target.value))}
+                disabled={muted}
+                aria-label={label}
+                className="ui-range"
+                style={{ '--fill': `${value * 100}%` }}
+            />
+        </div>
+    );
+};
 
 /**
  * SettingsScreen - ゲーム設定画面
- * ポーズ画面から遷移する設定画面。コンボ演出モード等の設定を管理する。
+ * タイトル・ポーズ画面から開く。コンボ演出・音量・倍速・更新・バックアップを管理する。
  */
 const SettingsScreen = ({ settings, onSettingsChange, onClose }) => {
     const { comboAnimationMode = 'instant' } = settings || {};
     const [showBackup, setShowBackup] = useState(false);
+    const speed = settings.speedMultiplier || 3;
+
+    const comboModes = [
+        { id: 'instant', icon: 'flash_on', label: '一括演出', desc: 'ボーナスや最終値をまとめて表示' },
+        { id: 'step', icon: 'filter_none', label: '段階的演出', desc: '効果ごとに1つずつ順に加算表示' },
+    ];
 
     return (
-        <div 
-            className="relative w-full h-full bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-fade-in font-game-cyber"
-            onClick={onClose}
-        >
-            <div 
-                className="game-panel-cyber rounded-2xl w-full max-w-xs flex flex-col max-h-[90vh] overflow-y-auto no-scrollbar p-6"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* ヘッダー */}
-                <h2 className="text-3xl font-game-header text-indigo-300 mb-6 text-center tracking-widest flex items-center justify-center gap-2">
-                    <span className="material-icons-round text-indigo-400">settings</span>
-                    設定
-                </h2>
-
-                <div className="w-full flex flex-col gap-4">
-
-                    {/* コンボ演出モード */}
-                    <div className="bg-slate-950/40 rounded-xl p-4 border border-white/5">
-                        <p className="text-slate-300 text-sm font-bold mb-2 flex items-center gap-1.5">
-                            <span className="material-icons-round text-base text-indigo-400">auto_awesome</span>
-                            コンボ演出
-                        </p>
-                        <p className="text-slate-500 text-[11px] mb-3 leading-relaxed">
-                            コンボ終了後のボーナス計算を表示する方法を選択。
-                        </p>
-
-                        {/* 一括演出ボタン */}
-                        <button
-                            onClick={() => onSettingsChange('comboAnimationMode', 'instant')}
-                            className={`w-full py-2.5 rounded-xl font-bold flex items-center gap-3 px-4 mb-2 text-sm ${comboAnimationMode === 'instant'
-                                ? 'btn-game-primary'
-                                : 'btn-game-cyber text-slate-400'
-                                }`}
-                        >
-                            <span className="material-icons-round text-base">flash_on</span>
-                            <div className="text-left leading-tight">
-                                <div className="font-black text-sm">一括演出</div>
-                                <div className={`text-[10px] font-normal mt-0.5 ${comboAnimationMode === 'instant' ? 'text-indigo-950/70 font-semibold' : 'text-slate-500'}`}>
-                                    ボーナスや最終値をまとめて表示
-                                </div>
-                            </div>
-                            {comboAnimationMode === 'instant' && (
-                                <span className="material-icons-round text-indigo-950 ml-auto text-base">check_circle</span>
-                            )}
-                        </button>
-
-                        {/* 段階的演出ボタン */}
-                        <button
-                            onClick={() => onSettingsChange('comboAnimationMode', 'step')}
-                            className={`w-full py-2.5 rounded-xl font-bold flex items-center gap-3 px-4 text-sm ${comboAnimationMode === 'step'
-                                ? 'btn-game-primary'
-                                : 'btn-game-cyber text-slate-400'
-                                }`}
-                        >
-                            <span className="material-icons-round text-base">filter_none</span>
-                            <div className="text-left leading-tight">
-                                <div className="font-black text-sm">段階的演出</div>
-                                <div className={`text-[10px] font-normal mt-0.5 ${comboAnimationMode === 'step' ? 'text-indigo-950/70 font-semibold' : 'text-slate-500'}`}>
-                                    効果ごとに1つずつ順に加算表示
-                                </div>
-                            </div>
-                            {comboAnimationMode === 'step' && (
-                                <span className="material-icons-round text-indigo-950 ml-auto text-base">check_circle</span>
-                            )}
-                        </button>
-                    </div>
-
-                    {/* BGM音量 */}
-                    <div className="bg-slate-950/40 rounded-xl p-4 border border-white/5">
-                        <div className="flex items-center justify-between mb-3">
-                            <p className="text-slate-300 text-sm font-bold flex items-center gap-1.5">
-                                <span className="material-icons-round text-base text-indigo-400">music_note</span>
-                                BGM音量
-                            </p>
-                            <button 
-                                onClick={() => onSettingsChange('bgmMuted', !settings.bgmMuted)}
-                                className={`w-8 h-8 rounded-xl flex items-center justify-center ${settings.bgmMuted ? 'btn-game-danger p-0' : 'btn-game-cyber p-0 text-indigo-300'}`}
-                            >
-                                <span className="material-icons-round text-base">{settings.bgmMuted ? 'volume_off' : 'volume_up'}</span>
-                            </button>
-                        </div>
-                        <input 
-                            type="range" min="0" max="1" step="0.05"
-                            value={settings.bgmMuted ? 0 : settings.bgmVolume}
-                            onChange={(e) => onSettingsChange('bgmVolume', parseFloat(e.target.value))}
-                            disabled={settings.bgmMuted}
-                            className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-indigo-500 disabled:opacity-30"
-                        />
-                    </div>
-
-                    {/* SE音量 */}
-                    <div className="bg-slate-950/40 rounded-xl p-4 border border-white/5">
-                        <div className="flex items-center justify-between mb-3">
-                            <p className="text-slate-300 text-sm font-bold flex items-center gap-1.5">
-                                <span className="material-icons-round text-base text-indigo-400">volume_up</span>
-                                効果音音量
-                            </p>
-                            <button 
-                                onClick={() => onSettingsChange('seMuted', !settings.seMuted)}
-                                className={`w-8 h-8 rounded-xl flex items-center justify-center ${settings.seMuted ? 'btn-game-danger p-0' : 'btn-game-cyber p-0 text-indigo-300'}`}
-                            >
-                                <span className="material-icons-round text-base">{settings.seMuted ? 'volume_off' : 'volume_up'}</span>
-                            </button>
-                        </div>
-                        <input 
-                            type="range" min="0" max="1" step="0.05"
-                            value={settings.seMuted ? 0 : settings.seVolume}
-                            onChange={(e) => onSettingsChange('seVolume', parseFloat(e.target.value))}
-                            disabled={settings.seMuted}
-                            className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-indigo-500 disabled:opacity-30"
-                        />
-                    </div>
-
-                    {/* 倍速の速さ */}
-                    <div className="bg-slate-950/40 rounded-xl p-4 border border-white/5">
-                        <p className="text-slate-300 text-sm font-bold mb-2 flex items-center gap-1.5">
-                            <span className="material-icons-round text-base text-indigo-400">speed</span>
-                            倍速の速さ
-                        </p>
-                        <p className="text-slate-500 text-[11px] mb-3 leading-relaxed">
-                            パズル演出時の長押し倍速スピードを変更。
-                        </p>
-
-                        <div className="flex gap-2">
-                            {[2, 3, 5].map((speed) => (
+        <ScreenShell icon="settings" title="設定" onClose={onClose}>
+            <div className="flex flex-col gap-5">
+                {/* コンボ演出モード */}
+                <UiSection title="コンボ演出" icon="auto_awesome">
+                    <div className="ui-card p-1.5 flex flex-col gap-1">
+                        {comboModes.map((m) => {
+                            const active = comboAnimationMode === m.id;
+                            return (
                                 <button
-                                    key={speed}
-                                    onClick={() => onSettingsChange('speedMultiplier', speed)}
-                                    className={`flex-1 py-2 rounded-xl font-bold text-xs ${
-                                        (settings.speedMultiplier || 3) === speed
-                                            ? 'btn-game-primary'
-                                            : 'btn-game-cyber text-slate-400'
-                                    }`}
+                                    key={m.id}
+                                    type="button"
+                                    onClick={() => onSettingsChange('comboAnimationMode', m.id)}
+                                    aria-pressed={active}
+                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left border transition-colors ${active
+                                        ? 'bg-amber-400/12 border-amber-400/60'
+                                        : 'border-transparent hover:bg-white/5'
+                                        }`}
                                 >
-                                    {speed}倍
+                                    <span className={`material-icons-round text-[20px] ${active ? 'text-amber-300' : 'text-slate-500'}`}>{m.icon}</span>
+                                    <span className="flex-1 min-w-0 leading-tight">
+                                        <span className={`block text-sm font-black ${active ? 'text-white' : 'text-slate-300'}`}>{m.label}</span>
+                                        <span className="block text-[11px] text-slate-400 mt-0.5">{m.desc}</span>
+                                    </span>
+                                    <span className={`material-icons-round text-[20px] ${active ? 'text-amber-300' : 'text-slate-700'}`}>
+                                        {active ? 'radio_button_checked' : 'radio_button_unchecked'}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </UiSection>
+
+                {/* サウンド */}
+                <UiSection title="サウンド" icon="graphic_eq">
+                    <div className="ui-card divide-y divide-white/5">
+                        <VolumeRow
+                            icon="music_note"
+                            label="BGM"
+                            volume={settings.bgmVolume}
+                            muted={settings.bgmMuted}
+                            onVolume={(v) => onSettingsChange('bgmVolume', v)}
+                            onToggleMute={() => onSettingsChange('bgmMuted', !settings.bgmMuted)}
+                        />
+                        <VolumeRow
+                            icon="volume_up"
+                            label="効果音"
+                            volume={settings.seVolume}
+                            muted={settings.seMuted}
+                            onVolume={(v) => onSettingsChange('seVolume', v)}
+                            onToggleMute={() => onSettingsChange('seMuted', !settings.seMuted)}
+                        />
+                    </div>
+                </UiSection>
+
+                {/* 倍速の速さ */}
+                <UiSection title="倍速の速さ" icon="speed">
+                    <div className="ui-card p-3">
+                        <p className="text-slate-400 text-[11px] mb-2.5 leading-relaxed">
+                            パズル演出時に長押しした時の倍速スピード
+                        </p>
+                        <div className="ui-segment">
+                            {[2, 3, 5].map((s) => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => onSettingsChange('speedMultiplier', s)}
+                                    aria-pressed={speed === s}
+                                    className={speed === s ? 'is-active' : ''}
+                                >
+                                    {s}倍
                                 </button>
                             ))}
                         </div>
                     </div>
+                </UiSection>
 
-                    {/* アプリの更新（オフライン用キャッシュの更新） */}
-                    <UpdateSettingsSection />
+                {/* データ */}
+                <UiSection title="データ" icon="storage">
+                    <div className="flex flex-col gap-2">
+                        {/* アプリの更新（オフライン用キャッシュの更新） */}
+                        <UpdateSettingsSection />
 
-                    {/* セーブデータのバックアップ */}
-                    <button
-                        onClick={() => setShowBackup(true)}
-                        className="w-full btn-game-cyber py-3 flex items-center gap-3 px-4 text-sm text-indigo-200"
-                    >
-                        <span className="material-icons-round text-base text-indigo-400">backup</span>
-                        <div className="text-left leading-tight">
-                            <div className="font-black text-sm">セーブデータのバックアップ</div>
-                            <div className="text-[10px] font-normal mt-0.5 text-slate-500">書き出し・読み込み / 機種変更</div>
-                        </div>
-                        <span className="material-icons-round text-slate-500 ml-auto text-base">chevron_right</span>
-                    </button>
-
-                    <div className="my-1 border-b border-white/10 w-full"></div>
-
-                    {/* 戻るボタン */}
-                    <button
-                        onClick={onClose}
-                        className="w-full btn-game-secondary py-3 flex justify-center items-center gap-2"
-                    >
-                        <span className="material-icons-round text-lg">arrow_back</span>
-                        戻る
-                    </button>
-                </div>
+                        {/* セーブデータのバックアップ */}
+                        <button
+                            type="button"
+                            onClick={() => setShowBackup(true)}
+                            className="ui-card w-full flex items-center gap-3 px-4 py-3 text-left hover:border-violet-400/50 transition-colors"
+                        >
+                            <span className="material-icons-round text-[20px] text-violet-300">backup</span>
+                            <span className="flex-1 leading-tight">
+                                <span className="block text-sm font-bold text-slate-200">セーブデータのバックアップ</span>
+                                <span className="block text-[11px] text-slate-400 mt-0.5">書き出し・読み込み / 機種変更</span>
+                            </span>
+                            <span className="material-icons-round text-slate-500">chevron_right</span>
+                        </button>
+                    </div>
+                </UiSection>
             </div>
 
-            {showBackup && (
-                <div onClick={(e) => e.stopPropagation()}>
-                    <BackupScreen onClose={() => setShowBackup(false)} />
-                </div>
-            )}
-        </div>
+            {showBackup && <BackupScreen onClose={() => setShowBackup(false)} />}
+        </ScreenShell>
     );
 };
 

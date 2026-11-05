@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { ScreenHeader } from './ScreenShell';
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 // エンチャント廃止に伴いコメントアウト
 // import { ENCHANTMENTS, getEnchantDescription } from './constants/enchantments.js';
@@ -115,15 +116,14 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
             <div className="cyber-grid-bg"></div>
 
             {/* --- ヘッダー --- */}
-            <header className="flex-none px-6 py-4 bg-slate-950/80 border-b border-white/10 backdrop-blur-md z-20 flex justify-between items-center relative">
-                <div className="flex items-center gap-3">
-                    <span className="material-icons-round text-indigo-400 text-3xl">menu_book</span>
-                    <h1 className="text-lg font-game-header tracking-widest text-indigo-300 uppercase text-japanese">トークン図鑑</h1>
-                </div>
-                <button onClick={onClose} className="btn-game-cyber rounded-xl w-9 h-9 p-0 flex items-center justify-center text-slate-400">
-                    <span className="material-icons-round text-lg">close</span>
-                </button>
-            </header>
+            <div className="relative z-20">
+                <ScreenHeader
+                    icon="menu_book"
+                    title="トークン図鑑"
+                    subtitle={`${filteredAndSortedData.length} / ${allData.length} 件`}
+                    onClose={onClose}
+                />
+            </div>
 
             {/* --- 検索 & フィルタパネル --- */}
             <div className="flex-none p-4 bg-slate-950/45 border-b border-white/5 z-10 space-y-3 relative backdrop-blur-sm">
