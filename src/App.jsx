@@ -776,6 +776,8 @@ const App = () => {
           {/* 1. パズルグリッド・メイン盤面エリア                             */}
           {/* ======================================================== */}
           {/* 操作時間ゲージ（盤面との境目に重ねる。秒数は左） */}
+          {/* 余った縦スペースを吸収して盤面を下に寄せるスペーサー */}
+          <div className="flex-1 min-h-0" aria-hidden="true"></div>
           <div className="hud-timer-edge" aria-label="残り操作時間">
             <span ref={timerTextRef} className="hud-timer-text"></span>
             <div className="hud-timer-track">
@@ -783,7 +785,7 @@ const App = () => {
             </div>
           </div>
 
-          <section className="relative z-20 flex-1 min-h-0 bg-slate-900 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden puzzle-grid-section flex flex-col justify-start p-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom,0px))]" style={{ containerType: "size" }}>
+          <section className="relative z-20 flex-1 grow-[1000] min-h-0 bg-slate-900 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden puzzle-grid-section flex flex-col justify-start p-4 pt-4" style={{ containerType: "size", maxHeight: `calc((min(100vw, 28rem) - 32px) * ${rows} / ${cols} + 16px + var(--grid-pb))` }}>
             
             {/* 盤面背景エフェクト（グラデーション） */}
             <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-90 pointer-events-none"></div>
