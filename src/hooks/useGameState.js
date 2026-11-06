@@ -14,6 +14,7 @@ import { ENCHANT_DESCRIPTIONS, ENCHANTMENTS } from '../constants/enchantments.js
 import { getComboStarUnits } from '../utils/starEconomy.js';
 import { MAX_COMBO, MAX_TARGET, TRIAL_TIME_LIMIT_MS, TRIAL_BOARD_COMBOS, SAVE_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost, TIME_BANK_MAX_MS } from '../constants/gameConstants.js';
 import { calcBaseCombo, calcComboMultiplier, applyComboMultiplier, INUGAMI_THRESHOLD } from '../utils/comboFormula';
+import { pickRunTrend } from '../constants/runTrends';
 import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, applyNewTokenLevel, isProbabilityToken, isRabbitToken, countRabbitTokens, RABBIT_TOKEN_IDS } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { buildEffectiveTokens, resolveCopiedToken, getBuffsInEffect, decrementBuffDurations, isTrialStageActive } from '../utils/effectiveTokens.js';
@@ -5704,7 +5705,9 @@ export const useGameState = () => {
     setTokenSlotExpansionCount(0);
     setTitleSwitchCount(0);
     setIsAwakeningLevelUpBought(false);
-    generateShop();
+    // ランごとのショップの傾向を裏で抽選（そのラン中ずっと有効・プレイヤーには非表示）
+    const shopTrend = pickRunTrend();
+    generateShop(null, shopTrend);
     if (engineRef.current) {
       engineRef.current.init(null);
     }
@@ -5715,7 +5718,8 @@ export const useGameState = () => {
       }
       return nextStats;
     });
-    setCurrentRunStats(initialCurrentRunStats);
+    setCurrentRunStats({ ...initialCurrentRunStats, shopTrend });
+    playLog.event('shopTrend', { trend: shopTrend });
   };
 
   const handleStartOptionSelection = (option) => {

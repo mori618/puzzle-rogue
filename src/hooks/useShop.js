@@ -6,11 +6,14 @@ import { ENCHANTMENTS } from "../constants/enchantments.js";
 import {
   SHOP_REROLL_GROWTH_FACTOR,
   SYNERGY_WEIGHT_MULTIPLIER,
+  SHOP_SAME_FAMILY_WEIGHT,
+  SHOP_SAME_TOKEN_WEIGHT,
   INITIAL_TOKEN_SLOTS,
   getMaxTokenSlotExpansions,
   getTokenSlotExpandPriceFor,
 } from "../constants/gameConstants.js";
 import { getTokenDescription, filterPoolByFreeSlots, applyNewTokenLevel, isTokenRequirementMet, getDebtCreditLimit, canAffordWithCredit, isProbabilityToken } from "../utils/tokenUtils";
+import { getTrendWeight } from "../constants/runTrends.js";
 import { getTokenDynamicPrice as calcTokenDynamicPrice, repriceShopItems } from "../utils/tokenPricing.js";
 import soundManager from "../utils/SoundManager";
 import { SE_IDS } from "../constants/sounds";
@@ -123,7 +126,8 @@ export const useShop = ({
   }, [tokens, hasSaintToken]);
 
   /** ショップアイテムの生成 */
-  const generateShop = useCallback((overrideCycleCount = null) => {
+  // overrideTrend: ラン開始直後など currentRunStats がまだ古いときに、新しいランの傾向を直接渡す
+  const generateShop = useCallback((overrideCycleCount = null, overrideTrend = undefined) => {
     // 二つ名「詠唱者」でパッシブを封印しているときは、パッシブのショップ効果も発動しない
     const shopEffectTokens = applyTitlePassiveSeal(tokens, getActiveTitleEffects());
 
@@ -250,6 +254,13 @@ export const useShop = ({
     if (activesPools[3].length === 0) activesPools[3] = activesPools[2];
     if (activesPools[4].length === 0) activesPools[4] = activesPools[3];
 
+    // ランごとの傾向（裏で抽選され、ショップの出やすさに偏りをつける）
+    const shopTrend = overrideTrend !== undefined ? overrideTrend : currentRunStats?.shopTrend;
+    // 同じショップ内で、同じ系統（effect / action）や同じトークンが並びすぎないようにする
+    const pickedFamilyCount = {};
+    const pickedIdCount = {};
+    const getFamilyKey = (base) => base.effect || base.action || base.id;
+
     const createTokenItem = (pools) => {
       const rarity = getRarity();
       const pool = pools[rarity];
@@ -266,6 +277,10 @@ export const useShop = ({
         // 前提トークンを所持している関連トークンは出現率アップ（例: ムーブドロップ関連）
         if (base.requires) weight *= SYNERGY_WEIGHT_MULTIPLIER;
         if (probabilityWeight !== 1 && isProbabilityToken(base)) weight *= probabilityWeight;
+        weight *= getTrendWeight(base, shopTrend);
+        const familyCount = pickedFamilyCount[getFamilyKey(base)] || 0;
+        if (familyCount > 0) weight *= Math.pow(SHOP_SAME_FAMILY_WEIGHT, familyCount);
+        if (pickedIdCount[base.id]) weight *= SHOP_SAME_TOKEN_WEIGHT;
         return { base, weight };
       });
 
@@ -279,6 +294,9 @@ export const useShop = ({
           break;
         }
       }
+
+      pickedFamilyCount[getFamilyKey(selectedBase)] = (pickedFamilyCount[getFamilyKey(selectedBase)] || 0) + 1;
+      pickedIdCount[selectedBase.id] = (pickedIdCount[selectedBase.id] || 0) + 1;
 
       const baseItem = { ...selectedBase, level: 1, charge: selectedBase.cost || 0 };
       baseItem.price = getTokenDynamicPrice(selectedBase, tokens);
@@ -404,7 +422,7 @@ export const useShop = ({
     });
 
     setShopItems(finalItems);
-    playLog.event('shopItems', { items: finalItems.map(it => ({ ...compactToken(it), itype: it.type, price: it.price, sale: it.isSale ? 1 : undefined })) });
+    playLog.event('shopItems', { trend: shopTrend?.id, items: finalItems.map(it => ({ ...compactToken(it), itype: it.type, price: it.price, sale: it.isSale ? 1 : undefined })) });
     return finalItems;
   }, [tokens, currentRunStats, activeBuffs, getTokenDynamicPrice, setIsAwakeningLevelUpBought, hasSaintToken]);
 
