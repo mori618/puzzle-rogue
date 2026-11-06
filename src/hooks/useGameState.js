@@ -2907,7 +2907,7 @@ export const useGameState = () => {
       if (isCursePassiveNull && t.type === 'passive') return;
       const lv = t.level || 1;
       const tId = t.instanceId || t.id;
-      const multVal = t.values[lv - 1]; // 2 / 3 / 5
+      const multVal = t.values[lv - 1]; // 2 / 2.3 / 3
       if (remainingTimeMs >= 2000) {
         if (isInstant) triggerPassive(tId);
         multMultiplier *= multVal;
@@ -2944,7 +2944,7 @@ export const useGameState = () => {
       if (isCursePassiveNull && t.type === 'passive') return;
       const lv = t.level || 1;
       const tId = t.instanceId || t.id;
-      const multVal = t.values[lv - 1]; // 2 / 3 / 7
+      const multVal = t.values[lv - 1]; // 2 / 2.3 / 3
       if (window.probabilityTriggeredThisTurn) {
         if (isInstant) triggerPassive(tId);
         baseMultiplier *= multVal;
@@ -3143,7 +3143,7 @@ export const useGameState = () => {
       const myColor = t.params.color;
       const enemyColor = oppositions[myColor];
       const lv = t.level || 1;
-      const multVal = t.values[lv - 1]; // 3 / 5 / 8
+      const multVal = t.values[lv - 1]; // 3 / 3.7 / 5
       const tId = t.instanceId || t.id;
 
       const myCombo = colorComboCounts[myColor] || 0;

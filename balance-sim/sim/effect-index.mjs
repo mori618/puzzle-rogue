@@ -171,6 +171,11 @@ const entries = E.map(e => {
   const toks = e.ids.map(id => byId[id]).filter(Boolean);
   if (toks.length === 0) throw new Error(`unknown token: ${e.ids.join(',')}`);
   const t0 = toks[0];
+  // ③のパッシブは values がそのまま倍率なので、tokens.js の値を使う（手書きの値とずれないように）
+  if (e.tier === 3 && t0.type === 'passive' && ['fixed', 'unit', 'scale'].includes(e.kind)
+    && Array.isArray(t0.values) && t0.values.length === 3 && t0.values.every(x => typeof x === 'number')) {
+    e.v = t0.values;
+  }
   const name = toks.length > 1 ? `${t0.name} ほか${toks.length - 1}種` : t0.name;
   const sim = (S) => {
     const xs = toks.map(t => S[t.id]?.gainPct).filter(x => x != null);
@@ -321,7 +326,7 @@ L.push('- ① は「+N コンボ」、② は「コンボ倍率にプラス X」
 L.push('- ② は同じ段どうしで足し算なので、持てば持つほど1個あたりの伸びが小さくなる。③ は掛け算なので、持つほど伸びが大きくなる。');
 L.push('- 値は「発動したときに実際に入る値」。説明文の「プラス{values}」は、実装では values−1 を足しているものが多い（例: 炎の力 values=[2,3,4] → 実際は +1/+2/+3）。');
 L.push('- 色違いなど同じ効果のトークンは1行にまとめ、統計も1件として数えています（「ほかN種」）。');
-L.push('- 「実測」は balance-sim の単体テスト（トークン1個だけで15手番、ボットのプレイ）での平均コンボの増加率（Lv1 / 最大Lv）。条件をボットが狙わないトークンは低く出ます。');
+L.push('- 「実測」は balance-sim の単体テスト（トークン1個だけで15手番、ボットのプレイ）での平均コンボの増加率（Lv1 / 最大Lv）。条件をボットが狙わないトークンは低く出ます。③の実測は、Lv3を旧Lv2の値に下げる前の測定です。');
 L.push('- エンチャントは廃止済みなので対象外。', '');
 L.push('### 段ごとの効き方の目安', '');
 L.push('盤面8コンボ、②の合計 +3（倍率4）、③なし のときに、各段の「中央値の1個」を足すと:', '');
