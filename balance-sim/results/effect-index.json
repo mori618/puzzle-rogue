@@ -1,0 +1,4591 @@
+{
+ "generatedFrom": "src/constants/tokens.js と src/hooks/useGameState.js（handleTurnEnd）",
+ "entries": [
+  {
+   "tier": 1,
+   "kind": "fixed",
+   "ids": [
+    "power_up"
+   ],
+   "name": "力の鼓動",
+   "count": 1,
+   "type": "passive",
+   "rarity": 1,
+   "price": 10,
+   "v": [
+    2,
+    6,
+    15
+   ],
+   "cond": "常時",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 29,
+   "sim3": 181
+  },
+  {
+   "tier": 1,
+   "kind": "fixed",
+   "ids": [
+    "cursed_power"
+   ],
+   "name": "呪われた力",
+   "count": 1,
+   "type": "passive",
+   "rarity": 1,
+   "price": 26,
+   "v": [
+    30,
+    60,
+    100
+   ],
+   "cond": "常時（操作時間−3秒）",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 372,
+   "sim3": 1250
+  },
+  {
+   "tier": 1,
+   "kind": "fixed",
+   "ids": [
+    "combo_exact_3"
+   ],
+   "name": "五連の巧技",
+   "count": 1,
+   "type": "passive",
+   "rarity": 1,
+   "price": 15,
+   "v": [
+    15,
+    40,
+    100
+   ],
+   "cond": "盤面のコンボが5以下",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 1,
+   "sim3": -5
+  },
+  {
+   "tier": 1,
+   "kind": "fixed",
+   "ids": [
+    "combo_exact_10"
+   ],
+   "name": "十連の極み",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 24,
+   "v": [
+    20,
+    60,
+    150
+   ],
+   "cond": "盤面のコンボが10以下",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 240,
+   "sim3": 1898
+  },
+  {
+   "tier": 1,
+   "kind": "fixed",
+   "ids": [
+    "tempo_rhythm"
+   ],
+   "name": "緩急の心得",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 22,
+   "v": [
+    3,
+    5,
+    8
+   ],
+   "cond": "操作時間4〜10秒（10秒超は②へ）",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": null,
+   "sim3": null
+  },
+  {
+   "tier": 1,
+   "kind": "unit",
+   "ids": [
+    "cc_add_fire",
+    "cc_add_water",
+    "cc_add_wood",
+    "cc_add_light",
+    "cc_add_dark",
+    "cc_add_heart"
+   ],
+   "name": "炎の脈動 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 1,
+   "price": 14,
+   "v": [
+    2,
+    5,
+    10
+   ],
+   "cond": "その色1コンボごと",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 37,
+   "sim3": 195
+  },
+  {
+   "tier": 1,
+   "kind": "unit",
+   "ids": [
+    "bonus_heart"
+   ],
+   "name": "癒の波動",
+   "count": 1,
+   "type": "passive",
+   "rarity": 1,
+   "price": 15,
+   "v": [
+    3,
+    5,
+    7
+   ],
+   "cond": "ハート1コンボごと",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 64,
+   "sim3": 119
+  },
+  {
+   "tier": 1,
+   "kind": "unit",
+   "ids": [
+    "len4"
+   ],
+   "name": "四連の術",
+   "count": 1,
+   "type": "passive",
+   "rarity": 1,
+   "price": 14,
+   "v": [
+    2,
+    6,
+    12
+   ],
+   "cond": "4個消し1回ごと",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 44,
+   "sim3": 338
+  },
+  {
+   "tier": 1,
+   "kind": "unit",
+   "ids": [
+    "row_clear"
+   ],
+   "name": "横一閃",
+   "count": 1,
+   "type": "passive",
+   "rarity": 1,
+   "price": 20,
+   "v": [
+    5,
+    7,
+    10
+   ],
+   "cond": "横1列消し1回ごと",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 2,
+   "sim3": -6
+  },
+  {
+   "tier": 1,
+   "kind": "unit",
+   "ids": [
+    "l_shape"
+   ],
+   "name": "L字の型",
+   "count": 1,
+   "type": "passive",
+   "rarity": 1,
+   "price": 24,
+   "v": [
+    3,
+    6,
+    9
+   ],
+   "cond": "L字消し1回ごと",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 26,
+   "sim3": 51
+  },
+  {
+   "tier": 1,
+   "kind": "unit",
+   "ids": [
+    "col_slash_combo"
+   ],
+   "name": "縦一閃の型",
+   "count": 1,
+   "type": "passive",
+   "rarity": 1,
+   "price": 14,
+   "v": [
+    3,
+    7,
+    14
+   ],
+   "cond": "縦1列消し1回ごと",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 2,
+   "sim3": -4
+  },
+  {
+   "tier": 1,
+   "kind": "unit",
+   "ids": [
+    "square_combo_addition"
+   ],
+   "name": "方陣の極み",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 22,
+   "v": [
+    10,
+    15,
+    30
+   ],
+   "cond": "正方形消し1回ごと",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -7,
+   "sim3": 4
+  },
+  {
+   "tier": 1,
+   "kind": "unit",
+   "ids": [
+    "enhance_amp"
+   ],
+   "name": "強化増幅",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    2,
+    5,
+    12
+   ],
+   "cond": "強化ドロップ1個ごと（素の+1に上乗せ）",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 3,
+   "sim3": -4
+  },
+  {
+   "tier": 1,
+   "kind": "unit",
+   "ids": [
+    "bonus_skyfall"
+   ],
+   "name": "天恵の追撃",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 20,
+   "v": [
+    5,
+    15,
+    40
+   ],
+   "cond": "落ちコン1回ごと",
+   "ex": null,
+   "note": "実測は修正前（発動していなかった）の値",
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -4,
+   "sim3": -8
+  },
+  {
+   "tier": 1,
+   "kind": "scale",
+   "ids": [
+    "star1_combo_boost"
+   ],
+   "name": "一星の共鳴",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 15,
+   "v": [
+    2,
+    4,
+    8
+   ],
+   "cond": "★1トークン数 × 値",
+   "ex": [
+    "★1が3個: +6 ／ 6個: +12",
+    "★1が3個: +12 ／ 6個: +24",
+    "★1が3個: +24 ／ 6個: +48"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -3,
+   "sim3": -1
+  },
+  {
+   "tier": 1,
+   "kind": "scale",
+   "ids": [
+    "total_level_boost"
+   ],
+   "name": "全霊の共鳴",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 31,
+   "v": [
+    1,
+    2,
+    4
+   ],
+   "cond": "全トークンのLv合計 × 値",
+   "ex": [
+    "Lv合計12: +12 ／ 30: +30",
+    "Lv合計12: +24 ／ 30: +60",
+    "Lv合計12: +48 ／ 30: +120"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 15,
+   "sim3": 164
+  },
+  {
+   "tier": 1,
+   "kind": "scale",
+   "ids": [
+    "memory_of_combo"
+   ],
+   "name": "コンボの記憶",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 15,
+   "v": [
+    1,
+    2,
+    3
+   ],
+   "cond": "最大基礎コンボ÷5 × 値",
+   "ex": [
+    "最大30: +6 ／ 最大100: +20",
+    "最大30: +12 ／ 最大100: +40",
+    "最大30: +18 ／ 最大100: +60"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 27,
+   "sim3": 65
+  },
+  {
+   "tier": 1,
+   "kind": "scale",
+   "ids": [
+    "seeker_of_cross"
+   ],
+   "name": "十字の求道者",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    1,
+    2,
+    3
+   ],
+   "cond": "十字消しのとき、十字累計÷5 × 値",
+   "ex": [
+    "累計10回: +2 ／ 30回: +6",
+    "累計10回: +4 ／ 30回: +12",
+    "累計10回: +6 ／ 30回: +18"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -2,
+   "sim3": 4
+  },
+  {
+   "tier": 1,
+   "kind": "scale",
+   "ids": [
+    "seeker_of_len4"
+   ],
+   "name": "四連の探求者",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 15,
+   "v": [
+    1,
+    2,
+    3
+   ],
+   "cond": "4個消しのとき、4個消し累計÷20 × 値",
+   "ex": [
+    "累計40回: +2 ／ 100回: +5",
+    "累計40回: +4 ／ 100回: +10",
+    "累計40回: +6 ／ 100回: +15"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 12,
+   "sim3": 32
+  },
+  {
+   "tier": 1,
+   "kind": "scale",
+   "ids": [
+    "move_drop"
+   ],
+   "name": "ムーブドロップ",
+   "count": 1,
+   "type": "passive",
+   "rarity": 1,
+   "price": 14,
+   "v": [
+    5,
+    3,
+    1
+   ],
+   "cond": "ムーブドロップが値マス動くごとに+1",
+   "ex": [
+    "1手番20マス動かすと +4",
+    "1手番20マス動かすと +6",
+    "1手番20マス動かすと +20"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": "マス/1",
+   "dup": false,
+   "sim1": -13,
+   "sim3": 18
+  },
+  {
+   "tier": 1,
+   "kind": "chance",
+   "ids": [
+    "random_add"
+   ],
+   "name": "気まぐれなダイス",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 15,
+   "v": [
+    3.57,
+    8.57,
+    20.71
+   ],
+   "cond": "毎手番ランダム",
+   "ex": [
+    "0〜10（期待3.6）",
+    "0〜30（期待8.6）",
+    "0〜100（期待20.7）"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 52,
+   "sim3": 160
+  },
+  {
+   "tier": 1,
+   "kind": "active",
+   "ids": [
+    "erase_fire",
+    "erase_water",
+    "erase_wood",
+    "erase_light",
+    "erase_dark"
+   ],
+   "name": "炎の消滅 ほか4種",
+   "count": 5,
+   "type": "skill",
+   "rarity": 3,
+   "price": 31,
+   "v": [
+    1,
+    2,
+    3
+   ],
+   "cond": "指定色を全消去、消した数 × 値（特殊は2倍）",
+   "ex": [
+    "1色5個なら +5（消費E1）",
+    "1色5個なら +10（消費E1）",
+    "1色5個なら +15（消費E1）"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 1288,
+   "sim3": 2916
+  },
+  {
+   "tier": 1,
+   "kind": "active",
+   "ids": [
+    "rabbit_active"
+   ],
+   "name": "うさぎ",
+   "count": 1,
+   "type": "skill",
+   "rarity": 1,
+   "price": 6,
+   "v": [
+    3,
+    5,
+    8
+   ],
+   "cond": "うさぎ数 × 値、2手番",
+   "ex": [
+    "うさぎ2匹: +6×2手番",
+    "うさぎ2匹: +10×2手番",
+    "うさぎ2匹: +16×2手番"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 28,
+   "sim3": 254
+  },
+  {
+   "tier": 1,
+   "kind": "active",
+   "ids": [
+    "minigame_janken"
+   ],
+   "name": "じゃんけん",
+   "count": 1,
+   "type": "skill",
+   "rarity": 1,
+   "price": 14,
+   "v": [
+    5,
+    7,
+    10
+   ],
+   "cond": "連勝数 × 値、3手番",
+   "ex": [
+    "2連勝: +10×3手番",
+    "2連勝: +14×3手番",
+    "2連勝: +20×3手番"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": null,
+   "sim3": null
+  },
+  {
+   "tier": 1,
+   "kind": "active",
+   "ids": [
+    "minigame_mash"
+   ],
+   "name": "連打",
+   "count": 1,
+   "type": "skill",
+   "rarity": 1,
+   "price": 14,
+   "v": [
+    0.4,
+    0.6,
+    0.8
+   ],
+   "cond": "5秒の連打数 × 値、3手番",
+   "ex": [
+    "40回: +16×3手番",
+    "40回: +24×3手番",
+    "40回: +32×3手番"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": null,
+   "sim3": null
+  },
+  {
+   "tier": 1,
+   "kind": "active",
+   "ids": [
+    "minigame_mash_duo"
+   ],
+   "name": "交互連打",
+   "count": 1,
+   "type": "skill",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    0.5,
+    0.7,
+    1
+   ],
+   "cond": "交互連打数 × 値、3手番",
+   "ex": [
+    "30回: +15×3手番",
+    "30回: +21×3手番",
+    "30回: +30×3手番"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": null,
+   "sim3": null
+  },
+  {
+   "tier": 1,
+   "kind": "active",
+   "ids": [
+    "active_residual_dark",
+    "active_residual_heart"
+   ],
+   "name": "月の残滓 ほか1種",
+   "count": 2,
+   "type": "skill",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    10,
+    15,
+    20
+   ],
+   "cond": "次の手番、その色を消すと加算",
+   "ex": [
+    "+10（1手番）",
+    "+15（1手番）",
+    "+20（1手番）"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 42,
+   "sim3": 114
+  },
+  {
+   "tier": 1,
+   "kind": "special",
+   "ids": [
+    "additive_mastery"
+   ],
+   "name": "加算の極意",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 39,
+   "v": [
+    5,
+    20,
+    100
+   ],
+   "cond": "①を全部 ×値。②③は全部無効",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 400,
+   "sim3": 9389
+  },
+  {
+   "tier": 2,
+   "kind": "fixed",
+   "ids": [
+    "bonus_1c_fire",
+    "bonus_1c_water",
+    "bonus_1c_wood",
+    "bonus_1c_light",
+    "bonus_1c_dark",
+    "bonus_1c_heart"
+   ],
+   "name": "炎の力 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 1,
+   "price": 15,
+   "v": [
+    1,
+    2,
+    3
+   ],
+   "cond": "その色を消す",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 88,
+   "sim3": 280
+  },
+  {
+   "tier": 2,
+   "kind": "fixed",
+   "ids": [
+    "bonus_2c_fd",
+    "bonus_2c_wh",
+    "bonus_2c_gl",
+    "bonus_2c_wd",
+    "bonus_2c_gh",
+    "bonus_2c_fl"
+   ],
+   "name": "炎月の律動 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    1,
+    2,
+    4
+   ],
+   "cond": "指定2色を同時に消す",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 69,
+   "sim3": 272
+  },
+  {
+   "tier": 2,
+   "kind": "fixed",
+   "ids": [
+    "bonus_3c_fdw",
+    "bonus_3c_fdl",
+    "bonus_3c_whf",
+    "bonus_3c_whg",
+    "bonus_3c_gld",
+    "bonus_3c_glh",
+    "bonus_3c_fwg",
+    "bonus_3c_ldh"
+   ],
+   "name": "炎月雨の律動 ほか7種",
+   "count": 8,
+   "type": "passive",
+   "rarity": 2,
+   "price": 24,
+   "v": [
+    2,
+    6,
+    9
+   ],
+   "cond": "指定3色を同時に消す",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 132,
+   "sim3": 573
+  },
+  {
+   "tier": 2,
+   "kind": "fixed",
+   "ids": [
+    "req_6_fire",
+    "req_6_water",
+    "req_6_wood",
+    "req_6_light",
+    "req_6_dark",
+    "req_6_heart"
+   ],
+   "name": "炎の束 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 1,
+   "price": 24,
+   "v": [
+    2,
+    3,
+    6
+   ],
+   "cond": "その色を6個以上消す",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 78,
+   "sim3": 262
+  },
+  {
+   "tier": 2,
+   "kind": "fixed",
+   "ids": [
+    "req_12_fire",
+    "req_12_water",
+    "req_12_wood",
+    "req_12_light",
+    "req_12_dark",
+    "req_12_heart"
+   ],
+   "name": "篝火 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 2,
+   "price": 31,
+   "v": [
+    2,
+    3,
+    4
+   ],
+   "cond": "その色を12個以上消す",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -3,
+   "sim3": -3
+  },
+  {
+   "tier": 2,
+   "kind": "fixed",
+   "ids": [
+    "combo_ge_7"
+   ],
+   "name": "七連の闘気",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 26,
+   "v": [
+    1,
+    2,
+    4
+   ],
+   "cond": "盤面7コンボ以上",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 69,
+   "sim3": 438
+  },
+  {
+   "tier": 2,
+   "kind": "fixed",
+   "ids": [
+    "shape_master"
+   ],
+   "name": "器用",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 31,
+   "v": [
+    2,
+    3,
+    4
+   ],
+   "cond": "異なる特殊消し2種類以上",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 11,
+   "sim3": 44
+  },
+  {
+   "tier": 2,
+   "kind": "fixed",
+   "ids": [
+    "over_link"
+   ],
+   "name": "過剰結合",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 24,
+   "v": [
+    1,
+    2,
+    4
+   ],
+   "cond": "強化ドロップ5個以上を同時に消す",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -10,
+   "sim3": 3
+  },
+  {
+   "tier": 2,
+   "kind": "fixed",
+   "ids": [
+    "dual_match"
+   ],
+   "name": "リトルワールド",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 39,
+   "v": [
+    -0.2,
+    0.2,
+    0.5
+   ],
+   "cond": "常時（2個で消える）",
+   "ex": null,
+   "note": "Lv1は倍率が下がる",
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 1625,
+   "sim3": 1297
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "rabbit_passive"
+   ],
+   "name": "うさぎ",
+   "count": 1,
+   "type": "passive",
+   "rarity": 1,
+   "price": 12,
+   "v": [
+    1,
+    1.5,
+    2
+   ],
+   "cond": "うさぎ数 × 値 + 1",
+   "ex": [
+    "うさぎ1匹: +2 ／ 3匹: +4",
+    "うさぎ1匹: +2.5 ／ 3匹: +5.5",
+    "うさぎ1匹: +3 ／ 3匹: +7"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 177,
+   "sim3": 273
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "color_shift"
+   ],
+   "name": "移ろいの彩",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    0.5,
+    1,
+    2
+   ],
+   "cond": "前の手番に消さなかった色の数 × 値",
+   "ex": [
+    "新色2: +1 ／ 新色4: +2",
+    "新色2: +2 ／ 新色4: +4",
+    "新色2: +4 ／ 新色4: +8"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 35,
+   "sim3": 116
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "devil_loan"
+   ],
+   "name": "悪魔の融資",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    5,
+    10,
+    20
+   ],
+   "cond": "借金10★ごとに+1（値は借金上限での最大）",
+   "ex": [
+    "最大 +5",
+    "最大 +10",
+    "最大 +20"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -1,
+   "sim3": 1
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "greed_power"
+   ],
+   "name": "金満の暴力",
+   "count": 1,
+   "type": "passive",
+   "rarity": 1,
+   "price": 26,
+   "v": [
+    7,
+    5,
+    3
+   ],
+   "cond": "所持★ ÷ 値（上限 +10/+20/+50）",
+   "ex": [
+    "★30: +4 ／ ★100: +10",
+    "★30: +6 ／ ★100: +20",
+    "★30: +10 ／ ★100: +33"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": "★/1",
+   "dup": false,
+   "sim1": 915,
+   "sim3": 4404
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "level3_count_mult"
+   ],
+   "name": "三魂の極致",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 39,
+   "v": [
+    2,
+    3,
+    4
+   ],
+   "cond": "Lv3トークン数 × 値 − 1（上限あり）",
+   "ex": [
+    "Lv3が3個: +5 ／ 6個: +11",
+    "Lv3が3個: +8 ／ 6個: +17",
+    "Lv3が3個: +11 ／ 6個: +23"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -8,
+   "sim3": 303
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "curse_count_mult"
+   ],
+   "name": "厄災の祈り",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 39,
+   "v": [
+    2,
+    3,
+    5
+   ],
+   "cond": "値^呪い数 − 1（上限あり）",
+   "ex": [
+    "呪い1: +1 ／ 呪い3: +7",
+    "呪い1: +2 ／ 呪い3: +26",
+    "呪い1: +4 ／ 呪い3: +124"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -4,
+   "sim3": 2
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "repeat_erase_combo"
+   ],
+   "name": "反響する輪舞",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    2,
+    3,
+    5
+   ],
+   "cond": "その手番にリピートドロップが消えた数 × 値",
+   "ex": [
+    "2個: +4",
+    "2個: +6",
+    "2個: +10"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 8,
+   "sim3": -3
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "play_count_mult"
+   ],
+   "name": "道楽の極み",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 18,
+   "v": [
+    1,
+    1.5,
+    2
+   ],
+   "cond": "遊び系トークン数 × 値",
+   "ex": [
+    "遊び3個: +3",
+    "遊び3個: +4.5",
+    "遊び3個: +6"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": null,
+   "sim3": null
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "play_loss_mult"
+   ],
+   "name": "負けの美学",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 18,
+   "v": [
+    0.3,
+    0.5,
+    0.8
+   ],
+   "cond": "遊び系の悪い結果の累計 × 値",
+   "ex": [
+    "10回: +3",
+    "10回: +5",
+    "10回: +8"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": null,
+   "sim3": null
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "medal_of_spendthrift"
+   ],
+   "name": "こだわりの証",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    5,
+    3,
+    2
+   ],
+   "cond": "リロール累計 ÷ 値 × 0.5",
+   "ex": [
+    "リロール20回: +2",
+    "リロール20回: +3",
+    "リロール20回: +5"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": "回/0.5",
+   "dup": false,
+   "sim1": 9,
+   "sim3": -5
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "passive_probability_trigger_add"
+   ],
+   "name": "集束した確率",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    2,
+    3,
+    4
+   ],
+   "cond": "確率系の累計発動回数 × 値（上限なし）",
+   "ex": [
+    "累計10回: +20 ／ 50回: +100",
+    "累計10回: +30 ／ 50回: +150",
+    "累計10回: +40 ／ 50回: +200"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 0,
+   "sim3": -8
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "time_skipper"
+   ],
+   "name": "飛び石",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 24,
+   "v": [
+    2,
+    3,
+    4
+   ],
+   "cond": "値^(スキップ数÷5) − 1",
+   "ex": [
+    "スキップ10: +3 ／ 20: +15",
+    "スキップ10: +8 ／ 20: +80",
+    "スキップ10: +15 ／ 20: +255"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -9,
+   "sim3": 6
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "echo_of_max"
+   ],
+   "name": "極大の余韻",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 24,
+   "v": [
+    0.1,
+    0.2,
+    0.5
+   ],
+   "cond": "ラン中の最大コンボ倍率 × 値（上限あり）",
+   "ex": [
+    "最大倍率20: +2",
+    "最大倍率20: +4",
+    "最大倍率20: +10"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -3,
+   "sim3": 2
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "memory_of_flash"
+   ],
+   "name": "一閃の記憶",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 24,
+   "v": [
+    2,
+    3,
+    4
+   ],
+   "cond": "(値^(横列累計÷5))^その手番の横列数 − 1（上限あり）",
+   "ex": [
+    "累計10・横列1本: +3",
+    "累計10・横列1本: +8",
+    "累計10・横列1本: +15"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 8,
+   "sim3": -5
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "artisan_of_square"
+   ],
+   "name": "方陣の職人",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    2,
+    3,
+    5
+   ],
+   "cond": "(値^(正方形累計÷5))^その手番の正方形数 − 1（上限あり）",
+   "ex": [
+    "累計10・正方形1: +3",
+    "累計10・正方形1: +8",
+    "累計10・正方形1: +24"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -3,
+   "sim3": -4
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "pride_of_spendthrift"
+   ],
+   "name": "浪費家の意地",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    2,
+    3,
+    4
+   ],
+   "cond": "値^(消費★÷50) − 1（上限あり）",
+   "ex": [
+    "消費150★: +7",
+    "消費150★: +26",
+    "消費150★: +63"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 7,
+   "sim3": -1
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "tempo_rhythm"
+   ],
+   "name": "緩急の心得",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 22,
+   "v": [
+    10,
+    10,
+    10
+   ],
+   "cond": "操作時間10秒超: 操作秒数をそのまま加算",
+   "ex": [
+    "12秒: +12",
+    "12秒: +12",
+    "12秒: +12"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": true,
+   "sim1": null,
+   "sim3": null
+  },
+  {
+   "tier": 2,
+   "kind": "chance",
+   "ids": [
+    "critical_passive"
+   ],
+   "name": "会心の一撃",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    19,
+    49,
+    99
+   ],
+   "cond": "20%で発動",
+   "ex": [
+    "発動時 +19（期待値 +3.8）",
+    "発動時 +49（期待値 +9.8）",
+    "発動時 +99（期待値 +19.8）"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 431,
+   "sim3": 2410
+  },
+  {
+   "tier": 2,
+   "kind": "active",
+   "ids": [
+    "active_shape_len4"
+   ],
+   "name": "4本の矢",
+   "count": 1,
+   "type": "skill",
+   "rarity": 2,
+   "price": 15,
+   "v": [
+    1,
+    1,
+    1
+   ],
+   "cond": "2手番、4個消しの数だけ加算",
+   "ex": [
+    "4個消し2回: +2",
+    "4個消し2回: +2",
+    "4個消し2回: +2"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 28,
+   "sim3": 40
+  },
+  {
+   "tier": 2,
+   "kind": "active",
+   "ids": [
+    "active_shape_row"
+   ],
+   "name": "烈線の陣",
+   "count": 1,
+   "type": "skill",
+   "rarity": 2,
+   "price": 15,
+   "v": [
+    2,
+    2,
+    2
+   ],
+   "cond": "2手番、横列消しの数×2を加算",
+   "ex": [
+    "横列1本: +2",
+    "横列1本: +2",
+    "横列1本: +2"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -6,
+   "sim3": 20
+  },
+  {
+   "tier": 2,
+   "kind": "active",
+   "ids": [
+    "active_shape_l_shape"
+   ],
+   "name": "屈折の角",
+   "count": 1,
+   "type": "skill",
+   "rarity": 2,
+   "price": 15,
+   "v": [
+    1,
+    1,
+    1
+   ],
+   "cond": "2手番、L字消しの数だけ加算",
+   "ex": [
+    "L字1回: +1",
+    "L字1回: +1",
+    "L字1回: +1"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 3,
+   "sim3": 4
+  },
+  {
+   "tier": 2,
+   "kind": "active",
+   "ids": [
+    "wolf_active"
+   ],
+   "name": "狼",
+   "count": 1,
+   "type": "skill",
+   "rarity": 2,
+   "price": 15,
+   "v": [
+    2,
+    3,
+    4
+   ],
+   "cond": "2手番、捕食したうさぎ累計 × 値",
+   "ex": [
+    "うさぎ3匹: +6",
+    "うさぎ3匹: +9",
+    "うさぎ3匹: +12"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 11,
+   "sim3": 27
+  },
+  {
+   "tier": 2,
+   "kind": "active",
+   "ids": [
+    "active_residual_fire",
+    "active_residual_water"
+   ],
+   "name": "業炎の残滓 ほか1種",
+   "count": 2,
+   "type": "skill",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    1,
+    1.5,
+    2
+   ],
+   "cond": "次の手番、その色の消去数 × 値",
+   "ex": [
+    "12個: +12",
+    "12個: +18",
+    "12個: +24"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 335,
+   "sim3": 440
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "giant"
+   ],
+   "name": "巨人の領域",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 24,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "常時（盤面7×6）",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 167,
+   "sim3": 468
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "forbidden"
+   ],
+   "name": "禁忌の儀式",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 19,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "常時（落ちコンなし）",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 78,
+   "sim3": 259
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "desperate_stance"
+   ],
+   "name": "背水の陣",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 31,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "常時（操作時間4秒固定）",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 75,
+   "sim3": 263
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "one_stroke_seal"
+   ],
+   "name": "一筆書き",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 31,
+   "v": [
+    4,
+    4.8,
+    6.5
+   ],
+   "cond": "常時（一筆書きの制約）",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 239,
+   "sim3": 740
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "pure_power"
+   ],
+   "name": "彩の力",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 39,
+   "v": [
+    4,
+    4.3,
+    5
+   ],
+   "cond": "「時の砂」以外の無属性トークンを持たない",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 300,
+   "sim3": 479
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "legend_sky_god"
+   ],
+   "name": "身軽",
+   "count": 1,
+   "type": "passive",
+   "rarity": 4,
+   "price": 77,
+   "v": [
+    4,
+    4,
+    4
+   ],
+   "cond": "トークン10個以下",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 340,
+   "sim3": 300
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "empty_wallet"
+   ],
+   "name": "からっぽの財布",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    1.5,
+    1.7,
+    2.2
+   ],
+   "cond": "所持★が3/5/10以下",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -1,
+   "sim3": -3
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "legend_acrobat"
+   ],
+   "name": "曲芸師",
+   "count": 1,
+   "type": "passive",
+   "rarity": 4,
+   "price": 77,
+   "v": [
+    7,
+    7,
+    7
+   ],
+   "cond": "ハート2コンボ以上",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 102,
+   "sim3": 304
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "combo2_mult_fire",
+    "combo2_mult_water",
+    "combo2_mult_wood",
+    "combo2_mult_light",
+    "combo2_mult_dark",
+    "combo2_mult_heart"
+   ],
+   "name": "炎の連舞 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    1.5,
+    1.7,
+    2
+   ],
+   "cond": "その色で2コンボ以上",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 17,
+   "sim3": 95
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "connect4_mult_fire",
+    "connect4_mult_water",
+    "connect4_mult_wood",
+    "connect4_mult_light",
+    "connect4_mult_dark",
+    "connect4_mult_heart"
+   ],
+   "name": "炎の四重奏 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    1.2,
+    1.3,
+    1.5
+   ],
+   "cond": "その色を4個以上つなげて消す",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 4,
+   "sim3": 14
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "connect6_mult_fire",
+    "connect6_mult_water",
+    "connect6_mult_wood",
+    "connect6_mult_light",
+    "connect6_mult_dark",
+    "connect6_mult_heart"
+   ],
+   "name": "炎の六重奏 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "その色を6個以上つなげて消す",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 3,
+   "sim3": 5
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "bonus_4c_fwlh"
+   ],
+   "name": "炎雨雷癒の秘儀",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 26,
+   "v": [
+    1.5,
+    1.7,
+    2
+   ],
+   "cond": "炎/雨/雷/ハートを同時に消す",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 24,
+   "sim3": 145
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "bonus_5c"
+   ],
+   "name": "五色の秘儀",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 31,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "5色以上を同時に消す",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 48,
+   "sim3": 190
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "bonus_6c"
+   ],
+   "name": "六色の秘儀",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 39,
+   "v": [
+    3,
+    3.3,
+    4
+   ],
+   "cond": "6色を同時に消す",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 38,
+   "sim3": 119
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "devotion_fire",
+    "devotion_water"
+   ],
+   "name": "狂神の偏愛・炎 ほか1種",
+   "count": 2,
+   "type": "passive",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    4,
+    5,
+    7
+   ],
+   "cond": "その色だけを消す（他の色を消すと0コンボ）",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 5,
+   "sim3": -6
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "passive_contract_fire",
+    "passive_contract_water",
+    "passive_contract_wood",
+    "passive_contract_light",
+    "passive_contract_dark",
+    "passive_contract_heart"
+   ],
+   "name": "炎雨の相克 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    3,
+    3.7,
+    5
+   ],
+   "cond": "その色を消し、反対色を消さない（反対色で×0.5）",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -13,
+   "sim3": 48
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "last_turn_burst"
+   ],
+   "name": "火事場の馬鹿力",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "サイクルの最終手番",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 4,
+   "sim3": 18
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "speed_of_light_thought"
+   ],
+   "name": "神速の思考",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 26,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "操作時間を2秒以上残す",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 15,
+   "sim3": 24
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "passive_probability_trigger_mult"
+   ],
+   "name": "運の力",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "確率系が発動した手番",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -2,
+   "sim3": 7
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "l_cross_simultaneous_mult"
+   ],
+   "name": "交差する秘技",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 30,
+   "v": [
+    3,
+    3.3,
+    4
+   ],
+   "cond": "L字と十字を同時に",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 4,
+   "sim3": 60
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "col_double_mult"
+   ],
+   "name": "支柱の共鳴",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "縦1列消しを2本同時に",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -9,
+   "sim3": -3
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "cross_double_base_mult"
+   ],
+   "name": "十字の結界",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "十字消しを2個同時に",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 13,
+   "sim3": 8
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "l_shape_double_base_mult"
+   ],
+   "name": "L字の共鳴",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 18,
+   "v": [
+    1.5,
+    1.7,
+    2
+   ],
+   "cond": "L字消しを2個同時に",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 23,
+   "sim3": 55
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "len4_quad_base_mult"
+   ],
+   "name": "4連の共鳴",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 24,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "4個消しを4個同時に",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 7,
+   "sim3": 23
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "row_triple_base_mult"
+   ],
+   "name": "横列の共鳴",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 24,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "横1列消しを3本同時に",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 2,
+   "sim3": 1
+  },
+  {
+   "tier": 3,
+   "kind": "fixed",
+   "ids": [
+    "legend_inugami"
+   ],
+   "name": "犬神",
+   "count": 1,
+   "type": "passive",
+   "rarity": 4,
+   "price": 77,
+   "v": [
+    10,
+    10,
+    10
+   ],
+   "cond": "基礎コンボ100以上",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -2,
+   "sim3": 1
+  },
+  {
+   "tier": 3,
+   "kind": "unit",
+   "ids": [
+    "square"
+   ],
+   "name": "方陣の型",
+   "count": 1,
+   "type": "passive",
+   "rarity": 1,
+   "price": 24,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "正方形消し1回ごとに掛ける（上限あり）",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -1,
+   "sim3": -6
+  },
+  {
+   "tier": 3,
+   "kind": "scale",
+   "ids": [
+    "attr_res_fire",
+    "attr_res_water",
+    "attr_res_wood",
+    "attr_res_light",
+    "attr_res_dark",
+    "attr_res_heart"
+   ],
+   "name": "紅炎の共鳴 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    0.1,
+    0.13,
+    0.2
+   ],
+   "cond": "1 + その属性のトークン数 × 値",
+   "ex": [
+    "5個: ×1.5 ／ 10個: ×2",
+    "5個: ×1.6 ／ 10個: ×2.3",
+    "5個: ×2 ／ 10個: ×3"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 3,
+   "sim3": 47
+  },
+  {
+   "tier": 3,
+   "kind": "scale",
+   "ids": [
+    "empty_slot_beauty"
+   ],
+   "name": "余白の美学",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 31,
+   "v": [
+    1.3,
+    1.4,
+    1.5
+   ],
+   "cond": "値^空き枠数（上限 10/30/100）",
+   "ex": [
+    "空き2: ×1.69 ／ 空き5: ×3.71",
+    "空き2: ×1.96 ／ 空き5: ×5.38",
+    "空き2: ×2.25 ／ 空き5: ×7.59"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 564,
+   "sim3": 9557
+  },
+  {
+   "tier": 3,
+   "kind": "scale",
+   "ids": [
+    "star3_mult_boost"
+   ],
+   "name": "三星の覚醒",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 24,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "値^★3トークン数（上限 10/20/50）",
+   "ex": [
+    "★3が2個: ×4 ／ 4個: ×10",
+    "★3が2個: ×5.289999999999999 ／ 4個: ×20",
+    "★3が2個: ×9 ／ 4個: ×50"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 86,
+   "sim3": 317
+  },
+  {
+   "tier": 3,
+   "kind": "scale",
+   "ids": [
+    "star_erase_mult"
+   ],
+   "name": "星屑の共鳴",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    1,
+    1.3,
+    2
+   ],
+   "cond": "1 + その手番のスター消去数 × 値（上限あり）",
+   "ex": [
+    "3個: ×4",
+    "3個: ×4.9",
+    "3個: ×7"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -14,
+   "sim3": 0
+  },
+  {
+   "tier": 3,
+   "kind": "scale",
+   "ids": [
+    "bomb_erase_mult"
+   ],
+   "name": "爆熱の余韻",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 24,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "1 + その手番にボムで消えた数 × 値（上限あり）",
+   "ex": [
+    "9個: ×10",
+    "9個: ×20",
+    "9個: ×28"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -9,
+   "sim3": -11
+  },
+  {
+   "tier": 3,
+   "kind": "scale",
+   "ids": [
+    "repeat_combo_mult"
+   ],
+   "name": "連鎖の共鳴",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 24,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "1 + その手番のリピート消去数 × 値（上限あり）",
+   "ex": [
+    "2個: ×5",
+    "2個: ×5.6",
+    "2個: ×7"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -6,
+   "sim3": 6
+  },
+  {
+   "tier": 3,
+   "kind": "scale",
+   "ids": [
+    "curse_eater"
+   ],
+   "name": "呪い喰い",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 39,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "1 + 解除した呪いの累計 × 値（上限なし）",
+   "ex": [
+    "2個: ×5 ／ 5個: ×11",
+    "2個: ×5.6 ／ 5個: ×12.5",
+    "2個: ×7 ／ 5個: ×16"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -3,
+   "sim3": 2
+  },
+  {
+   "tier": 3,
+   "kind": "scale",
+   "ids": [
+    "chalice_of_life"
+   ],
+   "name": "癒の器",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 26,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "値^(ハート累計消去÷30)（上限なし）",
+   "ex": [
+    "ハート90個: ×8 ／ 300個: ×1024",
+    "ハート90個: ×12.166999999999998 ／ 300個: ×4142.651121364896",
+    "ハート90個: ×27 ／ 300個: ×59049"
+   ],
+   "note": "maxMultipliers が無く、限界突破なしでも青天井",
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 447,
+   "sim3": 5022
+  },
+  {
+   "tier": 3,
+   "kind": "scale",
+   "ids": [
+    "thousand_arms"
+   ],
+   "name": "千手観音",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    2,
+    2.3,
+    3
+   ],
+   "cond": "値^(累計コンボ÷100)（上限 10/20/50）",
+   "ex": [
+    "累計300: ×8",
+    "累計300: ×12.166999999999998",
+    "累計300: ×27"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 24,
+   "sim3": 47
+  },
+  {
+   "tier": 3,
+   "kind": "scale",
+   "ids": [
+    "same_color_streak"
+   ],
+   "name": "一途の誓い",
+   "count": 1,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    0.3,
+    0.37,
+    0.5
+   ],
+   "cond": "1 + 同じ色の組み合わせが続いた手番数 × 値",
+   "ex": [
+    "3連続: ×1.9",
+    "3連続: ×2.1",
+    "3連続: ×2.5"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 2,
+   "sim3": 20
+  },
+  {
+   "tier": 3,
+   "kind": "scale",
+   "ids": [
+    "four_match_restriction"
+   ],
+   "name": "四連の制約",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 10,
+   "v": [
+    1,
+    1,
+    1
+   ],
+   "cond": "×4個消しの回数（4個消しでしか消せない）",
+   "ex": [
+    "4個消し5回: ×5",
+    "4個消し5回: ×5",
+    "4個消し5回: ×5"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -20,
+   "sim3": -6
+  },
+  {
+   "tier": 3,
+   "kind": "scale",
+   "ids": [
+    "row_match_restriction"
+   ],
+   "name": "横列の制約",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 10,
+   "v": [
+    1,
+    1,
+    1
+   ],
+   "cond": "×横列消しの回数（横列消しでしか消せない）",
+   "ex": [
+    "横列3本: ×3",
+    "横列3本: ×3",
+    "横列3本: ×3"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -100,
+   "sim3": -100
+  },
+  {
+   "tier": 3,
+   "kind": "active",
+   "ids": [
+    "active_mult_1"
+   ],
+   "name": "覚醒の鼓動",
+   "count": 1,
+   "type": "skill",
+   "rarity": 2,
+   "price": 15,
+   "v": [
+    2,
+    2,
+    2
+   ],
+   "cond": "3手番",
+   "ex": [
+    "×2 を3手番",
+    "×2 を3手番",
+    "×2 を3手番"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 61,
+   "sim3": 79
+  },
+  {
+   "tier": 3,
+   "kind": "active",
+   "ids": [
+    "active_mult_2"
+   ],
+   "name": "一閃",
+   "count": 1,
+   "type": "skill",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    5,
+    5,
+    5
+   ],
+   "cond": "1手番",
+   "ex": [
+    "×5 を1手番",
+    "×5 を1手番",
+    "×5 を1手番"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 89,
+   "sim3": 160
+  },
+  {
+   "tier": 3,
+   "kind": "active",
+   "ids": [
+    "gravity_overdrive"
+   ],
+   "name": "重力逆転",
+   "count": 1,
+   "type": "skill",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    2,
+    2,
+    2
+   ],
+   "cond": "1手番（落下方向が上）",
+   "ex": [
+    "×2",
+    "×2",
+    "×2"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 13,
+   "sim3": 50
+  },
+  {
+   "tier": 3,
+   "kind": "active",
+   "ids": [
+    "gale_gravity"
+   ],
+   "name": "横流れの重力",
+   "count": 1,
+   "type": "skill",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    2,
+    3,
+    4
+   ],
+   "cond": "1手番（落下方向が横）",
+   "ex": [
+    "×2",
+    "×3",
+    "×4"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 13,
+   "sim3": 95
+  },
+  {
+   "tier": 3,
+   "kind": "active",
+   "ids": [
+    "active_shape_cross"
+   ],
+   "name": "聖十字の導き",
+   "count": 1,
+   "type": "skill",
+   "rarity": 3,
+   "price": 20,
+   "v": [
+    1,
+    1,
+    1
+   ],
+   "cond": "2手番、×(十字の数+1)",
+   "ex": [
+    "十字1回: ×2",
+    "十字1回: ×2",
+    "十字1回: ×2"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 9,
+   "sim3": 8
+  },
+  {
+   "tier": 3,
+   "kind": "active",
+   "ids": [
+    "active_shape_square"
+   ],
+   "name": "魔方陣の極意",
+   "count": 1,
+   "type": "skill",
+   "rarity": 3,
+   "price": 20,
+   "v": [
+    3,
+    3,
+    3
+   ],
+   "cond": "2手番、×(正方形の数×3)",
+   "ex": [
+    "正方形1回: ×3",
+    "正方形1回: ×3",
+    "正方形1回: ×3"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -3,
+   "sim3": 15
+  },
+  {
+   "tier": 3,
+   "kind": "active",
+   "ids": [
+    "active_square_judgment"
+   ],
+   "name": "方陣の審判",
+   "count": 1,
+   "type": "skill",
+   "rarity": 3,
+   "price": 30,
+   "v": [
+    10,
+    10,
+    10
+   ],
+   "cond": "1手番、正方形消しで×10・失敗で×0.25",
+   "ex": [
+    "成功 ×10 ／ 失敗 ×0.25",
+    "成功 ×10 ／ 失敗 ×0.25",
+    "成功 ×10 ／ 失敗 ×0.25"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -8,
+   "sim3": -20
+  },
+  {
+   "tier": 3,
+   "kind": "active",
+   "ids": [
+    "active_residual_light",
+    "active_residual_wood"
+   ],
+   "name": "迅雷の残滓 ほか1種",
+   "count": 2,
+   "type": "skill",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    1.5,
+    2,
+    2.5
+   ],
+   "cond": "使った手番にその色10個以上 → 次の手番",
+   "ex": [
+    "×1.5",
+    "×2",
+    "×2.5"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -3,
+   "sim3": 13
+  },
+  {
+   "tier": 3,
+   "kind": "active",
+   "ids": [
+    "minigame_target"
+   ],
+   "name": "的当て",
+   "count": 1,
+   "type": "skill",
+   "rarity": 1,
+   "price": 14,
+   "v": [
+    3,
+    4,
+    5
+   ],
+   "cond": "3手番（ど真ん中のとき）",
+   "ex": [
+    "×3",
+    "×4",
+    "×5"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": null,
+   "sim3": null
+  },
+  {
+   "tier": 3,
+   "kind": "active",
+   "ids": [
+    "minigame_target_pro"
+   ],
+   "name": "精密射撃",
+   "count": 1,
+   "type": "skill",
+   "rarity": 2,
+   "price": 20,
+   "v": [
+    8,
+    10,
+    15
+   ],
+   "cond": "3手番（真芯のとき）",
+   "ex": [
+    "×8",
+    "×10",
+    "×15"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": null,
+   "sim3": null
+  },
+  {
+   "tier": 3,
+   "kind": "special",
+   "ids": [
+    "limit_breaker"
+   ],
+   "name": "限界突破",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 39,
+   "v": [
+    2,
+    5,
+    20
+   ],
+   "cond": "上限つき倍率の上限を ×値",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 2,
+   "sim3": 8
+  },
+  {
+   "tier": 3,
+   "kind": "special",
+   "ids": [
+    "legend_limit_breaker"
+   ],
+   "name": "神ノ理",
+   "count": 1,
+   "type": "passive",
+   "rarity": 4,
+   "price": 77,
+   "v": [
+    null,
+    null,
+    null
+   ],
+   "cond": "上限つき倍率の上限を撤廃",
+   "ex": null,
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": -3,
+   "sim3": 7
+  }
+ ],
+ "STATS": {
+  "1": {
+   "fixed": [
+    {
+     "n": 5,
+     "mean": 14,
+     "median": 15,
+     "min": 2,
+     "max": 30
+    },
+    {
+     "n": 5,
+     "mean": 34.2,
+     "median": 40,
+     "min": 5,
+     "max": 60
+    },
+    {
+     "n": 5,
+     "mean": 74.6,
+     "median": 100,
+     "min": 8,
+     "max": 150
+    }
+   ],
+   "unit": [
+    {
+     "n": 9,
+     "mean": 3.888888888888889,
+     "median": 3,
+     "min": 2,
+     "max": 10
+    },
+    {
+     "n": 9,
+     "mean": 7.888888888888889,
+     "median": 6,
+     "min": 5,
+     "max": 15
+    },
+    {
+     "n": 9,
+     "mean": 16,
+     "median": 12,
+     "min": 7,
+     "max": 40
+    }
+   ]
+  },
+  "2": {
+   "fixed": [
+    {
+     "n": 9,
+     "mean": 1.3111111111111111,
+     "median": 1,
+     "min": -0.2,
+     "max": 2
+    },
+    {
+     "n": 9,
+     "mean": 2.5777777777777775,
+     "median": 2,
+     "min": 0.2,
+     "max": 6
+    },
+    {
+     "n": 9,
+     "mean": 4.277777777777778,
+     "median": 4,
+     "min": 0.5,
+     "max": 9
+    }
+   ]
+  },
+  "3": {
+   "fixed": [
+    {
+     "n": 26,
+     "mean": 2.8153846153846156,
+     "median": 2,
+     "min": 1.2,
+     "max": 10,
+     "geomean": 2.4418315022323225
+    },
+    {
+     "n": 26,
+     "mean": 3.119230769230769,
+     "median": 2.3,
+     "min": 1.3,
+     "max": 10,
+     "geomean": 2.7548484207876336
+    },
+    {
+     "n": 26,
+     "mean": 3.776923076923077,
+     "median": 3,
+     "min": 1.5,
+     "max": 10,
+     "geomean": 3.410807790456349
+    }
+   ],
+   "unit": [
+    {
+     "n": 1,
+     "mean": 2,
+     "median": 2,
+     "min": 2,
+     "max": 2,
+     "geomean": 2
+    },
+    {
+     "n": 1,
+     "mean": 2.3,
+     "median": 2.3,
+     "min": 2.3,
+     "max": 2.3,
+     "geomean": 2.3
+    },
+    {
+     "n": 1,
+     "mean": 3,
+     "median": 3,
+     "min": 3,
+     "max": 3,
+     "geomean": 2.9999999999999996
+    }
+   ]
+  }
+ },
+ "dropEntries": [
+  {
+   "group": "変換",
+   "ids": [
+    "fired",
+    "waterd",
+    "woodd",
+    "lightd",
+    "darkd",
+    "heartd",
+    "conv_h_f",
+    "conv_h_w",
+    "conv_h_g",
+    "conv_h_l",
+    "conv_h_d"
+   ],
+   "name": "風が炎に ほか10種",
+   "count": 11,
+   "type": "skill",
+   "rarity": 1,
+   "price": 5,
+   "per": "use",
+   "how": "1色 → 1色（1色ぶん）",
+   "rough": false,
+   "n": [
+    5,
+    5,
+    5
+   ],
+   "costs": [
+    2,
+    1,
+    1
+   ],
+   "perE": [
+    2.5,
+    5,
+    5
+   ]
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "conv_m_fd_w",
+    "conv_m_fd_l",
+    "conv_m_wh_f",
+    "conv_m_wh_g",
+    "conv_m_gl_d",
+    "conv_m_gl_h",
+    "conv_m_fw_g",
+    "conv_m_ld_h"
+   ],
+   "name": "業水の洗礼 ほか7種",
+   "count": 8,
+   "type": "skill",
+   "rarity": 1,
+   "price": 9,
+   "per": "use",
+   "how": "2色 → 1色（2色ぶん）",
+   "rough": false,
+   "n": [
+    10,
+    10,
+    10
+   ],
+   "costs": [
+    4,
+    3,
+    2
+   ],
+   "perE": [
+    2.5,
+    3.33,
+    5
+   ]
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "conv_p_harmony",
+    "conv_p_reversal",
+    "conv_p_chaos",
+    "conv_p_order",
+    "conv_p_flux",
+    "conv_p_erosion"
+   ],
+   "name": "大自然の調和 ほか5種",
+   "count": 6,
+   "type": "skill",
+   "rarity": 2,
+   "price": 15,
+   "per": "use",
+   "how": "2色をそれぞれ別の色へ（2色ぶん）",
+   "rough": false,
+   "n": [
+    10,
+    10,
+    10
+   ],
+   "costs": [
+    4,
+    3,
+    2
+   ],
+   "perE": [
+    2.5,
+    3.33,
+    5
+   ]
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "board_bi_fd",
+    "board_bi_wh",
+    "board_bi_gl",
+    "board_bi_wd",
+    "board_bi_gh",
+    "board_bi_fl"
+   ],
+   "name": "炎月の陣 ほか5種",
+   "count": 6,
+   "type": "skill",
+   "rarity": 1,
+   "price": 10,
+   "per": "use",
+   "how": "盤面を2色に（狙いの2色は約20個増）",
+   "rough": false,
+   "n": [
+    20,
+    20,
+    20
+   ],
+   "costs": [
+    5,
+    4,
+    3
+   ],
+   "perE": [
+    4,
+    5,
+    6.67
+   ]
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "board_tri_fdw",
+    "board_tri_fdl",
+    "board_tri_whf",
+    "board_tri_whg",
+    "board_tri_gld",
+    "board_tri_glh",
+    "board_tri_fwg",
+    "board_tri_ldh"
+   ],
+   "name": "三色の真理・炎月雨 ほか7種",
+   "count": 8,
+   "type": "skill",
+   "rarity": 1,
+   "price": 9,
+   "per": "use",
+   "how": "盤面を3色に（狙いの3色は約15個増）",
+   "rough": false,
+   "n": [
+    15,
+    15,
+    15
+   ],
+   "costs": [
+    5,
+    4,
+    3
+   ],
+   "perE": [
+    3,
+    3.75,
+    5
+   ]
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "board_bal_5"
+   ],
+   "name": "五行の理",
+   "count": 1,
+   "type": "skill",
+   "rarity": 2,
+   "price": 14,
+   "per": "use",
+   "how": "5属性×6個に並べ直し（ハートが消える）",
+   "rough": false,
+   "n": [
+    5,
+    5,
+    5
+   ],
+   "costs": [
+    5,
+    4,
+    3
+   ],
+   "perE": [
+    1,
+    1.25,
+    1.67
+   ]
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "row_f",
+    "row_w",
+    "row_g",
+    "row_l",
+    "row_d",
+    "row_h",
+    "row_b_f",
+    "row_c_h"
+   ],
+   "name": "烈炎の横一文字 ほか7種",
+   "count": 8,
+   "type": "skill",
+   "rarity": 1,
+   "price": 9,
+   "per": "use",
+   "how": "横1段を1色に（もとから同色の約1個を除くと5個）",
+   "rough": false,
+   "n": [
+    5,
+    5,
+    5
+   ],
+   "costs": [
+    4,
+    3,
+    2
+   ],
+   "perE": [
+    1.25,
+    1.67,
+    2.5
+   ]
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "col_l_l",
+    "col_r_d"
+   ],
+   "name": "閃雷の縦一閃 ほか1種",
+   "count": 2,
+   "type": "skill",
+   "rarity": 1,
+   "price": 9,
+   "per": "use",
+   "how": "縦1列を1色に（もとから同色を除くと約4個）",
+   "rough": false,
+   "n": [
+    4,
+    4,
+    4
+   ],
+   "costs": [
+    4,
+    3,
+    2
+   ],
+   "perE": [
+    1,
+    1.33,
+    2
+   ]
+  },
+  {
+   "group": "生成",
+   "ids": [
+    "gen_rand_fire",
+    "gen_rand_water",
+    "gen_rand_wood",
+    "gen_rand_light",
+    "gen_rand_dark"
+   ],
+   "name": "炎の創造 ほか4種",
+   "count": 5,
+   "type": "skill",
+   "rarity": 1,
+   "price": 5,
+   "per": "use",
+   "how": "ランダムな位置に5個（もとから同色を除くと約4個）",
+   "rough": false,
+   "n": [
+    4,
+    4,
+    4
+   ],
+   "costs": [
+    2,
+    1,
+    1
+   ],
+   "perE": [
+    2,
+    4,
+    4
+   ]
+  },
+  {
+   "group": "生成",
+   "ids": [
+    "active_spawn_f_10",
+    "active_spawn_w_10",
+    "active_spawn_g_10",
+    "active_spawn_l_10",
+    "active_spawn_d_10",
+    "active_spawn_h_10"
+   ],
+   "name": "烈炎の招来 ほか5種",
+   "count": 6,
+   "type": "skill",
+   "rarity": 2,
+   "price": 14,
+   "per": "use",
+   "how": "ランダムな位置に10個（約8個）",
+   "rough": false,
+   "n": [
+    8,
+    8,
+    8
+   ],
+   "costs": [
+    4,
+    3,
+    2
+   ],
+   "perE": [
+    2,
+    2.67,
+    4
+   ]
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "active_finger_fire",
+    "active_finger_water",
+    "active_finger_wood",
+    "active_finger_light",
+    "active_finger_dark",
+    "active_finger_heart",
+    "active_magic_finger_fire",
+    "active_magic_finger_water",
+    "active_magic_finger_wood",
+    "active_magic_finger_light",
+    "active_magic_finger_dark",
+    "active_magic_finger_heart"
+   ],
+   "name": "炎の指 ほか11種",
+   "count": 12,
+   "type": "skill",
+   "rarity": 2,
+   "price": 20,
+   "per": "use",
+   "how": "なぞった最初の6個を1色に（狙った位置に置ける）",
+   "rough": false,
+   "n": [
+    6,
+    6,
+    6
+   ],
+   "costs": [
+    3,
+    2,
+    1
+   ],
+   "perE": [
+    2,
+    3,
+    6
+   ]
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "active_convert_g_f",
+    "active_convert_f_w",
+    "active_convert_w_g",
+    "active_convert_d_l",
+    "active_convert_l_d",
+    "active_convert_h_f"
+   ],
+   "name": "風炎の誓約 ほか5種",
+   "count": 6,
+   "type": "skill",
+   "rarity": 2,
+   "price": 15,
+   "per": "use",
+   "how": "3手番、毎手番の終わりに1色→1色（5個×3）",
+   "rough": false,
+   "n": [
+    15,
+    15,
+    15
+   ],
+   "costs": [
+    3,
+    2,
+    1
+   ],
+   "perE": [
+    5,
+    7.5,
+    15
+   ]
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "active_m_conv_fd_w",
+    "active_m_conv_fd_l",
+    "active_m_conv_wh_f",
+    "active_m_conv_wh_g",
+    "active_m_conv_gl_d",
+    "active_m_conv_gl_h",
+    "active_m_conv_fw_g",
+    "active_m_conv_ld_h"
+   ],
+   "name": "業水の流転 ほか7種",
+   "count": 8,
+   "type": "skill",
+   "rarity": 2,
+   "price": 20,
+   "per": "use",
+   "how": "2手番、毎手番の終わりに2色→1色（10個×2）",
+   "rough": false,
+   "n": [
+    20,
+    20,
+    20
+   ],
+   "costs": [
+    4,
+    3,
+    2
+   ],
+   "perE": [
+    5,
+    6.67,
+    10
+   ]
+  },
+  {
+   "group": "生成",
+   "ids": [
+    "active_turn_end_spawn_f_5",
+    "active_turn_end_spawn_w_5",
+    "active_turn_end_spawn_g_5",
+    "active_turn_end_spawn_l_5",
+    "active_turn_end_spawn_d_5",
+    "active_turn_end_spawn_h_5"
+   ],
+   "name": "炎の誓約 ほか5種",
+   "count": 6,
+   "type": "skill",
+   "rarity": 2,
+   "price": 15,
+   "per": "use",
+   "how": "2手番、毎手番の終わりに3個生成（3個×2）",
+   "rough": false,
+   "n": [
+    6,
+    6,
+    6
+   ],
+   "costs": [
+    3,
+    2,
+    1
+   ],
+   "perE": [
+    2,
+    3,
+    6
+   ]
+  },
+  {
+   "group": "整列",
+   "ids": [
+    "org_fire",
+    "org_water",
+    "org_wood",
+    "org_light",
+    "org_dark",
+    "org_heart"
+   ],
+   "name": "炎の整理 ほか5種",
+   "count": 6,
+   "type": "skill",
+   "rarity": 1,
+   "price": 9,
+   "per": "use",
+   "how": "数は変わらない（1色を左上に集める）",
+   "rough": false,
+   "n": [
+    0,
+    0,
+    0
+   ],
+   "costs": [
+    3,
+    2,
+    1
+   ],
+   "perE": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "passive_hand_fire",
+    "passive_hand_water",
+    "passive_hand_wood",
+    "passive_hand_light",
+    "passive_hand_dark",
+    "passive_hand_heart"
+   ],
+   "name": "炎の手 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "per": "turn",
+   "how": "毎手番、なぞった最初の4個を1色に",
+   "rough": false,
+   "n": [
+    4,
+    4,
+    4
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "turn_end_convert_f_d",
+    "turn_end_convert_w_f",
+    "turn_end_convert_g_w",
+    "turn_end_convert_l_g",
+    "turn_end_convert_d_l",
+    "turn_end_convert_h_f"
+   ],
+   "name": "炎から月への流転 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "per": "turn",
+   "how": "毎手番の終わり、50/70/100%で1色→1色（5個×確率）",
+   "rough": false,
+   "n": [
+    2.5,
+    3.5,
+    5
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "turn_end_full_board_f",
+    "turn_end_full_board_w",
+    "turn_end_full_board_g",
+    "turn_end_full_board_l",
+    "turn_end_full_board_d",
+    "turn_end_full_board_h"
+   ],
+   "name": "紅炎の支配者 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 3,
+   "price": 31,
+   "per": "turn",
+   "how": "毎手番の終わり、10/30/50%で盤面全部を1色に（30個×確率）",
+   "rough": false,
+   "n": [
+    3,
+    9,
+    15
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "group": "生成",
+   "ids": [
+    "turn_end_spawn_f",
+    "turn_end_spawn_w",
+    "turn_end_spawn_g",
+    "turn_end_spawn_l",
+    "turn_end_spawn_d",
+    "turn_end_spawn_h"
+   ],
+   "name": "炎の泉 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "per": "turn",
+   "how": "毎手番の終わり、70/90/100%で5個生成（5個×確率）",
+   "rough": false,
+   "n": [
+    3.5,
+    4.5,
+    5
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "group": "変換",
+   "ids": [
+    "erosion_fire",
+    "erosion_water",
+    "erosion_wood",
+    "erosion_light",
+    "erosion_dark",
+    "erosion_heart"
+   ],
+   "name": "炎の浸食 ほか5種",
+   "count": 6,
+   "type": "passive",
+   "rarity": 2,
+   "price": 24,
+   "per": "turn",
+   "how": "毎手番の終わり、その色の上下左右が30/50/70%で変化（隣接約12個×確率、概算）",
+   "rough": true,
+   "n": [
+    3.6,
+    6,
+    8.4
+   ],
+   "costs": null,
+   "perE": null
+  }
+ ],
+ "DROP_STATS": {
+  "use": [
+   {
+    "n": 14,
+    "mean": 9.5,
+    "median": 7,
+    "min": 4,
+    "max": 20
+   },
+   {
+    "n": 14,
+    "mean": 9.5,
+    "median": 7,
+    "min": 4,
+    "max": 20
+   },
+   {
+    "n": 14,
+    "mean": 9.5,
+    "median": 7,
+    "min": 4,
+    "max": 20
+   }
+  ],
+  "useE": [
+   {
+    "n": 14,
+    "mean": 2.5535714285714284,
+    "median": 2.25,
+    "min": 1,
+    "max": 5
+   },
+   {
+    "n": 14,
+    "mean": 3.6785714285714284,
+    "median": 3.33,
+    "min": 1.25,
+    "max": 7.5
+   },
+   {
+    "n": 14,
+    "mean": 5.5600000000000005,
+    "median": 5,
+    "min": 1.67,
+    "max": 15
+   }
+  ],
+  "turn": [
+   {
+    "n": 5,
+    "mean": 3.3200000000000003,
+    "median": 3.5,
+    "min": 2.5,
+    "max": 4
+   },
+   {
+    "n": 5,
+    "mean": 5.4,
+    "median": 4.5,
+    "min": 3.5,
+    "max": 9
+   },
+   {
+    "n": 5,
+    "mean": 7.4799999999999995,
+    "median": 5,
+    "min": 4,
+    "max": 15
+   }
+  ]
+ },
+ "spEntries": [
+  {
+   "kind": "ボム",
+   "ids": [
+    "gen_bomb_rand"
+   ],
+   "name": "ボム",
+   "type": "skill",
+   "rarity": 1,
+   "price": 5,
+   "per": "use",
+   "how": "ランダムな1個をボムに",
+   "n": [
+    1,
+    1,
+    1
+   ],
+   "costs": [
+    3,
+    2,
+    1
+   ],
+   "perE": [
+    0.33,
+    0.5,
+    1
+   ]
+  },
+  {
+   "kind": "ボム",
+   "ids": [
+    "conv_bomb_target_fire",
+    "conv_bomb_target_dark"
+   ],
+   "name": "炎の火薬 ほか1種",
+   "type": "skill",
+   "rarity": 2,
+   "price": 9,
+   "per": "use",
+   "how": "指定色1個をボムに",
+   "n": [
+    1,
+    1,
+    1
+   ],
+   "costs": [
+    4,
+    3,
+    2
+   ],
+   "perE": [
+    0.25,
+    0.33,
+    0.5
+   ]
+  },
+  {
+   "kind": "ボム",
+   "ids": [
+    "ignited_drop_fire",
+    "ignited_drop_dark"
+   ],
+   "name": "爆炎の兆し ほか1種",
+   "type": "passive",
+   "rarity": 2,
+   "price": 24,
+   "per": "turn",
+   "how": "落ちてくるその色の3/5/10%（落下約5個として）",
+   "n": [
+    0.15,
+    0.25,
+    0.5
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "ボム",
+   "ids": [
+    "turn_end_spawn_bomb_1"
+   ],
+   "name": "爆発の刻印",
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "per": "turn",
+   "how": "10/30/50%で1個",
+   "n": [
+    0.1,
+    0.3,
+    0.5
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "ボム",
+   "ids": [
+    "fuse_line"
+   ],
+   "name": "導火線",
+   "type": "passive",
+   "rarity": 2,
+   "price": 22,
+   "per": "turn",
+   "how": "ムーブドロップが通ったマスから（ムーブドロップがあるとき）",
+   "n": [
+    3,
+    5,
+    8
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "リピート",
+   "ids": [
+    "gen_repeat_rand"
+   ],
+   "name": "リピート",
+   "type": "skill",
+   "rarity": 1,
+   "price": 14,
+   "per": "use",
+   "how": "ランダムな1個",
+   "n": [
+    1,
+    1,
+    1
+   ],
+   "costs": [
+    3,
+    2,
+    1
+   ],
+   "perE": [
+    0.33,
+    0.5,
+    1
+   ]
+  },
+  {
+   "kind": "リピート",
+   "ids": [
+    "conv_repeat_water",
+    "conv_repeat_heart"
+   ],
+   "name": "雨の輪廻 ほか1種",
+   "type": "skill",
+   "rarity": 2,
+   "price": 24,
+   "per": "use",
+   "how": "指定色2個",
+   "n": [
+    2,
+    2,
+    2
+   ],
+   "costs": [
+    4,
+    3,
+    2
+   ],
+   "perE": [
+    0.5,
+    0.67,
+    1
+   ]
+  },
+  {
+   "kind": "リピート",
+   "ids": [
+    "repeat_chance_water",
+    "repeat_chance_heart"
+   ],
+   "name": "雨波の巡り ほか1種",
+   "type": "passive",
+   "rarity": 2,
+   "price": 19,
+   "per": "turn",
+   "how": "落ちてくるその色の3/5/10%（落下約5個として）",
+   "n": [
+    0.15,
+    0.25,
+    0.5
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "リピート",
+   "ids": [
+    "turn_end_spawn_repeat_1"
+   ],
+   "name": "無限の輪廻",
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "per": "turn",
+   "how": "10/30/50%で1個",
+   "n": [
+    0.1,
+    0.3,
+    0.5
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "リピート",
+   "ids": [
+    "l_shape_spawn_repeat"
+   ],
+   "name": "L字の輪廻",
+   "type": "passive",
+   "rarity": 2,
+   "price": 15,
+   "per": "use",
+   "how": "L字消しのたび",
+   "n": [
+    1,
+    2,
+    3
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "リピート",
+   "ids": [
+    "square_spawn_repeat"
+   ],
+   "name": "方陣の輪廻",
+   "type": "passive",
+   "rarity": 2,
+   "price": 16,
+   "per": "use",
+   "how": "正方形消しのたび",
+   "n": [
+    2,
+    3,
+    5
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "スター",
+   "ids": [
+    "gen_star_rand"
+   ],
+   "name": "スター",
+   "type": "skill",
+   "rarity": 1,
+   "price": 15,
+   "per": "use",
+   "how": "ランダムな5個",
+   "n": [
+    5,
+    5,
+    5
+   ],
+   "costs": [
+    3,
+    2,
+    1
+   ],
+   "perE": [
+    1.67,
+    2.5,
+    5
+   ]
+  },
+  {
+   "kind": "スター",
+   "ids": [
+    "conv_star_wood",
+    "conv_star_light"
+   ],
+   "name": "星降る風 ほか1種",
+   "type": "skill",
+   "rarity": 2,
+   "price": 24,
+   "per": "use",
+   "how": "指定色すべて（約5個）",
+   "n": [
+    5,
+    5,
+    5
+   ],
+   "costs": [
+    5,
+    4,
+    3
+   ],
+   "perE": [
+    1,
+    1.25,
+    1.67
+   ]
+  },
+  {
+   "kind": "スター",
+   "ids": [
+    "star_chance_wood",
+    "star_chance_light"
+   ],
+   "name": "星宿る風 ほか1種",
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "per": "turn",
+   "how": "落ちてくるその色の10/30/50%（落下約5個として）",
+   "n": [
+    0.5,
+    1.5,
+    2.5
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "スター",
+   "ids": [
+    "turn_end_spawn_star_3"
+   ],
+   "name": "流星の祝福",
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "per": "turn",
+   "how": "30/40/70%で3個",
+   "n": [
+    0.9,
+    1.2,
+    2.1
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "スター",
+   "ids": [
+    "row_spawn_star"
+   ],
+   "name": "横列の祝福",
+   "type": "passive",
+   "rarity": 2,
+   "price": 16,
+   "per": "use",
+   "how": "横1列消しのたび（プラススター）",
+   "n": [
+    2,
+    3,
+    5
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "プラス",
+   "ids": [
+    "turn_end_spawn_plus_5"
+   ],
+   "name": "豊穣の輝石",
+   "type": "passive",
+   "rarity": 2,
+   "price": 20,
+   "per": "turn",
+   "how": "50/70/100%で5個",
+   "n": [
+    2.5,
+    3.5,
+    5
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "プラス",
+   "ids": [
+    "mana_crystal"
+   ],
+   "name": "マナの結晶化",
+   "type": "passive",
+   "rarity": 1,
+   "price": 10,
+   "per": "turn",
+   "how": "落下の5/10/20%（落下約15個として）",
+   "n": [
+    0.75,
+    1.5,
+    3
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "プラス",
+   "ids": [
+    "len4_spawn_plus"
+   ],
+   "name": "4連の流星",
+   "type": "passive",
+   "rarity": 1,
+   "price": 16,
+   "per": "use",
+   "how": "4個消しのたび",
+   "n": [
+    2,
+    3,
+    5
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "プラス",
+   "ids": [
+    "col_thunder_plus"
+   ],
+   "name": "柱の祝福",
+   "type": "passive",
+   "rarity": 2,
+   "price": 18,
+   "per": "use",
+   "how": "縦1列消しのたび",
+   "n": [
+    2,
+    3,
+    5
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "kind": "プラス",
+   "ids": [
+    "enh_f",
+    "enh_w",
+    "enh_g",
+    "enh_l",
+    "enh_d",
+    "enh_h",
+    "enh_fd",
+    "enh_wh",
+    "enh_gl",
+    "enh_wd",
+    "enh_gh",
+    "enh_fl"
+   ],
+   "name": "星の導き・炎 ほか11種",
+   "type": "skill",
+   "rarity": 1,
+   "price": 10,
+   "per": "use",
+   "how": "指定色すべて（約5個、2色指定は約10個）",
+   "n": [
+    5,
+    5,
+    5
+   ],
+   "costs": [
+    4,
+    3,
+    2
+   ],
+   "perE": [
+    1.25,
+    1.67,
+    2.5
+   ]
+  },
+  {
+   "kind": "混合",
+   "ids": [
+    "turn_end_spawn_mixed_1"
+   ],
+   "name": "魔道",
+   "type": "passive",
+   "rarity": 3,
+   "price": 31,
+   "per": "turn",
+   "how": "5/10/30%でボム・スター・リピート各1個",
+   "n": [
+    0.15,
+    0.3,
+    0.9
+   ],
+   "costs": null,
+   "perE": null
+  }
+ ],
+ "TM": [
+  {
+   "id": "time_ext",
+   "name": "時の砂",
+   "type": "passive",
+   "rarity": 1,
+   "price": 10,
+   "how": "常時 +2秒（枠を使わない）",
+   "per": "turn",
+   "v": [
+    2,
+    2,
+    2
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "id": "star2_time_boost",
+   "name": "二星の延刻",
+   "type": "passive",
+   "rarity": 2,
+   "price": 15,
+   "how": "★2トークン数 × 値 秒（★2が3個として ×3 を表示）",
+   "per": "turn",
+   "v": [
+    6,
+    9,
+    12
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "id": "time_burst",
+   "name": "偽りの時計",
+   "type": "skill",
+   "rarity": 1,
+   "price": 14,
+   "how": "3手番 +5秒",
+   "per": "use",
+   "v": [
+    15,
+    15,
+    15
+   ],
+   "costs": [
+    3,
+    2,
+    1
+   ],
+   "perE": [
+    5,
+    7.5,
+    15
+   ]
+  },
+  {
+   "id": "eternal_moment",
+   "name": "壊れた時計",
+   "type": "skill",
+   "rarity": 1,
+   "price": 14,
+   "how": "2手番 +10秒",
+   "per": "use",
+   "v": [
+    20,
+    20,
+    20
+   ],
+   "costs": [
+    3,
+    2,
+    1
+   ],
+   "perE": [
+    6.7,
+    10,
+    20
+   ]
+  },
+  {
+   "id": "chronos_master",
+   "name": "穴の空いた砂時計",
+   "type": "skill",
+   "rarity": 1,
+   "price": 14,
+   "how": "1手番 +20秒",
+   "per": "use",
+   "v": [
+    20,
+    20,
+    20
+   ],
+   "costs": [
+    3,
+    2,
+    1
+   ],
+   "perE": [
+    6.7,
+    10,
+    20
+   ]
+  },
+  {
+   "id": "len5",
+   "name": "五連の印",
+   "type": "passive",
+   "rarity": 1,
+   "price": 19,
+   "how": "5個以上つなげると次の手番 ×2/×3/×4（基本7秒として増える分）",
+   "per": "trigger",
+   "v": [
+    7,
+    14,
+    21
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "id": "cross",
+   "name": "十字の祈り",
+   "type": "passive",
+   "rarity": 1,
+   "price": 24,
+   "how": "十字消しで次の手番 ×2/×3/×5（基本7秒として増える分）",
+   "per": "trigger",
+   "v": [
+    7,
+    14,
+    28
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "id": "cursed_power",
+   "name": "呪われた力",
+   "type": "passive",
+   "rarity": 1,
+   "price": 26,
+   "how": "常時 −3秒（①の代償）",
+   "per": "turn",
+   "v": [
+    -3,
+    -3,
+    -3
+   ],
+   "costs": null,
+   "perE": null
+  },
+  {
+   "id": "desperate_stance",
+   "name": "背水の陣",
+   "type": "passive",
+   "rarity": 3,
+   "price": 31,
+   "how": "常時 4秒固定（基本7秒から −3秒、③の代償）",
+   "per": "turn",
+   "v": [
+    -3,
+    -3,
+    -3
+   ],
+   "costs": null,
+   "perE": null
+  }
+ ]
+}
