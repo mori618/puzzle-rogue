@@ -8,6 +8,10 @@
 // 下の TAG_OVERRIDES に追加・除外を書いて調整する。
 // ---------------------------------------------------------------------------
 
+import { PLAY_TOKEN_IDS } from "../utils/tokenUtils.js";
+
+const PLAY_TOKEN_ID_SET = new Set(PLAY_TOKEN_IDS);
+
 /**
  * タグの一覧
  * - 大分類（parent なし）と、その中をさらに細かく分けた小分類（parent あり）がある
@@ -255,6 +259,10 @@ export const computeTokenTags = (token) => {
 
   const attrs = token.attributes || [];
   if (attrs.length > 0 && attrs.length <= 4) tags.add("attribute");
+
+  // 遊び系トークン（tokenUtils の PLAY_TOKEN_IDS）・ミニゲーム
+  if (PLAY_TOKEN_ID_SET.has(token.id)) tags.add("fun");
+  if (String(key || "").startsWith("minigame")) tags.add("minigame");
 
   // 数手番のあいだ続くアクティブスキル
   if (token.type === "skill" && /\d(手番|ターン)の間|\d手番、/.test(desc)) tags.add("buff");

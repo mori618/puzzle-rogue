@@ -1,6 +1,6 @@
 /**
  * 二つ名（称号）システム 全マスターデータ
- * A枠パーツ(74種) + B枠パーツ(74種) + 派生進化(50種) = 全198件
+ * A枠パーツ(75種) + B枠パーツ(75種) + 派生進化(50種) = 全200件
  * （隠しセットシナジー S01〜S49 は廃止し、進化二つ名に移した。docs/title-evolution-plan.md）
  *
  * ■ 解放条件
@@ -34,7 +34,8 @@
  *   スター: cycle_clear_stars（サイクルクリア時に +value★。per: 'stars_10' で所持スター10につき）, star_threshold_sub, star_gain_mult, cycle_interest, clear_reward_add, reward_mult
  *   確率系トークン（tokenUtils.isProbabilityToken）: probability_add（発動確率 +value%）, probability_mult（発動確率 ×value）,
  *         probability_miss_step（発動しなかったたびにそのトークンの次の判定 +value%。発動したらリセット）
- *   ショップ: shop_attr_weight {attribute}（その属性のトークンの出現重み ×value）, shop_rarity_up（★2以上のレアトークンが出やすくなる。招福の鈴 Lv value 相当）, shop_probability_weight（確率系トークンの出現重み ×value）,
+ *   遊び系トークン（tokenUtils.isPlayToken）: play_effect_double（効果を良い悪いとも2回発動）
+ *   ショップ: shop_attr_weight {attribute}（その属性のトークンの出現重み ×value）, shop_rarity_up（★2以上のレアトークンが出やすくなる。招福の鈴 Lv value 相当）, shop_probability_weight（確率系トークンの出現重み ×value）, shop_play_weight（遊び系トークンの出現重み ×value）,
  *         shop_rarity_add {rarity: 3|4}（その★のトークンの出現確率 +value。★4 は伝説）, shop_slot_add, shop_discount, reroll_fixed, reroll_sub（リロール価格 -value★）, sale_add,
  *         cycle_free_reroll（サイクルクリア時に無料リロール +value。使わなかった分は持ち越す）, sell_rate, sell_bonus, curse_sell_bonus
  *   トークン/スキル: new_token_level（新しく手に入れたトークンの初期レベル。呪い等は除く）, skill_cost_sub {attribute?}, skill_charge_cycle_start (数値 or 'full', {attribute?}),
@@ -54,7 +55,7 @@
  *   定義は残すが、解放・装備・図鑑表示の対象から外す（titleManager.isTitleDisabled）。
  */
 
-// 1. A枠パーツ（接頭辞）マスターデータ（全74種）
+// 1. A枠パーツ（接頭辞）マスターデータ（全75種）
 // 特殊消し（A26〜A30・A61）の強さは消し方の難しさの順:
 //   4つ消し(A61) ≤ 5個以上消し(A30) < L字消し(A28) < 横一列(A29) < 十字消し(A26) < 正方形消し(A27)
 export const PREFIX_TITLES = [
@@ -586,9 +587,16 @@ export const PREFIX_TITLES = [
     conditionDesc: '確率で発動するトークンを累計50回発動させる',
     effects: [{ type: 'probability_mult', value: 1.5 }],
   },
+  {
+    id: 'A75', name: '酔狂な', category: '遊び',
+    desc: '遊び系トークン（【遊び】と書かれたトークン）の効果が2回発動する（良い効果も悪い効果も）',
+    conditionType: 'play_bad_outcomes', targetValue: 10,
+    conditionDesc: '遊び系トークンで悪い結果（スター減少・代償など）を累計10回出す',
+    effects: [{ type: 'play_effect_double', value: 2 }],
+  },
 ];
 
-// 2. B枠パーツ（接尾辞）マスターデータ（全74種）
+// 2. B枠パーツ（接尾辞）マスターデータ（全75種）
 export const SUFFIX_TITLES = [
   {
     id: 'B01', name: '覇王', category: '火力',
@@ -1107,6 +1115,13 @@ export const SUFFIX_TITLES = [
     conditionType: 'probability_tokens_bought', targetValue: 5,
     conditionDesc: '確率で発動するトークンを累計5個購入',
     effects: [{ type: 'shop_probability_weight', value: 3 }],
+  },
+  {
+    id: 'B76', name: '遊び人', category: '遊び',
+    desc: '遊び系トークン（【遊び】と書かれたトークン）がショップに出やすくなる（3倍）',
+    conditionType: 'play_tokens_max', targetValue: 3,
+    conditionDesc: '遊び系トークン（ギャンブル・ミニゲーム・ダイス・砥石など）を3個同時に所持',
+    effects: [{ type: 'shop_play_weight', value: 3 }],
   },
 ];
 
