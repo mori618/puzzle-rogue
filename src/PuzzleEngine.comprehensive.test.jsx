@@ -166,6 +166,8 @@ describe('0. トークン定義の完全性チェック', () => {
       'board_balance', 'board_change',
       'gamble', 'rabbit_combo', 'wolf_hunt',
       'minigame_janken', 'minigame_fishing', 'minigame_target', 'minigame_mash', 'minigame_dice',
+      'minigame_fishing_big', 'minigame_demon', 'minigame_target_pro', 'minigame_mash_duo',
+      'minigame_dice_duo', 'minigame_highlow', 'minigame_running',
       'buff_cross_mult', 'buff_l_shape_mult', 'buff_len4_mult',
       'buff_row_mult', 'buff_square_judgment', 'buff_square_mult',
       'calm', 'charge_boost', 'col_fix',
@@ -1703,6 +1705,7 @@ describe('31. パッシブトークンの全効果タイプ存在確認', () => 
       'time_permanent', 'total_level_combo_add',
       'turn_end_convert', 'turn_end_full_board', 'turn_end_spawn',
       'turn_end_special_spawn', 'turn_end_star_gamble', 'turn_end_token_gamble', 'tyrant_decree',
+      'play_count_combo_mult', 'play_loss_combo_mult',
       'vacation', 'zero_combo_charge',
       'magic_overload', 'sublimation_rune', 'contagious_enchant',
       'vertical_slash', 'shape_double_column_mult', 'column_plus',
@@ -1891,7 +1894,7 @@ describe('36. ターン終了時ギャンブルトークンのテスト', () => 
     expect(token.type).toBe('passive');
     expect(token.effect).toBe('turn_end_star_gamble');
     expect(token.values).toEqual([5, 7, 10]);
-    expect(token.rarity).toBe(2);
+    expect(token.rarity).toBe(1);
   });
 
   it('運命 of 研磨 (passive_token_gamble) が正しく定義されている', () => {
@@ -1900,6 +1903,6 @@ describe('36. ターン終了時ギャンブルトークンのテスト', () => 
     expect(token.type).toBe('passive');
     expect(token.effect).toBe('turn_end_token_gamble');
     expect(token.values).toEqual([5, 7, 10]);
-    expect(token.rarity).toBe(2);
+    expect(token.rarity).toBe(1);
   });
 });

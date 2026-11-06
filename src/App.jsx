@@ -1310,7 +1310,12 @@ const App = () => {
                 triple: { label: 'スター×3', icon: 'auto_awesome', color: 'text-amber-300' },
                 levelup: { label: 'Lv UP', icon: 'upgrade', color: 'text-emerald-300' },
                 tenth: { label: 'スター1/10', icon: 'heart_broken', color: 'text-red-500' },
+                quintuple: { label: 'スター×5', icon: 'auto_awesome', color: 'text-amber-200' },
+                levelup2: { label: 'Lv UP×2', icon: 'upgrade', color: 'text-emerald-300' },
+                quarter: { label: 'スター1/4', icon: 'trending_down', color: 'text-red-400' },
+                twentieth: { label: 'スター1/20', icon: 'heart_broken', color: 'text-red-500' },
               };
+              const chestListText = (list) => (list || []).map(k => `「${resultInfo[k]?.label || k}」`).join('');
               return (
                 <div className="fixed inset-0 z-[320] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
                   <div className={`bg-slate-800 w-full max-w-sm rounded-2xl p-6 border shadow-2xl ${isDouble ? 'border-amber-400/60' : 'border-white/10'}`}>
@@ -1319,14 +1324,16 @@ const App = () => {
                     </h3>
                     <p className="text-xs text-slate-400 text-center mb-5">
                       {picked === null
-                        ? (isDouble ? '「スター×3」「ランダムなトークンLv UP」「スター1/10」のどれかが入っている' : '「スター×2」「何も起きない」「スター半減」のどれかが入っている')
+                        ? `${chestListText(isDouble
+                          ? (gambleState.doubleChests || ['triple', 'levelup', 'tenth'])
+                          : (gambleState.firstChests || ['double', 'nothing', 'half']))}のどれかが入っている`
                         : '結果'}
                     </p>
                     <div className="grid grid-cols-3 gap-3 mb-5">
                       {gambleState.chests.map((content, idx) => {
                         const isOpen = picked !== null;
                         const isPicked = picked === idx;
-                        const info = resultInfo[content];
+                        const info = resultInfo[content] || resultInfo.nothing;
                         return (
                           <button
                             key={idx}

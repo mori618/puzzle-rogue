@@ -393,9 +393,25 @@ const ALL_TOKEN_BASES = [
     costLevels: true,
     action: "gamble",
     values: [0.2, 0.3, 0.4],
+    rarity: 1,
+    price: 14,
+    desc: "【遊び】3つの宝箱から1つを選ぶ。中身は「所持スター2倍」「何も起きない」「所持スター半減」のいずれか。2倍を引くと[20/30/40]%の確率でダブルアップチャンス（挑戦は任意）：「所持スター3倍」「ランダムなトークン1つをレベルアップ」「所持スター10分の1」の宝箱から1つを選ぶ。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "gamble_high",
+    name: "大博打",
+    icon: "casino",
+    type: "skill",
+    cost: 4,
+    costLevels: true,
+    action: "gamble",
+    // 宝箱の中身（App.jsx の宝箱表示・useGameState.pickGambleChest と対応）
+    params: { chests: ["triple", "nothing", "quarter"], win: "triple", doubleChests: ["quintuple", "levelup2", "twentieth"] },
+    values: [0.3, 0.4, 0.5],
     rarity: 2,
     price: 20,
-    desc: "3つの宝箱から1つを選ぶ。中身は「所持スター2倍」「何も起きない」「所持スター半減」のいずれか。2倍を引くと[20/30/40]%の確率でダブルアップチャンス（挑戦は任意）：「所持スター3倍」「ランダムなトークン1つをレベルアップ」「所持スター10分の1」の宝箱から1つを選ぶ。消費E:{cost}",
+    desc: "【遊び】3つの宝箱から1つを選ぶ。中身は「所持スター3倍」「何も起きない」「所持スター4分の1」のいずれか。3倍を引くと[30/40/50]%の確率でダブルアップチャンス（挑戦は任意）：「所持スター5倍」「ランダムなトークン2つをレベルアップ」「所持スター20分の1」の宝箱から1つを選ぶ。消費E:{cost}",
     attributes: []
   },
   // --- スキル: ミニゲーム系（専用ダイアログが開く） ---
@@ -410,7 +426,7 @@ const ALL_TOKEN_BASES = [
     values: [5, 7, 10],
     rarity: 1,
     price: 14,
-    desc: "負けるまでじゃんけんを続ける（あいこはやり直し）。3手番の間、連勝数 × {values} をコンボに加算。2連勝以上でスター+連勝数×10、3連勝以上でランダムなトークン1つLvUP、5連勝以上でトークン2つLvUP＆3手番コンボ倍率×3。1回も勝てないと代償：スター-10＆2手番コンボ倍率×0.5。消費E:{cost}",
+    desc: "【遊び】負けるまでじゃんけんを続ける（あいこはやり直し）。3手番の間、連勝数 × {values} をコンボに加算。2連勝以上でスター+連勝数×10、3連勝以上でランダムなトークン1つLvUP、5連勝以上でトークン2つLvUP＆3手番コンボ倍率×3。1回も勝てないと代償：スター-10＆2手番コンボ倍率×0.5。消費E:{cost}",
     attributes: []
   },
   {
@@ -421,9 +437,9 @@ const ALL_TOKEN_BASES = [
     cost: 3,
     costLevels: true,
     action: "minigame_fishing",
-    rarity: 2,
-    price: 20,
-    desc: "釣りをする。釣れたものに応じて効果が発生（完全ランダム）。【ハズレ】長靴：2手番コンボ倍率×0.5／空き缶：他スキルのエネルギー-3／クラゲ：スター-15。【アタリ】小魚：スター+15／タイ：所持スター2倍／タコ：他スキルのエネルギー+5／フグ：3手番コンボ+15／ウナギ：3手番操作時間+8秒／カジキ：3手番コンボ倍率+3／マグロ：3手番コンボ倍率×3／伝説の魚：ランダムな★3トークン獲得／宝箱：所持スター3倍＆トークン3つLvUP＆他スキルのエネルギー全回復＆3手番コンボ倍率×3＆3手番コンボ+20＆3手番操作時間+10秒＆★2トークン獲得。消費E:{cost}",
+    rarity: 1,
+    price: 14,
+    desc: "【遊び】釣りをする。釣れたものに応じて効果が発生（完全ランダム）。【ハズレ】長靴：2手番コンボ倍率×0.5／空き缶：他スキルのエネルギー-3／クラゲ：スター-15。【アタリ】小魚：スター+15／タイ：所持スター2倍／タコ：他スキルのエネルギー+5／フグ：3手番コンボ+15／ウナギ：3手番操作時間+8秒／カジキ：3手番コンボ倍率+3／マグロ：3手番コンボ倍率×3／伝説の魚：ランダムな★3トークン獲得／宝箱：所持スター3倍＆トークン3つLvUP＆他スキルのエネルギー全回復＆3手番コンボ倍率×3＆3手番コンボ+20＆3手番操作時間+10秒＆★2トークン獲得。消費E:{cost}",
     attributes: []
   },
   {
@@ -435,9 +451,9 @@ const ALL_TOKEN_BASES = [
     costLevels: true,
     action: "minigame_target",
     values: [3, 4, 5],
-    rarity: 2,
-    price: 20,
-    desc: "動く照準をタップで止めて的を撃つ。中心に近いほど良い効果。ど真ん中：3手番コンボ倍率×{values}＆スター+30＆トークン1つLvUP／内側：3手番コンボ倍率+2＆スター+10／中間：3手番コンボ+10／外側：スター+5／外れ：代償 スター-15＆2手番コンボ倍率×0.5。消費E:{cost}",
+    rarity: 1,
+    price: 14,
+    desc: "【遊び】動く照準をタップで止めて的を撃つ。中心に近いほど良い効果。ど真ん中：3手番コンボ倍率×{values}＆スター+30＆トークン1つLvUP／内側：3手番コンボ倍率+2＆スター+10／中間：3手番コンボ+10／外側：スター+5／外れ：代償 スター-15＆2手番コンボ倍率×0.5。消費E:{cost}",
     attributes: []
   },
   {
@@ -451,7 +467,7 @@ const ALL_TOKEN_BASES = [
     values: [0.4, 0.6, 0.8],
     rarity: 1,
     price: 14,
-    desc: "5秒間ボタンを連打する。3手番の間、連打数 × {values}（切り捨て）をコンボに加算。40回以上で他スキルのエネルギー+3、55回以上でさらに3手番コンボ倍率×2。20回未満だと代償：コンボ加算なし＆2手番コンボ倍率×0.5。消費E:{cost}",
+    desc: "【遊び】5秒間ボタンを連打する。3手番の間、連打数 × {values}（切り捨て）をコンボに加算。40回以上で他スキルのエネルギー+3、55回以上でさらに3手番コンボ倍率×2。20回未満だと代償：コンボ加算なし＆2手番コンボ倍率×0.5。消費E:{cost}",
     attributes: []
   },
   {
@@ -465,7 +481,107 @@ const ALL_TOKEN_BASES = [
     values: [0, 1, 2],
     rarity: 1,
     price: 14,
-    desc: "サイコロを振り、出た目に応じた効果を得る（{values}回まで振り直し可）。1：所持スター半減／2：2手番コンボ倍率×0.5／3：3手番コンボ+12／4：他スキルのエネルギー+5／5：3手番コンボ倍率+2／6：トークン2つLvUP＆スター+30＆3手番コンボ倍率×2。消費E:{cost}",
+    desc: "【遊び】サイコロを振り、出た目に応じた効果を得る（{values}回まで振り直し可）。1：所持スター半減／2：2手番コンボ倍率×0.5／3：3手番コンボ+12／4：他スキルのエネルギー+5／5：3手番コンボ倍率+2／6：トークン2つLvUP＆スター+30＆3手番コンボ倍率×2。消費E:{cost}",
+    attributes: []
+  },
+  // --- スキル: ★2 強化版ミニゲーム ---
+  {
+    id: "minigame_fishing_big",
+    name: "大物釣り",
+    icon: "phishing",
+    type: "skill",
+    cost: 4,
+    costLevels: true,
+    action: "minigame_fishing_big",
+    values: [0, 0.15, 0.3],
+    rarity: 2,
+    price: 20,
+    desc: "【遊び】釣りの強化版。釣れる魚は釣りと同じだが、サイズ（cm）も決まり、大きいほど効果が強くなる（小型×0.7／中型×1／大型×1.3／特大×1.8／超特大×2.5。ハズレは代償も重くなる）。Lvが上がるほど大物が釣れやすい。魚ごとの最大サイズは記録に残る。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "minigame_demon",
+    name: "デーモン",
+    icon: "whatshot",
+    type: "skill",
+    cost: 4,
+    costLevels: true,
+    action: "minigame_demon",
+    values: [3, 4, 5],
+    rarity: 2,
+    price: 20,
+    desc: "【遊び】デーモンと「チャージ／攻撃／防御」で勝負。攻撃は1チャージ消費。チャージ中の相手に攻撃を当てるか、5チャージ貯めたら勝ち。勝利：3手番コンボ倍率×{values}＆スター+40＆トークン1つLvUP／敗北：代償 スター-25＆2手番コンボ倍率×0.5／引き分け：2手番コンボ+10。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "minigame_target_pro",
+    name: "精密射撃",
+    icon: "my_location",
+    type: "skill",
+    cost: 4,
+    costLevels: true,
+    action: "minigame_target_pro",
+    values: [3, 4, 5],
+    effectValues: [8, 10, 15],
+    rarity: 2,
+    price: 20,
+    desc: "【遊び】的当ての強化版。照準が速く、ど真ん中のさらに中心に小さな「真芯」がある。真芯：3手番コンボ倍率×[8/10/15]＆スター+80＆トークン2つLvUP＆他スキルのエネルギー全回復／ど真ん中：3手番コンボ倍率×{values}＆スター+30＆トークン1つLvUP／内側・中間・外側：的当てと同じ／外れ：代償 スター-25＆2手番コンボ倍率×0.5。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "minigame_mash_duo",
+    name: "交互連打",
+    icon: "touch_app",
+    type: "skill",
+    cost: 4,
+    costLevels: true,
+    action: "minigame_mash_duo",
+    values: [0.5, 0.7, 1.0],
+    rarity: 2,
+    price: 20,
+    desc: "【遊び】連打の強化版。5秒間、左右2つのボタンを交互に押す（同じボタンの連続は数えない）。3手番の間、連打数 × {values}（切り捨て）をコンボに加算。50回以上で他スキルのエネルギー+5、70回以上で3手番コンボ倍率×3、90回以上でトークン1つLvUP。25回未満だと代償：スター-15＆2手番コンボ倍率×0.5。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "minigame_dice_duo",
+    name: "ダブルダイス",
+    icon: "casino",
+    type: "skill",
+    cost: 4,
+    costLevels: true,
+    action: "minigame_dice_duo",
+    values: [0, 1, 2],
+    rarity: 2,
+    price: 20,
+    desc: "【遊び】サイコロの強化版。サイコロを2つ振り（1つずつ目が決まる）、それぞれの目の効果が発動する（{values}回まで振り直し可）。ゾロ目ならボーナス発動。1と2のゾロ目は効果が反転して良い効果になる（1：スター2倍／2：3手番コンボ倍率×2）。6のゾロ目は3手番コンボ倍率×5＆トークン3つLvUP＆スター+60。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "minigame_highlow",
+    name: "ハイアンドロー",
+    icon: "style",
+    type: "skill",
+    cost: 4,
+    costLevels: true,
+    action: "minigame_highlow",
+    values: [8, 12, 16],
+    rarity: 2,
+    price: 20,
+    desc: "【遊び】自分と相手に1〜10のカードが2枚ずつ配られる（1枚目は公開、2枚目は伏せ札）。自分の合計が相手よりハイかローかを当てる。当たればダブルアップに挑戦でき、勝つ限り何度でも続けられる（合計が同じなら配り直し）。やめると連勝数に応じた効果を獲得：3手番コンボ+連勝数×{values}、2連勝でスター、3連勝で倍率×2、4連勝で×3、5連勝でLvUP、6連勝で×5…。負けると積み上げた効果を全て失う（1勝もできないと代償 スター-15＆2手番コンボ倍率×0.5）。消費E:{cost}",
+    attributes: []
+  },
+  {
+    id: "minigame_running",
+    name: "ランニング",
+    icon: "directions_run",
+    type: "skill",
+    cost: 4,
+    costLevels: true,
+    action: "minigame_running",
+    values: [1, 1.5, 2],
+    rarity: 2,
+    price: 20,
+    desc: "【遊び】タップでキャラクターをジャンプさせ、右から流れてくる障害物を避けて走る（だんだん速くなる）。3手番の間、走った距離10mごとに {values} をコンボに加算。150m以上でスター、300m以上で他スキルのエネルギー+5、400m以上で3手番コンボ倍率×2、600m以上で×3＆トークン1つLvUP、1000m完走で×5＆トークン3つLvUP。50m未満だと代償：スター-15＆2手番コンボ倍率×0.5。消費E:{cost}",
     attributes: []
   },
   // --- スキル: うさぎ / 狼 ---
@@ -3766,11 +3882,24 @@ const ALL_TOKEN_BASES = [
     type: "passive",
     effect: "turn_end_star_gamble",
     values: [5, 7, 10],
-    rarity: 2,
-    price: 20,
-    desc: "ターン終了時、[5/7/10]%の確率で所持スターを1.5倍にする。ただし、1%の確率で所持スターが半分になる（確率操作の効果は悪い方には乗らない）。",
+    rarity: 1,
+    price: 12,
+    desc: "【遊び】ターン終了時、[5/7/10]%の確率で所持スターを1.5倍にする。ただし、1%の確率で所持スターが半分になる（確率操作の効果は悪い方には乗らない）。",
     attributes: [],
     canBeInitial: true
+  },
+  {
+    id: "passive_star_gamble_2",
+    name: "星屑の大ダイス",
+    icon: "casino",
+    type: "passive",
+    effect: "turn_end_star_gamble",
+    params: { goodMult: 2, badChance: 3, badMult: 0.25 },
+    values: [5, 7, 10],
+    rarity: 2,
+    price: 20,
+    desc: "【遊び】ターン終了時、[5/7/10]%の確率で所持スターを2倍にする。ただし、3%の確率で所持スターが4分の1になる（確率操作の効果は悪い方には乗らない）。",
+    attributes: []
   },
   {
     id: "passive_token_gamble",
@@ -3779,11 +3908,49 @@ const ALL_TOKEN_BASES = [
     type: "passive",
     effect: "turn_end_token_gamble",
     values: [5, 7, 10],
-    rarity: 2,
-    price: 20,
-    desc: "ターン終了時、[5/7/10]%の確率でランダムなトークンのレベルを最大にする。ただし、1%の確率でランダムなトークンのレベルを1にする（確率操作の効果は悪い方には乗らない）。",
+    rarity: 1,
+    price: 12,
+    desc: "【遊び】ターン終了時、[5/7/10]%の確率でランダムなトークンのレベルを最大にする。ただし、1%の確率でランダムなトークンのレベルを1にする（確率操作の効果は悪い方には乗らない）。",
     attributes: [],
     canBeInitial: true
+  },
+  {
+    id: "passive_token_gamble_2",
+    name: "狂気の砥石",
+    icon: "casino",
+    type: "passive",
+    effect: "turn_end_token_gamble",
+    params: { count: 2, badChance: 3 },
+    values: [5, 7, 10],
+    rarity: 2,
+    price: 20,
+    desc: "【遊び】ターン終了時、[5/7/10]%の確率でランダムなトークン2つのレベルを最大にする。ただし、3%の確率でランダムなトークン2つのレベルを1にする（確率操作の効果は悪い方には乗らない）。",
+    attributes: []
+  },
+  // --- 遊び系トークンのビルド支援 ---
+  {
+    id: "play_count_mult",
+    name: "道楽の極み",
+    icon: "celebration",
+    type: "passive",
+    effect: "play_count_combo_mult",
+    values: [1, 1.5, 2],
+    rarity: 2,
+    price: 18,
+    desc: "【遊び】コンボ倍率にプラス（所持している遊び系トークンの数 × {values}）。遊び系＝【遊び】と書かれたトークン（ギャンブル・ミニゲーム・ダイス・砥石など。自身も含む）。",
+    attributes: []
+  },
+  {
+    id: "play_loss_mult",
+    name: "負けの美学",
+    icon: "sentiment_very_dissatisfied",
+    type: "passive",
+    effect: "play_loss_combo_mult",
+    values: [0.3, 0.5, 0.8],
+    rarity: 2,
+    price: 18,
+    desc: "【遊び】遊び系トークンで悪い結果（スター減少・代償など）が出るたびにカウント+1。コンボ倍率にプラス（カウント × {values}）。（現在: {charge}回）",
+    attributes: []
   },
   // --- 新規追加: L字消し関連トークン ---
   {

@@ -14,14 +14,14 @@ import { ENCHANT_DESCRIPTIONS, ENCHANTMENTS } from '../constants/enchantments.js
 import { getComboStarUnits } from '../utils/starEconomy.js';
 import { MAX_COMBO, MAX_TARGET, TRIAL_TIME_LIMIT_MS, TRIAL_BOARD_COMBOS, SAVE_KEY, DEFAULT_SETTINGS, SHOP_REROLL_GROWTH_FACTOR, AWAKENING_TOKEN_SLOT_PRICES, INITIAL_TOKEN_SLOTS, getTitleSwitchCost, TIME_BANK_MAX_MS } from '../constants/gameConstants.js';
 import { calcBaseCombo, calcComboMultiplier, applyComboMultiplier, INUGAMI_THRESHOLD } from '../utils/comboFormula';
-import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, applyNewTokenLevel, isProbabilityToken, isRabbitToken, countRabbitTokens, RABBIT_TOKEN_IDS } from '../utils/tokenUtils';
+import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, getTokenIcon, getAttributeBarStyles, filterPoolByFreeSlots, applyNewTokenLevel, isProbabilityToken, isRabbitToken, countRabbitTokens, RABBIT_TOKEN_IDS, isPlayToken, countPlayTokens } from '../utils/tokenUtils';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { buildEffectiveTokens, resolveCopiedToken, getBuffsInEffect, decrementBuffDurations, isTrialStageActive } from '../utils/effectiveTokens.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import { getMoveTimeRhythmEffect } from '../utils/moveTimeRhythm.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
 import { safeSetItem, safeRemoveItem } from '../utils/safeStorage.js';
-import { describeRewards, isPenaltyReward } from '../utils/minigames.js';
+import { describeRewards, isPenaltyReward, fishRecordKey } from '../utils/minigames.js';
 import soundManager from '../utils/SoundManager';
 import { useGameSettings } from './useGameSettings';
 import { usePuzzleBoard } from './usePuzzleBoard';
@@ -482,6 +482,15 @@ export const useGameState = () => {
   // 効果の計算に使うトークン（二つ名「詠唱者」でパッシブを封印しているときは、封印したパッシブを null にした一覧）
   const effectTokens = useMemo(() => applyTitlePassiveSeal(tokens, titleEffects), [tokens, titleEffects]);
   const isTitlePassiveSealed = isTitlePassiveNull(titleEffects);
+  // 二つ名「酔狂な」: 遊び系トークンの効果（良い効果も悪い効果も）を2回発動する
+  const playRepeat = hasTitleEffect('play_effect_double', {}, titleEffects) ? 2 : 1;
+  // 遊び系トークンで悪い結果が出た: 「負けの美学」のカウント+1・二つ名「酔狂な」の解放進捗
+  const recordPlayLoss = (times = 1) => {
+    setTokens(prev => prev.map(t => (t && t.effect === 'play_loss_combo_mult'
+      ? { ...t, charge: (t.charge || 0) + times }
+      : t)));
+    if (!isPracticeMode && !showTitle) recordTitleProgress({ add: { play_bad_outcomes: times } });
+  };
   // 二つ名「苦行者」: 手番ごとに、2回発動するパッシブを抽選する（同じ手番の中では同じ結果を使う）
   const titlePassiveDoubleRef = useRef({ key: null, ids: new Set(), flashed: false });
   const getTitleDoubledPassiveIds = (list) => {
@@ -2403,6 +2412,29 @@ export const useGameState = () => {
         addedMultiplier += addVal;
         logData.multipliers.push(`rabbit_count_combo_mult:+${addVal.toFixed(2)}`);
         logData.multiplierSteps.push({ label: t.name || 'うさぎ', value: 1.0 + addVal, addedValue: addVal, type: 'add', tokenId: tId });
+      }
+
+      if (t.effect === "play_count_combo_mult") {
+        // 道楽の極み: コンボ倍率にプラス（遊び系トークン数 × 値）
+        const playCount = countPlayTokens(tokens);
+        const addVal = playCount * (t.values?.[lv - 1] || 1);
+        if (addVal > 0) {
+          if (isInstant) triggerPassive(tId);
+          addedMultiplier += addVal;
+          logData.multipliers.push(`play_count_combo_mult:+${addVal.toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || '道楽の極み', value: 1.0 + addVal, addedValue: addVal, type: 'add', tokenId: tId });
+        }
+      }
+
+      if (t.effect === "play_loss_combo_mult") {
+        // 負けの美学: コンボ倍率にプラス（悪い結果の累計回数 × 値）
+        const addVal = (t.charge || 0) * (t.values?.[lv - 1] || 0.3);
+        if (addVal > 0) {
+          if (isInstant) triggerPassive(tId);
+          addedMultiplier += addVal;
+          logData.multipliers.push(`play_loss_combo_mult:+${addVal.toFixed(2)}`);
+          logData.multiplierSteps.push({ label: t.name || '負けの美学', value: 1.0 + addVal, addedValue: addVal, type: 'add', tokenId: tId });
+        }
       }
 
       if (t.effect === "level3_count_combo_mult") {
@@ -4718,21 +4750,27 @@ export const useGameState = () => {
           if (!t || t.effect !== 'turn_end_star_gamble') return;
           const lv = t.level || 1;
           const prob = getModifiedProbability(t.values[lv - 1], t.instanceId || t.id); // 5 / 7 / 10
-          
+          // ★2「星屑の大ダイス」は params で倍率・悪い効果の確率を上書きする
+          const goodMult = t.params?.goodMult ?? 1.5;
+          const badChance = t.params?.badChance ?? 1;
+          const badMult = t.params?.badMult ?? 0.5;
+          const doubledNote = playRepeat > 1 ? '（酔狂：2回発動）' : '';
+
           // 良い効果の判定 (確率操作系が乗る)
           if (Math.random() * 100 < prob) {
             triggerPassive(t.instanceId || t.id);
             soundManager.playSE(SE_IDS.MATCH_STAR);
-            setStars(s => Math.floor(s * 1.5));
-            notify(`${t.name}発動！所持スターが1.5倍になった！`);
+            setStars(s => Math.floor(s * Math.pow(goodMult, playRepeat)));
+            notify(`${t.name}発動！所持スターが${goodMult}倍になった！${doubledNote}`);
           }
-          
-          // 悪い効果の判定 (確率操作系は乗らないので、素の 1%)
-          if (Math.random() * 100 < 1) {
+
+          // 悪い効果の判定 (確率操作系は乗らないので、素の確率)
+          if (Math.random() * 100 < badChance) {
             triggerPassive(t.instanceId || t.id);
             soundManager.playSE(SE_IDS.CURSE_GET);
-            setStars(s => Math.floor(s * 0.5));
-            notify(`${t.name}の厄災！所持スターが半分になってしまった…`);
+            setStars(s => Math.floor(s * Math.pow(badMult, playRepeat)));
+            notify(`${t.name}の厄災！所持スターが${badMult === 0.5 ? '半分' : `${badMult}倍`}になってしまった…${doubledNote}`);
+            recordPlayLoss(playRepeat);
           }
         });
 
@@ -4741,58 +4779,52 @@ export const useGameState = () => {
           if (!t || t.effect !== 'turn_end_token_gamble') return;
           const lv = t.level || 1;
           const prob = getModifiedProbability(t.values[lv - 1], t.instanceId || t.id); // 5 / 7 / 10
-          
+          // ★2「狂気の砥石」は params で対象数・悪い効果の確率を上書きする
+          // 二つ名「酔狂な」装備中は対象数が2倍になる
+          const count = (t.params?.count ?? 1) * playRepeat;
+          const badChance = t.params?.badChance ?? 1;
+
           const targetTokens = tokens.filter(tok => tok !== null);
-          if (targetTokens.length > 0) {
-            // 良い効果 (確率操作系が乗る)
-            if (Math.random() * 100 < prob) {
-              const randIdx = Math.floor(Math.random() * targetTokens.length);
-              const targetToken = targetTokens[randIdx];
-              
-              triggerPassive(t.instanceId || t.id);
-              soundManager.playSE(SE_IDS.EQUIP_TOKEN);
-              
-              setTokens(prev => {
-                const next = prev.map(tok => {
-                  if (tok && tok.instanceId === targetToken.instanceId) {
-                    const newLevel = 3;
-                    return {
-                      ...tok,
-                      level: newLevel,
-                      desc: getTokenDescription({ ...tok, level: newLevel }, newLevel, currentRunStats, prev, activeBuffs)
-                    };
-                  }
-                  return tok;
-                });
-                return next;
-              });
-              notify(`${t.name}発動！[${targetToken.name}]のレベルが最大になった！`);
+          if (targetTokens.length === 0) return;
+          const pickTargets = () => {
+            const pool = [...targetTokens];
+            const picked = [];
+            for (let i = 0; i < count && pool.length > 0; i++) {
+              picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
             }
-            
-            // 悪い効果 (確率操作系は乗らないので、素の 1%)
-            if (Math.random() * 100 < 1) {
-              const randIdx = Math.floor(Math.random() * targetTokens.length);
-              const targetToken = targetTokens[randIdx];
-              
-              triggerPassive(t.instanceId || t.id);
-              soundManager.playSE(SE_IDS.CURSE_GET);
-              
-              setTokens(prev => {
-                const next = prev.map(tok => {
-                  if (tok && tok.instanceId === targetToken.instanceId) {
-                    const newLevel = 1;
-                    return {
-                      ...tok,
-                      level: newLevel,
-                      desc: getTokenDescription({ ...tok, level: newLevel }, newLevel, currentRunStats, prev, activeBuffs)
-                    };
-                  }
-                  return tok;
-                });
-                return next;
-              });
-              notify(`${t.name}の厄災！[${targetToken.name}]のレベルが1になってしまった…`);
-            }
+            return picked;
+          };
+          const setLevels = (targets, newLevel) => {
+            const ids = new Set(targets.map(tok => tok.instanceId));
+            setTokens(prev => prev.map(tok => {
+              if (tok && ids.has(tok.instanceId)) {
+                return {
+                  ...tok,
+                  level: newLevel,
+                  desc: getTokenDescription({ ...tok, level: newLevel }, newLevel, currentRunStats, prev, activeBuffs)
+                };
+              }
+              return tok;
+            }));
+          };
+
+          // 良い効果 (確率操作系が乗る)
+          if (Math.random() * 100 < prob) {
+            const targets = pickTargets();
+            triggerPassive(t.instanceId || t.id);
+            soundManager.playSE(SE_IDS.EQUIP_TOKEN);
+            setLevels(targets, 3);
+            notify(`${t.name}発動！[${targets.map(tok => tok.name).join('・')}]のレベルが最大になった！`);
+          }
+
+          // 悪い効果 (確率操作系は乗らないので、素の確率)
+          if (Math.random() * 100 < badChance) {
+            const targets = pickTargets();
+            triggerPassive(t.instanceId || t.id);
+            soundManager.playSE(SE_IDS.CURSE_GET);
+            setLevels(targets, 1);
+            notify(`${t.name}の厄災！[${targets.map(tok => tok.name).join('・')}]のレベルが1になってしまった…`);
+            recordPlayLoss(playRepeat);
           }
         });
 
@@ -5308,6 +5340,8 @@ export const useGameState = () => {
         enchant_max: counts.enchant,
         // 賭博師: 確率で発動するトークンの同時所持数
         probability_tokens_max: tokens.filter(isProbabilityToken).length,
+        // 遊び人: 遊び系トークンの同時所持数
+        play_tokens_max: tokens.filter(isPlayToken).length,
         ...Object.fromEntries(ALL_DROP_COLORS.map(c => [`attr_tokens_${c}_max`, counts.attrCounts[c] || 0])),
       },
     });
@@ -5855,38 +5889,36 @@ export const useGameState = () => {
   };
 
   // --- ギャンブル: 宝箱を選ぶ ---
+  // 宝箱の中身ごとの効果（stars: 所持スターの倍率 / levelup: レベルアップするトークン数）
+  const GAMBLE_RESULTS = {
+    double: { stars: 2, msg: '大当たり！所持スターが2倍になった！' },
+    triple: { stars: 3, msg: '超大当たり！所持スターが3倍になった！' },
+    quintuple: { stars: 5, msg: '超々大当たり！所持スターが5倍になった！' },
+    half: { stars: 1 / 2, bad: true, msg: 'ハズレ…所持スターが半分になった' },
+    quarter: { stars: 1 / 4, bad: true, msg: 'ハズレ…所持スターが4分の1になった' },
+    tenth: { stars: 1 / 10, bad: true, msg: '大ハズレ…所持スターが10分の1になった' },
+    twentieth: { stars: 1 / 20, bad: true, msg: '大ハズレ…所持スターが20分の1になった' },
+    levelup: { levelup: 1 },
+    levelup2: { levelup: 2 },
+  };
   const pickGambleChest = (index) => {
     if (!gambleState || gambleState.pickedIndex !== null) return;
     const result = gambleState.chests[index];
+    const info = GAMBLE_RESULTS[result];
+    const doubledNote = playRepeat > 1 ? '（酔狂：2回発動）' : '';
     let doubleUpOffered = false;
-    switch (result) {
-      case 'double':
-        setStars(s => Math.floor(s * 2));
-        notify('大当たり！所持スターが2倍になった！');
-        soundManager.playSE(SE_IDS.MATCH_STAR);
-        doubleUpOffered = gambleState.stage === 'first' && Math.random() < (gambleState.doubleUpChance || 0);
-        break;
-      case 'half':
-        setStars(s => Math.floor(s / 2));
-        notify('ハズレ…所持スターが半分になった');
-        soundManager.playSE(SE_IDS.ERROR);
-        break;
-      case 'triple':
-        setStars(s => Math.floor(s * 3));
-        notify('超大当たり！所持スターが3倍になった！');
-        soundManager.playSE(SE_IDS.MATCH_STAR);
-        break;
-      case 'levelup':
-        levelUpRandomTokens(1);
-        break;
-      case 'tenth':
-        setStars(s => Math.floor(s / 10));
-        notify('大ハズレ…所持スターが10分の1になった');
-        soundManager.playSE(SE_IDS.ERROR);
-        break;
-      default:
-        notify('何も起きなかった');
-        break;
+    if (info?.stars) {
+      setStars(s => Math.floor(s * Math.pow(info.stars, playRepeat)));
+      notify(`${info.msg}${doubledNote}`);
+      soundManager.playSE(info.bad ? SE_IDS.ERROR : SE_IDS.MATCH_STAR);
+      if (info.bad) recordPlayLoss(playRepeat);
+    } else if (info?.levelup) {
+      levelUpRandomTokens(info.levelup * playRepeat);
+    } else {
+      notify('何も起きなかった');
+    }
+    if (result === (gambleState.winResult || 'double')) {
+      doubleUpOffered = gambleState.stage === 'first' && Math.random() < (gambleState.doubleUpChance || 0);
     }
     playLog.event('gamble', { stage: gambleState.stage, result, doubleUp: doubleUpOffered });
     setGambleState(prev => (prev ? { ...prev, pickedIndex: index, doubleUpOffered } : prev));
@@ -5898,7 +5930,7 @@ export const useGameState = () => {
     setGambleState(prev => (prev ? {
       ...prev,
       stage: 'double',
-      chests: shuffleArray(['triple', 'levelup', 'tenth']),
+      chests: shuffleArray(prev.doubleChests || ['triple', 'levelup', 'tenth']),
       pickedIndex: null,
       doubleUpOffered: false,
     } : prev));
@@ -5918,7 +5950,11 @@ export const useGameState = () => {
     const sourceId = minigameState.tokenInstanceId;
     let hasGood = false;
     let hasBad = false;
-    (rewards || []).forEach((r, i) => {
+    // 二つ名「酔狂な」: 報酬（代償も含む）を2回適用する
+    const appliedRewards = playRepeat > 1
+      ? Array.from({ length: playRepeat }, () => rewards || []).flat()
+      : (rewards || []);
+    appliedRewards.forEach((r, i) => {
       if (isPenaltyReward(r)) hasBad = true; else if (r.type !== 'token') hasGood = true;
       switch (r.type) {
         case 'stars_add':
@@ -6005,7 +6041,13 @@ export const useGameState = () => {
     });
     if (hasBad && !hasGood) soundManager.playSE(SE_IDS.ERROR);
     else if (hasGood) soundManager.playSE(SE_IDS.MATCH_STAR);
-    notify(`${sourceName}: ${describeRewards(rewards)}`);
+    // logInfo.bad: 報酬リストに代償が無くても悪い結果（ハイアンドローで積み上げを失った等）
+    if (hasBad || logInfo.bad) recordPlayLoss(playRepeat);
+    // 大物釣り: 魚ごとの最大サイズを記録する（ランをまたいで残る）
+    if (logInfo.fish && Number.isFinite(logInfo.fishSize) && !isPracticeMode) {
+      recordTitleProgress({ max: { [fishRecordKey(logInfo.fish)]: logInfo.fishSize, fish_size_max: logInfo.fishSize } });
+    }
+    notify(`${sourceName}: ${describeRewards(rewards)}${playRepeat > 1 ? '（酔狂：2回発動）' : ''}`);
     playLog.event('minigame', { type: minigameState.type, rewards, ...logInfo });
     setMinigameState(prev => (prev ? { ...prev, resolved: true } : prev));
   };
@@ -6687,9 +6729,14 @@ export const useGameState = () => {
       case "gamble": {
         const lv = token.level || 1;
         const doubleUpChance = token.values?.[lv - 1] ?? 0.2;
+        const firstChests = token.params?.chests || ['double', 'nothing', 'half'];
+        const doubleChests = token.params?.doubleChests || ['triple', 'levelup', 'tenth'];
         setGambleState({
           stage: 'first',
-          chests: shuffleArray(['double', 'nothing', 'half']),
+          chests: shuffleArray(firstChests),
+          firstChests,
+          doubleChests,
+          winResult: token.params?.win || 'double',
           pickedIndex: null,
           doubleUpChance,
           doubleUpOffered: false,
@@ -6703,11 +6750,19 @@ export const useGameState = () => {
       case "minigame_fishing":
       case "minigame_target":
       case "minigame_mash":
-      case "minigame_dice": {
+      case "minigame_dice":
+      case "minigame_fishing_big":
+      case "minigame_demon":
+      case "minigame_target_pro":
+      case "minigame_mash_duo":
+      case "minigame_dice_duo":
+      case "minigame_highlow":
+      case "minigame_running": {
         setMinigameState({
           type: token.action.replace('minigame_', ''),
           level: token.level || 1,
           values: token.values,
+          effectValues: token.effectValues,
           tokenName: token.name,
           tokenInstanceId: token.instanceId,
           resolved: false,
