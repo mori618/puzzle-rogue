@@ -714,22 +714,29 @@ export const getMinigameProgressUpdates = (type, info = {}) => {
 };
 
 // --- 二つ名で強くなるミニゲーム -------------------------------------------------
+// 遊び方（ルール・制限時間・確率）は変えず、結果の良い効果だけを強める。
+// 記録（連打数・距離など）も実際の結果のまま残す。
 
 /**
- * 的当て・精密射撃: 中心（ど真ん中・真芯）に当てたときの効果を強める
- * スター・コンボ等は boost 倍、倍率は「1 からの差」を boost 倍、レベルアップは切り上げ
+ * 良い効果を boost 倍に強める（代償はそのまま）
+ * スター・コンボ・エネルギー・操作時間は boost 倍、倍率は「1 からの差」を boost 倍、レベルアップは切り上げ
  */
-export const boostCenterRewards = (rewards, boost = 1) => {
+export const boostRewards = (rewards, boost = 1) => {
   if (!(boost > 1)) return rewards;
   return (rewards || []).map(r => {
+    if (isPenaltyReward(r)) return r;
     switch (r.type) {
       case 'stars_add':
       case 'combo_add':
+      case 'time':
         return { ...r, value: Math.round(r.value * boost) };
+      case 'energy':
+        return r.value >= 99 ? r : { ...r, value: Math.round(r.value * boost) };
       case 'mult_add':
         return { ...r, value: Math.round(r.value * boost * 2) / 2 };
+      case 'stars_mult':
       case 'mult':
-        return r.value >= 1 ? { ...r, value: Math.round((1 + (r.value - 1) * boost) * 2) / 2 } : r;
+        return { ...r, value: Math.round((1 + (r.value - 1) * boost) * 2) / 2 };
       case 'levelup':
         return { ...r, value: Math.ceil(r.value * boost) };
       default:
@@ -737,18 +744,6 @@ export const boostCenterRewards = (rewards, boost = 1) => {
     }
   });
 };
-
-/** サイコロで1の目が出たか（ダブルダイスのゾロ目の1は良い効果に反転するので除く） */
-export const hasDiceOne = (info = {}) => {
-  if (info.face === 1) return true;
-  const [a, b] = info.faces || [];
-  return (a === 1 || b === 1) && a !== b;
-};
-
-/** 二つ名「賽振り」: 1の目が出たときは代償を取り除く */
-export const applyDiceOneNull = (rewards, info, enabled) => (
-  enabled && hasDiceOne(info) ? (rewards || []).filter(r => !isPenaltyReward(r)) : rewards
-);
 
 /** 二つ名「負け知らずの」: じゃんけんの勝ち1回につきスター */
 export const addJankenWinStars = (rewards, streak, starsPerWin = 0) => (

@@ -5936,6 +5936,14 @@ export const useGameState = () => {
     } else {
       notify('何も起きなかった');
     }
+    // 二つ名「宝箱荒らし」: 当たりを引くたびにスター（宝箱の中身・確率は変えない）
+    if (info && !info.bad && (info.stars || info.levelup)) {
+      const winStars = Math.floor(getTitleEffectTotal('gamble_win_stars', {}, titleEffects));
+      if (winStars > 0) {
+        setStars(s => s + winStars);
+        notify(`宝箱荒らし：当たりで +${winStars}★`);
+      }
+    }
     if (result === (gambleState.winResult || 'double')) {
       doubleUpOffered = gambleState.stage === 'first' && Math.random() < (gambleState.doubleUpChance || 0);
     }
@@ -6764,8 +6772,7 @@ export const useGameState = () => {
 
       case "gamble": {
         const lv = token.level || 1;
-        // 二つ名「宝箱荒らし」: ダブルアップの発生率アップ
-        const doubleUpChance = Math.min(1, (token.values?.[lv - 1] ?? 0.2) + getTitleEffectTotal('gamble_doubleup_add', {}, titleEffects));
+        const doubleUpChance = token.values?.[lv - 1] ?? 0.2;
         const firstChests = token.params?.chests || ['double', 'nothing', 'half'];
         const doubleChests = token.params?.doubleChests || ['triple', 'levelup', 'tenth'];
         setGambleState({
@@ -6797,15 +6804,15 @@ export const useGameState = () => {
       case "minigame_running": {
         setMinigameState({
           type: token.action.replace('minigame_', ''),
-          // 二つ名でミニゲームが強くなる効果（釣り好きの・スナイパー・連打の・韋駄天の・悪魔祓い）
+          // 二つ名でミニゲームの効果が増える（遊び方・ルールは変えない）
           bonus: {
             fishDoubleChance: Math.min(1, getTitleEffectTotal('fish_double_chance', {}, titleEffects)),
             targetCenterBoost: getTitleEffectProduct('target_center_boost', {}, titleEffects),
-            mashExtraMs: getTitleEffectTotal('mash_extra_ms', {}, titleEffects),
-            runMeterMult: getTitleEffectProduct('run_meter_mult', {}, titleEffects),
-            demonStartCharge: Math.floor(getTitleEffectTotal('demon_start_charge', {}, titleEffects)),
             jankenWinStars: getTitleEffectTotal('janken_win_stars', {}, titleEffects),
-            diceOneNull: hasTitleEffect('dice_one_null', {}, titleEffects),
+            // 連打の・韋駄天の・悪魔祓い・賽振り: そのゲームの良い効果 ×value
+            rewardBoost: getTitleEffects('minigame_reward_boost', {}, titleEffects)
+              .filter(e => (e.games || []).includes(token.action.replace('minigame_', '')))
+              .reduce((m, e) => m * (Number(e.value) || 1), 1),
           },
           level: token.level || 1,
           values: token.values,

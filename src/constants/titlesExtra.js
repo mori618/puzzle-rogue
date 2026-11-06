@@ -21,11 +21,11 @@
  *   target_center_boost  : 的当て・精密射撃で中心（ど真ん中・真芯）に当てたときの効果 ×value
  *   wolf_eat_stars       : 狼がうさぎを1匹捕食するたびに +value★
  *   janken_win_stars     : じゃんけんの勝ち1回につき +value★（終了時）
- *   dice_one_null        : サイコロ・ダブルダイスで1の目が出たとき、代償を受けない
- *   mash_extra_ms        : 連打・交互連打の制限時間 +value ミリ秒
- *   run_meter_mult       : ランニングの効果を計算するときの距離 ×value
- *   demon_start_charge   : デーモンとの勝負を value チャージ貯めた状態で始める
- *   gamble_doubleup_add  : ギャンブル・大博打のダブルアップ発生率 +value
+ *   minigame_reward_boost { games } : そのミニゲーム（minigameState.type）の良い効果 ×value（代償はそのまま）
+ *   gamble_win_stars     : ギャンブル・大博打で当たりを引くたびに +value★
+ *
+ *   ※ 遊びの二つ名は、遊び方（ルール・制限時間・確率・初期状態）を変えず、結果の効果だけを増やす。
+ *     実績の記録（連打数・距離など）が二つ名で変わらないようにするため。
  */
 
 // --- トークンID ---------------------------------------------------------------
@@ -77,22 +77,22 @@ export const PLAY_PREFIX_TITLES = [
   },
   {
     id: 'A79', name: '韋駄天の', category: '遊び（ランニング）',
-    desc: 'ランニングがショップに出やすくなる（3倍）、ランニングの効果を計算するときの距離 ×1.25',
+    desc: 'ランニングがショップに出やすくなる（3倍）、ランニングの良い効果 ×1.5',
     conditionType: 'running_meters_max', targetValue: 400,
     conditionDesc: 'ランニングで400m以上走る',
     effects: [
       { type: 'shop_token_weight', ids: RUNNING_TOKEN_IDS, value: 3 },
-      { type: 'run_meter_mult', value: 1.25 },
+      { type: 'minigame_reward_boost', games: ['running'], value: 1.5 },
     ],
   },
   {
     id: 'A80', name: '連打の', category: '遊び（連打）',
-    desc: '連打・交互連打がショップに出やすくなる（3倍）、連打の制限時間 +1秒',
+    desc: '連打・交互連打がショップに出やすくなる（3倍）、連打・交互連打の良い効果 ×1.5',
     conditionType: 'mash_taps_max', targetValue: 60,
     conditionDesc: '連打・交互連打で60回以上押す',
     effects: [
       { type: 'shop_token_weight', ids: MASH_TOKEN_IDS, value: 3 },
-      { type: 'mash_extra_ms', value: 1000 },
+      { type: 'minigame_reward_boost', games: ['mash', 'mash_duo'], value: 1.5 },
     ],
   },
 ];
@@ -130,32 +130,32 @@ export const PLAY_SUFFIX_TITLES = [
   },
   {
     id: 'B80', name: '賽振り', category: '遊び（サイコロ）',
-    desc: 'サイコロ・ダブルダイスがショップに出やすくなる（3倍）、1の目が出たときに代償を受けない',
+    desc: 'サイコロ・ダブルダイスがショップに出やすくなる（3倍）、サイコロ・ダブルダイスの良い効果 ×1.5',
     conditionType: 'dice_doubles', targetValue: 3,
     conditionDesc: 'ダブルダイスで累計3回ゾロ目を出す',
     effects: [
       { type: 'shop_token_weight', ids: DICE_TOKEN_IDS, value: 3 },
-      { type: 'dice_one_null', value: 1 },
+      { type: 'minigame_reward_boost', games: ['dice', 'dice_duo'], value: 1.5 },
     ],
   },
   {
     id: 'B81', name: '悪魔祓い', category: '遊び（デーモン）',
-    desc: 'デーモンがショップに出やすくなる（3倍）、デーモンとの勝負を1チャージ貯めた状態で始める',
+    desc: 'デーモンがショップに出やすくなる（3倍）、デーモンに勝った・引き分けたときの効果 ×1.5',
     conditionType: 'demon_wins', targetValue: 3,
     conditionDesc: 'デーモンに累計3回勝つ',
     effects: [
       { type: 'shop_token_weight', ids: DEMON_TOKEN_IDS, value: 3 },
-      { type: 'demon_start_charge', value: 1 },
+      { type: 'minigame_reward_boost', games: ['demon'], value: 1.5 },
     ],
   },
   {
     id: 'B82', name: '宝箱荒らし', category: '遊び（ギャンブル）',
-    desc: 'ギャンブル・大博打がショップに出やすくなる（3倍）、ダブルアップの発生率 +25%',
+    desc: 'ギャンブル・大博打がショップに出やすくなる（3倍）、当たりを引くたびに +20★',
     conditionType: 'gamble_doubleup_wins', targetValue: 2,
     conditionDesc: 'ギャンブル・大博打のダブルアップで累計2回当たりを引く',
     effects: [
       { type: 'shop_token_weight', ids: GAMBLE_TOKEN_IDS, value: 3 },
-      { type: 'gamble_doubleup_add', value: 0.25 },
+      { type: 'gamble_win_stars', value: 20 },
     ],
   },
 ];

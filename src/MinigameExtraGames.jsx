@@ -9,7 +9,7 @@ import {
   DEMON_WIN_CHARGE, DEMON_MAX_ROUNDS, judgeDemonRound, pickDemonMove, getDemonRewards,
   DUO_MASH_DURATION_MS, DUO_MASH_FAIL_THRESHOLD, DUO_MASH_ENERGY_THRESHOLD, DUO_MASH_MULT_THRESHOLD,
   DUO_MASH_LEVELUP_THRESHOLD, countDuoTap, getDuoMashRewards,
-  DICE_FACES, DICE_INVERTED_FACES, rollDie, getDoubleDiceRewards, applyDiceOneNull,
+  DICE_FACES, DICE_INVERTED_FACES, rollDie, getDoubleDiceRewards, boostRewards,
   dealHighLow, judgeHighLow, getHighLowRewards, HIGHLOW_PENALTY,
   RUNNER, createRunnerState, runnerJump, stepRunner, runnerMeters, getRunningRewards, RUN_FAIL_METERS,
 } from './utils/minigames.js';
@@ -158,8 +158,9 @@ const ChargeBar = ({ value, color }) => (
 
 export const DemonGame = ({ state, onResolve }) => {
   const winMult = getLevelValue(state.values, state.level, 3);
-  // 二つ名「悪魔祓い」: チャージを貯めた状態で始める
-  const [pc, setPc] = useState(() => Math.min(DEMON_WIN_CHARGE - 1, state.bonus?.demonStartCharge || 0));
+  // 二つ名「悪魔祓い」: 勝ったときの効果アップ（勝負のルールは変えない）
+  const boost = state.bonus?.rewardBoost || 1;
+  const [pc, setPc] = useState(0);
   const [dc, setDc] = useState(0);
   const [round, setRound] = useState(0);
   const [last, setLast] = useState(null); // { player, demon, text }
@@ -186,7 +187,7 @@ export const DemonGame = ({ state, onResolve }) => {
     if (winner === 'draw') text = '決着がつかなかった…';
     setLast({ player: move, demon: demonMove, text });
     if (winner) {
-      const rewards = getDemonRewards(winner, winMult);
+      const rewards = boostRewards(getDemonRewards(winner, winMult), boost);
       setResult({ winner, rewards });
       onResolve(rewards, { winner, rounds: nextRound, bad: winner === 'demon' });
     }
@@ -215,6 +216,7 @@ export const DemonGame = ({ state, onResolve }) => {
       {result ? (
         <ResultBox
           title={result.winner === 'player' ? '勝利！' : result.winner === 'demon' ? '敗北…' : '引き分け'}
+          note={boost > 1 && result.winner !== 'demon' ? '悪魔祓い：効果アップ！' : undefined}
           rewards={result.rewards}
         />
       ) : (
@@ -243,13 +245,13 @@ export const DemonGame = ({ state, onResolve }) => {
 // ---------------------------------------------------------------------------
 export const DuoMashGame = ({ state, onResolve }) => {
   const perTap = getLevelValue(state.values, state.level, 0.5);
-  // 二つ名「連打の」: 制限時間が伸びる
-  const duration = DUO_MASH_DURATION_MS + (state.bonus?.mashExtraMs || 0);
+  // 二つ名「連打の」: 結果の良い効果アップ（制限時間などのルールは変えない）
+  const boost = state.bonus?.rewardBoost || 1;
   const [phase, setPhase] = useState('ready'); // ready → countdown → playing → done
   const [count, setCount] = useState(3);
   const [taps, setTaps] = useState(0);
   const [lastSide, setLastSide] = useState(null);
-  const [remaining, setRemaining] = useState(duration);
+  const [remaining, setRemaining] = useState(DUO_MASH_DURATION_MS);
   const [rewards, setRewards] = useState(null);
   const tapsRef = useRef(0);
   const lastSideRef = useRef(null);
@@ -269,19 +271,19 @@ export const DuoMashGame = ({ state, onResolve }) => {
     if (phase !== 'playing') return undefined;
     const start = performance.now();
     const id = setInterval(() => {
-      const left = Math.max(0, duration - (performance.now() - start));
+      const left = Math.max(0, DUO_MASH_DURATION_MS - (performance.now() - start));
       setRemaining(left);
       if (left <= 0) {
         clearInterval(id);
         const total = tapsRef.current;
-        const r = getDuoMashRewards(total, perTap);
+        const r = boostRewards(getDuoMashRewards(total, perTap), boost);
         setRewards(r);
         setPhase('done');
         onResolveRef.current(r, { taps: total });
       }
     }, 50);
     return () => clearInterval(id);
-  }, [phase, perTap, duration]);
+  }, [phase, perTap, boost]);
 
   const tap = (side) => (e) => {
     e.preventDefault();
@@ -312,13 +314,13 @@ export const DuoMashGame = ({ state, onResolve }) => {
         </div>
       </div>
       <div className="h-2 bg-slate-900 rounded-full overflow-hidden">
-        <div className="h-full bg-amber-400" style={{ width: `${(remaining / duration) * 100}%` }} />
+        <div className="h-full bg-amber-400" style={{ width: `${(remaining / DUO_MASH_DURATION_MS) * 100}%` }} />
       </div>
       <p className="text-[11px] text-slate-400 text-center">
         左右を交互に押そう（同じボタンの連続は数えない）。{DUO_MASH_FAIL_THRESHOLD}回未満は代償／{DUO_MASH_ENERGY_THRESHOLD}回でエネルギー+5／{DUO_MASH_MULT_THRESHOLD}回で倍率×3／{DUO_MASH_LEVELUP_THRESHOLD}回でLvUP
       </p>
       {phase === 'done' && rewards ? (
-        <ResultBox title={`${taps}回連打！`} rewards={rewards} />
+        <ResultBox title={`${taps}回連打！`} note={boost > 1 ? '連打の：効果アップ！' : undefined} rewards={rewards} />
       ) : phase === 'ready' ? (
         <button data-testid="mash-start" onClick={() => setPhase('countdown')} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg">
           スタート
@@ -351,8 +353,8 @@ export const DoubleDiceGame = ({ state, onResolve }) => {
 
   useEffect(() => () => timersRef.current.forEach(id => { clearInterval(id); clearTimeout(id); }), []);
 
-  // 二つ名「賽振り」: 1の目の代償を受けない
-  const rewardsFor = (a, b) => applyDiceOneNull(getDoubleDiceRewards(a, b), { faces: [a, b] }, state.bonus?.diceOneNull);
+  // 二つ名「賽振り」: 良い目の効果アップ（目の出方・代償は変えない）
+  const rewardsFor = (a, b) => boostRewards(getDoubleDiceRewards(a, b), state.bonus?.rewardBoost || 1);
   const finalize = (a, b) => {
     setConfirmed(true);
     onResolve(rewardsFor(a, b), { faces: [a, b] });
@@ -433,7 +435,7 @@ export const DoubleDiceGame = ({ state, onResolve }) => {
       </div>
       <p className="text-[10px] text-slate-500 text-center -mt-2">ゾロ目でボーナス。1・2のゾロ目は効果が反転して良い効果に！</p>
       {confirmed ? (
-        <ResultBox title={`${a} と ${b}！`} rewards={rewardsFor(a, b)} />
+        <ResultBox title={`${a} と ${b}！`} note={(state.bonus?.rewardBoost || 1) > 1 ? '賽振り：良い効果アップ！' : undefined} rewards={rewardsFor(a, b)} />
       ) : !bothDone ? (
         <button data-testid="dice-roll" onClick={roll} disabled={rollingIdx !== null || a !== null} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg disabled:opacity-50">
           {rollingIdx !== null || a !== null ? '…' : 'サイコロを振る'}
@@ -582,8 +584,8 @@ const RUN_GROUND = 24; // 地面の高さ（px）
 
 export const RunningGame = ({ state, onResolve }) => {
   const perTen = getLevelValue(state.values, state.level, 1);
-  // 二つ名「韋駄天の」: 効果を計算するときの距離が伸びる
-  const meterMult = state.bonus?.runMeterMult || 1;
+  // 二つ名「韋駄天の」: 結果の良い効果アップ（距離の記録・ルールは変えない）
+  const boost = state.bonus?.rewardBoost || 1;
   const [phase, setPhase] = useState('ready'); // ready → playing → done
   const [view, setView] = useState(() => createRunnerState());
   const [rewards, setRewards] = useState(null);
@@ -607,7 +609,7 @@ export const RunningGame = ({ state, onResolve }) => {
       setView(next);
       if (next.over) {
         const meters = runnerMeters(next);
-        const r = getRunningRewards(Math.floor(meters * meterMult), perTen);
+        const r = boostRewards(getRunningRewards(meters, perTen), boost);
         setRewards(r);
         setPhase('done');
         onResolveRef.current(r, { meters, cleared: !!next.cleared });
@@ -617,7 +619,7 @@ export const RunningGame = ({ state, onResolve }) => {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [phase, perTen, meterMult]);
+  }, [phase, perTen, boost]);
 
   const jump = (e) => {
     e?.preventDefault?.();
@@ -676,7 +678,7 @@ export const RunningGame = ({ state, onResolve }) => {
       {phase === 'done' && rewards ? (
         <ResultBox
           title={view.cleared ? `${meters}m 完走！` : `${meters}m 走った！`}
-          note={meterMult > 1 ? `韋駄天：${Math.floor(meters * meterMult)}m 分の効果！` : undefined}
+          note={boost > 1 ? '韋駄天：効果アップ！' : undefined}
           rewards={rewards}
         />
       ) : phase === 'ready' ? (

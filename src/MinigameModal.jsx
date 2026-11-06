@@ -8,7 +8,7 @@ import {
 import {
   getLevelValue, EXTRA_MINIGAME_TITLES,
   judgeJanken, randomJankenHand, getJankenFinalRewards, JANKEN_DRAW_BONUS_COUNT,
-  rollFish, boostCenterRewards, applyDiceOneNull, addJankenWinStars,
+  rollFish, boostRewards, addJankenWinStars,
   getTargetResult, getAimPosition, getPrecisionTargetResult, getPrecisionAimPosition, TARGET_CORE_RADIUS,
   MASH_DURATION_MS, MASH_FAIL_THRESHOLD, MASH_ENERGY_THRESHOLD, MASH_MULT_THRESHOLD, getMashRewards,
   DICE_FACES, rollDie, getDiceRewards,
@@ -226,7 +226,7 @@ const TargetGame = ({ state, onResolve }) => {
     // 二つ名「スナイパー」: 中心（ど真ん中・真芯）に当てたときの効果アップ
     const boost = state.bonus?.targetCenterBoost || 1;
     const isCenter = raw.id === 'bullseye' || raw.id === 'core';
-    const result = isCenter && boost > 1 ? { ...raw, rewards: boostCenterRewards(raw.rewards, boost), boosted: true } : raw;
+    const result = isCenter && boost > 1 ? { ...raw, rewards: boostRewards(raw.rewards, boost), boosted: true } : raw;
     setShot({ x, y, result });
     onResolve(result.rewards, { result: result.id, distance: Math.round(Math.hypot(x, y) * 100) / 100 });
   };
@@ -282,13 +282,13 @@ const TargetGame = ({ state, onResolve }) => {
 // ---------------------------------------------------------------------------
 const MashGame = ({ state, onResolve }) => {
   const perTap = getLevelValue(state.values, state.level, 0.2);
-  // 二つ名「連打の」: 制限時間が伸びる
-  const duration = MASH_DURATION_MS + (state.bonus?.mashExtraMs || 0);
+  // 二つ名「連打の」: 結果の良い効果アップ（制限時間などのルールは変えない）
+  const boost = state.bonus?.rewardBoost || 1;
   // ready → countdown → playing → done
   const [phase, setPhase] = useState('ready');
   const [count, setCount] = useState(3);
   const [taps, setTaps] = useState(0);
-  const [remaining, setRemaining] = useState(duration);
+  const [remaining, setRemaining] = useState(MASH_DURATION_MS);
   const [rewards, setRewards] = useState(null);
   const tapsRef = useRef(0);
   const onResolveRef = useRef(onResolve);
@@ -307,19 +307,19 @@ const MashGame = ({ state, onResolve }) => {
     if (phase !== 'playing') return undefined;
     const start = performance.now();
     const id = setInterval(() => {
-      const left = Math.max(0, duration - (performance.now() - start));
+      const left = Math.max(0, MASH_DURATION_MS - (performance.now() - start));
       setRemaining(left);
       if (left <= 0) {
         clearInterval(id);
         const total = tapsRef.current;
-        const r = getMashRewards(total, perTap);
+        const r = boostRewards(getMashRewards(total, perTap), boost);
         setRewards(r);
         setPhase('done');
         onResolveRef.current(r, { taps: total });
       }
     }, 50);
     return () => clearInterval(id);
-  }, [phase, perTap, duration]);
+  }, [phase, perTap, boost]);
 
   const tap = (e) => {
     e.preventDefault();
@@ -341,7 +341,7 @@ const MashGame = ({ state, onResolve }) => {
         </div>
       </div>
       <div className="h-2 bg-slate-900 rounded-full overflow-hidden">
-        <div className="h-full bg-amber-400" style={{ width: `${(remaining / duration) * 100}%` }} />
+        <div className="h-full bg-amber-400" style={{ width: `${(remaining / MASH_DURATION_MS) * 100}%` }} />
       </div>
       <p className="text-[11px] text-slate-400 text-center">
         {taps < MASH_FAIL_THRESHOLD
@@ -349,7 +349,7 @@ const MashGame = ({ state, onResolve }) => {
           : `コンボ +${Math.floor(taps * perTap + 1e-9)}`}（{MASH_ENERGY_THRESHOLD}回でエネルギー+3／{MASH_MULT_THRESHOLD}回で倍率×2）
       </p>
       {phase === 'done' && rewards ? (
-        <ResultBox title={`${taps}回連打！`} rewards={rewards} />
+        <ResultBox title={`${taps}回連打！`} note={boost > 1 ? '連打の：効果アップ！' : undefined} rewards={rewards} />
       ) : phase === 'ready' ? (
         <button data-testid="mash-start" onClick={() => setPhase('countdown')} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg">
           スタート
@@ -384,8 +384,8 @@ const DiceGame = ({ state, onResolve }) => {
 
   useEffect(() => () => timersRef.current.forEach(clearInterval), []);
 
-  // 二つ名「賽振り」: 1の目の代償を受けない
-  const rewardsFor = (f) => applyDiceOneNull(getDiceRewards(f), { face: f }, state.bonus?.diceOneNull);
+  // 二つ名「賽振り」: 良い目の効果アップ（目の出方・代償は変えない）
+  const rewardsFor = (f) => boostRewards(getDiceRewards(f), state.bonus?.rewardBoost || 1);
   const finalize = (f) => {
     setConfirmed(true);
     onResolve(rewardsFor(f), { face: f });
@@ -429,7 +429,7 @@ const DiceGame = ({ state, onResolve }) => {
         ))}
       </div>
       {confirmed ? (
-        <ResultBox title={`${face}の目！`} rewards={rewardsFor(face)} />
+        <ResultBox title={`${face}の目！`} note={(state.bonus?.rewardBoost || 1) > 1 ? '賽振り：良い効果アップ！' : undefined} rewards={rewardsFor(face)} />
       ) : face === null ? (
         <button data-testid="dice-roll" onClick={roll} disabled={rolling} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg disabled:opacity-50">
           {rolling ? '…' : 'サイコロを振る'}

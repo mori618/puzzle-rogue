@@ -15,7 +15,7 @@ import {
 } from './utils/titleManager.js';
 import {
   getMinigameProgressUpdates, fishCountKey, fishRecordKey, targetHitKey, diceFaceKey, minigamePlayKey,
-  boostCenterRewards, applyDiceOneNull, addJankenWinStars, hasDiceOne,
+  boostRewards, addJankenWinStars,
 } from './utils/minigames.js';
 import { buildPlayRecordSections } from './utils/playRecords.js';
 import StatsScreen from './StatsScreen.jsx';
@@ -174,7 +174,7 @@ describe('ミニゲームの記録', () => {
 
 describe('二つ名で強くなるミニゲーム', () => {
   it('スナイパー: 中心に当てたときの効果アップ', () => {
-    const r = boostCenterRewards([
+    const r = boostRewards([
       { type: 'mult', value: 3, duration: 3 }, { type: 'stars_add', value: 30 }, { type: 'levelup', value: 1 },
     ], 1.5);
     expect(r).toEqual([
@@ -182,13 +182,28 @@ describe('二つ名で強くなるミニゲーム', () => {
     ]);
   });
 
-  it('賽振り: 1の目の代償を受けない（ゾロ目の1は良い効果なのでそのまま）', () => {
-    expect(hasDiceOne({ face: 1 })).toBe(true);
-    expect(hasDiceOne({ faces: [1, 4] })).toBe(true);
-    expect(hasDiceOne({ faces: [1, 1] })).toBe(false);
-    const rewards = [{ type: 'stars_mult', value: 0.5 }, { type: 'energy', value: 5 }];
-    expect(applyDiceOneNull(rewards, { faces: [1, 4] }, true)).toEqual([{ type: 'energy', value: 5 }]);
-    expect(applyDiceOneNull(rewards, { faces: [1, 4] }, false)).toBe(rewards);
+  it('良い効果だけ強める（代償・全回復はそのまま）', () => {
+    const rewards = [
+      { type: 'stars_mult', value: 0.5 }, { type: 'mult', value: 0.5, duration: 2 },
+      { type: 'energy', value: 4 }, { type: 'energy', value: 99 }, { type: 'stars_mult', value: 2 },
+    ];
+    expect(boostRewards(rewards, 1.5)).toEqual([
+      { type: 'stars_mult', value: 0.5 }, { type: 'mult', value: 0.5, duration: 2 },
+      { type: 'energy', value: 6 }, { type: 'energy', value: 99 }, { type: 'stars_mult', value: 2.5 },
+    ]);
+    expect(boostRewards(rewards, 1)).toBe(rewards);
+  });
+
+  it('遊びの二つ名は、遊び方を変える効果を持たない（効果が増えるだけ）', () => {
+    const ruleChanging = ['mash_extra_ms', 'run_meter_mult', 'demon_start_charge', 'dice_one_null', 'gamble_doubleup_add'];
+    [...PLAY_PREFIX_TITLES, ...PLAY_SUFFIX_TITLES].forEach(t => {
+      t.effects.forEach(e => expect(ruleChanging, `${t.name}: ${e.type}`).not.toContain(e.type));
+    });
+    const boosted = [...PLAY_PREFIX_TITLES, ...PLAY_SUFFIX_TITLES]
+      .flatMap(t => t.effects.filter(e => e.type === 'minigame_reward_boost').map(e => [t.name, e.games]));
+    expect(boosted).toEqual([
+      ['韋駄天の', ['running']], ['連打の', ['mash', 'mash_duo']], ['賽振り', ['dice', 'dice_duo']], ['悪魔祓い', ['demon']],
+    ]);
   });
 
   it('負け知らずの: 勝ち1回につきスター', () => {
