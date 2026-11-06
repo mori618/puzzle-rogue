@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
-import { getTokenTags, TOKEN_TAG_IDS } from './constants/tokenTags.js';
+import { getTokenTags, TOKEN_TAG_IDS, TOKEN_TAGS } from './constants/tokenTags.js';
 import { RUN_TRENDS, pickRunTrend, getRunTrendById, getTrendWeight, resolveRunTrend } from './constants/runTrends.js';
 
 const shopTokens = ALL_TOKEN_BASES.filter(t => !t.isCurse && t.type !== 'curse');
@@ -25,13 +25,45 @@ describe('トークンのタグ', () => {
     expect(getTokenTags(byId('bonus_6c'))).not.toContain('attribute');
   });
 
+  it('小分類が付いたトークンには親の大分類も付く', () => {
+    const tagsOf = (id) => getTokenTags(byId(id));
+    expect(tagsOf('gen_bomb_rand')).toEqual(expect.arrayContaining(['bomb', 'special_drop']));
+    expect(tagsOf('cross_double_base_mult')).toEqual(expect.arrayContaining(['cross', 'shape']));
+    expect(tagsOf('minigame_janken')).toEqual(expect.arrayContaining(['minigame', 'fun']));
+    expect(tagsOf('bargain')).toEqual(expect.arrayContaining(['shop', 'economy']));
+    shopTokens.forEach(t => getTokenTags(t).forEach(tag => {
+      const parent = TOKEN_TAGS[tag].parent;
+      if (parent) expect(getTokenTags(t)).toContain(parent);
+    }));
+  });
+
+  it('細かいタグの代表例', () => {
+    const tagsOf = (id) => getTokenTags(byId(id));
+    expect(tagsOf('forbidden')).toContain('risk');
+    expect(tagsOf('lead_fire')).toContain('slot');
+    expect(tagsOf('bonus_5c')).toContain('multi_color');
+    expect(tagsOf('board_mono1')).toContain('mono_color');
+    expect(tagsOf('sky_f1')).toContain('buff');
+    expect(tagsOf('combo_ge_7')).toContain('combo_condition');
+    expect(tagsOf('copy_token')).not.toContain('level');
+  });
+
+  it('どの傾向も、対象のトークンが1つ以上ある', () => {
+    RUN_TRENDS.forEach(trend => {
+      Object.keys(trend.tags || {}).forEach(tag => {
+        expect(TOKEN_TAG_IDS).toContain(tag);
+        expect(shopTokens.some(t => getTokenTags(t).includes(tag))).toBe(true);
+      });
+    });
+  });
+
   it('トークン定義の tags が優先される', () => {
     expect(getTokenTags({ id: '__test_tags', tags: ['fun'], desc: 'コンボ倍率が2倍' })).toEqual(['fun']);
   });
 });
 
 describe('ランごとのショップ傾向', () => {
-  it('30パターン前後あり、idが重複しない', () => {
+  it('30パターン以上あり、idが重複しない', () => {
     expect(RUN_TRENDS.length).toBeGreaterThanOrEqual(25);
     expect(new Set(RUN_TRENDS.map(t => t.id)).size).toBe(RUN_TRENDS.length);
   });

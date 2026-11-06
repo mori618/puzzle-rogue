@@ -43,14 +43,47 @@ export const RUN_TRENDS = [
   { id: "tag_growth", name: "積み上げの市", tags: { growth: 4 } },
   { id: "tag_build", name: "編成の市", tags: { build: 4 } },
 
-  // --- 特殊ドロップを細かく狙う ---
-  { id: "kw_bomb", name: "火薬の市", keywords: { "ボム": 5 } },
-  { id: "kw_repeat", name: "輪廻の市", keywords: { "リピート": 5 } },
-  { id: "kw_star", name: "星降る市", keywords: { "スタードロップ": 4, "スター": 1.8 } },
+  // --- 特殊ドロップ ---
+  { id: "sub_bomb", name: "火薬の市", tags: { bomb: 4 } },
+  { id: "sub_repeat", name: "輪廻の市", tags: { repeat: 4 } },
+  { id: "sub_star_drop", name: "星降る市", tags: { star_drop: 4 } },
+  { id: "sub_plus", name: "輝石の市", tags: { plus: 3 } },
+  { id: "sub_move", name: "歩法の市", tags: { move: 5 } },
+
+  // --- 消し方 ---
+  { id: "sub_cross", name: "十字の市", tags: { cross: 5 } },
+  { id: "sub_l_shape", name: "L字の市", tags: { l_shape: 5 } },
+  { id: "sub_square", name: "方陣の市", tags: { square: 5 } },
+  { id: "sub_row", name: "横一閃の市", tags: { row: 5, column: 3 } },
+  { id: "sub_len4", name: "四連の市", tags: { len4: 4 } },
+  { id: "sub_big_erase", name: "大物の市", tags: { big_erase: 4 } },
+
+  // --- 盤面・操作 ---
+  { id: "sub_convert", name: "変換の市", tags: { convert: 2.5 } },
+  { id: "sub_spawn", name: "創造の市", tags: { spawn: 3.5 } },
+  { id: "sub_turn_end", name: "黄昏の市", tags: { turn_end: 3 } },
+  { id: "sub_finger", name: "指先の市", tags: { finger: 4 } },
+  { id: "sub_buff", name: "持続の市", tags: { buff: 2.5, energy: 1.5 } },
+
+  // --- 色の使い方 ---
+  { id: "sub_multi_color", name: "虹色の市", tags: { multi_color: 4 } },
+  { id: "sub_mono_color", name: "一色の市", tags: { mono_color: 4 } },
+
+  // --- クセのある系統 ---
+  { id: "sub_risk", name: "背水の市", tags: { risk: 4 } },
+  { id: "sub_minigame", name: "遊戯の市", tags: { minigame: 6, fun: 2 } },
+  { id: "sub_money", name: "両替の市", tags: { money: 4 } },
+  { id: "sub_shop", name: "問屋の市", tags: { shop: 5 } },
+  { id: "sub_slot", name: "陣形の市", tags: { slot: 5 } },
+  { id: "sub_level", name: "鍛冶の市", tags: { level: 4, token_gen: 2 } },
+  { id: "sub_curse", name: "呪術の市", tags: { curse: 5, risk: 1.5 } },
+  { id: "sub_combo_condition", name: "見極めの市", tags: { combo_condition: 6 } },
 
   // --- 組み合わせ ---
   { id: "combo_shape_mult", name: "型破りの市", tags: { shape: 2, multiplier: 1.8 } },
   { id: "combo_prob_special", name: "博徒の市", tags: { probability: 2, special_drop: 2 } },
+  { id: "combo_bomb_star", name: "流星爆弾の市", tags: { bomb: 3, star_drop: 3 } },
+  { id: "combo_repeat_move", name: "巡りの市", tags: { repeat: 3, move: 3 } },
 
   // --- その他 ---
   { id: "random", name: "気まぐれの市", random: true },
