@@ -616,3 +616,174 @@ export const getRunningRewards = (meters, perTenMeters) => {
   else if (meters >= 400) rewards.push({ type: 'mult', value: 2, duration: 3 });
   return rewards;
 };
+
+// =============================================================================
+// 実績（遊びトークンの記録）
+// ランをまたいで残る記録として、二つ名の進捗データ（titleManager の progress）に保存する。
+// 実績画面（StatsScreen の「遊びトークン」タブ）と二つ名の解放条件で使う。
+// =============================================================================
+
+/** 釣った魚の数の記録キー */
+export const fishCountKey = (fishId) => `fish_count_${fishId}`;
+/** 的当ての結果（bullseye / inner / …）ごとの回数の記録キー */
+export const targetHitKey = (resultId) => `target_hit_${resultId}`;
+/** サイコロの目ごとの回数の記録キー */
+export const diceFaceKey = (face) => `dice_face_${face}`;
+/** ミニゲームを遊んだ回数の記録キー（minigameState.type ごと） */
+export const minigamePlayKey = (type) => `mg_plays_${type}`;
+
+/** 結果から釣れた魚の一覧を取り出す（[{ id, size? }]） */
+export const getCaughtFishes = (info = {}) => {
+  if (Array.isArray(info.fishes)) return info.fishes.filter(f => f && f.id);
+  if (info.fish) return [{ id: info.fish, size: info.fishSize }];
+  return [];
+};
+
+/**
+ * ミニゲームの結果（type と logInfo）から、記録する進捗を返す
+ * @returns {{ add: Object<string, number>, max: Object<string, number> }}
+ */
+export const getMinigameProgressUpdates = (type, info = {}) => {
+  const add = { [minigamePlayKey(type)]: 1, minigame_plays: 1 };
+  const max = {};
+  const inc = (key, n = 1) => { if (n > 0) add[key] = (add[key] || 0) + n; };
+  const best = (key, v) => { if (Number.isFinite(v)) max[key] = Math.max(max[key] ?? -Infinity, v); };
+
+  switch (type) {
+    case 'janken':
+      best('janken_streak_max', info.streak || 0);
+      inc('janken_wins_total', info.streak || 0);
+      inc('janken_draw_bonus', info.drawBonus || 0);
+      if (!(info.streak > 0)) inc('janken_zero_wins');
+      break;
+    case 'fishing':
+    case 'fishing_big': {
+      const fishes = getCaughtFishes(info);
+      fishes.forEach(f => {
+        inc(fishCountKey(f.id));
+        inc('fish_caught_total');
+        if (Number.isFinite(f.size)) {
+          best(fishRecordKey(f.id), f.size);
+          best('fish_size_max', f.size);
+        }
+      });
+      if (fishes.length >= 2) inc('fish_double_catches');
+      break;
+    }
+    case 'target':
+    case 'target_pro':
+      if (info.result) inc(targetHitKey(info.result));
+      if (info.result === 'bullseye' || info.result === 'core') inc('target_center_hits');
+      break;
+    case 'mash':
+    case 'mash_duo':
+      best(type === 'mash' ? 'mash_single_taps_max' : 'mash_duo_taps_max', info.taps || 0);
+      best('mash_taps_max', info.taps || 0);
+      break;
+    case 'dice':
+      if (info.face) inc(diceFaceKey(info.face));
+      break;
+    case 'dice_duo': {
+      const [a, b] = info.faces || [];
+      if (a) inc(diceFaceKey(a));
+      if (b) inc(diceFaceKey(b));
+      if (a && a === b) inc('dice_doubles');
+      break;
+    }
+    case 'demon':
+      if (info.winner === 'player') inc('demon_wins');
+      else if (info.winner === 'demon') inc('demon_losses');
+      else if (info.winner === 'draw') inc('demon_draws');
+      break;
+    case 'highlow':
+      best('highlow_wins_max', info.wins || 0);
+      inc('highlow_wins_total', info.wins || 0);
+      if (info.lost && info.wins > 0) inc('highlow_busts');
+      if (!info.lost && info.wins > 0) inc('highlow_cashouts');
+      if (!info.lost) best('highlow_cashout_max', info.wins || 0);
+      break;
+    case 'running':
+      best('running_meters_max', info.meters || 0);
+      inc('running_meters_total', info.meters || 0);
+      if (info.cleared) inc('running_clears');
+      break;
+    default:
+      break;
+  }
+  return { add, max };
+};
+
+// --- 二つ名で強くなるミニゲーム -------------------------------------------------
+// 遊び方（ルール・制限時間・確率）は変えず、結果の良い効果だけを強める。
+// 記録（連打数・距離など）も実際の結果のまま残す。
+
+/**
+ * 良い効果を boost 倍に強める（代償はそのまま）
+ * スター・コンボ・エネルギー・操作時間は boost 倍、倍率は「1 からの差」を boost 倍、レベルアップは切り上げ
+ */
+export const boostRewards = (rewards, boost = 1) => {
+  if (!(boost > 1)) return rewards;
+  return (rewards || []).map(r => {
+    if (isPenaltyReward(r)) return r;
+    switch (r.type) {
+      case 'stars_add':
+      case 'combo_add':
+      case 'time':
+        return { ...r, value: Math.round(r.value * boost) };
+      case 'energy':
+        return r.value >= 99 ? r : { ...r, value: Math.round(r.value * boost) };
+      case 'mult_add':
+        return { ...r, value: Math.round(r.value * boost * 2) / 2 };
+      case 'stars_mult':
+      case 'mult':
+        return { ...r, value: Math.round((1 + (r.value - 1) * boost) * 2) / 2 };
+      case 'levelup':
+        return { ...r, value: Math.ceil(r.value * boost) };
+      default:
+        return r;
+    }
+  });
+};
+
+/** 二つ名「負け知らずの」: じゃんけんの勝ち1回につきスター */
+export const addJankenWinStars = (rewards, streak, starsPerWin = 0) => (
+  starsPerWin > 0 && streak > 0
+    ? [...(rewards || []), { type: 'stars_add', value: Math.floor(starsPerWin * streak) }]
+    : rewards
+);
+
+// --- ギャンブル: 豪華な宝箱 ---------------------------------------------------
+// 宝箱を開けると、中身（スター倍率など）とは別に、一定確率で「豪華な宝箱」になり
+// 追加でプラス効果が1つ発動する（ハズレの宝箱でも発動する）。
+// 二つ名「トレジャーハンター」でこの確率が上がる。
+
+/** 豪華な宝箱になる基本確率 */
+export const GAMBLE_LUXURY_BASE_CHANCE = 0.1;
+
+/** 豪華な宝箱のプラス効果（どれか1つ） */
+export const GAMBLE_LUXURY_BONUSES = [
+  { id: 'stars', weight: 3, rewards: [{ type: 'stars_add', value: 20 }] },
+  { id: 'combo', weight: 3, rewards: [{ type: 'combo_add', value: 15, duration: 3 }] },
+  { id: 'energy', weight: 2, rewards: [{ type: 'energy', value: 3 }] },
+  { id: 'mult', weight: 2, rewards: [{ type: 'mult', value: 2, duration: 3 }] },
+  { id: 'levelup', weight: 2, rewards: [{ type: 'levelup', value: 1 }] },
+];
+
+/** 豪華な宝箱になる確率（基本確率 ＋ 二つ名などの加算。最大 100%） */
+export const getGambleLuxuryChance = (add = 0) => Math.max(0, Math.min(1, GAMBLE_LUXURY_BASE_CHANCE + (add || 0)));
+
+/**
+ * 豪華な宝箱の抽選。豪華になればプラス効果を、ならなければ null を返す
+ * ダブルアップの宝箱（stage: 'double'）では効果が2倍
+ */
+export const rollGambleLuxury = (chance, stage = 'first', rng = Math.random) => {
+  if (!(rng() < chance)) return null;
+  const total = GAMBLE_LUXURY_BONUSES.reduce((sum, b) => sum + b.weight, 0);
+  let r = rng() * total;
+  let bonus = GAMBLE_LUXURY_BONUSES[GAMBLE_LUXURY_BONUSES.length - 1];
+  for (const b of GAMBLE_LUXURY_BONUSES) {
+    r -= b.weight;
+    if (r < 0) { bonus = b; break; }
+  }
+  return stage === 'double' ? boostRewards(bonus.rewards, 2) : bonus.rewards;
+};

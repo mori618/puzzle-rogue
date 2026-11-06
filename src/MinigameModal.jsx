@@ -8,7 +8,7 @@ import {
 import {
   getLevelValue, EXTRA_MINIGAME_TITLES,
   judgeJanken, randomJankenHand, getJankenFinalRewards, JANKEN_DRAW_BONUS_COUNT,
-  rollFish,
+  rollFish, boostRewards, addJankenWinStars,
   getTargetResult, getAimPosition, getPrecisionTargetResult, getPrecisionAimPosition, TARGET_CORE_RADIUS,
   MASH_DURATION_MS, MASH_FAIL_THRESHOLD, MASH_ENERGY_THRESHOLD, MASH_MULT_THRESHOLD, getMashRewards,
   DICE_FACES, rollDie, getDiceRewards,
@@ -60,7 +60,7 @@ const JankenGame = ({ state, onResolve }) => {
     if (outcome === 1) {
       setStreak(s => s + 1);
     } else {
-      const r = getJankenFinalRewards(streak, perWin, drawBonusCount);
+      const r = addJankenWinStars(getJankenFinalRewards(streak, perWin, drawBonusCount), streak, state.bonus?.jankenWinStars);
       setRewards(r);
       onResolve(r, { streak, drawBonus: drawBonusCount });
     }
@@ -121,10 +121,13 @@ const JankenGame = ({ state, onResolve }) => {
 // ---------------------------------------------------------------------------
 // 釣り
 // ---------------------------------------------------------------------------
-const FishingGame = ({ onResolve }) => {
+const FishingGame = ({ state, onResolve }) => {
+  // 二つ名「釣り好きの」: 一定確率で魚が2匹釣れる（効果も2回）
+  const doubleChance = state?.bonus?.fishDoubleChance || 0;
   // idle → waiting → bite → caught
   const [phase, setPhase] = useState('idle');
   const [fish, setFish] = useState(null);
+  const [fish2, setFish2] = useState(null);
   const timerRef = useRef(null);
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
@@ -138,9 +141,12 @@ const FishingGame = ({ onResolve }) => {
   const reel = () => {
     if (phase !== 'bite') return;
     const f = rollFish();
+    const f2 = doubleChance > 0 && Math.random() < doubleChance ? rollFish() : null;
     setFish(f);
+    setFish2(f2);
     setPhase('caught');
-    onResolve(f.rewards, { fish: f.id });
+    const fishes = [f, f2].filter(Boolean);
+    onResolve(fishes.flatMap(x => x.rewards), { fish: f.id, fishes: fishes.map(x => ({ id: x.id })) });
   };
 
   return (
@@ -161,11 +167,15 @@ const FishingGame = ({ onResolve }) => {
           </div>
         )}
         {phase === 'caught' && fish && (
-          <span className="text-6xl" data-testid="fishing-catch">{fish.icon}</span>
+          <span className="text-6xl" data-testid="fishing-catch">{fish.icon}{fish2 ? fish2.icon : ''}</span>
         )}
       </div>
       {phase === 'caught' && fish ? (
-        <ResultBox title={`${fish.name}が釣れた！`} rewards={fish.rewards} />
+        <ResultBox
+          title={fish2 ? `${fish.name}と${fish2.name}が一度に釣れた！` : `${fish.name}が釣れた！`}
+          note={fish2 ? '釣り好き：2匹同時！' : undefined}
+          rewards={[...fish.rewards, ...(fish2?.rewards || [])]}
+        />
       ) : phase === 'bite' ? (
         <button data-testid="fishing-reel" onClick={reel} className="bg-amber-500 text-slate-900 py-3 rounded-xl font-bold active:scale-95 shadow-lg animate-pulse">
           引き上げる！
@@ -212,7 +222,11 @@ const TargetGame = ({ state, onResolve }) => {
     if (shot) return;
     const { x, y } = aimRef.current;
     const d = Math.hypot(x, y);
-    const result = isPro ? getPrecisionTargetResult(d, bullseyeMult, coreMult) : getTargetResult(d, bullseyeMult);
+    const raw = isPro ? getPrecisionTargetResult(d, bullseyeMult, coreMult) : getTargetResult(d, bullseyeMult);
+    // 二つ名「スナイパー」: 中心（ど真ん中・真芯）に当てたときの効果アップ
+    const boost = state.bonus?.targetCenterBoost || 1;
+    const isCenter = raw.id === 'bullseye' || raw.id === 'core';
+    const result = isCenter && boost > 1 ? { ...raw, rewards: boostRewards(raw.rewards, boost), boosted: true } : raw;
     setShot({ x, y, result });
     onResolve(result.rewards, { result: result.id, distance: Math.round(Math.hypot(x, y) * 100) / 100 });
   };
@@ -253,7 +267,7 @@ const TargetGame = ({ state, onResolve }) => {
         </div>
       </div>
       {shot ? (
-        <ResultBox title={shot.result.name} titleClass={shot.result.color} rewards={shot.result.rewards} />
+        <ResultBox title={shot.result.name} titleClass={shot.result.color} note={shot.result.boosted ? 'スナイパー：効果アップ！' : undefined} rewards={shot.result.rewards} />
       ) : (
         <button data-testid="target-fire" onClick={fire} className="bg-red-500 text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg">
           撃つ！
@@ -268,6 +282,8 @@ const TargetGame = ({ state, onResolve }) => {
 // ---------------------------------------------------------------------------
 const MashGame = ({ state, onResolve }) => {
   const perTap = getLevelValue(state.values, state.level, 0.2);
+  // 二つ名「連打の」: 結果の良い効果アップ（制限時間などのルールは変えない）
+  const boost = state.bonus?.rewardBoost || 1;
   // ready → countdown → playing → done
   const [phase, setPhase] = useState('ready');
   const [count, setCount] = useState(3);
@@ -296,14 +312,14 @@ const MashGame = ({ state, onResolve }) => {
       if (left <= 0) {
         clearInterval(id);
         const total = tapsRef.current;
-        const r = getMashRewards(total, perTap);
+        const r = boostRewards(getMashRewards(total, perTap), boost);
         setRewards(r);
         setPhase('done');
         onResolveRef.current(r, { taps: total });
       }
     }, 50);
     return () => clearInterval(id);
-  }, [phase, perTap]);
+  }, [phase, perTap, boost]);
 
   const tap = (e) => {
     e.preventDefault();
@@ -333,7 +349,7 @@ const MashGame = ({ state, onResolve }) => {
           : `コンボ +${Math.floor(taps * perTap + 1e-9)}`}（{MASH_ENERGY_THRESHOLD}回でエネルギー+3／{MASH_MULT_THRESHOLD}回で倍率×2）
       </p>
       {phase === 'done' && rewards ? (
-        <ResultBox title={`${taps}回連打！`} rewards={rewards} />
+        <ResultBox title={`${taps}回連打！`} note={boost > 1 ? '連打の：効果アップ！' : undefined} rewards={rewards} />
       ) : phase === 'ready' ? (
         <button data-testid="mash-start" onClick={() => setPhase('countdown')} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg">
           スタート
@@ -368,9 +384,11 @@ const DiceGame = ({ state, onResolve }) => {
 
   useEffect(() => () => timersRef.current.forEach(clearInterval), []);
 
+  // 二つ名「賽振り」: 良い目の効果アップ（目の出方・代償は変えない）
+  const rewardsFor = (f) => boostRewards(getDiceRewards(f), state.bonus?.rewardBoost || 1);
   const finalize = (f) => {
     setConfirmed(true);
-    onResolve(getDiceRewards(f), { face: f });
+    onResolve(rewardsFor(f), { face: f });
   };
 
   const roll = () => {
@@ -411,7 +429,7 @@ const DiceGame = ({ state, onResolve }) => {
         ))}
       </div>
       {confirmed ? (
-        <ResultBox title={`${face}の目！`} rewards={getDiceRewards(face)} />
+        <ResultBox title={`${face}の目！`} note={(state.bonus?.rewardBoost || 1) > 1 ? '賽振り：良い効果アップ！' : undefined} rewards={rewardsFor(face)} />
       ) : face === null ? (
         <button data-testid="dice-roll" onClick={roll} disabled={rolling} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg disabled:opacity-50">
           {rolling ? '…' : 'サイコロを振る'}
@@ -447,7 +465,7 @@ const GAMES = {
   running: RunningGame,
 };
 
-const MinigameModal = ({ state, onResolve, onClose }) => {
+const MinigameModal = ({ state, onResolve, onEvent, onClose }) => {
   if (!state) return null;
   const Game = GAMES[state.type];
   if (!Game) return null;
@@ -457,7 +475,7 @@ const MinigameModal = ({ state, onResolve, onClose }) => {
         <h3 className="text-xl font-bold font-display text-white mb-4 text-center italic">
           {state.tokenName || TITLES[state.type]}
         </h3>
-        <Game state={state} onResolve={onResolve} />
+        <Game state={state} onResolve={onResolve} onEvent={onEvent} />
         {state.resolved && (
           <button data-testid="minigame-close" onClick={onClose} className="w-full mt-4 bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg">
             閉じる

@@ -9,7 +9,7 @@ import {
   DEMON_WIN_CHARGE, DEMON_MAX_ROUNDS, judgeDemonRound, pickDemonMove, getDemonRewards,
   DUO_MASH_DURATION_MS, DUO_MASH_FAIL_THRESHOLD, DUO_MASH_ENERGY_THRESHOLD, DUO_MASH_MULT_THRESHOLD,
   DUO_MASH_LEVELUP_THRESHOLD, countDuoTap, getDuoMashRewards,
-  DICE_FACES, DICE_INVERTED_FACES, rollDie, getDoubleDiceRewards,
+  DICE_FACES, DICE_INVERTED_FACES, rollDie, getDoubleDiceRewards, boostRewards,
   dealHighLow, judgeHighLow, getHighLowRewards, HIGHLOW_PENALTY,
   RUNNER, createRunnerState, runnerJump, stepRunner, runnerMeters, getRunningRewards, RUN_FAIL_METERS,
 } from './utils/minigames.js';
@@ -29,6 +29,8 @@ const readProgress = () => {
 // ---------------------------------------------------------------------------
 export const BigFishingGame = ({ state, onResolve }) => {
   const sizeBonus = getLevelValue(state.values, state.level, 0);
+  // 二つ名「釣り好きの」: 一定確率で魚が2匹釣れる（効果も2回）
+  const doubleChance = state.bonus?.fishDoubleChance || 0;
   const [phase, setPhase] = useState('idle'); // idle → waiting → bite → caught
   const [catchInfo, setCatchInfo] = useState(null);
   const [showRecords, setShowRecords] = useState(false);
@@ -48,11 +50,23 @@ export const BigFishingGame = ({ state, onResolve }) => {
     const result = rollBigFish(sizeBonus);
     const prevBest = records[fishRecordKey(result.fish.id)] || 0;
     const isRecord = result.cm > prevBest;
-    setCatchInfo({ ...result, prevBest, isRecord });
+    const second = doubleChance > 0 && Math.random() < doubleChance ? rollBigFish(sizeBonus) : null;
+    setCatchInfo({ ...result, prevBest, isRecord, second });
     setPhase('caught');
-    onResolve(result.rewards, { fish: result.fish.id, fishSize: result.cm, sizeClass: result.sizeClass.id });
+    const all = [result, second].filter(Boolean);
+    onResolve(all.flatMap(x => x.rewards), {
+      fish: result.fish.id, fishSize: result.cm, sizeClass: result.sizeClass.id,
+      fishes: all.map(x => ({ id: x.fish.id, size: x.cm })),
+    });
     // 記録は useGameState 側で保存する。表示用に手元も更新しておく
-    if (isRecord) setRecords(r => ({ ...r, [fishRecordKey(result.fish.id)]: result.cm }));
+    setRecords(r => {
+      const next = { ...r };
+      all.forEach(x => {
+        const key = fishRecordKey(x.fish.id);
+        if (x.cm > (next[key] || 0)) next[key] = x.cm;
+      });
+      return next;
+    });
   };
 
   return (
@@ -74,19 +88,23 @@ export const BigFishingGame = ({ state, onResolve }) => {
         )}
         {phase === 'caught' && catchInfo && (
           <div className="flex flex-col items-center">
-            <span className="text-6xl" data-testid="fishing-catch">{catchInfo.fish.icon}</span>
-            <span className="text-2xl font-black text-white mt-1" data-testid="fishing-size">{formatFishSize(catchInfo.cm)}</span>
+            <span className="text-6xl" data-testid="fishing-catch">{catchInfo.fish.icon}{catchInfo.second ? catchInfo.second.fish.icon : ''}</span>
+            <span className="text-2xl font-black text-white mt-1" data-testid="fishing-size">
+              {formatFishSize(catchInfo.cm)}{catchInfo.second ? ` ＋ ${formatFishSize(catchInfo.second.cm)}` : ''}
+            </span>
             <span className="text-[11px] font-bold text-sky-200">{catchInfo.sizeClass.name}（効果×{catchInfo.sizeClass.factor}）</span>
           </div>
         )}
       </div>
       {phase === 'caught' && catchInfo ? (
         <ResultBox
-          title={`${catchInfo.fish.name}が釣れた！`}
-          note={catchInfo.isRecord
+          title={catchInfo.second
+            ? `${catchInfo.fish.name}と${catchInfo.second.fish.name}が一度に釣れた！`
+            : `${catchInfo.fish.name}が釣れた！`}
+          note={`${catchInfo.isRecord
             ? `自己ベスト更新！${catchInfo.prevBest > 0 ? `（前回 ${formatFishSize(catchInfo.prevBest)}）` : ''}`
-            : `自己ベスト ${formatFishSize(catchInfo.prevBest)}`}
-          rewards={catchInfo.rewards}
+            : `自己ベスト ${formatFishSize(catchInfo.prevBest)}`}${catchInfo.second ? '／釣り好き：2匹同時！' : ''}`}
+          rewards={[...catchInfo.rewards, ...(catchInfo.second?.rewards || [])]}
         />
       ) : phase === 'bite' ? (
         <button data-testid="fishing-reel" onClick={reel} className="bg-amber-500 text-slate-900 py-3 rounded-xl font-bold active:scale-95 shadow-lg animate-pulse">
@@ -140,6 +158,8 @@ const ChargeBar = ({ value, color }) => (
 
 export const DemonGame = ({ state, onResolve }) => {
   const winMult = getLevelValue(state.values, state.level, 3);
+  // 二つ名「悪魔祓い」: 勝ったときの効果アップ（勝負のルールは変えない）
+  const boost = state.bonus?.rewardBoost || 1;
   const [pc, setPc] = useState(0);
   const [dc, setDc] = useState(0);
   const [round, setRound] = useState(0);
@@ -167,7 +187,7 @@ export const DemonGame = ({ state, onResolve }) => {
     if (winner === 'draw') text = '決着がつかなかった…';
     setLast({ player: move, demon: demonMove, text });
     if (winner) {
-      const rewards = getDemonRewards(winner, winMult);
+      const rewards = boostRewards(getDemonRewards(winner, winMult), boost);
       setResult({ winner, rewards });
       onResolve(rewards, { winner, rounds: nextRound, bad: winner === 'demon' });
     }
@@ -196,6 +216,7 @@ export const DemonGame = ({ state, onResolve }) => {
       {result ? (
         <ResultBox
           title={result.winner === 'player' ? '勝利！' : result.winner === 'demon' ? '敗北…' : '引き分け'}
+          note={boost > 1 && result.winner !== 'demon' ? '悪魔祓い：効果アップ！' : undefined}
           rewards={result.rewards}
         />
       ) : (
@@ -224,6 +245,8 @@ export const DemonGame = ({ state, onResolve }) => {
 // ---------------------------------------------------------------------------
 export const DuoMashGame = ({ state, onResolve }) => {
   const perTap = getLevelValue(state.values, state.level, 0.5);
+  // 二つ名「連打の」: 結果の良い効果アップ（制限時間などのルールは変えない）
+  const boost = state.bonus?.rewardBoost || 1;
   const [phase, setPhase] = useState('ready'); // ready → countdown → playing → done
   const [count, setCount] = useState(3);
   const [taps, setTaps] = useState(0);
@@ -253,14 +276,14 @@ export const DuoMashGame = ({ state, onResolve }) => {
       if (left <= 0) {
         clearInterval(id);
         const total = tapsRef.current;
-        const r = getDuoMashRewards(total, perTap);
+        const r = boostRewards(getDuoMashRewards(total, perTap), boost);
         setRewards(r);
         setPhase('done');
         onResolveRef.current(r, { taps: total });
       }
     }, 50);
     return () => clearInterval(id);
-  }, [phase, perTap]);
+  }, [phase, perTap, boost]);
 
   const tap = (side) => (e) => {
     e.preventDefault();
@@ -297,7 +320,7 @@ export const DuoMashGame = ({ state, onResolve }) => {
         左右を交互に押そう（同じボタンの連続は数えない）。{DUO_MASH_FAIL_THRESHOLD}回未満は代償／{DUO_MASH_ENERGY_THRESHOLD}回でエネルギー+5／{DUO_MASH_MULT_THRESHOLD}回で倍率×3／{DUO_MASH_LEVELUP_THRESHOLD}回でLvUP
       </p>
       {phase === 'done' && rewards ? (
-        <ResultBox title={`${taps}回連打！`} rewards={rewards} />
+        <ResultBox title={`${taps}回連打！`} note={boost > 1 ? '連打の：効果アップ！' : undefined} rewards={rewards} />
       ) : phase === 'ready' ? (
         <button data-testid="mash-start" onClick={() => setPhase('countdown')} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg">
           スタート
@@ -330,9 +353,11 @@ export const DoubleDiceGame = ({ state, onResolve }) => {
 
   useEffect(() => () => timersRef.current.forEach(id => { clearInterval(id); clearTimeout(id); }), []);
 
+  // 二つ名「賽振り」: 良い目の効果アップ（目の出方・代償は変えない）
+  const rewardsFor = (a, b) => boostRewards(getDoubleDiceRewards(a, b), state.bonus?.rewardBoost || 1);
   const finalize = (a, b) => {
     setConfirmed(true);
-    onResolve(getDoubleDiceRewards(a, b), { faces: [a, b] });
+    onResolve(rewardsFor(a, b), { faces: [a, b] });
   };
 
   const animateDie = (idx, result, done) => {
@@ -410,7 +435,7 @@ export const DoubleDiceGame = ({ state, onResolve }) => {
       </div>
       <p className="text-[10px] text-slate-500 text-center -mt-2">ゾロ目でボーナス。1・2のゾロ目は効果が反転して良い効果に！</p>
       {confirmed ? (
-        <ResultBox title={`${a} と ${b}！`} rewards={getDoubleDiceRewards(a, b)} />
+        <ResultBox title={`${a} と ${b}！`} note={(state.bonus?.rewardBoost || 1) > 1 ? '賽振り：良い効果アップ！' : undefined} rewards={rewardsFor(a, b)} />
       ) : !bothDone ? (
         <button data-testid="dice-roll" onClick={roll} disabled={rollingIdx !== null || a !== null} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg disabled:opacity-50">
           {rollingIdx !== null || a !== null ? '…' : 'サイコロを振る'}
@@ -441,7 +466,7 @@ const Card = ({ value, open, highlight }) => (
   </div>
 );
 
-export const HighLowGame = ({ state, onResolve }) => {
+export const HighLowGame = ({ state, onResolve, onEvent }) => {
   const perWin = getLevelValue(state.values, state.level, 10);
   const [hand, setHand] = useState(() => dealHighLow());
   // guess → revealDealer → revealPlayer → (win: choose / lose: done / draw: redeal)
@@ -465,6 +490,8 @@ export const HighLowGame = ({ state, onResolve }) => {
       if (res === 'win') {
         setWins(w => w + 1);
         setPhase('choose');
+        // 二つ名「ハイな」など: ダブルアップ成功を通知する
+        onEvent?.('highlow_win', { wins: wins + 1 });
       } else if (res === 'draw') {
         setPhase('draw');
       } else {
@@ -557,6 +584,8 @@ const RUN_GROUND = 24; // 地面の高さ（px）
 
 export const RunningGame = ({ state, onResolve }) => {
   const perTen = getLevelValue(state.values, state.level, 1);
+  // 二つ名「韋駄天の」: 結果の良い効果アップ（距離の記録・ルールは変えない）
+  const boost = state.bonus?.rewardBoost || 1;
   const [phase, setPhase] = useState('ready'); // ready → playing → done
   const [view, setView] = useState(() => createRunnerState());
   const [rewards, setRewards] = useState(null);
@@ -580,7 +609,7 @@ export const RunningGame = ({ state, onResolve }) => {
       setView(next);
       if (next.over) {
         const meters = runnerMeters(next);
-        const r = getRunningRewards(meters, perTen);
+        const r = boostRewards(getRunningRewards(meters, perTen), boost);
         setRewards(r);
         setPhase('done');
         onResolveRef.current(r, { meters, cleared: !!next.cleared });
@@ -590,7 +619,7 @@ export const RunningGame = ({ state, onResolve }) => {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [phase, perTen]);
+  }, [phase, perTen, boost]);
 
   const jump = (e) => {
     e?.preventDefault?.();
@@ -647,7 +676,11 @@ export const RunningGame = ({ state, onResolve }) => {
         )}
       </div>
       {phase === 'done' && rewards ? (
-        <ResultBox title={view.cleared ? `${meters}m 完走！` : `${meters}m 走った！`} rewards={rewards} />
+        <ResultBox
+          title={view.cleared ? `${meters}m 完走！` : `${meters}m 走った！`}
+          note={boost > 1 ? '韋駄天：効果アップ！' : undefined}
+          rewards={rewards}
+        />
       ) : phase === 'ready' ? (
         <button data-testid="running-start" onClick={() => setPhase('playing')} className="bg-primary text-white py-3 rounded-xl font-bold active:scale-95 shadow-lg">
           スタート

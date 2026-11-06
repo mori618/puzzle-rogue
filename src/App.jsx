@@ -21,6 +21,7 @@ import { loadTitleState, isTitleSealedActive } from "./utils/titleManager";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, INITIAL_TOKEN_SLOTS, getMaxTokenSlotExpansions } from './constants/gameConstants.js';
 import { formatJapaneseNumber } from './utils/numberUtils.js';
+import { describeRewards } from './utils/minigames.js';
 import { resolveCopiedToken } from './utils/effectiveTokens.js';
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
@@ -43,6 +44,7 @@ const App = () => {
     closeGamble,
     minigameState,
     resolveMinigame,
+    handleMinigameEvent,
     closeMinigame,
     isGameOver,
     setIsGameOver,
@@ -1329,6 +1331,11 @@ const App = () => {
                           : (gambleState.firstChests || ['double', 'nothing', 'half']))}のどれかが入っている`
                         : '結果'}
                     </p>
+                    {picked === null && gambleState.luxuryChance > 0 && (
+                      <p className="text-[11px] text-fuchsia-300 text-center -mt-3 mb-4" data-testid="gamble-luxury-chance">
+                        {Math.round(gambleState.luxuryChance * 100)}%の確率で豪華な宝箱になり、プラス効果も発動する
+                      </p>
+                    )}
                     <div className="grid grid-cols-3 gap-3 mb-5">
                       {gambleState.chests.map((content, idx) => {
                         const isOpen = picked !== null;
@@ -1356,6 +1363,12 @@ const App = () => {
                         );
                       })}
                     </div>
+                    {picked !== null && gambleState.luxury && (
+                      <div className="mb-4 rounded-xl border border-fuchsia-400/50 bg-fuchsia-500/10 px-3 py-2 text-center" data-testid="gamble-luxury">
+                        <div className="text-sm font-black text-fuchsia-200">✨ 豪華な宝箱！</div>
+                        <div className="text-[12px] font-bold text-fuchsia-100 mt-0.5">{describeRewards(gambleState.luxury)}</div>
+                      </div>
+                    )}
                     {picked !== null && (
                       <div className="flex flex-col gap-3">
                         {gambleState.doubleUpOffered ? (
@@ -1387,6 +1400,7 @@ const App = () => {
               key={`${minigameState.type}-${minigameState.tokenInstanceId}`}
               state={minigameState}
               onResolve={resolveMinigame}
+              onEvent={handleMinigameEvent}
               onClose={closeMinigame}
             />
           )}

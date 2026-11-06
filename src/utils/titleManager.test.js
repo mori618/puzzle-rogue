@@ -54,10 +54,12 @@ const unlockAndEquip = ({ prefixes = [], suffixes = [], evolved = [], prefixId =
 };
 
 describe('二つ名マスターデータ', () => {
-  it('全200件・ID重複なし（セットシナジーは廃止・B61 継承者は削除）', () => {
+  it('ID・名前の重複なし（セットシナジーは廃止・B61 継承者は削除。遊び・タグの二つ名を追加）', () => {
     const all = [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES];
-    expect(all).toHaveLength(200);
-    expect(new Set(all.map(t => t.id)).size).toBe(200);
+    // 元の200件 ＋ 遊びトークンの二つ名11件 ＋ タグの二つ名40件
+    expect(all).toHaveLength(251);
+    expect(new Set(all.map(t => t.id)).size).toBe(all.length);
+    expect(new Set(all.map(t => t.name)).size).toBe(all.length);
     expect(EVOLVED_TITLES).toHaveLength(50);
   });
 
@@ -353,7 +355,7 @@ describe('装備と効果', () => {
       { type: 'curse', isCurse: true, level: 3 },
       null,
     ]);
-    expect(counts).toEqual({ token: 3, curse: 1, lv3: 1, lv2plus: 2, passive: 1, skill: 1, enchant: 2, sameAttrMax: 2, attrCounts: { fire: 2 } });
+    expect(counts).toEqual({ token: 3, curse: 1, lv3: 1, lv2plus: 2, passive: 1, skill: 1, enchant: 2, sameAttrMax: 2, attrCounts: { fire: 2 }, tagCounts: { attribute: 2 } });
   });
 
   it('per: 属性トークン数・属性別消去数', () => {

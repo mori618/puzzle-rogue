@@ -22,7 +22,8 @@ import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import { getMoveTimeRhythmEffect } from '../utils/moveTimeRhythm.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
 import { safeSetItem, safeRemoveItem } from '../utils/safeStorage.js';
-import { describeRewards, isPenaltyReward, fishRecordKey } from '../utils/minigames.js';
+import { describeRewards, isPenaltyReward, getMinigameProgressUpdates, getGambleLuxuryChance, rollGambleLuxury } from '../utils/minigames.js';
+import { FISHING_TOKEN_IDS, TITLE_TAGS, tagTitleProgressKey } from '../constants/titlesExtra.js';
 import soundManager from '../utils/SoundManager';
 import { useGameSettings } from './useGameSettings';
 import { usePuzzleBoard } from './usePuzzleBoard';
@@ -491,6 +492,11 @@ export const useGameState = () => {
       ? { ...t, charge: (t.charge || 0) + times }
       : t)));
     if (!isPracticeMode && !showTitle) recordTitleProgress({ add: { play_bad_outcomes: times } });
+  };
+  // 遊びトークンの記録（実績画面・二つ名の解放条件）。練習モードでは記録しない
+  const recordPlayStat = (updates) => {
+    if (isPracticeMode || showTitle) return;
+    recordTitleProgress(updates);
   };
   // 二つ名「苦行者」: 手番ごとに、2回発動するパッシブを抽選する（同じ手番の中では同じ結果を使う）
   const titlePassiveDoubleRef = useRef({ key: null, ids: new Set(), flashed: false });
@@ -4763,6 +4769,7 @@ export const useGameState = () => {
             soundManager.playSE(SE_IDS.MATCH_STAR);
             setStars(s => Math.floor(s * Math.pow(goodMult, playRepeat)));
             notify(`${t.name}発動！所持スターが${goodMult}倍になった！${doubledNote}`);
+            recordPlayStat({ add: { star_gamble_good: 1 } });
           }
 
           // 悪い効果の判定 (確率操作系は乗らないので、素の確率)
@@ -4772,6 +4779,7 @@ export const useGameState = () => {
             setStars(s => Math.floor(s * Math.pow(badMult, playRepeat)));
             notify(`${t.name}の厄災！所持スターが${badMult === 0.5 ? '半分' : `${badMult}倍`}になってしまった…${doubledNote}`);
             recordPlayLoss(playRepeat);
+            recordPlayStat({ add: { star_gamble_bad: 1 } });
           }
         });
 
@@ -4816,6 +4824,7 @@ export const useGameState = () => {
             soundManager.playSE(SE_IDS.EQUIP_TOKEN);
             setLevels(targets, 3);
             notify(`${t.name}発動！[${targets.map(tok => tok.name).join('・')}]のレベルが最大になった！`);
+            recordPlayStat({ add: { token_gamble_good: 1 } });
           }
 
           // 悪い効果 (確率操作系は乗らないので、素の確率)
@@ -4826,6 +4835,7 @@ export const useGameState = () => {
             setLevels(targets, 1);
             notify(`${t.name}の厄災！[${targets.map(tok => tok.name).join('・')}]のレベルが1になってしまった…`);
             recordPlayLoss(playRepeat);
+            recordPlayStat({ add: { token_gamble_bad: 1 } });
           }
         });
 
@@ -5343,6 +5353,11 @@ export const useGameState = () => {
         probability_tokens_max: tokens.filter(isProbabilityToken).length,
         // 遊び人: 遊び系トークンの同時所持数
         play_tokens_max: tokens.filter(isPlayToken).length,
+        // 釣り好きの: 釣り系トークンの同時所持数 / ブリーダー: うさぎトークンの同時所持数
+        fishing_tokens_max: tokens.filter(t => t && FISHING_TOKEN_IDS.includes(t.id)).length,
+        rabbit_held_max: countRabbitTokens(tokens),
+        // タグの二つ名: タグごとの同時所持数
+        ...Object.fromEntries(TITLE_TAGS.map(tag => [tagTitleProgressKey(tag), counts.tagCounts?.[tag] || 0])),
         ...Object.fromEntries(ALL_DROP_COLORS.map(c => [`attr_tokens_${c}_max`, counts.attrCounts[c] || 0])),
       },
     });
@@ -5921,11 +5936,32 @@ export const useGameState = () => {
     } else {
       notify('何も起きなかった');
     }
+    // 豪華な宝箱: 一定確率で、中身とは別にプラス効果が発動する（ハズレでも発動）
+    // 二つ名「トレジャーハンター」で確率アップ
+    const luxuryChance = gambleState.luxuryChance
+      ?? getGambleLuxuryChance(getTitleEffectTotal('gamble_luxury_chance', {}, titleEffects));
+    const luxury = rollGambleLuxury(luxuryChance, gambleState.stage);
+    if (luxury) {
+      const sourceName = gambleState.tokenName || 'ギャンブル';
+      applyPlayRewards(luxury, sourceName, gambleState.tokenInstanceId);
+      soundManager.playSE(SE_IDS.MATCH_STAR);
+      notify(`豪華な宝箱！ ${describeRewards(luxury)}${doubledNote}`);
+    }
     if (result === (gambleState.winResult || 'double')) {
       doubleUpOffered = gambleState.stage === 'first' && Math.random() < (gambleState.doubleUpChance || 0);
     }
-    playLog.event('gamble', { stage: gambleState.stage, result, doubleUp: doubleUpOffered });
-    setGambleState(prev => (prev ? { ...prev, pickedIndex: index, doubleUpOffered } : prev));
+    playLog.event('gamble', { stage: gambleState.stage, result, doubleUp: doubleUpOffered, luxury });
+    {
+      const isDouble = gambleState.stage === 'double';
+      const good = !!info && !info.bad && (info.stars || info.levelup);
+      const add = { [isDouble ? 'gamble_doubleup_plays' : 'gamble_plays']: 1 };
+      if (good) add[isDouble ? 'gamble_doubleup_wins' : 'gamble_wins'] = 1;
+      if (info?.bad) add.gamble_losses = 1;
+      if (doubleUpOffered) add.gamble_doubleup_offered = 1;
+      if (luxury) add.gamble_luxury = 1;
+      recordPlayStat({ add });
+    }
+    setGambleState(prev => (prev ? { ...prev, pickedIndex: index, doubleUpOffered, luxury } : prev));
   };
 
   // --- ギャンブル: ダブルアップに挑戦 ---
@@ -5937,6 +5973,7 @@ export const useGameState = () => {
       chests: shuffleArray(prev.doubleChests || ['triple', 'levelup', 'tenth']),
       pickedIndex: null,
       doubleUpOffered: false,
+      luxury: null,
     } : prev));
   };
 
@@ -5947,14 +5984,11 @@ export const useGameState = () => {
     setGambleState(null);
   };
 
-  // --- ミニゲーム: 報酬を適用する（1回のみ） ---
-  const resolveMinigame = (rewards = [], logInfo = {}) => {
-    if (!minigameState || minigameState.resolved) return;
-    const sourceName = minigameState.tokenName || 'ミニゲーム';
-    const sourceId = minigameState.tokenInstanceId;
+  // --- 遊びトークンの報酬リストを適用する（ミニゲーム・ギャンブルの豪華な宝箱で共通） ---
+  // 二つ名「酔狂な」: 報酬（代償も含む）を2回適用する
+  const applyPlayRewards = (rewards, sourceName, sourceId) => {
     let hasGood = false;
     let hasBad = false;
-    // 二つ名「酔狂な」: 報酬（代償も含む）を2回適用する
     const appliedRewards = playRepeat > 1
       ? Array.from({ length: playRepeat }, () => rewards || []).flat()
       : (rewards || []);
@@ -6043,17 +6077,34 @@ export const useGameState = () => {
           break;
       }
     });
+    return { hasGood, hasBad };
+  };
+
+  // --- ミニゲーム: 報酬を適用する（1回のみ） ---
+  const resolveMinigame = (rewards = [], logInfo = {}) => {
+    if (!minigameState || minigameState.resolved) return;
+    const sourceName = minigameState.tokenName || 'ミニゲーム';
+    const sourceId = minigameState.tokenInstanceId;
+    const { hasGood, hasBad } = applyPlayRewards(rewards, sourceName, sourceId);
     if (hasBad && !hasGood) soundManager.playSE(SE_IDS.ERROR);
     else if (hasGood) soundManager.playSE(SE_IDS.MATCH_STAR);
     // logInfo.bad: 報酬リストに代償が無くても悪い結果（ハイアンドローで積み上げを失った等）
     if (hasBad || logInfo.bad) recordPlayLoss(playRepeat);
-    // 大物釣り: 魚ごとの最大サイズを記録する（ランをまたいで残る）
-    if (logInfo.fish && Number.isFinite(logInfo.fishSize) && !isPracticeMode) {
-      recordTitleProgress({ max: { [fishRecordKey(logInfo.fish)]: logInfo.fishSize, fish_size_max: logInfo.fishSize } });
-    }
+    // 遊びトークンの記録（釣った魚・魚ごとの最大サイズ・連勝数など。ランをまたいで残る）
+    recordPlayStat(getMinigameProgressUpdates(minigameState.type, logInfo));
     notify(`${sourceName}: ${describeRewards(rewards)}${playRepeat > 1 ? '（酔狂：2回発動）' : ''}`);
     playLog.event('minigame', { type: minigameState.type, rewards, ...logInfo });
     setMinigameState(prev => (prev ? { ...prev, resolved: true } : prev));
+  };
+
+  // --- ミニゲーム: 途中の出来事（ハイアンドローのダブルアップ成功など） ---
+  const handleMinigameEvent = (event) => {
+    if (!minigameState || minigameState.resolved) return;
+    if (event === 'highlow_win') {
+      // 二つ名「ハイな」: ダブルアップに成功するたびにランダムなトークンのレベル+1
+      const n = Math.floor(getTitleEffectTotal('highlow_win_levelup', {}, titleEffects));
+      if (n > 0) levelUpRandomTokens(n);
+    }
   };
 
   // --- ミニゲーム: 終了 ---
@@ -6744,6 +6795,9 @@ export const useGameState = () => {
           pickedIndex: null,
           doubleUpChance,
           doubleUpOffered: false,
+          // 豪華な宝箱になる確率（二つ名「トレジャーハンター」で上がる）
+          luxuryChance: getGambleLuxuryChance(getTitleEffectTotal('gamble_luxury_chance', {}, titleEffects)),
+          luxury: null,
           tokenName: token.name,
           tokenInstanceId: token.instanceId,
         });
@@ -6764,6 +6818,16 @@ export const useGameState = () => {
       case "minigame_running": {
         setMinigameState({
           type: token.action.replace('minigame_', ''),
+          // 二つ名でミニゲームの効果が増える（遊び方・ルールは変えない）
+          bonus: {
+            fishDoubleChance: Math.min(1, getTitleEffectTotal('fish_double_chance', {}, titleEffects)),
+            targetCenterBoost: getTitleEffectProduct('target_center_boost', {}, titleEffects),
+            jankenWinStars: getTitleEffectTotal('janken_win_stars', {}, titleEffects),
+            // 連打の・韋駄天の・悪魔祓い・賽振り: そのゲームの良い効果 ×value
+            rewardBoost: getTitleEffects('minigame_reward_boost', {}, titleEffects)
+              .filter(e => (e.games || []).includes(token.action.replace('minigame_', '')))
+              .reduce((m, e) => m * (Number(e.value) || 1), 1),
+          },
           level: token.level || 1,
           values: token.values,
           effectValues: token.effectValues,
@@ -6813,6 +6877,7 @@ export const useGameState = () => {
             }, { currentRunStats, tokens, activeBuffs });
             setTokens(prev => [...prev.filter(t => t !== null), newToken]);
             addTokenToast(newToken, `が仲間になった！ (${token.name})`);
+            recordPlayStat({ add: { rabbits_joined: 1 } });
           }
         }
         break;
@@ -6828,6 +6893,15 @@ export const useGameState = () => {
         // オブジェクトを差し替えずに捕食数を記録する（チャージ消費時のコピーで引き継がれる）
         token.eatenRabbits = totalEaten;
         setTokens(prev => prev.filter(t => !isRabbitToken(t)));
+        if (eatenNow > 0) {
+          recordPlayStat({ add: { wolf_rabbits_eaten: eatenNow, wolf_hunts: 1 }, max: { wolf_eaten_once_max: eatenNow } });
+          // 二つ名「狩人」: うさぎを1匹捕食するたびにスター
+          const huntStars = Math.floor(getTitleEffectTotal('wolf_eat_stars', {}, titleEffects) * eatenNow);
+          if (huntStars > 0) {
+            setStars(s => s + huntStars);
+            notify(`狩人：うさぎ${eatenNow}匹の捕食で +${huntStars}★`);
+          }
+        }
         if (addVal > 0) {
           const finalDuration = 2 + extraDuration;
           setActiveBuffs(prev => [
@@ -7034,7 +7108,7 @@ export const useGameState = () => {
     hasSaveData, setHasSaveData,
     tokens, setTokens,
     gambleState, pickGambleChest, startGambleDoubleUp, closeGamble,
-    minigameState, resolveMinigame, closeMinigame,
+    minigameState, resolveMinigame, closeMinigame, handleMinigameEvent,
     sandsOfTimeSeconds, setSandsOfTimeSeconds,
     isGameOver, setIsGameOver,
     target, setTarget,
