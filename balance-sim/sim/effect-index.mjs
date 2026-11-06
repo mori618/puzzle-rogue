@@ -55,7 +55,7 @@ add(1, 'unit', 'l_shape', [3, 6, 9], 'L字消し1回ごと');
 add(1, 'unit', 'col_slash_combo', [3, 7, 14], '縦1列消し1回ごと');
 add(1, 'unit', 'square_combo_addition', [10, 15, 30], '正方形消し1回ごと');
 add(1, 'unit', 'enhance_amp', [2, 5, 12], '強化ドロップ1個ごと（素の+1に上乗せ）');
-add(1, 'unit', 'bonus_skyfall', [5, 15, 40], '落ちコン1回ごと', { bug: '効果名の不一致で発動しない（effect は skyfall_bonus、集計側は bonus_skyfall を見ている）' });
+add(1, 'unit', 'bonus_skyfall', [5, 15, 40], '落ちコン1回ごと', { note: '実測は修正前（発動していなかった）の値' });
 add(1, 'scale', 'star1_combo_boost', [2, 4, 8], '★1トークン数 × 値', { ex: (v) => `★1が3個: +${v * 3} ／ 6個: +${v * 6}` });
 add(1, 'scale', 'total_level_boost', [1, 2, 4], '全トークンのLv合計 × 値', { ex: (v) => `Lv合計12: +${v * 12} ／ 30: +${v * 30}` });
 add(1, 'scale', 'memory_of_combo', [1, 2, 3], '最大基礎コンボ÷5 × 値', { ex: (v) => `最大30: +${v * 6} ／ 最大100: +${v * 20}` });
@@ -79,14 +79,15 @@ add(2, 'fixed', ofColors(c => `req_6_${c}`), [2, 3, 6], 'その色を6個以上�
 add(2, 'fixed', ofColors(c => `req_12_${c}`), [2, 3, 4], 'その色を12個以上消す');
 add(2, 'fixed', 'combo_ge_7', [1, 2, 4], '盤面7コンボ以上');
 add(2, 'fixed', 'shape_master', [2, 3, 4], '異なる特殊消し2種類以上');
-add(2, 'fixed', 'over_link', [1, 2, 4], '強化ドロップ5個以上を同時に消す', { note: '説明文は「プラス2/3/5」だが実装は +1/+2/+4' });
+add(2, 'fixed', 'over_link', [1, 2, 4], '強化ドロップ5個以上を同時に消す');
 add(2, 'fixed', 'dual_match', [-0.2, 0.2, 0.5], '常時（2個で消える）', { note: 'Lv1は倍率が下がる' });
 add(2, 'scale', 'rabbit_passive', [1, 1.5, 2], 'うさぎ数 × 値 + 1', { ex: (v) => `うさぎ1匹: +${v + 1} ／ 3匹: +${v * 3 + 1}` });
 add(2, 'scale', 'color_shift', [0.5, 1, 2], '前の手番に消さなかった色の数 × 値', { ex: (v) => `新色2: +${v * 2} ／ 新色4: +${v * 4}` });
 add(2, 'scale', 'devil_loan', [5, 10, 20], '借金10★ごとに+1（値は借金上限での最大）', { ex: (v) => `最大 +${v}` });
 add(2, 'scale', 'greed_power', [7, 5, 3], '所持★ ÷ 値（上限 +10/+20/+50）', { unitLabel: '★/1', ex: (v, lv) => `★30: +${Math.min(Math.floor(30 / v), [10, 20, 50][lv - 1])} ／ ★100: +${Math.min(Math.floor(100 / v), [10, 20, 50][lv - 1])}` });
-add(2, 'scale', 'level3_count_mult', [2, 3, 4], 'Lv3トークン数 × 値 − 1（上限あり）', { note: '説明文は「数×値」だが実装は −1 される', ex: (v) => `Lv3が3個: +${v * 3 - 1} ／ 6個: +${v * 6 - 1}` });
-add(2, 'scale', 'curse_count_mult', [2, 3, 5], '値^呪い数 − 1（上限あり）', { note: '説明文は「呪い数×値」だが実装は累乗', ex: (v) => `呪い1: +${v - 1} ／ 呪い3: +${v ** 3 - 1}` });
+add(2, 'scale', 'level3_count_mult', [2, 3, 4], 'Lv3トークン数 × 値 − 1（上限あり）', { ex: (v) => `Lv3が3個: +${v * 3 - 1} ／ 6個: +${v * 6 - 1}` });
+add(2, 'scale', 'curse_count_mult', [2, 3, 5], '値^呪い数 − 1（上限あり）', { ex: (v) => `呪い1: +${v - 1} ／ 呪い3: +${v ** 3 - 1}` });
+add(2, 'scale', 'repeat_erase_combo', [2, 3, 5], 'その手番にリピートドロップが消えた数 × 値', { ex: (v) => `2個: +${v * 2}` });
 add(2, 'scale', 'play_count_mult', [1, 1.5, 2], '遊び系トークン数 × 値', { ex: (v) => `遊び3個: +${v * 3}` });
 add(2, 'scale', 'play_loss_mult', [0.3, 0.5, 0.8], '遊び系の悪い結果の累計 × 値', { ex: (v) => `10回: +${+(v * 10).toFixed(1)}` });
 add(2, 'scale', 'medal_of_spendthrift', [5, 3, 2], 'リロール累計 ÷ 値 × 0.5', { unitLabel: '回/0.5', ex: (v) => `リロール20回: +${Math.floor(20 / v) * 0.5}` });
@@ -365,12 +366,8 @@ for (const tier of [1, 2, 3]) {
   sect('active', 'アクティブスキル（個別）', true);
   sect('special', '段全体に効く特殊なもの', false);
 }
-L.push('## 気になった点（実装と説明のずれ・偏り）', '');
+L.push('## 気になった点（数値の偏り）', '');
 const issues = [
-  '天恵の追撃（bonus_skyfall）: トークンの effect は `skyfall_bonus` だが、`useGameState.js` の realtimeBonuses 集計は `bonus_skyfall` を見ているため、落ちコン加算が入らない。シミュの実測も ±0。',
-  '反響する輪舞（repeat_erase_combo）: 効果の処理がどこにも無く、何も起きない。シミュの実測も ±0。',
-  '過剰結合: 説明文は「プラス2/3/5」と表示されるが、実装は +1/+2/+4（説明文の変換リストに enhanced_link_multiplier が無い）。',
-  '厄災の祈り: 説明文は「呪いの数 × 値」だが、実装は「値^呪いの数 − 1」。三魂の極致も説明より −1 小さい。',
   '篝火などの「12個以上」系（+2/+3/+4）が、条件の軽い「6個以上」系（+2/+3/+6）より Lv3 で弱く、価格は高い（31 vs 24）。',
   'リトルワールド Lv1 は ② が −0.2 で、持つと倍率が下がる。',
   '癒の器（chalice_of_life）は上限（maxMultipliers）が無く、ハートを消すほど ×値^n で青天井。',

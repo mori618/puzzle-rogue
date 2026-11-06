@@ -349,8 +349,8 @@
    ],
    "cond": "落ちコン1回ごと",
    "ex": null,
-   "note": null,
-   "bug": "効果名の不一致で発動しない（effect は skyfall_bonus、集計側は bonus_skyfall を見ている）",
+   "note": "実測は修正前（発動していなかった）の値",
+   "bug": null,
    "unitLabel": null,
    "dup": false,
    "sim1": -4,
@@ -983,7 +983,7 @@
    ],
    "cond": "強化ドロップ5個以上を同時に消す",
    "ex": null,
-   "note": "説明文は「プラス2/3/5」だが実装は +1/+2/+4",
+   "note": null,
    "bug": null,
    "unitLabel": null,
    "dup": false,
@@ -1153,7 +1153,7 @@
     "Lv3が3個: +8 ／ 6個: +17",
     "Lv3が3個: +11 ／ 6個: +23"
    ],
-   "note": "説明文は「数×値」だが実装は −1 される",
+   "note": null,
    "bug": null,
    "unitLabel": null,
    "dup": false,
@@ -1182,12 +1182,41 @@
     "呪い1: +2 ／ 呪い3: +26",
     "呪い1: +4 ／ 呪い3: +124"
    ],
-   "note": "説明文は「呪い数×値」だが実装は累乗",
+   "note": null,
    "bug": null,
    "unitLabel": null,
    "dup": false,
    "sim1": -4,
    "sim3": 2
+  },
+  {
+   "tier": 2,
+   "kind": "scale",
+   "ids": [
+    "repeat_erase_combo"
+   ],
+   "name": "反響する輪舞",
+   "count": 1,
+   "type": "passive",
+   "rarity": 3,
+   "price": 26,
+   "v": [
+    2,
+    3,
+    5
+   ],
+   "cond": "その手番にリピートドロップが消えた数 × 値",
+   "ex": [
+    "2個: +4",
+    "2個: +6",
+    "2個: +10"
+   ],
+   "note": null,
+   "bug": null,
+   "unitLabel": null,
+   "dup": false,
+   "sim1": 8,
+   "sim3": -3
   },
   {
    "tier": 2,
@@ -3072,25 +3101,25 @@
    ],
    "unit": [
     {
-     "n": 8,
-     "mean": 3.75,
+     "n": 9,
+     "mean": 3.888888888888889,
      "median": 3,
      "min": 2,
      "max": 10
     },
     {
-     "n": 8,
-     "mean": 7,
+     "n": 9,
+     "mean": 7.888888888888889,
      "median": 6,
      "min": 5,
      "max": 15
     },
     {
-     "n": 8,
-     "mean": 13,
-     "median": 11,
+     "n": 9,
+     "mean": 16,
+     "median": 12,
      "min": 7,
-     "max": 30
+     "max": 40
     }
    ]
   },

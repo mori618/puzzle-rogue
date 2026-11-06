@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { isProbabilityToken, applyNewTokenLevel, isNewTokenLevelTarget, isTokenRequirementMet } from './tokenUtils.js';
+import { isProbabilityToken, applyNewTokenLevel, isNewTokenLevelTarget, isTokenRequirementMet, getTokenDescription, getTokenDynamicInfo } from './tokenUtils.js';
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { saveTitleState, resetTitleCache } from './titleManager.js';
 
@@ -79,5 +79,24 @@ describe('isProbabilityToken（確率で発動するトークン）', () => {
 
   it('実際のトークン定義にも該当するものがある', () => {
     expect(ALL_TOKEN_BASES.filter(isProbabilityToken).length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe('説明文・現在値が実際の計算と一致する', () => {
+  it('過剰結合: 説明文は実際に足す値（values − 1）を表示する', () => {
+    expect(getTokenDescription({ id: 'over_link' }, 1)).toContain('プラス1。');
+    expect(getTokenDescription({ id: 'over_link' }, 3)).toContain('プラス4。');
+  });
+
+  it('三魂の極致: 現在値は「Lv3トークン数 × 値 − 1」', () => {
+    const tokens = [{ id: 'a', level: 3 }, { id: 'b', level: 3 }, { id: 'c', level: 1 }];
+    const info = getTokenDynamicInfo({ id: 'level3_count_mult', level: 1 }, 1, {}, tokens);
+    expect(info.find(i => i.label === '加算値')?.value).toBe('+3');
+  });
+
+  it('厄災の祈り: 現在値は「値^呪いの数 − 1」', () => {
+    const tokens = [{ id: 'x', type: 'curse' }, { id: 'y', type: 'curse' }];
+    const info = getTokenDynamicInfo({ id: 'curse_count_mult', level: 1 }, 1, {}, tokens);
+    expect(info.find(i => i.label === '加算値')?.value).toBe('+3');
   });
 });

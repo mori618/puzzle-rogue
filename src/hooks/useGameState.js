@@ -1074,7 +1074,7 @@ export const useGameState = () => {
           bonuses.tokenIds.moveDropBoost.push(tId);
         }
 
-        if (t.effect === 'bonus_skyfall') {
+        if (t.effect === 'skyfall_bonus') {
           bonuses.skyfall += (t.values[lv - 1] || 0);
           bonuses.tokenIds.skyfall.push(tId);
         }
@@ -2571,6 +2571,15 @@ export const useGameState = () => {
         multMultiplier *= (1.0 + v);
         logData.multipliers.push(`repeat_combo_mult:x${(1.0 + v).toFixed(2)}`);
         logData.multiplierSteps.push({ label: t.name || 'リピート消去倍率', value: 1.0 + v, type: 'mult', tokenId: tId });
+      }
+
+      // 反響する輪舞: その手番にリピートドロップが消えた数 × 値 をコンボ倍率にプラス
+      if (t.effect === "repeat_erase_combo" && erasedByRepeatTotal > 0) {
+        const addVal = erasedByRepeatTotal * (t.values?.[lv - 1] || 2);
+        if (isInstant) triggerPassive(tId);
+        addedMultiplier += addVal;
+        logData.multipliers.push(`repeat_erase_combo:+${addVal.toFixed(2)}`);
+        logData.multiplierSteps.push({ label: t.name || '反響する輪舞', value: 1.0 + addVal, addedValue: addVal, type: 'add', tokenId: tId });
       }
 
       if (t.effect === "skyfall_bonus" && hasSkyfallCombo) {

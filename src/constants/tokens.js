@@ -1512,7 +1512,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "over_link", name: "過剰結合", icon: "layers", type: "passive", effect: "enhanced_link_multiplier",
     params: { count: 5 }, values: [2, 3, 5], rarity: 2, price: 24,
-    desc: "強化5個以上を消したら、コンボ倍率にプラス{values}。",
+    desc: "強化5個以上を同時に消したら、コンボ倍率にプラス{values}。",
     attributes: [],
     canBeInitial: true
   },
@@ -1774,13 +1774,13 @@ const ALL_TOKEN_BASES = [
   {
     id: "level3_count_mult", name: "三魂の極致", icon: "upgrade", type: "passive", effect: "level3_count_combo_mult",
     values: [2, 3, 4], maxMultipliers: [10, 20, 50], rarity: 3, price: 39,
-    desc: "コンボ倍率にプラス（所持しているレベル3トークンの数 × {values}）。",
+    desc: "コンボ倍率にプラス（所持しているレベル3トークンの数 × {values} − 1）。",
     attributes: []
   },
   {
     id: "curse_count_mult", name: "厄災の祈り", icon: "psychology", type: "passive", effect: "curse_count_combo_mult",
     values: [2, 3, 5], maxMultipliers: [20, 50, 100], rarity: 3, price: 39,
-    desc: "コンボ倍率にプラス（所持している呪いの数 × {values}）。",
+    desc: "所持している呪い1つにつき{values}倍に増える値をコンボ倍率にプラス（{values}^呪いの数 − 1）。例: 値が2で呪いが2つなら+3。",
     attributes: [],
     canBeCurseReward: true
   },

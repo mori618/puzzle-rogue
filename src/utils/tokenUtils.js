@@ -77,7 +77,7 @@ const getTokenDescription = (item, level, currentRunStats = null, currentTokens 
     "clutch", "sniper", "berserk", "aftershock", "critical",
     "shape_variety_mult", "desperate_stance", "stat_spend_star",
     "stat_progress_clear", "stat_time_move", "no_attribute_multiplier",
-    "combo_if_ge", "speed_of_light_thought", "last_turn_burst"
+    "combo_if_ge", "speed_of_light_thought", "last_turn_burst", "enhanced_link_multiplier"
   ].includes(base.effect)) ||
   base.action === "gale_gravity" ||
   (base.effect === "shape_bonus" && base.params?.shape === "square");
@@ -269,15 +269,17 @@ const getTokenDynamicInfo = (item, level, currentRunStats = null, currentTokens 
       infoList.push({ label: 'トークン合計Lv', value: `Lv ${count}`, type: 'stat' });
       infoList.push({ label: '加算値', value: `+${formatNum(count * v)}`, type: 'boost' });
     } else if (effect === 'level3_count_combo_mult') {
-      const count = currentTokens.filter(tok => (tok?.level || 1) >= 3).length;
-      const m = Math.pow(v, count);
+      // 実際の計算と同じく「Lv3トークン数 × v − 1」をコンボ倍率に加算する
+      const count = currentTokens.filter(tok => tok?.level === 3).length;
+      const add = Math.max(0, count * v - 1);
       infoList.push({ label: 'Lv3トークン', value: `${count} 個`, type: 'stat' });
-      infoList.push({ label: '乗算値', value: `x${formatNum(m)}`, type: 'boost' });
+      infoList.push({ label: '加算値', value: `+${formatNum(add)}`, type: 'boost' });
     } else if (effect === 'curse_count_combo_mult') {
+      // 実際の計算と同じく「v^呪いの数 − 1」をコンボ倍率に加算する
       const count = currentTokens.filter(tok => tok?.isCurse || tok?.type === 'curse').length;
-      const m = Math.pow(v, count);
+      const add = Math.pow(v, count) - 1;
       infoList.push({ label: '呪いトークン', value: `${count} 個`, type: 'stat' });
-      infoList.push({ label: '乗算値', value: `x${formatNum(m)}`, type: 'boost' });
+      infoList.push({ label: '加算値', value: `+${formatNum(add)}`, type: 'boost' });
     } else if (effect === 'greed_power') {
       const threshold = base.values?.[targetLv - 1] || 10;
       const greedBonus = Math.floor((extraState?.stars || 0) / threshold);
