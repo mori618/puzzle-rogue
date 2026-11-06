@@ -17,7 +17,7 @@ import { getTrendWeight } from "../constants/runTrends.js";
 import { getTokenDynamicPrice as calcTokenDynamicPrice, repriceShopItems } from "../utils/tokenPricing.js";
 import soundManager from "../utils/SoundManager";
 import { SE_IDS } from "../constants/sounds";
-import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress, recordTitleTrigger, applyTitleRerollPrice, applyTitlePassiveSeal } from "../utils/titleManager";
+import { getActiveTitleEffects, getTitleEffectTotal, getTitleEffects, recordTitleProgress, recordTitleTrigger, applyTitleRerollPrice, applyTitlePassiveSeal, getTitleShopTokenWeight } from "../utils/titleManager";
 
 /**
  * 二つ名の進捗: トークンの属性ごとの売却数・購入数（例: attr_sold_fire, attr_bought_dark）
@@ -281,6 +281,8 @@ export const useShop = ({
         if (base.requires) weight *= SYNERGY_WEIGHT_MULTIPLIER;
         if (probabilityWeight !== 1 && isProbabilityToken(base)) weight *= probabilityWeight;
         if (playWeight !== 1 && isPlayToken(base)) weight *= playWeight;
+        // 二つ名「釣り好きの」「ブリーダー」・タグの二つ名など: 特定のトークン・タグが出やすくなる
+        weight *= getTitleShopTokenWeight(base, titleEffects);
         weight *= getTrendWeight(base, shopTrend);
         const familyCount = pickedFamilyCount[getFamilyKey(base)] || 0;
         if (familyCount > 0) weight *= Math.pow(SHOP_SAME_FAMILY_WEIGHT, familyCount);

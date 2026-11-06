@@ -53,9 +53,14 @@
  * ■ disabled: true
  *   今のゲームでは使えない機能（エンチャント・虹ドロップなど）に依存する二つ名。
  *   定義は残すが、解放・装備・図鑑表示の対象から外す（titleManager.isTitleDisabled）。
+ *
+ * ■ 追加の二つ名（titlesExtra.js）
+ *   遊びトークンの二つ名（A76〜A80・B77〜B82）と、タグごとの二つ名（A81〜・B83〜）を末尾に追加している。
  */
 
-// 1. A枠パーツ（接頭辞）マスターデータ（全75種）
+import { EXTRA_PREFIX_TITLES, EXTRA_SUFFIX_TITLES } from './titlesExtra.js';
+
+// 1. A枠パーツ（接頭辞）マスターデータ（全75種 ＋ 追加分）
 // 特殊消し（A26〜A30・A61）の強さは消し方の難しさの順:
 //   4つ消し(A61) ≤ 5個以上消し(A30) < L字消し(A28) < 横一列(A29) < 十字消し(A26) < 正方形消し(A27)
 export const PREFIX_TITLES = [
@@ -594,9 +599,10 @@ export const PREFIX_TITLES = [
     conditionDesc: '遊び系トークンで悪い結果（スター減少・代償など）を累計10回出す',
     effects: [{ type: 'play_effect_double', value: 2 }],
   },
+  ...EXTRA_PREFIX_TITLES,
 ];
 
-// 2. B枠パーツ（接尾辞）マスターデータ（全75種）
+// 2. B枠パーツ（接尾辞）マスターデータ（全75種 ＋ 追加分）
 export const SUFFIX_TITLES = [
   {
     id: 'B01', name: '覇王', category: '火力',
@@ -1123,6 +1129,7 @@ export const SUFFIX_TITLES = [
     conditionDesc: '遊び系トークン（ギャンブル・ミニゲーム・ダイス・砥石など）を3個同時に所持',
     effects: [{ type: 'shop_play_weight', value: 3 }],
   },
+  ...EXTRA_SUFFIX_TITLES,
 ];
 
 // 3. 派生・進化二つ名（全50種）

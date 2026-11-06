@@ -3,6 +3,7 @@ import {
   SUFFIX_TITLES,
   EVOLVED_TITLES
 } from '../constants/titles.js';
+import { getTokenTags, hasTokenTag } from '../constants/tokenTags.js';
 
 export const TITLE_STORAGE_KEY = 'pazuru_roguelike_title_state';
 
@@ -304,11 +305,16 @@ export const getTokenTitleCounts = (tokens = []) => {
   const list = (tokens || []).filter(Boolean);
   const isCurse = (t) => t.type === 'curse' || t.isCurse === true;
   const attrCounts = {};
+  // タグ（tokenTags.js）ごとの所持数（呪いトークンは数えない）
+  const tagCounts = {};
   list.forEach(t => {
     (t.attributes || []).forEach(a => {
       if (!a || a === 'none') return;
       attrCounts[a] = (attrCounts[a] || 0) + 1;
     });
+    if (!isCurse(t)) {
+      getTokenTags(t).forEach(tag => { tagCounts[tag] = (tagCounts[tag] || 0) + 1; });
+    }
   });
   return {
     token: list.length,
@@ -320,6 +326,7 @@ export const getTokenTitleCounts = (tokens = []) => {
     enchant: list.reduce((sum, t) => sum + (t.enchantments?.length || 0), 0),
     sameAttrMax: Object.values(attrCounts).reduce((m, v) => Math.max(m, v), 0),
     attrCounts,
+    tagCounts,
   };
 };
 
@@ -409,6 +416,7 @@ export const getTitlePerCount = (per, ctx = {}, effect = {}) => {
     case 'heart_erased': return (ctx.erasedColorCounts || {}).heart || 0;
     case 'color_erased': return (ctx.erasedColorCounts || {})[effect.color] || 0;
     case 'attr_token': return (counts.attrCounts || {})[effect.attribute] || 0;
+    case 'tag_token': return (counts.tagCounts || {})[effect.tag] || 0; // effect.tag のタグのトークン数
     case 'color_count': return colors.size;
     case 'clears': return ctx.clears || 0;
     case 'cycle': return ctx.cycle || 0;
@@ -634,8 +642,22 @@ export const getTitleSkillCostReduction = (token, effects = getActiveTitleEffect
   if (!token) return 0;
   const attrs = token.attributes || [];
   return effects
-    .filter(e => e.type === 'skill_cost_sub' && (!e.attribute || attrs.includes(e.attribute)))
+    .filter(e => e.type === 'skill_cost_sub' && (!e.attribute || attrs.includes(e.attribute))
+      && (!e.tag || hasTokenTag(token, e.tag)))
     .reduce((sum, e) => sum + (e.value || 0), 0);
+};
+
+/**
+ * ショップでの出現重み（二つ名の shop_token_weight / shop_tag_weight）。該当なしは 1
+ * @param {Object} base トークンの元データ
+ */
+export const getTitleShopTokenWeight = (base, effects = getActiveTitleEffects()) => {
+  if (!base) return 1;
+  return effects.reduce((w, e) => {
+    if (e.type === 'shop_token_weight' && (e.ids || []).includes(base.id)) return w * (Number(e.value) || 1);
+    if (e.type === 'shop_tag_weight' && e.tag && hasTokenTag(base, e.tag)) return w * (Number(e.value) || 1);
+    return w;
+  }, 1);
 };
 
 /**

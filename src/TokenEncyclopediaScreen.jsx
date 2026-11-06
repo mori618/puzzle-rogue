@@ -4,6 +4,7 @@ import { ALL_TOKEN_BASES } from './constants/tokens.js';
 // エンチャント廃止に伴いコメントアウト
 // import { ENCHANTMENTS, getEnchantDescription } from './constants/enchantments.js';
 import { getTokenIcon, getAttributeBarStyles, getTokenDescription } from './utils/tokenUtils.js';
+import { getTokenTags, TOKEN_TAGS } from './constants/tokenTags.js';
 
 const TokenEncyclopediaScreen = ({ onClose }) => {
     // --- State ---
@@ -280,6 +281,16 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
                                     <p className="text-sm leading-relaxed text-slate-200">
                                         {getTokenDescription(selectedItem) || '説明がありません'}
                                     </p>
+                                    {/* タグ（タグの二つ名「【倍率】のトークンが出やすくなる」などの対象） */}
+                                    {selectedItem.category !== 'enchant' && getTokenTags(selectedItem).length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-2.5" data-testid="token-tags">
+                                            {getTokenTags(selectedItem).map(tag => (
+                                                <span key={tag} className="text-[10px] font-bold text-slate-300 bg-slate-800/80 border border-white/10 rounded-full px-2 py-0.5">
+                                                    {TOKEN_TAGS[tag]?.label || tag}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">

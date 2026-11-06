@@ -1,6 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatJapaneseNumber } from './utils/numberUtils.js';
 import ScreenShell, { UiSection } from './ScreenShell';
+import PlayRecordsPanel from './PlayRecordsPanel';
+import { loadTitleState } from './utils/titleManager.js';
+
+const TABS = [
+    { id: 'run', label: '今回のゲーム' },
+    { id: 'play', label: '遊びトークン' },
+];
 
 const formatTime = (ms) => {
     if (!ms || ms < 0) return "0s";
@@ -14,7 +21,16 @@ const formatTime = (ms) => {
     return `${s}s`;
 };
 
-const StatsScreen = ({ currentRunStats, onClose }) => {
+const StatsScreen = ({ currentRunStats = {}, onClose }) => {
+    const [tab, setTab] = useState('run');
+    // 遊びトークンの記録（ランをまたいで残る。二つ名の進捗データに保存されている）
+    const [playProgress] = useState(() => {
+        try {
+            return loadTitleState().progress || {};
+        } catch {
+            return {};
+        }
+    });
     // 表示用データをマッピング
     const displayData = {
         totalCombo: currentRunStats.currentTotalCombo || 0,
@@ -106,7 +122,32 @@ const StatsScreen = ({ currentRunStats, onClose }) => {
     ];
 
     return (
-        <ScreenShell icon="emoji_events" accent="amber" title="実績" subtitle="今回のゲームの記録" onClose={onClose}>
+        <ScreenShell
+            icon="emoji_events"
+            accent="amber"
+            title="実績"
+            subtitle={tab === 'run' ? '今回のゲームの記録' : 'これまでの遊びトークンの記録'}
+            onClose={onClose}
+            bodyKey={tab}
+            toolbar={(
+                <div className="ui-segment" role="tablist">
+                    {TABS.map(t => (
+                        <button
+                            key={t.id}
+                            type="button"
+                            role="tab"
+                            data-testid={`stats-tab-${t.id}`}
+                            aria-selected={tab === t.id}
+                            onClick={() => setTab(t.id)}
+                            className={tab === t.id ? 'is-active' : ''}
+                        >
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+        >
+            {tab === 'play' ? <PlayRecordsPanel progress={playProgress} /> : (
             <div className="flex flex-col gap-5">
                 <div className="grid grid-cols-2 gap-2">
                     {highlights.map((h) => (
@@ -153,6 +194,7 @@ const StatsScreen = ({ currentRunStats, onClose }) => {
                     </UiSection>
                 ))}
             </div>
+            )}
         </ScreenShell>
     );
 };

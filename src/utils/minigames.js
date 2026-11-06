@@ -616,3 +616,143 @@ export const getRunningRewards = (meters, perTenMeters) => {
   else if (meters >= 400) rewards.push({ type: 'mult', value: 2, duration: 3 });
   return rewards;
 };
+
+// =============================================================================
+// 実績（遊びトークンの記録）
+// ランをまたいで残る記録として、二つ名の進捗データ（titleManager の progress）に保存する。
+// 実績画面（StatsScreen の「遊びトークン」タブ）と二つ名の解放条件で使う。
+// =============================================================================
+
+/** 釣った魚の数の記録キー */
+export const fishCountKey = (fishId) => `fish_count_${fishId}`;
+/** 的当ての結果（bullseye / inner / …）ごとの回数の記録キー */
+export const targetHitKey = (resultId) => `target_hit_${resultId}`;
+/** サイコロの目ごとの回数の記録キー */
+export const diceFaceKey = (face) => `dice_face_${face}`;
+/** ミニゲームを遊んだ回数の記録キー（minigameState.type ごと） */
+export const minigamePlayKey = (type) => `mg_plays_${type}`;
+
+/** 結果から釣れた魚の一覧を取り出す（[{ id, size? }]） */
+export const getCaughtFishes = (info = {}) => {
+  if (Array.isArray(info.fishes)) return info.fishes.filter(f => f && f.id);
+  if (info.fish) return [{ id: info.fish, size: info.fishSize }];
+  return [];
+};
+
+/**
+ * ミニゲームの結果（type と logInfo）から、記録する進捗を返す
+ * @returns {{ add: Object<string, number>, max: Object<string, number> }}
+ */
+export const getMinigameProgressUpdates = (type, info = {}) => {
+  const add = { [minigamePlayKey(type)]: 1, minigame_plays: 1 };
+  const max = {};
+  const inc = (key, n = 1) => { if (n > 0) add[key] = (add[key] || 0) + n; };
+  const best = (key, v) => { if (Number.isFinite(v)) max[key] = Math.max(max[key] ?? -Infinity, v); };
+
+  switch (type) {
+    case 'janken':
+      best('janken_streak_max', info.streak || 0);
+      inc('janken_wins_total', info.streak || 0);
+      inc('janken_draw_bonus', info.drawBonus || 0);
+      if (!(info.streak > 0)) inc('janken_zero_wins');
+      break;
+    case 'fishing':
+    case 'fishing_big': {
+      const fishes = getCaughtFishes(info);
+      fishes.forEach(f => {
+        inc(fishCountKey(f.id));
+        inc('fish_caught_total');
+        if (Number.isFinite(f.size)) {
+          best(fishRecordKey(f.id), f.size);
+          best('fish_size_max', f.size);
+        }
+      });
+      if (fishes.length >= 2) inc('fish_double_catches');
+      break;
+    }
+    case 'target':
+    case 'target_pro':
+      if (info.result) inc(targetHitKey(info.result));
+      if (info.result === 'bullseye' || info.result === 'core') inc('target_center_hits');
+      break;
+    case 'mash':
+    case 'mash_duo':
+      best(type === 'mash' ? 'mash_single_taps_max' : 'mash_duo_taps_max', info.taps || 0);
+      best('mash_taps_max', info.taps || 0);
+      break;
+    case 'dice':
+      if (info.face) inc(diceFaceKey(info.face));
+      break;
+    case 'dice_duo': {
+      const [a, b] = info.faces || [];
+      if (a) inc(diceFaceKey(a));
+      if (b) inc(diceFaceKey(b));
+      if (a && a === b) inc('dice_doubles');
+      break;
+    }
+    case 'demon':
+      if (info.winner === 'player') inc('demon_wins');
+      else if (info.winner === 'demon') inc('demon_losses');
+      else if (info.winner === 'draw') inc('demon_draws');
+      break;
+    case 'highlow':
+      best('highlow_wins_max', info.wins || 0);
+      inc('highlow_wins_total', info.wins || 0);
+      if (info.lost && info.wins > 0) inc('highlow_busts');
+      if (!info.lost && info.wins > 0) inc('highlow_cashouts');
+      if (!info.lost) best('highlow_cashout_max', info.wins || 0);
+      break;
+    case 'running':
+      best('running_meters_max', info.meters || 0);
+      inc('running_meters_total', info.meters || 0);
+      if (info.cleared) inc('running_clears');
+      break;
+    default:
+      break;
+  }
+  return { add, max };
+};
+
+// --- 二つ名で強くなるミニゲーム -------------------------------------------------
+
+/**
+ * 的当て・精密射撃: 中心（ど真ん中・真芯）に当てたときの効果を強める
+ * スター・コンボ等は boost 倍、倍率は「1 からの差」を boost 倍、レベルアップは切り上げ
+ */
+export const boostCenterRewards = (rewards, boost = 1) => {
+  if (!(boost > 1)) return rewards;
+  return (rewards || []).map(r => {
+    switch (r.type) {
+      case 'stars_add':
+      case 'combo_add':
+        return { ...r, value: Math.round(r.value * boost) };
+      case 'mult_add':
+        return { ...r, value: Math.round(r.value * boost * 2) / 2 };
+      case 'mult':
+        return r.value >= 1 ? { ...r, value: Math.round((1 + (r.value - 1) * boost) * 2) / 2 } : r;
+      case 'levelup':
+        return { ...r, value: Math.ceil(r.value * boost) };
+      default:
+        return r;
+    }
+  });
+};
+
+/** サイコロで1の目が出たか（ダブルダイスのゾロ目の1は良い効果に反転するので除く） */
+export const hasDiceOne = (info = {}) => {
+  if (info.face === 1) return true;
+  const [a, b] = info.faces || [];
+  return (a === 1 || b === 1) && a !== b;
+};
+
+/** 二つ名「賽振り」: 1の目が出たときは代償を取り除く */
+export const applyDiceOneNull = (rewards, info, enabled) => (
+  enabled && hasDiceOne(info) ? (rewards || []).filter(r => !isPenaltyReward(r)) : rewards
+);
+
+/** 二つ名「負け知らずの」: じゃんけんの勝ち1回につきスター */
+export const addJankenWinStars = (rewards, streak, starsPerWin = 0) => (
+  starsPerWin > 0 && streak > 0
+    ? [...(rewards || []), { type: 'stars_add', value: Math.floor(starsPerWin * streak) }]
+    : rewards
+);

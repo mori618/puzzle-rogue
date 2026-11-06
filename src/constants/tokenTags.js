@@ -10,7 +10,13 @@
 
 import { PLAY_TOKEN_IDS } from "../utils/tokenUtils.js";
 
-const PLAY_TOKEN_ID_SET = new Set(PLAY_TOKEN_IDS);
+// titleManager → tokenTags → tokenUtils → titleManager の循環 import があるため、
+// PLAY_TOKEN_IDS はモジュール読み込み時ではなく初回の判定時に参照する
+let playTokenIdSet = null;
+const isPlayTokenId = (id) => {
+  if (!playTokenIdSet) playTokenIdSet = new Set(PLAY_TOKEN_IDS);
+  return playTokenIdSet.has(id);
+};
 
 /**
  * タグの一覧
@@ -261,7 +267,7 @@ export const computeTokenTags = (token) => {
   if (attrs.length > 0 && attrs.length <= 4) tags.add("attribute");
 
   // 遊び系トークン（tokenUtils の PLAY_TOKEN_IDS）・ミニゲーム
-  if (PLAY_TOKEN_ID_SET.has(token.id)) tags.add("fun");
+  if (isPlayTokenId(token.id)) tags.add("fun");
   if (String(key || "").startsWith("minigame")) tags.add("minigame");
 
   // 数手番のあいだ続くアクティブスキル

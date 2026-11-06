@@ -43,6 +43,7 @@ const App = () => {
     closeGamble,
     minigameState,
     resolveMinigame,
+    handleMinigameEvent,
     closeMinigame,
     isGameOver,
     setIsGameOver,
@@ -1387,6 +1388,7 @@ const App = () => {
               key={`${minigameState.type}-${minigameState.tokenInstanceId}`}
               state={minigameState}
               onResolve={resolveMinigame}
+              onEvent={handleMinigameEvent}
               onClose={closeMinigame}
             />
           )}
