@@ -569,6 +569,8 @@ export const isProbabilityToken = (token) => !!token
 export const PLAY_TOKEN_IDS = [
     "gamble", "gamble_high",
     "minigame_janken", "minigame_fishing", "minigame_target", "minigame_mash", "minigame_dice",
+    "minigame_fishing_big", "minigame_demon", "minigame_target_pro", "minigame_mash_duo",
+    "minigame_dice_duo", "minigame_highlow", "minigame_running",
     "passive_star_gamble", "passive_star_gamble_2",
     "passive_token_gamble", "passive_token_gamble_2",
     "play_count_mult", "play_loss_mult",

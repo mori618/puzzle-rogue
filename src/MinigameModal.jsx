@@ -1,11 +1,15 @@
 // ミニゲーム系スキル（じゃんけん / 釣り / 的当て / 連打 / サイコロ）の専用ダイアログ
 // 結果が確定したら onResolve(rewards, logInfo) を1回だけ呼び、閉じるボタンで onClose を呼ぶ。
 import React, { useEffect, useRef, useState } from 'react';
+import ResultBox from './MinigameResultBox.jsx';
 import {
-  getLevelValue, describeRewards, isAllPenalty,
+  BigFishingGame, DemonGame, DuoMashGame, DoubleDiceGame, HighLowGame, RunningGame,
+} from './MinigameExtraGames.jsx';
+import {
+  getLevelValue, EXTRA_MINIGAME_TITLES,
   judgeJanken, randomJankenHand, getJankenFinalRewards, JANKEN_DRAW_BONUS_COUNT,
   rollFish,
-  getTargetResult, getAimPosition,
+  getTargetResult, getAimPosition, getPrecisionTargetResult, getPrecisionAimPosition, TARGET_CORE_RADIUS,
   MASH_DURATION_MS, MASH_FAIL_THRESHOLD, MASH_ENERGY_THRESHOLD, MASH_MULT_THRESHOLD, getMashRewards,
   DICE_FACES, rollDie, getDiceRewards,
 } from './utils/minigames.js';
@@ -16,20 +20,7 @@ const TITLES = {
   target: '的当て',
   mash: '連打',
   dice: 'サイコロ',
-};
-
-const ResultBox = ({ title, titleClass, rewards }) => {
-  const penalty = isAllPenalty(rewards);
-  const tClass = titleClass || (penalty ? 'text-red-400' : 'text-amber-300');
-  return (
-    <div className={`bg-slate-900/70 rounded-xl p-3 text-center border ${penalty ? 'border-red-500/40' : 'border-white/10'}`}>
-      <div className={`text-lg font-bold ${tClass}`}>{title}</div>
-      {penalty && <div className="text-[10px] text-red-300 font-bold mt-1">代償</div>}
-      <div className={`text-sm mt-1 font-bold ${penalty ? 'text-red-300' : rewards.length > 0 ? 'text-emerald-300' : 'text-slate-400'}`}>
-        {describeRewards(rewards)}
-      </div>
-    </div>
-  );
+  ...EXTRA_MINIGAME_TITLES,
 };
 
 // ---------------------------------------------------------------------------
@@ -192,7 +183,11 @@ const FishingGame = ({ onResolve }) => {
 // 的当て
 // ---------------------------------------------------------------------------
 const TargetGame = ({ state, onResolve }) => {
+  // 強化版「精密射撃」（target_pro）は、ど真ん中のさらに中心に「真芯」がある
+  const isPro = state.type === 'target_pro';
   const bullseyeMult = getLevelValue(state.values, state.level, 2);
+  const coreMult = getLevelValue(state.effectValues, state.level, 8);
+  const aimFn = isPro ? getPrecisionAimPosition : getAimPosition;
   const [aim, setAim] = useState({ x: 0.8, y: -0.6 });
   const [shot, setShot] = useState(null); // { x, y, result }
   const aimRef = useRef(aim);
@@ -203,19 +198,21 @@ const TargetGame = ({ state, onResolve }) => {
     let raf;
     const tick = (now) => {
       if (startRef.current === null) startRef.current = now;
-      const p = getAimPosition(now - startRef.current);
+      const p = aimFn(now - startRef.current);
       aimRef.current = p;
       setAim(p);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shot]);
 
   const fire = () => {
     if (shot) return;
     const { x, y } = aimRef.current;
-    const result = getTargetResult(Math.hypot(x, y), bullseyeMult);
+    const d = Math.hypot(x, y);
+    const result = isPro ? getPrecisionTargetResult(d, bullseyeMult, coreMult) : getTargetResult(d, bullseyeMult);
     setShot({ x, y, result });
     onResolve(result.rewards, { result: result.id, distance: Math.round(Math.hypot(x, y) * 100) / 100 });
   };
@@ -236,6 +233,7 @@ const TargetGame = ({ state, onResolve }) => {
           { r: 0.65, cls: 'bg-sky-500' },
           { r: 0.35, cls: 'bg-red-500' },
           { r: 0.12, cls: 'bg-amber-300' },
+          ...(isPro ? [{ r: TARGET_CORE_RADIUS, cls: 'bg-fuchsia-500' }] : []),
         ].map(({ r, cls }) => (
           <div
             key={r}
@@ -440,6 +438,13 @@ const GAMES = {
   target: TargetGame,
   mash: MashGame,
   dice: DiceGame,
+  target_pro: TargetGame,
+  fishing_big: BigFishingGame,
+  demon: DemonGame,
+  mash_duo: DuoMashGame,
+  dice_duo: DoubleDiceGame,
+  highlow: HighLowGame,
+  running: RunningGame,
 };
 
 const MinigameModal = ({ state, onResolve, onClose }) => {

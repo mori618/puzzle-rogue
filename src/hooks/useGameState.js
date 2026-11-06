@@ -21,7 +21,7 @@ import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import { getMoveTimeRhythmEffect } from '../utils/moveTimeRhythm.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
 import { safeSetItem, safeRemoveItem } from '../utils/safeStorage.js';
-import { describeRewards, isPenaltyReward } from '../utils/minigames.js';
+import { describeRewards, isPenaltyReward, fishRecordKey } from '../utils/minigames.js';
 import soundManager from '../utils/SoundManager';
 import { useGameSettings } from './useGameSettings';
 import { usePuzzleBoard } from './usePuzzleBoard';
@@ -6041,7 +6041,12 @@ export const useGameState = () => {
     });
     if (hasBad && !hasGood) soundManager.playSE(SE_IDS.ERROR);
     else if (hasGood) soundManager.playSE(SE_IDS.MATCH_STAR);
-    if (hasBad) recordPlayLoss(playRepeat);
+    // logInfo.bad: 報酬リストに代償が無くても悪い結果（ハイアンドローで積み上げを失った等）
+    if (hasBad || logInfo.bad) recordPlayLoss(playRepeat);
+    // 大物釣り: 魚ごとの最大サイズを記録する（ランをまたいで残る）
+    if (logInfo.fish && Number.isFinite(logInfo.fishSize) && !isPracticeMode) {
+      recordTitleProgress({ max: { [fishRecordKey(logInfo.fish)]: logInfo.fishSize, fish_size_max: logInfo.fishSize } });
+    }
     notify(`${sourceName}: ${describeRewards(rewards)}${playRepeat > 1 ? '（酔狂：2回発動）' : ''}`);
     playLog.event('minigame', { type: minigameState.type, rewards, ...logInfo });
     setMinigameState(prev => (prev ? { ...prev, resolved: true } : prev));
@@ -6745,11 +6750,19 @@ export const useGameState = () => {
       case "minigame_fishing":
       case "minigame_target":
       case "minigame_mash":
-      case "minigame_dice": {
+      case "minigame_dice":
+      case "minigame_fishing_big":
+      case "minigame_demon":
+      case "minigame_target_pro":
+      case "minigame_mash_duo":
+      case "minigame_dice_duo":
+      case "minigame_highlow":
+      case "minigame_running": {
         setMinigameState({
           type: token.action.replace('minigame_', ''),
           level: token.level || 1,
           values: token.values,
+          effectValues: token.effectValues,
           tokenName: token.name,
           tokenInstanceId: token.instanceId,
           resolved: false,
