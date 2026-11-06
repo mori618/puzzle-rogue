@@ -22,7 +22,7 @@
  *   wolf_eat_stars       : 狼がうさぎを1匹捕食するたびに +value★
  *   janken_win_stars     : じゃんけんの勝ち1回につき +value★（終了時）
  *   minigame_reward_boost { games } : そのミニゲーム（minigameState.type）の良い効果 ×value（代償はそのまま）
- *   gamble_win_stars     : ギャンブル・大博打で当たりを引くたびに +value★
+ *   gamble_luxury_chance : ギャンブル・大博打の宝箱が豪華になる（中身とは別にプラス効果が発動する）確率 +value
  *
  *   ※ 遊びの二つ名は、遊び方（ルール・制限時間・確率・初期状態）を変えず、結果の効果だけを増やす。
  *     実績の記録（連打数・距離など）が二つ名で変わらないようにするため。
@@ -149,13 +149,13 @@ export const PLAY_SUFFIX_TITLES = [
     ],
   },
   {
-    id: 'B82', name: '宝箱荒らし', category: '遊び（ギャンブル）',
-    desc: 'ギャンブル・大博打がショップに出やすくなる（3倍）、当たりを引くたびに +20★',
+    id: 'B82', name: 'トレジャーハンター', category: '遊び（ギャンブル）',
+    desc: 'ギャンブル・大博打がショップに出やすくなる（3倍）、宝箱が豪華になる（プラス効果が発動する）確率 +25%',
     conditionType: 'gamble_doubleup_wins', targetValue: 2,
     conditionDesc: 'ギャンブル・大博打のダブルアップで累計2回当たりを引く',
     effects: [
       { type: 'shop_token_weight', ids: GAMBLE_TOKEN_IDS, value: 3 },
-      { type: 'gamble_win_stars', value: 20 },
+      { type: 'gamble_luxury_chance', value: 0.25 },
     ],
   },
 ];

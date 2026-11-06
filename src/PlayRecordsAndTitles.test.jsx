@@ -15,7 +15,7 @@ import {
 } from './utils/titleManager.js';
 import {
   getMinigameProgressUpdates, fishCountKey, fishRecordKey, targetHitKey, diceFaceKey, minigamePlayKey,
-  boostRewards, addJankenWinStars,
+  boostRewards, addJankenWinStars, getGambleLuxuryChance, rollGambleLuxury, GAMBLE_LUXURY_BASE_CHANCE,
 } from './utils/minigames.js';
 import { buildPlayRecordSections } from './utils/playRecords.js';
 import StatsScreen from './StatsScreen.jsx';
@@ -204,6 +204,28 @@ describe('二つ名で強くなるミニゲーム', () => {
     expect(boosted).toEqual([
       ['韋駄天の', ['running']], ['連打の', ['mash', 'mash_duo']], ['賽振り', ['dice', 'dice_duo']], ['悪魔祓い', ['demon']],
     ]);
+  });
+
+  it('豪華な宝箱: 基本10%、トレジャーハンターで+25%', () => {
+    expect(GAMBLE_LUXURY_BASE_CHANCE).toBe(0.1);
+    expect(getGambleLuxuryChance()).toBe(0.1);
+    const th = findTitle('B82');
+    expect(th.name).toBe('トレジャーハンター');
+    const add = th.effects.find(e => e.type === 'gamble_luxury_chance').value;
+    expect(getGambleLuxuryChance(add)).toBeCloseTo(0.35);
+    expect(getGambleLuxuryChance(5)).toBe(1);
+  });
+
+  it('豪華な宝箱: 外れたら null、当たればプラス効果（ダブルアップでは2倍）', () => {
+    const seq = (...vals) => { let i = 0; return () => vals[i++]; };
+    expect(rollGambleLuxury(0.1, 'first', seq(0.5))).toBeNull();
+    expect(rollGambleLuxury(0.1, 'first', seq(0.05, 0))).toEqual([{ type: 'stars_add', value: 20 }]);
+    expect(rollGambleLuxury(0.1, 'double', seq(0.05, 0))).toEqual([{ type: 'stars_add', value: 40 }]);
+    for (let i = 0; i < 50; i++) {
+      const r = rollGambleLuxury(1, 'first');
+      expect(r.length).toBeGreaterThan(0);
+      r.forEach(x => expect(['stars_add', 'combo_add', 'energy', 'mult', 'levelup']).toContain(x.type));
+    }
   });
 
   it('負け知らずの: 勝ち1回につきスター', () => {

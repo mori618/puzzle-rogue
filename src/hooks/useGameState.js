@@ -22,7 +22,7 @@ import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import { getMoveTimeRhythmEffect } from '../utils/moveTimeRhythm.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
 import { safeSetItem, safeRemoveItem } from '../utils/safeStorage.js';
-import { describeRewards, isPenaltyReward, getMinigameProgressUpdates } from '../utils/minigames.js';
+import { describeRewards, isPenaltyReward, getMinigameProgressUpdates, getGambleLuxuryChance, rollGambleLuxury } from '../utils/minigames.js';
 import { FISHING_TOKEN_IDS, TITLE_TAGS, tagTitleProgressKey } from '../constants/titlesExtra.js';
 import soundManager from '../utils/SoundManager';
 import { useGameSettings } from './useGameSettings';
@@ -5936,18 +5936,21 @@ export const useGameState = () => {
     } else {
       notify('何も起きなかった');
     }
-    // 二つ名「宝箱荒らし」: 当たりを引くたびにスター（宝箱の中身・確率は変えない）
-    if (info && !info.bad && (info.stars || info.levelup)) {
-      const winStars = Math.floor(getTitleEffectTotal('gamble_win_stars', {}, titleEffects));
-      if (winStars > 0) {
-        setStars(s => s + winStars);
-        notify(`宝箱荒らし：当たりで +${winStars}★`);
-      }
+    // 豪華な宝箱: 一定確率で、中身とは別にプラス効果が発動する（ハズレでも発動）
+    // 二つ名「トレジャーハンター」で確率アップ
+    const luxuryChance = gambleState.luxuryChance
+      ?? getGambleLuxuryChance(getTitleEffectTotal('gamble_luxury_chance', {}, titleEffects));
+    const luxury = rollGambleLuxury(luxuryChance, gambleState.stage);
+    if (luxury) {
+      const sourceName = gambleState.tokenName || 'ギャンブル';
+      applyPlayRewards(luxury, sourceName, gambleState.tokenInstanceId);
+      soundManager.playSE(SE_IDS.MATCH_STAR);
+      notify(`豪華な宝箱！ ${describeRewards(luxury)}${doubledNote}`);
     }
     if (result === (gambleState.winResult || 'double')) {
       doubleUpOffered = gambleState.stage === 'first' && Math.random() < (gambleState.doubleUpChance || 0);
     }
-    playLog.event('gamble', { stage: gambleState.stage, result, doubleUp: doubleUpOffered });
+    playLog.event('gamble', { stage: gambleState.stage, result, doubleUp: doubleUpOffered, luxury });
     {
       const isDouble = gambleState.stage === 'double';
       const good = !!info && !info.bad && (info.stars || info.levelup);
@@ -5955,9 +5958,10 @@ export const useGameState = () => {
       if (good) add[isDouble ? 'gamble_doubleup_wins' : 'gamble_wins'] = 1;
       if (info?.bad) add.gamble_losses = 1;
       if (doubleUpOffered) add.gamble_doubleup_offered = 1;
+      if (luxury) add.gamble_luxury = 1;
       recordPlayStat({ add });
     }
-    setGambleState(prev => (prev ? { ...prev, pickedIndex: index, doubleUpOffered } : prev));
+    setGambleState(prev => (prev ? { ...prev, pickedIndex: index, doubleUpOffered, luxury } : prev));
   };
 
   // --- ギャンブル: ダブルアップに挑戦 ---
@@ -5969,6 +5973,7 @@ export const useGameState = () => {
       chests: shuffleArray(prev.doubleChests || ['triple', 'levelup', 'tenth']),
       pickedIndex: null,
       doubleUpOffered: false,
+      luxury: null,
     } : prev));
   };
 
@@ -5979,14 +5984,11 @@ export const useGameState = () => {
     setGambleState(null);
   };
 
-  // --- ミニゲーム: 報酬を適用する（1回のみ） ---
-  const resolveMinigame = (rewards = [], logInfo = {}) => {
-    if (!minigameState || minigameState.resolved) return;
-    const sourceName = minigameState.tokenName || 'ミニゲーム';
-    const sourceId = minigameState.tokenInstanceId;
+  // --- 遊びトークンの報酬リストを適用する（ミニゲーム・ギャンブルの豪華な宝箱で共通） ---
+  // 二つ名「酔狂な」: 報酬（代償も含む）を2回適用する
+  const applyPlayRewards = (rewards, sourceName, sourceId) => {
     let hasGood = false;
     let hasBad = false;
-    // 二つ名「酔狂な」: 報酬（代償も含む）を2回適用する
     const appliedRewards = playRepeat > 1
       ? Array.from({ length: playRepeat }, () => rewards || []).flat()
       : (rewards || []);
@@ -6075,6 +6077,15 @@ export const useGameState = () => {
           break;
       }
     });
+    return { hasGood, hasBad };
+  };
+
+  // --- ミニゲーム: 報酬を適用する（1回のみ） ---
+  const resolveMinigame = (rewards = [], logInfo = {}) => {
+    if (!minigameState || minigameState.resolved) return;
+    const sourceName = minigameState.tokenName || 'ミニゲーム';
+    const sourceId = minigameState.tokenInstanceId;
+    const { hasGood, hasBad } = applyPlayRewards(rewards, sourceName, sourceId);
     if (hasBad && !hasGood) soundManager.playSE(SE_IDS.ERROR);
     else if (hasGood) soundManager.playSE(SE_IDS.MATCH_STAR);
     // logInfo.bad: 報酬リストに代償が無くても悪い結果（ハイアンドローで積み上げを失った等）
@@ -6784,6 +6795,9 @@ export const useGameState = () => {
           pickedIndex: null,
           doubleUpChance,
           doubleUpOffered: false,
+          // 豪華な宝箱になる確率（二つ名「トレジャーハンター」で上がる）
+          luxuryChance: getGambleLuxuryChance(getTitleEffectTotal('gamble_luxury_chance', {}, titleEffects)),
+          luxury: null,
           tokenName: token.name,
           tokenInstanceId: token.instanceId,
         });

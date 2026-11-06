@@ -110,6 +110,7 @@ export const buildPlayRecordSections = (p = {}) => {
         ['ハズレ', v('gamble_losses'), '回'],
         ['ダブルアップ挑戦', v('gamble_doubleup_plays'), '回'],
         ['ダブルアップ当たり', v('gamble_doubleup_wins'), '回'],
+        ['豪華な宝箱', v('gamble_luxury'), '回'],
       ],
     },
     {

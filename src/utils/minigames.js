@@ -751,3 +751,39 @@ export const addJankenWinStars = (rewards, streak, starsPerWin = 0) => (
     ? [...(rewards || []), { type: 'stars_add', value: Math.floor(starsPerWin * streak) }]
     : rewards
 );
+
+// --- ギャンブル: 豪華な宝箱 ---------------------------------------------------
+// 宝箱を開けると、中身（スター倍率など）とは別に、一定確率で「豪華な宝箱」になり
+// 追加でプラス効果が1つ発動する（ハズレの宝箱でも発動する）。
+// 二つ名「トレジャーハンター」でこの確率が上がる。
+
+/** 豪華な宝箱になる基本確率 */
+export const GAMBLE_LUXURY_BASE_CHANCE = 0.1;
+
+/** 豪華な宝箱のプラス効果（どれか1つ） */
+export const GAMBLE_LUXURY_BONUSES = [
+  { id: 'stars', weight: 3, rewards: [{ type: 'stars_add', value: 20 }] },
+  { id: 'combo', weight: 3, rewards: [{ type: 'combo_add', value: 15, duration: 3 }] },
+  { id: 'energy', weight: 2, rewards: [{ type: 'energy', value: 3 }] },
+  { id: 'mult', weight: 2, rewards: [{ type: 'mult', value: 2, duration: 3 }] },
+  { id: 'levelup', weight: 2, rewards: [{ type: 'levelup', value: 1 }] },
+];
+
+/** 豪華な宝箱になる確率（基本確率 ＋ 二つ名などの加算。最大 100%） */
+export const getGambleLuxuryChance = (add = 0) => Math.max(0, Math.min(1, GAMBLE_LUXURY_BASE_CHANCE + (add || 0)));
+
+/**
+ * 豪華な宝箱の抽選。豪華になればプラス効果を、ならなければ null を返す
+ * ダブルアップの宝箱（stage: 'double'）では効果が2倍
+ */
+export const rollGambleLuxury = (chance, stage = 'first', rng = Math.random) => {
+  if (!(rng() < chance)) return null;
+  const total = GAMBLE_LUXURY_BONUSES.reduce((sum, b) => sum + b.weight, 0);
+  let r = rng() * total;
+  let bonus = GAMBLE_LUXURY_BONUSES[GAMBLE_LUXURY_BONUSES.length - 1];
+  for (const b of GAMBLE_LUXURY_BONUSES) {
+    r -= b.weight;
+    if (r < 0) { bonus = b; break; }
+  }
+  return stage === 'double' ? boostRewards(bonus.rewards, 2) : bonus.rewards;
+};
