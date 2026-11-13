@@ -1,5 +1,6 @@
 // リファクタリング後の App.jsx
 import React from "react";
+import TokenTags from "./TokenTags";
 import ShopScreen from "./ShopScreen";
 import TitleScreen from "./TitleScreen";
 import PauseScreen from "./PauseScreen";
@@ -1334,6 +1335,7 @@ const App = () => {
 
                     {/* 効果説明 */}
                     <div className="bg-slate-900/60 rounded-xl p-3 mb-3 border border-white/5">
+                      <TokenTags token={t} className="mb-2" />
                       <p className="text-xs text-slate-300 leading-relaxed">{getTokenDescription(t, lv, currentRunStats, tokens, activeBuffs)}</p>
 
                       {/* 動的情報の表示 (メイン) */}

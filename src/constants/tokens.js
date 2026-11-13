@@ -1722,7 +1722,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "greed_power", name: "金満の暴力", icon: "monetization_on", type: "passive", effect: "greed_power",
     values: [7, 5, 3], maxMultipliers: [10, 20, 50], rarity: 1, price: 26,
-    desc: "★[20/15/10]個につきコンボ倍率にプラス1。",
+    desc: "★[7/5/3]個につきコンボ倍率にプラス1。",
     attributes: [],
     canBeInitial: true
   },
@@ -3570,6 +3570,7 @@ const ALL_TOKEN_BASES = [
     name: "狂神の偏愛 (炎)",
     icon: "favorite",
     type: "passive",
+    effect: "devotion_fire",
     values: [4, 7, 12],
     rarity: 3,
     price: 26,
@@ -3581,6 +3582,7 @@ const ALL_TOKEN_BASES = [
     name: "狂神の偏愛 (雨)",
     icon: "favorite",
     type: "passive",
+    effect: "devotion_water",
     values: [4, 7, 12],
     rarity: 3,
     price: 26,
