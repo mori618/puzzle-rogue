@@ -1,4 +1,5 @@
 // ショップ関連の状態とロジックを管理するカスタムフック
+import { statsOnEvent } from '../engine/titleStats.js';
 import { useState, useCallback } from "react";
 import { ALL_TOKEN_BASES } from "../constants/tokens.js";
 import { ENCHANTMENTS, getEnchantDescription } from "../constants/enchantments.js";
@@ -375,6 +376,7 @@ export const useShop = ({
     soundManager.playSE(SE_IDS.SELL_STAR);
 
     setTokens(prev => prev.filter(t => t.instanceId !== token.instanceId));
+    setStats(prev => statsOnEvent(prev, {}, 'token_sold', { isCurse: token.type === 'curse' }).stats);
     setCurrentRunStats(prev => ({
       ...prev,
       tokensSold: (prev.tokensSold || 0) + 1,
@@ -383,7 +385,7 @@ export const useShop = ({
 
     setSelectedTokenDetail(null);
     notify(`${token.name} を売却しました (+${sellPrice} ★)`);
-  }, [setStars, setTokens, currentRunStats, setCurrentRunStats, setSelectedTokenDetail, notify, spawnParticles]);
+  }, [setStars, setTokens, currentRunStats, setCurrentRunStats, setSelectedTokenDetail, notify, spawnParticles, setStats]);
 
   /** トークン枠の拡張価格を取得 */
   const getTokenSlotExpandPrice = useCallback(() => {
@@ -391,6 +393,12 @@ export const useShop = ({
   }, [tokenSlotExpansionCount]);
 
   /** ショップアイテムの購入 */
+  // 二つ名の解放条件用: 通常ショップでの購入回数（セール品は別にも数える）
+  const countPurchase = useCallback((item) => {
+    setTotalPurchases((p) => p + 1);
+    setStats(prev => statsOnEvent(prev, {}, 'shop_purchase', { isSale: !!item?.isSale }).stats);
+  }, [setTotalPurchases, setStats]);
+
   const buyItem = useCallback((item, clickPos) => {
     if (stars < item.price) {
       soundManager.playSE(SE_IDS.ERROR);
@@ -405,7 +413,7 @@ export const useShop = ({
 
       setSandsOfTimeSeconds(prev => prev + 2);
       setStars((s) => s - item.price);
-      setTotalPurchases((p) => p + 1);
+      countPurchase(item);
       setTotalStarsSpent((prev) => prev + item.price);
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
@@ -447,7 +455,7 @@ export const useShop = ({
       });
 
       setStars((s) => s - item.price);
-      setTotalPurchases((p) => p + 1);
+      countPurchase(item);
       setTotalStarsSpent((prev) => prev + item.price);
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
@@ -474,7 +482,7 @@ export const useShop = ({
       if (!checkLevelUpSuccess(targetToken)) {
         notify(`レベルアップ失敗！呪いにより ${targetToken.name} の強化に失敗しました。`);
         setStars((s) => s - item.price);
-        setTotalPurchases((p) => p + 1);
+        countPurchase(item);
         setTotalStarsSpent((prev) => prev + item.price);
         setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
@@ -494,7 +502,7 @@ export const useShop = ({
       });
 
       setStars((s) => s - item.price);
-      setTotalPurchases((p) => p + 1);
+      countPurchase(item);
       setTotalStarsSpent((prev) => prev + item.price);
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
@@ -536,7 +544,7 @@ export const useShop = ({
       });
 
       setStars((s) => s - item.price);
-      setTotalPurchases((p) => p + 1);
+      countPurchase(item);
       setTotalStarsSpent((prev) => prev + item.price);
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
@@ -574,7 +582,7 @@ export const useShop = ({
         return next;
       });
       setStars((s) => s - item.price);
-      setTotalPurchases((p) => p + 1);
+      countPurchase(item);
       setTotalStarsSpent((prev) => prev + item.price);
       setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
       setShopItems((prev) => prev.filter((i) => i !== item));
@@ -626,7 +634,7 @@ export const useShop = ({
         const nextStars = s - item.price;
         return randomCurseBase.id === 'curse_init' && !hasSaintToken ? Math.floor(nextStars / 2) : nextStars;
       });
-      setTotalPurchases(p => p + 1);
+      countPurchase(item);
       setShopItems(prev => prev.filter(i => i !== item));
       addTokenToast(curseItem, "の呪いを得た…！");
     } else {
@@ -673,7 +681,7 @@ export const useShop = ({
           obtainedToken
         ]);
         setStars((s) => s - item.price);
-        setTotalPurchases((p) => p + 1);
+        countPurchase(item);
         setTotalStarsSpent((prev) => prev + item.price);
         setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + item.price }));
         setCurrentRunStats(prev => ({ ...prev, currentStarsSpent: (prev.currentStarsSpent || 0) + item.price }));
@@ -682,7 +690,7 @@ export const useShop = ({
         addTokenToast(obtainedToken, "を獲得しました！");
       }
     }
-  }, [stars, tokens, tokenSlotExpansionCount, hasSaintToken, setSandsOfTimeSeconds, setStars, setTotalPurchases, setTotalStarsSpent, setStats, currentRunStats, setCurrentRunStats, setShopItems, setTokens, addTokenToast, triggerLevelUp, notify, spawnParticles, getTokenDynamicPrice, getStatByCondition, activeBuffs]);
+  }, [stars, tokens, tokenSlotExpansionCount, hasSaintToken, setSandsOfTimeSeconds, setStars, setTotalPurchases, setTotalStarsSpent, setStats, currentRunStats, setCurrentRunStats, setShopItems, setTokens, addTokenToast, triggerLevelUp, notify, spawnParticles, getTokenDynamicPrice, getStatByCondition, activeBuffs, countPurchase]);
 
   /** 覚醒アイテムの購入 */
   const buyAwakeningItem = useCallback((type, clickPos) => {
@@ -864,22 +872,23 @@ export const useShop = ({
     soundManager.playSE(SE_IDS.BUY_STAR);
 
     setStars((s) => s - item.price);
-    setTotalPurchases((p) => p + 1);
+    countPurchase(pendingShopItem);
     setTotalStarsSpent((prev) => prev + item.price);
     setShopItems((prev) => prev.filter((i) => i !== item));
     setPendingShopItem(null);
     if (updatedToken) {
       addTokenToast(updatedToken, actionText);
     }
-  }, [pendingShopItem, tokenSlotExpansionCount, tokens, setTokens, setStars, setTotalPurchases, setTotalStarsSpent, setShopItems, addTokenToast, notify, activeBuffs, currentRunStats, spawnParticles]);
+  }, [pendingShopItem, tokenSlotExpansionCount, tokens, setTokens, setStars, setTotalPurchases, setTotalStarsSpent, setShopItems, addTokenToast, notify, activeBuffs, currentRunStats, spawnParticles, countPurchase]);
 
   /** ショップ画面を開く */
   const openShop = useCallback(() => {
     if (shopItems.length === 0) {
       generateShop();
     }
+    setStats(prev => statsOnEvent(prev, {}, 'shop_visit').stats);
     return true; // 親側で showShop のステート切り替えを補助
-  }, [shopItems, generateShop]);
+  }, [shopItems, generateShop, setStats]);
 
   /** ショップのリロール */
   const refreshShop = useCallback((clickPos) => {
@@ -895,6 +904,7 @@ export const useShop = ({
       spawnParticles(5, clickPos.x, clickPos.y, window.innerWidth * 0.8, 50, 'star');
     }
 
+    setStats(prev => statsOnEvent(prev, {}, 'shop_reroll').stats);
     if (isFree) {
       setFreeRerolls(f => f - 1);
       notify("無料リロールを使用しました！");

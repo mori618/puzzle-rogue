@@ -18,12 +18,13 @@ import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import { calcTurnResult } from '../engine/comboCalculator.js';
 import { buildRealtimeBonuses } from '../engine/realtimeBonuses.js';
 import { buildTurnBreakdown } from '../engine/turnBreakdown.js';
+import { statsOnTurnEnd, statsOnCycleClear, statsOnHoldingsChange, statsOnEvent, findNewlyUnlockedTitles } from '../engine/titleStats.js';
 import soundManager from '../utils/SoundManager';
 import { useGameSettings } from './useGameSettings';
 import { usePuzzleBoard } from './usePuzzleBoard';
 import { useShop } from './useShop';
 import { BGM_IDS, SE_IDS } from '../constants/sounds';
-import { PREFIX_TITLES, SUFFIX_TITLES, EVOLVED_TITLES, TITLE_SET_BONUSES, getSetBonus, getTitleDisplayName, getTitleProgress } from '../constants/titles.js';
+import { PREFIX_TITLES, SUFFIX_TITLES, EVOLVED_TITLES, getSetBonus } from '../constants/titles.js';
 
 // 外部定数・ヘルパーの移行
 
@@ -90,7 +91,7 @@ export const useGameState = () => {
         const parsed = JSON.parse(saved);
         return parsed.unlockedTitles || { prefixes: [], suffixes: [], evolved: [] };
       }
-    } catch (e) {}
+    } catch { /* 保存データが壊れている場合は初期値 */ }
     return { prefixes: [], suffixes: [], evolved: [] };
   });
 
@@ -102,7 +103,7 @@ export const useGameState = () => {
         const parsed = JSON.parse(saved);
         return parsed.equippedTitle || { prefixId: null, suffixId: null, evolvedId: null };
       }
-    } catch (e) {}
+    } catch { /* 保存データが壊れている場合は初期値 */ }
     return { prefixId: null, suffixId: null, evolvedId: null };
   });
   const [savedBoard, setSavedBoard] = useState(() => savedData?.board || null);
@@ -237,64 +238,22 @@ export const useGameState = () => {
     setTimeout(() => setLevelUpTokenId(null), 1000);
   };
 
-  // 二つ名解放チェック
-  const checkTitleUnlocks = useCallback((checkStats, checkCurrentRunStats, checkTokens, checkStars, extraContext = {}) => {
-    const allPrefixes = [...PREFIX_TITLES, ...EVOLVED_TITLES.filter(e => e.slotType === 'prefix')];
-    const allSuffixes = [...SUFFIX_TITLES, ...EVOLVED_TITLES.filter(e => e.slotType === 'suffix')];
-    const allSpecial = EVOLVED_TITLES.filter(e => e.slotType === 'special');
-
-    const newlyUnlocked = [];
-
-    const checkList = [
-      { list: allPrefixes, pool: 'prefixes' },
-      { list: allSuffixes, pool: 'suffixes' },
-      { list: allSpecial, pool: 'evolved' },
-    ];
-
+  // 二つ名解放チェック（統計が変わるたびに useEffect から呼ぶ）
+  const checkTitleUnlocks = useCallback((checkStats, checkCurrentRunStats) => {
+    const found = findNewlyUnlockedTitles(unlockedTitles, checkStats, checkCurrentRunStats, equippedTitle);
+    if (found.length === 0) return;
     setUnlockedTitles(prev => {
-      let changed = false;
       const next = { ...prev, prefixes: [...prev.prefixes], suffixes: [...prev.suffixes], evolved: [...prev.evolved] };
-
-      checkList.forEach(({ list, pool }) => {
-        list.forEach(title => {
-          if (next[pool].includes(title.id)) return; // already unlocked
-
-          // Check evolved prerequisites
-          if (title.requiredPrefix && !prev.prefixes.includes(title.requiredPrefix)) return;
-          if (title.requiredSuffix && !prev.suffixes.includes(title.requiredSuffix)) return;
-          if (title.requiredSet) {
-            // set bonus requires both prefix and suffix to be equipped
-            const setDef = TITLE_SET_BONUSES.find(s => s.id === title.requiredSet);
-            if (!setDef) return;
-            const currentEquipped = equippedTitle;
-            if (currentEquipped.prefixId !== setDef.prefixId || currentEquipped.suffixId !== setDef.suffixId) return;
-          }
-
-          const progress = getTitleProgress(title, checkStats, checkCurrentRunStats, equippedTitle);
-          if (progress.isAchieved) {
-            next[pool].push(title.id);
-            newlyUnlocked.push(title);
-            changed = true;
-          }
-        });
-      });
-
-      if (changed) {
-        return next;
-      }
-      return prev;
+      found.forEach(({ title, pool }) => { if (!next[pool].includes(title.id)) next[pool].push(title.id); });
+      return next;
     });
-
-    // Show toast notifications for newly unlocked titles
-    if (newlyUnlocked.length > 0) {
-      newlyUnlocked.forEach(title => {
-        setTimeout(() => {
-          addTokenToast(null, `✨ 二つ名解放：『${title.name}』を獲得！`);
-          soundManager.playSE(SE_IDS.EQUIP_TOKEN);
-        }, 300);
-      });
-    }
-  }, [equippedTitle, addTokenToast]);
+    found.forEach(({ title }, i) => {
+      setTimeout(() => {
+        addTokenToast(null, `✨ 二つ名解放：『${title.name}』を獲得！`);
+        soundManager.playSE(SE_IDS.EQUIP_TOKEN);
+      }, 300 + i * 400);
+    });
+  }, [unlockedTitles, equippedTitle, addTokenToast]);
 
   // 二つ名パーツを装備する
   const equipTitlePrefix = useCallback((prefixId) => {
@@ -316,6 +275,14 @@ export const useGameState = () => {
       // special / legendary
       setEquippedTitle(prev => ({ ...prev, evolvedId }));
     }
+  }, []);
+
+  // 二つ名の解放条件用の統計を記録する（fn は src/engine/titleStats.js の関数）。
+  // 永続統計とラン統計は互いに参照しないので、それぞれ関数型の更新で反映する。
+  const skillsUsedThisTurnRef = useRef(0);
+  const recordTitleStats = useCallback((fn) => {
+    setStats(prev => fn(prev, {}).stats);
+    setCurrentRunStats(prev => fn({}, prev).run);
   }, []);
 
   // 現在装備中の二つ名の効果をまとめて取得
@@ -757,6 +724,28 @@ export const useGameState = () => {
     if (!isLoaded) return;
     localStorage.setItem('puzzle_rogue_stats', JSON.stringify(stats));
   }, [stats, isLoaded]);
+
+  // 二つ名: 解放条件の統計（所持トークン・所持スター）
+  const prevTokenLevelsRef = useRef(null);
+  useEffect(() => {
+    if (!isLoaded || isPracticeMode) return;
+    setCurrentRunStats(prev => statsOnHoldingsChange(prev, { tokens, stars, equippedTitle }));
+    // レベルアップ回数: 同じトークン（instanceId）の Lv が上がった分を数える
+    const levels = new Map(tokens.filter(Boolean).map(t => [t.instanceId, t.level || 1]));
+    const prevLevels = prevTokenLevelsRef.current;
+    if (prevLevels) {
+      let ups = 0;
+      levels.forEach((lv, id) => { if (prevLevels.has(id) && lv > prevLevels.get(id)) ups += lv - prevLevels.get(id); });
+      for (let i = 0; i < ups; i++) setStats(prev => statsOnEvent(prev, {}, 'token_level_up').stats);
+    }
+    prevTokenLevelsRef.current = levels;
+  }, [tokens, stars, equippedTitle, isLoaded, isPracticeMode]);
+
+  // 二つ名: 統計が変わったら解放条件を確認する
+  useEffect(() => {
+    if (!isLoaded || isPracticeMode) return;
+    checkTitleUnlocks(stats, currentRunStats);
+  }, [stats, currentRunStats, isLoaded, isPracticeMode, checkTitleUnlocks]);
 
   // 二つ名データの保存
   useEffect(() => {
@@ -1493,6 +1482,18 @@ export const useGameState = () => {
       return;
     }
 
+    // 二つ名: 解放条件の統計（手番の終わり）
+    const boardColorCounts = {};
+    engineRef.current?.state?.forEach(row => row.forEach(o => { if (o) boardColorCounts[o.type] = (boardColorCounts[o.type] || 0) + 1; }));
+    recordTitleStats((s, r) => statsOnTurnEnd(s, r, {
+      remainingTimeMs, rawCombo: tc, effectiveCombo, bonus, colorComboCounts,
+      erasedColorCounts: finalErasedColorCounts, hasSkyfallCombo, isAllClear,
+      moveDistance: extraStats.moveDistance || 0, enhancedErased: extraStats.enhancedErased || 0,
+      starDropsErased: erasedByStarTotal, maxSingleColorOnBoard: Math.max(0, ...Object.values(boardColorCounts)),
+      skillsUsedThisTurn: skillsUsedThisTurnRef.current, equippedTitle,
+    }));
+    skillsUsedThisTurnRef.current = 0;
+
     setCurrentRunTotalCombo(prev => prev + effectiveCombo);
 
     const currentEnchantCount = isEnchantDisabled ? 0 : tokens.reduce((sum, tok) => sum + (tok?.enchantments?.length || 0), 0);
@@ -1556,8 +1557,6 @@ export const useGameState = () => {
       totalRainbowsErased: (prev.totalRainbowsErased || 0) + rainbowSelfErased,
     }));
 
-    // 二つ名: 解放チェック
-    checkTitleUnlocks(stats, currentRunStats, tokens, stars);
 
     await showComboBreakdownLocal({
       tc, logData, turnCombo, bonus, effectiveCombo, MAX_COMBO,
@@ -1584,6 +1583,7 @@ export const useGameState = () => {
 
     if (totalStarsEarned > 0) {
       setStars((s) => s + totalStarsEarned);
+      recordTitleStats((s, r) => statsOnEvent(s, r, 'stars_earned', { amount: totalStarsEarned }));
       setCurrentRunStats(prev => ({ ...prev, totalStarsEarned: (prev.totalStarsEarned || 0) + totalStarsEarned }));
       // コンボ数によるスター獲得の通知は不要なため非表示
       soundManager.playSE(SE_IDS.MATCH_STAR);
@@ -1600,6 +1600,10 @@ export const useGameState = () => {
       if (updated >= effectiveTarget) {
         setGoalReached(prevGoalReached => {
           if (!prevGoalReached) {
+            // 二つ名: 解放条件の統計（サイクルクリア）
+            recordTitleStats((s, r) => statsOnCycleClear(s, r, {
+              cycle: (currentRunStats.currentClears || 0) + 1, turn, remainingTimeMs, stars, tokens, equippedTitle,
+            }));
             setShopRerollPrice(shopRerollBasePrice);
             soundManager.playSE(SE_IDS.GOAL_REACHED);
             const rewardMult = getRewardMultiplier();
@@ -3462,6 +3466,7 @@ export const useGameState = () => {
     setHasUsedActiveSkillThisTurn(true);
 
     setStats(prev => ({ ...prev, lifetimeSkillsUsed: (prev.lifetimeSkillsUsed || 0) + 1 }));
+    skillsUsedThisTurnRef.current += 1;
     setCurrentRunStats(prev => ({ ...prev, currentSkillsUsed: (prev.currentSkillsUsed || 0) + 1 }));
 
     soundManager.playSE(SE_IDS.SKILL_USE);
@@ -3484,6 +3489,14 @@ export const useGameState = () => {
         extraDuration += (workToken.values?.[lv - 1] || 0);
       }
     });
+
+    // 二つ名の解放条件用: スキル使用前の盤面の色の数（変換数を測る）
+    const countBoardColors = () => {
+      const counts = {};
+      engine.state?.forEach(row => row.forEach(o => { if (o) counts[o.type] = (counts[o.type] || 0) + 1; }));
+      return counts;
+    };
+    const boardBeforeSkill = countBoardColors();
 
     switch (token.action) {
       case "refresh":
@@ -4085,6 +4098,18 @@ export const useGameState = () => {
 
       default:
         break;
+    }
+
+    // 二つ名の解放条件用: 変換で増えた色と数を記録する
+    {
+      const after = countBoardColors();
+      let toColor = null;
+      let converted = 0;
+      Object.keys(after).forEach(c => {
+        const inc = after[c] - (boardBeforeSkill[c] || 0);
+        if (inc > converted) { converted = inc; toColor = c; }
+      });
+      if (converted > 0) recordTitleStats((s, r) => statsOnEvent(s, r, 'skill_converted', { toColor, count: converted }));
     }
 
     // --- 追加: Lv3以上なら基礎コンボ値プラス効果 (Next Turn Bonus) ---

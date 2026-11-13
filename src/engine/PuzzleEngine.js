@@ -746,6 +746,8 @@ class PuzzleEngine {
 
     this.lastSwapTime = null;
     this.timeSinceLastSwap = null;
+    this.moveDistanceThisTurn = 0; // 1手の移動マス数（二つ名「一筆の」の解放・効果用）
+    this.enhancedErasedThisTurn = 0; // 1手で消した強化ドロップ数（二つ名の解放用）
 
     soundManager.playSE(SE_IDS.DRAG_START);
     this.dragging = target;
@@ -851,6 +853,7 @@ class PuzzleEngine {
           const now = Date.now();
           this.timeSinceLastSwap = this.lastSwapTime ? (now - this.lastSwapTime) : 120;
           this.lastSwapTime = now;
+          this.moveDistanceThisTurn = (this.moveDistanceThisTurn || 0) + 1;
 
           // 最初の一歩でタイマーを起動
           if (!this.moveStart) {
@@ -2068,6 +2071,7 @@ class PuzzleEngine {
           // トークン演出用ボーナス（通常加算後に個別表示）
           const tokenBonuses = groupResult.tokenBonuses;
           overLinkMultiplier = groupResult.overLinkMultiplier;
+          this.enhancedErasedThisTurn = (this.enhancedErasedThisTurn || 0) + group.filter(o => o.isEnhanced).length;
           groupResult.events.forEach(ev => {
             if (ev.kind === 'trigger') {
               if (this.onPassiveTrigger) this.onPassiveTrigger(ev.id);
@@ -2241,7 +2245,7 @@ class PuzzleEngine {
         erasedByRepeatTotal,
         erasedByStarTotal,
         isPerfect || allInitialOrbsCleared,
-        { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased, erasedRowInfos },
+        { bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased, erasedRowInfos, moveDistance: this.moveDistanceThisTurn || 0, enhancedErased: this.enhancedErasedThisTurn || 0 },
         detailedShapes,
         this.lastTurnRemainingTimeMs || 0
       );
