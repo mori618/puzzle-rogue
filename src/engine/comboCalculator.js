@@ -11,6 +11,7 @@
  * （内訳パネル・シミュレータ用）。
  */
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
+import { applyTitleTokenBoosts, calcTitleTurnEffects } from './titleEffects.js';
 import { ENCHANTMENTS } from '../constants/enchantments.js';
 import { MAX_COMBO, INITIAL_TOKEN_SLOTS } from '../constants/gameConstants.js';
 
@@ -72,7 +73,7 @@ export function calcTurnResult(input, fx = createNoopFx()) {
     extraStats = {},
     detailedShapes = [],
     remainingTimeMs = 0,
-    tokens,
+    tokens: rawTokens,
     activeBuffs = [],
     currentRunStats,
     hasSaintToken = false,
@@ -91,6 +92,8 @@ export function calcTurnResult(input, fx = createNoopFx()) {
   } = input;
 
 
+  // 二つ名（増幅の・超越の極意・全能力覚醒）でトークンの値を変えてから計算する
+  const tokens = applyTitleTokenBoosts(rawTokens, titleEffects);
   const { bombSelfErased = 0, repeatSelfErased = 0, starSelfErased = 0, rainbowSelfErased = 0 } = extraStats;
   let tc = Number(turnCombo) || 0;
 
@@ -1502,6 +1505,32 @@ export function calcTurnResult(input, fx = createNoopFx()) {
     }
   });
 
+  // 二つ名の手番効果（加算・基礎倍・倍率プラス）。基礎倍と倍率プラスは直後の加算の極意で無効になる（D1・D5）
+  {
+    const te = calcTitleTurnEffects(titleEffects, {
+      colorComboCounts, turn, maxTurns, stars, tokens,
+      maxSlots: INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0),
+      remainingTimeMs, moveDistance: extraStats.moveDistance || 0,
+    });
+    te.bonusSteps.forEach(st => {
+      bonus += st.value;
+      logData.bonuses.push(`title:${st.label}:+${st.value}`);
+      logData.bonusSteps.push({ label: st.label, value: st.value, tokenId: null, source: 'title' });
+    });
+    if (te.bonusMultiplier !== 1 && bonus > 0) {
+      bonus = Math.floor(bonus * te.bonusMultiplier);
+      logData.bonusSteps.push({ label: te.bonusMultiplierLabel, value: `x${te.bonusMultiplier}`, tokenId: null, source: 'title' });
+    }
+    te.baseSteps.forEach(st => {
+      baseMultiplier *= st.value;
+      logData.multiplierSteps.push({ label: st.label, value: st.value, type: 'mult', tokenId: null, source: 'title' });
+    });
+    te.sigmaSteps.forEach(st => {
+      addedMultiplier += st.value;
+      logData.multiplierSteps.push({ label: st.label, value: 1 + st.value, addedValue: st.value, type: 'add', tokenId: null, source: 'title' });
+    });
+  }
+
   if (hasMastery) {
     // 加算の極意（D1・D2）: 基礎倍（旧B層・D層）と倍率プラスの効果を無効にする。
     // ×1 未満のペナルティ（誓約の契約違反など）は残す。
@@ -1600,33 +1629,6 @@ export function calcTurnResult(input, fx = createNoopFx()) {
     multMultiplier *= 10.0;
     logData.multipliers.push(`inugami:x10.0`);
     logData.multiplierSteps.push({ label: inugamiToken.name || '犬神', value: 10.0, type: 'mult', tokenId: inugamiToken.instanceId || inugamiToken.id });
-  }
-
-  // 二つ名効果: コンボ倍率加算（D5: 加算の極意があるときは発動しない）
-  if (!hasMastery) {
-    titleEffects.forEach(eff => {
-      const label = eff.name ? `『${eff.name}』` : '二つ名';
-      if (eff.type === 'combo_multiplier_add') {
-        addedMultiplier += eff.value || 0;
-        logData.multiplierSteps.push({ label, value: 1 + (eff.value || 0), addedValue: eff.value || 0, type: 'add', tokenId: null, source: 'title' });
-      }
-      if (eff.type === 'color_multiplier' && eff.color) {
-        const colorCount = colorComboCounts?.[eff.color] || 0;
-        if (colorCount > 0) {
-          const v = (eff.value || 0) * colorCount;
-          addedMultiplier += v;
-          logData.multiplierSteps.push({ label, value: 1 + v, addedValue: v, type: 'add', tokenId: null, source: 'title' });
-        }
-      }
-      if (eff.type === 'zero_star_combo_mult' && stars === 0) {
-        addedMultiplier += eff.value || 0;
-        logData.multiplierSteps.push({ label, value: 1 + (eff.value || 0), addedValue: eff.value || 0, type: 'add', tokenId: null, source: 'title' });
-      }
-      if (eff.type === 'boss_turn_multiplier' && turn === maxTurns) {
-        addedMultiplier += eff.value || 0;
-        logData.multiplierSteps.push({ label, value: 1 + (eff.value || 0), addedValue: eff.value || 0, type: 'add', tokenId: null, source: 'title' });
-      }
-    });
   }
 
   // コンボ倍率の計算

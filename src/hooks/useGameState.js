@@ -272,8 +272,8 @@ export const useGameState = () => {
     } else if (evo.slotType === 'suffix') {
       setEquippedTitle(prev => ({ ...prev, suffixId: evolvedId, evolvedId: null }));
     } else {
-      // special / legendary
-      setEquippedTitle(prev => ({ ...prev, evolvedId }));
+      // special: A枠・B枠の両方を占有する（D8）
+      setEquippedTitle(prev => ({ ...prev, prefixId: null, suffixId: null, evolvedId }));
     }
   }, []);
 
@@ -290,10 +290,13 @@ export const useGameState = () => {
     const effects = [];
     const { prefixId, suffixId, evolvedId } = equippedTitle;
 
-    // Evolved/special override
+    // 専用超称号は A枠・B枠の両方を占有する（D8）。装備中は A・B・セットの効果を数えない
     if (evolvedId) {
       const evo = EVOLVED_TITLES.find(e => e.id === evolvedId);
-      if (evo) effects.push({ source: 'evolved', id: evo.id, name: evo.name, ...evo.effect });
+      if (evo) {
+        effects.push({ source: 'evolved', id: evo.id, name: evo.name, ...evo.effect });
+        return effects;
+      }
     }
 
     // Prefix
@@ -526,6 +529,7 @@ export const useGameState = () => {
   } = boardHook;
 
   const shopHook = useShop({
+    titleEffects: activeTitleEffects,
     tokens,
     setTokens,
     stars,
@@ -801,8 +805,17 @@ export const useGameState = () => {
         const avg = Object.values(weights).reduce((a, b) => a + b, 0) / Object.keys(weights).length;
         Object.keys(weights).forEach(c => { weights[c] = avg; });
       }
-      if (eff.type === 'all_fire_plus' || eff.type === 'purgatory_board') {
-        // handled by engine special flag
+      if (eff.type === 'purgatory_board') {
+        // 煉獄皇: 炎とハートしか降らない
+        Object.keys(weights).forEach(c => { if (!(eff.colors || []).includes(c)) weights[c] = 0; });
+      }
+      if (eff.type === 'bias_attribute' && equippedTitle.biasColor) {
+        // 偏愛の: ラン開始時に選んだ1属性（D6）
+        weights[equippedTitle.biasColor] = (weights[equippedTitle.biasColor] || 1) * (eff.weight || 5);
+      }
+      if (eff.type === 'duo_attributes_weight' && Array.isArray(equippedTitle.duoColors)) {
+        // 二極化: ラン開始時に選んだ2属性（D6）
+        equippedTitle.duoColors.forEach(c => { weights[c] = (weights[c] || 1) * 3; });
       }
     });
     engineRef.current.setSpawnWeights(weights);
@@ -826,27 +839,20 @@ export const useGameState = () => {
       }
     });
     engineRef.current.setNoEraseColors(noEraseColors);
-  }, [activeBuffs, tokens, hasSaintToken, activeTitleEffects]);
+  }, [activeBuffs, tokens, hasSaintToken, activeTitleEffects, equippedTitle.biasColor, equippedTitle.duoColors]);
 
   const getTimeLimit = useCallback(() => {
     if (isPracticeMode) return practiceTimeLimit;
     const isEnchantDisabled = tokens.some(tok => tok?.effect === "contract_of_void") || activeBuffs.some(b => b?.action === "seal_of_power");
-    const hasDesperateStance = tokens.some(t => t?.effect === "desperate_stance");
+    // 操作時間の「固定」効果。複数あるときは最小値を採用する（§5.6）
+    const fixedTimes = [];
     // 暴君の号令 (tyrant_decree): 1番目スロットに装備時、操作時間が常に2秒(2000ms)になる
-    const isTyrantDecreeActive = tokens[0] && tokens[0].effect === "tyrant_decree";
-    if (isTyrantDecreeActive) {
-      return 2000;
-    }
-    if (hasDesperateStance) {
-      return 4000;
-    }
+    if (tokens[0] && tokens[0].effect === "tyrant_decree") fixedTimes.push(2000);
+    if (tokens.some(t => t?.effect === "desperate_stance")) fixedTimes.push(4000);
     const curseTimeFixBuff = activeBuffs.find(b => b?.action === "curse_op_time_fix");
-    if (curseTimeFixBuff) {
-      return curseTimeFixBuff.params?.timeMs ?? 1000;
-    }
-    if (tokens.some(t => t?.id === "curse_time") && !hasSaintToken) {
-      return 4000;
-    }
+    if (curseTimeFixBuff) fixedTimes.push(curseTimeFixBuff.params?.timeMs ?? 1000);
+    if (tokens.some(t => t?.id === "curse_time") && !hasSaintToken) fixedTimes.push(4000);
+    activeTitleEffects.forEach(eff => { if (eff.type === 'desperate' && eff.fixed_time) fixedTimes.push(eff.fixed_time); });
 
     let base = 5000 + (sandsOfTimeSeconds * 1000);
     tokens.forEach((t) => {
@@ -877,13 +883,15 @@ export const useGameState = () => {
       }
     });
 
-    base *= nextTurnTimeMultiplier;
-    // 二つ名効果: 操作時間加算
+    // 二つ名効果: 操作時間の加減算（神速の・光速の / 狂戦士の・修羅の）
     activeTitleEffects.forEach(eff => {
       if (eff.type === 'time_add') base += eff.value || 0;
-      if (eff.type === 'berserk') base -= eff.time_sub || 0;
-      if (eff.type === 'desperate') base = eff.fixed_time || base;
+      if (eff.type === 'berserk' || eff.type === 'asura') base -= eff.time_sub || 0;
     });
+
+    // 順序: 基本 → 加減算 → 次手倍率 → 固定（最小値）→ 下限（§5.6）
+    base *= nextTurnTimeMultiplier;
+    if (fixedTimes.length > 0) base = Math.min(...fixedTimes);
     return Math.max(1000, base);
   }, [tokens, sandsOfTimeSeconds, nextTurnTimeMultiplier, currentRunStats.currentShapeLen5, activeBuffs, isPracticeMode, practiceTimeLimit, hasSaintToken, activeTitleEffects]);
 
@@ -977,7 +985,8 @@ export const useGameState = () => {
 
       const hasForbiddenLiteral = effectiveTokens.some((t) => t?.id === "forbidden" || t?.effect === "forbidden");
       const hasCurseSkyfall = effectiveTokens.some((t) => (t?.id === "curse_skyfall" || t?.effect === "curse_skyfall") && !hasSaintToken);
-      engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall;
+      const hasTitleNoSkyfall = activeTitleEffects.some(e => e.type === 'disable_skyfall'); // 禁忌の
+      engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall || hasTitleNoSkyfall;
 
       const hasVacation = effectiveTokens.some((t) => t?.effect === "vacation");
       engineRef.current.vacationMode = hasVacation;
@@ -992,6 +1001,7 @@ export const useGameState = () => {
 
       const bonuses = buildRealtimeBonuses({
         effectiveTokens, currentRunStats, activeBuffs, isEnchantDisabled, hasMastery, masteryMultiplier,
+        titleEffects: activeTitleEffects,
       });
 
       engineRef.current.setRealtimeBonuses(bonuses);
@@ -1033,6 +1043,14 @@ export const useGameState = () => {
           }
         });
       });
+      // 二つ名: 錬金術士（降るドロップの一部が強化）・真・紅蓮覇王（炎はすべて強化）
+      activeTitleEffects.forEach(e => {
+        if (e.type === 'skyfall_plus_rate') rates.global.push({ value: e.rate || 0, tokenId: null });
+        if (e.type === 'all_fire_plus') {
+          if (!rates.colors.fire) rates.colors.fire = [];
+          rates.colors.fire.push({ value: 1.0, tokenId: null });
+        }
+      });
       engineRef.current.setEnhanceRates(rates);
 
       const bombRates = { colors: {} };
@@ -1073,6 +1091,15 @@ export const useGameState = () => {
           const color = t.params.color;
           if (!starRates.colors[color]) starRates.colors[color] = [];
           starRates.colors[color].push({ value: t.values[lv - 1] || 0, tokenId });
+        }
+      });
+      // 二つ名: 星詠み（降るドロップの一部がスタードロップ）
+      activeTitleEffects.forEach(e => {
+        if (e.type === 'skyfall_star_rate') {
+          ['fire', 'water', 'wood', 'light', 'dark', 'heart'].forEach(c => {
+            if (!starRates.colors[c]) starRates.colors[c] = [];
+            starRates.colors[c].push({ value: e.rate || 0, tokenId: null });
+          });
         }
       });
       engineRef.current.starRates = starRates;
@@ -1571,12 +1598,22 @@ export const useGameState = () => {
         totalReduction += (5 - threshold);
       }
     });
+    // 二つ名: 収集家・星の開拓者（★獲得に必要なコンボ数を減らす）
+    activeTitleEffects.forEach(e => { if (e.type === 'star_threshold_sub') totalReduction += (e.value || 0); });
     const isCurseInitActive = tokens.some(t => t?.id === "curse_init") && !hasSaintToken;
     const baseStarThreshold = Math.max(1, 5 - totalReduction);
     const starThreshold = isCurseInitActive ? baseStarThreshold + 1 : baseStarThreshold;
 
     const currentProgress = starProgress + effectiveCombo;
-    const totalStarsEarned = starThreshold > 0 ? Math.floor(currentProgress / starThreshold) : 0;
+    const rawStarsEarned = starThreshold > 0 ? Math.floor(currentProgress / starThreshold) : 0;
+    // 二つ名: 無一文の（★獲得不可）・修羅の（★2倍）・逆転の演出家（★0で手番を終えたら2倍）
+    let titleStarMult = 1;
+    activeTitleEffects.forEach(e => {
+      if (e.type === 'fixed_multiplier_no_stars') titleStarMult = 0;
+      if (e.type === 'asura' && e.score_multiplier) titleStarMult *= e.score_multiplier;
+      if (e.type === 'zero_star_double_earn' && stars === 0) titleStarMult *= 2;
+    });
+    const totalStarsEarned = Math.floor(rawStarsEarned * titleStarMult);
     const nextProgress = starThreshold > 0 ? currentProgress % starThreshold : 0;
 
     setStarProgress(nextProgress);
@@ -1719,7 +1756,11 @@ export const useGameState = () => {
           if (moveDropLuckyTriggered) {
             nt.charge = maxCharge;
           } else {
-            const chargeAmount = 1 + chargeBoostCount + zeroComboBonusCharge + extraAutoCharge;
+            // 二つ名: スペシャリスト（スキルだけを装備しているとチャージ2倍）
+            const specialist = activeTitleEffects.find(e => e.type === 'all_active_skills_charge_boost');
+            const allSkills = prevTokens.filter(Boolean).every(x => x.type === 'skill');
+            const chargeMult = specialist && allSkills ? (specialist.multiplier || 1) : 1;
+            const chargeAmount = (1 + chargeBoostCount + zeroComboBonusCharge + extraAutoCharge) * chargeMult;
             nt.charge = Math.min(maxCharge, currentCharge + chargeAmount);
             if (nt.charge === maxCharge && currentCharge < maxCharge) {
               soundManager.playSE(SE_IDS.SKILL_READY);
@@ -2264,7 +2305,8 @@ export const useGameState = () => {
     if (engineRef.current) {
       const hasForbiddenLiteral = tokens.some((t) => t?.id === "forbidden" || t?.effect === "forbidden");
       const hasCurseSkyfall = tokens.some((t) => (t?.id === "curse_skyfall" || t?.effect === "curse_skyfall") && !hasSaintToken);
-      engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall;
+      const hasTitleNoSkyfall = activeTitleEffects.some(e => e.type === 'disable_skyfall'); // 禁忌の
+      engineRef.current.noSkyfall = hasForbiddenLiteral || hasCurseSkyfall || hasTitleNoSkyfall;
       // 重力逆転バフや烈風の重力バフがターン終了で失效した場合は重力方向をリセット
       const gravityOverdriveBuff = activeBuffs.find(b => b.action === 'gravity_overdrive' && b.duration > 1);
       const galeGravityBuff = activeBuffs.find(b => b.action === 'gale_gravity' && b.duration > 1);
@@ -3241,6 +3283,22 @@ export const useGameState = () => {
     }
 
     notify("NEXT CYCLE STARTED!");
+    // 二つ名: サイクル開始時の効果（大富豪・即応陣・紅蓮の即応陣）
+    activeTitleEffects.forEach(e => {
+      if (e.type === 'cycle_clear_interest') {
+        const interest = Math.floor(stars * (e.rate || 0));
+        if (interest > 0) {
+          setStars(st => st + interest);
+          notify(`『${e.name}』利息: ★+${interest}`);
+        }
+      }
+      if (e.type === 'cycle_start_full_energy') {
+        setTokens(prev => prev.map(t => (t && t.type === 'skill' ? { ...t, charge: Math.max(t.charge || 0, t.cost || 0) } : t)));
+      }
+      if (e.type === 'turn1_all_fire_plus' && engineRef.current?.changeBoardToEnhancedColor) {
+        setTimeout(() => engineRef.current?.changeBoardToEnhancedColor('fire'), 300);
+      }
+    });
     const interestEnchants = tokens.flatMap(t => t?.enchantments || []).filter(e => e.effect === 'compound_interest');
     if (interestEnchants.length > 0) {
       const interestRate = interestEnchants.reduce((sum, e) => sum + (e.value || 0.05), 0);
@@ -3399,6 +3457,17 @@ export const useGameState = () => {
       addTokenToast(initToken, "の呪いを受けて開始...");
     }
 
+    // 二つ名: ラン開始時の効果（黄金の・先達の・魔導士）
+    activeTitleEffects.forEach(e => {
+      if (e.type === 'initial_star_add') setStars(st => st + (e.value || 0));
+      if (e.type === 'initial_token_lv2') {
+        setTokens(prev => prev.map(t => (t && t.type !== 'curse' && !t.isCurse && !t.noLevelUp ? { ...t, level: Math.max(2, t.level || 1) } : t)));
+      }
+      if (e.type === 'initial_skill_energy_add') {
+        setTokens(prev => prev.map(t => (t && t.type === 'skill' ? { ...t, charge: (t.charge || 0) + (e.value || 0) } : t)));
+      }
+    });
+
     if (engineRef.current) {
       engineRef.current.init(null);
     }
@@ -3452,7 +3521,11 @@ export const useGameState = () => {
     if (showShop) return notify("ショップ画面では使用できません");
 
     const currentCharge = token.charge || 0;
-    const cost = getEffectiveCost(token, currentRunStats, tokens, activeBuffs);
+    // 二つ名: 紅蓮の詠唱（指定属性のスキルの消費 −1）
+    const chantReduction = activeTitleEffects
+      .filter(e => e.type === 'skill_cost_reduction' && (token.attributes || []).includes(e.color))
+      .reduce((sum, e) => sum + (e.value || 0), 0);
+    const cost = Math.max(0, getEffectiveCost(token, currentRunStats, tokens, activeBuffs) - chantReduction);
 
     if (currentCharge < cost) {
       return notify(`チャージ不足です (${currentCharge}/${cost})`);
@@ -4140,7 +4213,15 @@ export const useGameState = () => {
       const hasMagicEcho = !!magicEchoEnc;
       const echoChance = magicEchoEnc ? (magicEchoEnc.value || 0.25) : 0;
       const hasMagicalLeadership = tokens[0] && tokens[0].effect === 'magical_leadership';
-      const skipConsume = (hasMagicEcho && Math.random() < echoChance) || (hasMagicalLeadership && Math.random() < 0.10);
+      // 二つ名: 狂乱者（20%で還元）・パンドラの解放者（呪い1つにつき +10%）
+      const curseCount = tokens.filter(x => x && (x.type === 'curse' || x.isCurse)).length;
+      const titleRefundRate = activeTitleEffects.reduce((r, e) => {
+        if (e.type === 'skill_energy_refund_chance') return r + (e.rate || 0);
+        if (e.type === 'curse_energy_refund_rate') return r + (e.ratePerCurse || 0) * curseCount;
+        return r;
+      }, 0);
+      const titleRefund = titleRefundRate > 0 && Math.random() < titleRefundRate;
+      const skipConsume = (hasMagicEcho && Math.random() < echoChance) || (hasMagicalLeadership && Math.random() < 0.10) || titleRefund;
       if (skipConsume) {
         if (hasMagicEcho && !hasMagicalLeadership) {
           notify("魔力反響！エネルギーを消費しませんでした。");

@@ -16,6 +16,7 @@ export function buildRealtimeBonuses({
   isEnchantDisabled = false,
   hasMastery = false,
   masteryMultiplier = 1,
+  titleEffects = [],
 }) {
   const bonuses = {
     len4: 0, row: 0, l_shape: 0,
@@ -140,6 +141,9 @@ export function buildRealtimeBonuses({
     }
   });
 
+  // 二つ名: 方陣師（特殊消しの加算 1.5倍）
+  bonuses.specialEraseMultiplier = titleEffects.reduce((m, e) => (e.type === 'special_erase_boost' ? m * (e.multiplier || 1) : m), 1);
+
   return bonuses;
 }
 
@@ -184,7 +188,8 @@ export function calcGroupAddition(rb, group, flags = {}) {
       }
     }
 
-    // Base Bonuses
+    // Base Bonuses（ここから十字消しの累計ボーナスまでが「特殊消しの加算」。方陣師で倍率がかかる）
+    const shapeStart = addition;
     if (shape === "len5") addition += 1;
     if (shape === "l_shape") addition += 1;
     if (shape === "cross") addition += 2;
@@ -209,6 +214,9 @@ export function calcGroupAddition(rb, group, flags = {}) {
     if (shape === "cross" && rb?.stat_shape_additions?.cross) {
       addition += rb.stat_shape_additions.cross;
       trigger(rb.tokenIds?.stat_shape_additions?.cross);
+    }
+    if ((rb?.specialEraseMultiplier || 1) !== 1 && addition > shapeStart) {
+      addition = shapeStart + Math.floor((addition - shapeStart) * rb.specialEraseMultiplier);
     }
 
     // Color Combo Bonus

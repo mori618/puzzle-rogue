@@ -37,10 +37,14 @@ export const useShop = ({
   setIsEnchantShopUnlocked,
   setSandsOfTimeSeconds,
   hasSaintToken,
+  titleEffects = [],
 }) => {
   const [shopItems, setShopItems] = useState([]);
   const [shopRerollBasePrice, setShopRerollBasePrice] = useState(2);
   const [shopRerollPrice, setShopRerollPrice] = useState(2);
+  // 二つ名: 見切り屋（リロール価格を固定）
+  const fixedRerollTitle = titleEffects.find(e => e.type === 'fixed_reroll_cost');
+  const effectiveRerollPrice = fixedRerollTitle ? fixedRerollTitle.cost : shopRerollPrice;
   const [pendingShopItem, setPendingShopItem] = useState(null);
   const [tokenSlotExpansionCount, setTokenSlotExpansionCount] = useState(0);
   const [freeRerolls, setFreeRerolls] = useState(0);
@@ -54,9 +58,11 @@ export const useShop = ({
       possessionCount = currentTokens.filter(t => t && t.type === 'passive').length;
     }
 
-    const dynamicPrice = Math.floor(baseToken.price * Math.pow(TOKEN_PRICE_GROWTH_FACTOR, possessionCount));
+    // 二つ名: 節約家（20%引き）・闇市の帝王（50%引き）
+    const discount = titleEffects.reduce((m, e) => (e.type === 'shop_discount' ? m * (1 - (e.rate || 0)) : m), 1);
+    const dynamicPrice = Math.floor(baseToken.price * Math.pow(TOKEN_PRICE_GROWTH_FACTOR, possessionCount) * discount);
     return Math.max(1, dynamicPrice);
-  }, []);
+  }, [titleEffects]);
 
   /** レベルアップ成功判定（炎・雷レベルアップ失敗の呪い効果） */
   const checkLevelUpSuccess = useCallback((token) => {
@@ -94,11 +100,14 @@ export const useShop = ({
       }
     });
 
-    const basePassiveCount = 4 + shopExpandBonus;
+    // 二つ名: 常連の（品揃え +1枠）
+    const titleShopSlots = titleEffects.reduce((n, e) => (e.type === 'shop_slots_add' ? n + (e.value || 0) : n), 0);
+    const basePassiveCount = 4 + shopExpandBonus + titleShopSlots;
     const baseActiveCount = 4 + shopExpandBonus;
     const enchantCount = 3;
     const extraEnchantCount = enchantGrantBonus + (isLuxury ? 1 : 0);
-    const saleCount = 1 + saleBonus;
+    // 二つ名: セールスマン（ランダム1商品が常に50%オフ = セール枠 +1）
+    const saleCount = 1 + saleBonus + titleEffects.filter(e => e.type === 'shop_sale_item').length;
 
     setIsAwakeningLevelUpBought(false);
 
@@ -312,8 +321,12 @@ export const useShop = ({
     }
 
     setShopItems(finalItems);
+    // 二つ名: ミダス王の再来（サイクルごとのショップで最初のリロールが無料）
+    if (overrideCycleCount !== null && titleEffects.some(e => e.type === 'first_reroll_free')) {
+      setFreeRerolls(f => f + 1);
+    }
     return finalItems;
-  }, [tokens, totalPurchases, currentRunStats, activeBuffs, getTokenDynamicPrice, setIsAwakeningLevelUpBought, hasSaintToken]);
+  }, [tokens, totalPurchases, currentRunStats, activeBuffs, getTokenDynamicPrice, setIsAwakeningLevelUpBought, hasSaintToken, titleEffects]);
 
   /** 呪いの解除 */
   const purifyCurse = useCallback((token) => {
@@ -361,7 +374,16 @@ export const useShop = ({
     if (token.enchantments?.some(e => e.effect === "high_sell")) {
       sellRate = 3.0; // 300%
     }
+    // 二つ名: 鑑定士（100%）・闇市の売買術（150%）
+    titleEffects.forEach(e => {
+      if (e.type === 'full_sell_price') sellRate = Math.max(sellRate, 1.0);
+      if (e.type === 'token_sell_multiplier') sellRate = Math.max(sellRate, e.value || 1);
+    });
     let sellPrice = Math.floor(token.price * sellRate);
+    // 二つ名: 密売人の（呪いを売ると追加で★）
+    if (token.type === 'curse' || token.isCurse) {
+      titleEffects.forEach(e => { if (e.type === 'curse_sell_bonus') sellPrice += (e.value || 0); });
+    }
 
     // 鉤爪の研鑽 (polishing_claw)
     if (token.effect === "stat_shape_l") {
@@ -385,7 +407,7 @@ export const useShop = ({
 
     setSelectedTokenDetail(null);
     notify(`${token.name} を売却しました (+${sellPrice} ★)`);
-  }, [setStars, setTokens, currentRunStats, setCurrentRunStats, setSelectedTokenDetail, notify, spawnParticles, setStats]);
+  }, [setStars, setTokens, currentRunStats, setCurrentRunStats, setSelectedTokenDetail, notify, spawnParticles, setStats, titleEffects]);
 
   /** トークン枠の拡張価格を取得 */
   const getTokenSlotExpandPrice = useCallback(() => {
@@ -894,7 +916,7 @@ export const useShop = ({
   const refreshShop = useCallback((clickPos) => {
     const isFree = freeRerolls > 0;
 
-    if (!isFree && stars < shopRerollPrice) {
+    if (!isFree && stars < effectiveRerollPrice) {
       soundManager.playSE(SE_IDS.ERROR);
       notify("★が足りません");
       return false;
@@ -909,9 +931,9 @@ export const useShop = ({
       setFreeRerolls(f => f - 1);
       notify("無料リロールを使用しました！");
     } else {
-      setStars(s => s - shopRerollPrice);
-      setTotalStarsSpent((prev) => prev + shopRerollPrice);
-      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + shopRerollPrice }));
+      setStars(s => s - effectiveRerollPrice);
+      setTotalStarsSpent((prev) => prev + effectiveRerollPrice);
+      setStats(prev => ({ ...prev, lifetimeStarsSpent: (prev.lifetimeStarsSpent || 0) + effectiveRerollPrice }));
       setCurrentRunStats(prev => ({
         ...prev,
         currentStarsSpent: (prev.currentStarsSpent || 0) + shopRerollPrice,
@@ -926,14 +948,14 @@ export const useShop = ({
     }));
     generateShop();
     return true;
-  }, [stars, shopRerollPrice, freeRerolls, setStars, setTotalStarsSpent, setStats, setCurrentRunStats, generateShop, notify, spawnParticles]);
+  }, [stars, effectiveRerollPrice, shopRerollPrice, freeRerolls, setStars, setTotalStarsSpent, setStats, setCurrentRunStats, generateShop, notify, spawnParticles]);
 
   return {
     shopItems,
     setShopItems,
     shopRerollBasePrice,
     setShopRerollBasePrice,
-    shopRerollPrice,
+    shopRerollPrice: effectiveRerollPrice,
     setShopRerollPrice,
     pendingShopItem,
     setPendingShopItem,
