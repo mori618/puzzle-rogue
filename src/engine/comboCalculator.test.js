@@ -121,6 +121,56 @@ describe('calcTurnResult', () => {
     expect(names).toContain('setLastErasedColorCounts');
   });
 
+  describe('加算の極意（D1・D2）', () => {
+    const byId = Object.fromEntries(ALL_TOKEN_BASES.map(t => [t.id, t]));
+
+    it('基礎倍（旧B層の誓約・旧D層の二重奏）も倍率プラスも無効になり、加算だけが増幅される', () => {
+      const tokens = [
+        makeToken(byId.additive_mastery, 1, 0),
+        makeToken(byId.passive_contract_fire, 3, 1), // 旧B層
+        makeToken(byId.combo2_mult_fire, 3, 2),      // 旧D層
+        makeToken(byId.bonus_1c_fire, 3, 3),         // 倍率プラス
+        makeToken(byId.power_up, 1, 4),              // 加算 +2
+      ];
+      const r = run(tokens, 'monoFire');
+      expect(r.finalComboMultiplier).toBe(1);
+      expect(r.finalBaseCombo).toBe(6 + 2 * 5);
+      expect(r.effectiveCombo).toBe(16);
+    });
+
+    it('×1 未満のペナルティ（誓約の契約違反）は残る', () => {
+      const tokens = [
+        makeToken(byId.additive_mastery, 1, 0),
+        makeToken(byId.passive_contract_fire, 3, 1),
+      ];
+      // spread は雨を消しているので契約違反（×0.5）
+      const r = run(tokens, 'spread');
+      expect(r.finalBaseCombo).toBe(Math.floor(7 * 0.5));
+    });
+
+    it('犬神は加算後・基礎倍の前の値で判定し、極意と併用できる', () => {
+      const tokens = [
+        makeToken(byId.additive_mastery, 3, 0),   // 加算 ×100
+        makeToken(byId.power_up, 1, 1),           // +2 → +200
+        makeToken(byId.legend_inugami, 1, 2),
+      ];
+      const r = run(tokens, 'spread');
+      expect(r.finalBaseCombo).toBe(207);
+      expect(r.finalComboMultiplier).toBe(10);
+    });
+
+    it('犬神は基礎倍で100を超えても発動しない', () => {
+      const tokens = [
+        makeToken(byId.passive_contract_fire, 3, 0), // 炎のみ → 基礎 ×8
+        makeToken(byId.power_up, 3, 1),              // +15
+        makeToken(byId.legend_inugami, 1, 2),
+      ];
+      const r = run(tokens, 'monoFire');
+      expect(r.finalBaseCombo).toBeGreaterThanOrEqual(100);
+      expect(r.steps.some(s => s.label === '犬神')).toBe(false);
+    });
+  });
+
   // 全トークン × Lv1〜3 × 3パターンの結果を固定する。
   // 以降の段階（層の統合・数値調整）で意図しない変化が出たら、ここで検出する。
   it('全トークン単体のスナップショット', () => {

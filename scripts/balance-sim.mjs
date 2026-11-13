@@ -174,6 +174,18 @@ builds.forEach(b => {
   });
 });
 
+// 比較の基準は「同じレア度・Lvで効果のない札」を足した状態。★3の所持数（三星の極雷）や
+// 合計Lv（全霊の共鳴）のような、札の枚数・レア度で伸びる相乗効果を差し引くため。
+const dummyCache = new Map();
+const dummyBase = (ctx, rarity, level) => {
+  const key = `${ctx.key}|${rarity}|${level}`;
+  if (!dummyCache.has(key)) {
+    const dummy = { id: '__dummy', name: '（効果なし）', type: 'passive', rarity, level, instanceId: '__dummy', attributes: [] };
+    dummyCache.set(key, evaluate([...ctx.tokens, dummy], ctx.pattern, ctx.stage.runState).out);
+  }
+  return dummyCache.get(key);
+};
+
 const median = (arr) => {
   const s = [...arr].sort((a, b) => a - b);
   const m = Math.floor(s.length / 2);
@@ -189,12 +201,12 @@ candidates.forEach(t => {
     const selfFiredKeys = new Set();
     contexts.forEach(ctx => {
       if (ctx.build.tokens.includes(t.id)) return;
-      if (!(ctx.base > 0)) return;
       const cand = normalizeColors(makeToken(t.id, level, ctx.tokens.length));
+      const base = dummyBase(ctx, t.rarity, cand.level);
+      if (!(base > 0)) return;
       const tokens = [...ctx.tokens, cand];
       const { out, selfFired } = evaluate(tokens, ctx.pattern, ctx.stage.runState, cand.instanceId);
-      // 自分の効果が発動しなかった組は、他の札との相乗効果で上がっていても 1 として扱う
-      marginals.set(ctx.key, selfFired ? out / ctx.base : 1);
+      marginals.set(ctx.key, out / base);
       if (selfFired) selfFiredKeys.add(ctx.key);
     });
     const values = [...marginals.values()];
@@ -220,8 +232,20 @@ const elapsed = ((Date.now() - started) / 1000).toFixed(1);
 const affectsCombo = (r) => r.selfFired && (r.optimum > FIRE || r.worst < 1 / FIRE);
 // 代償（操作時間・落ちコン停止・★の保持・禁止色など）を持つ札。代償はこの指標に表れないので、
 // 代償のない札と比べて「上位互換」とはみなさない。
-const isDemerit = (t) => t.type === 'curse' ||
-  /forbidden|desperate|devotion|contract|restriction|one_stroke|seal|greed|cursed_power|tyrant/.test(`${t.effect || ''} ${t.id}`);
+const COST_KINDS = [
+  ['時間', /desperate|cursed_power|tyrant/],
+  ['落ちコン停止', /forbidden/],
+  ['色の禁止', /devotion|contract/],
+  ['形の制限', /restriction|one_stroke|seal/],
+  ['★の保持', /greed/],
+];
+const costKind = (t) => {
+  if (t.type === 'curse') return '呪い';
+  const key = `${t.effect || ''} ${t.id}`;
+  return COST_KINDS.find(([, re]) => re.test(key))?.[0] ?? null;
+};
+const isDemerit = (t) => costKind(t) !== null;
+const unmodeled = rules.unmodeled || {};
 
 const bandViolations = [];
 const lossViolations = [];
@@ -229,7 +253,7 @@ const unevaluated = [];
 results.forEach(r => {
   const { token: t, level } = r;
   if (!affectsCombo(r)) { unevaluated.push(r); return; }
-  if (standout.has(t.id)) return;
+  if (standout.has(t.id) || unmodeled[t.id]) return;
   const lower = rules.bands[String(t.rarity)]?.[level - 1];
   if (lower !== undefined && r.optimum < lower) bandViolations.push({ ...r, lower });
   if (r.optimum < 1 / FIRE && !isDemerit(t)) lossViolations.push(r);
@@ -240,7 +264,7 @@ results.forEach(r => {
 const reversals = [];
 const noReversalCtx = new Set(contexts.filter(c => c.build.excludeFromReversal).map(c => c.key));
 const byLevel = new Map();
-results.filter(r => affectsCombo(r) && !standout.has(r.token.id) && r.optimum > FIRE)
+results.filter(r => affectsCombo(r) && !standout.has(r.token.id) && !unmodeled[r.token.id] && r.token.rarity <= 3 && r.optimum > FIRE)
   .forEach(r => {
     if (!byLevel.has(r.level)) byLevel.set(r.level, []);
     byLevel.get(r.level).push(r);
@@ -252,7 +276,7 @@ byLevel.forEach(list => {
     const comparable = [...a.marginals.keys()].filter(k => !noReversalCtx.has(k)).length;
     list.forEach(b => {
       if (b.token.rarity >= a.token.rarity || b.token.id === a.token.id) return;
-      if (isDemerit(b.token) && !isDemerit(a.token)) return;
+      if (costKind(b.token) !== costKind(a.token) && costKind(b.token) !== null) return;
       let shared = 0;
       const dominated = [...a.marginals].every(([k, m]) => {
         if (noReversalCtx.has(k)) return true;
@@ -292,11 +316,18 @@ builds.forEach(b => {
   Object.entries(stages).forEach(([stageId, stage]) => {
     const ctx = contexts.find(c => c.key === `${b.id}/${stageId}/${b.pattern}`);
     const perTurn = ctx.base;
+    // 手番強化スキル（temp_mult など）は1サイクルに1回、その手番だけ activeBuffs に載せる
+    const skillBuffs = (b.skills || []).map(id => byId[id]).filter(s => s?.action === 'temp_mult')
+      .map(s => ({ action: s.action, params: s.params }));
+    const skillTurn = skillBuffs.length
+      ? runOnce(ctx.tokens, ctx.pattern, { ...ctx.stage.runState, activeBuffs: skillBuffs }, () => 0).out
+      : perTurn;
+    const perCycle = perTurn * (TURNS_PER_CYCLE - 1) + skillTurn;
     let reach = 0;
     for (let c = 1; c <= 25; c++) {
-      if (perTurn * TURNS_PER_CYCLE >= targetOfCycle(c)) reach = c; else break;
+      if (perCycle >= targetOfCycle(c)) reach = c; else break;
     }
-    progress.push({ build: b, stageId, stage, perTurn, reach });
+    progress.push({ build: b, stageId, stage, perTurn, perCycle, reach });
   });
 });
 
@@ -326,9 +357,9 @@ const fmt = (v) => (v >= 1000 ? Math.round(v).toLocaleString('en-US') : round(v,
 const lines = [];
 lines.push('# バランスシミュレーション結果', '');
 lines.push(`対象: パッシブ ${candidates.length} 種（${results.length} 件 = トークン×Lv）／ 文脈 ${contexts.length}（ビルド${builds.length}×段階${Object.keys(stages).length}×パターン${patterns.length}）／ ${elapsed} 秒`, '');
-lines.push('## 進行シミュレーション（1手の獲得 ×3 が目標以上なら到達）', '');
-lines.push('| ビルド | 段階 | パターン | 1手の獲得 | 到達サイクル |', '|---|---|---|---:|---:|');
-progress.forEach(p => lines.push(`| ${p.build.id} ${p.build.name} | ${p.stage.label} | ${p.build.pattern} | ${fmt(p.perTurn)} | ${p.reach} |`));
+lines.push('## 進行シミュレーション（1サイクル3手の合計が目標以上なら到達。手番強化スキルは1サイクル1回）', '');
+lines.push('| ビルド | 段階 | パターン | 1手の獲得 | 1サイクルの獲得 | 到達サイクル | 次のサイクルの目標 |', '|---|---|---|---:|---:|---:|---:|');
+progress.forEach(p => lines.push(`| ${p.build.id} ${p.build.name} | ${p.stage.label} | ${p.build.pattern} | ${fmt(p.perTurn)} | ${fmt(p.perCycle)} | ${p.reach} | ${p.reach < 25 ? fmt(targetOfCycle(p.reach + 1)) : '—'} |`));
 lines.push('');
 const reversalGroups = new Map();
 reversals.forEach(rv => {
@@ -338,7 +369,8 @@ reversals.forEach(rv => {
 });
 lines.push(`## 上位互換の逆転（${reversalGroups.size} 件 / 組み合わせ ${reversals.length}）`, '');
 lines.push('同じLvで、レアの低い札が全ての組で同等以上になっている（＝その札の上位互換が低レアにある）。解消は高レア側の引き上げ（§2.4）。', '');
-lines.push('- 代償のある札（誓約・禁忌・背水など）は、代償のある札同士でだけ比べる。代償をスキルで回避できるか（例: 誓約の対立色を静寂スキルで消さない）はこの指標では測れない。');
+lines.push('- 代償のある札（誓約・禁忌・背水など）は、同じ種類の代償を持つ札とだけ比べる（時間・落ちコン停止・色の禁止・形の制限・★の保持）。代償をスキルで回避できるか（例: 誓約の対立色を静寂スキルで消さない）はこの指標では測れない。');
+lines.push('- 伝説（★4）はビルドの軸になる札なので、逆転の判定から外す（バンド判定のみ）。');
 lines.push(`- ${builds.filter(b => b.excludeFromReversal).map(b => `${b.id}（${b.excludeFromReversal}）`).join('、') || 'なし'} は比較から外す。`, '');
 lines.push('| 負けている札 | ★ | Lv | 最適値 | 上位互換になっている低レアの札（数） | 例 |', '|---|---:|---:|---:|---:|---|');
 [...reversalGroups.values()]
@@ -357,6 +389,9 @@ bandViolations
 lines.push('');
 lines.push(`## 純粋な損（${lossViolations.length} 件）`, '');
 lossViolations.forEach(v => lines.push(`- ${v.token.name} Lv${v.level}: 最適値 ${round(v.optimum, 3)}`));
+lines.push('');
+lines.push('## 盤面を変える札（固定パターンでは測れないため判定対象外）', '');
+Object.entries(unmodeled).forEach(([id, reason]) => lines.push(`- ${byId[id]?.name ?? id}: ${reason}`));
 lines.push('');
 lines.push('## 突出枠（判定対象外・記録のみ）', '');
 lines.push('| 札 | Lv | 最適値 | 汎用値 | 最適な組 |', '|---|---:|---:|---:|---|');

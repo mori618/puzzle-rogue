@@ -184,11 +184,11 @@ const getTokenDynamicInfo = (item, level, currentRunStats = null, currentTokens 
       infoList.push({ label: 'スキップ累計', value: `${currentRunStats.skipsPerformed || 0} 回`, type: 'stat' });
       infoList.push({ label: '乗算値', value: `x${formatNum(m)}`, type: 'boost' });
     } else if (effect === 'stat_shape_cross') {
-      const b = Math.floor((currentRunStats.currentShapeCross || 0) / 5) * v;
+      const b = Math.floor((currentRunStats.currentShapeCross || 0) / 3) * v;
       infoList.push({ label: '十字消し累計', value: `${currentRunStats.currentShapeCross || 0} 回`, type: 'stat' });
       infoList.push({ label: '加算値', value: `+${formatNum(b)}`, type: 'boost' });
     } else if (effect === 'stat_shape_len4') {
-      const b = Math.floor((currentRunStats.currentShapeLen4 || 0) / 20) * v;
+      const b = Math.floor((currentRunStats.currentShapeLen4 || 0) / 10) * v;
       infoList.push({ label: '4個消し累計', value: `${currentRunStats.currentShapeLen4 || 0} 回`, type: 'stat' });
       infoList.push({ label: '加算値', value: `+${formatNum(b)}`, type: 'boost' });
     } else if (effect === 'stat_shape_l') {

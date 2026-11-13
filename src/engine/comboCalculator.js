@@ -1502,11 +1502,15 @@ export function calcTurnResult(input, fx = createNoopFx()) {
   });
 
   if (hasMastery) {
+    // 加算の極意（D1・D2）: 基礎倍（旧B層・D層）と倍率プラスの効果を無効にする。
+    // ×1 未満のペナルティ（誓約の契約違反など）は残す。
+    const penaltySteps = logData.multiplierSteps.filter(s => s.type === 'mult' && typeof s.value === 'number' && s.value < 1);
+    baseMultiplier = penaltySteps.reduce((p, s) => p * s.value, 1.0);
     addedMultiplier = 0.0;
     multMultiplier = 1.0;
     exponentialMultiplier = 0.0;
     logData.multipliers = [`additive_mastery_active: multipliers disabled`];
-    logData.multiplierSteps = [{ label: '加算の極意', value: masteryVal, isAdditiveMastery: true }];
+    logData.multiplierSteps = [{ label: '加算の極意', value: masteryVal, isAdditiveMastery: true }, ...penaltySteps];
 
     bonus *= masteryVal;
     exponentialBonus *= masteryVal;
@@ -1543,7 +1547,7 @@ export function calcTurnResult(input, fx = createNoopFx()) {
     if (hasOtherCombo) {
       isZeroComboDueToDevotion = true;
       fx.notify(`${token.name}のデメリット発動：他属性を消したため獲得コンボが0になります。`);
-    } else if ((colorComboCounts[targetColor] || 0) > 0) {
+    } else if ((colorComboCounts[targetColor] || 0) > 0 && !hasMastery) {
       devotionMultiplier *= multVal;
       if (isInstant) fx.triggerPassive(token.instanceId || token.id);
       logData.multipliers.push(`${token.effect}:x${multVal}`);
@@ -1561,7 +1565,7 @@ export function calcTurnResult(input, fx = createNoopFx()) {
   const fourMatchRestrToken = effectiveTokens.find(t => t && t.effect === 'four_match_restriction');
   const rowMatchRestrToken = effectiveTokens.find(t => t && t.effect === 'row_match_restriction');
   
-  if (!isCursePassiveNull) {
+  if (!isCursePassiveNull && !hasMastery) {
     if (fourMatchRestrToken) {
       const len4Count = shapes.filter(s => s === "len4").length;
       if (len4Count > 0) {
@@ -1587,8 +1591,10 @@ export function calcTurnResult(input, fx = createNoopFx()) {
   const finalBaseCombo = (tc > 0) ? Math.floor(finalBaseComboBeforeDebuff * debuffMultiplier * baseMultiplier * devotionMultiplier * restrictionMultiplier) : 0;
   
   // 犬神（コンボ数100以上で倍率10倍）
+  // 判定は「加算後・基礎倍の前」（D1）。加算の極意と併用できる。
   const inugamiToken = effectiveTokens.find(t => t?.effect === "inugami");
-  if (inugamiToken && finalBaseCombo >= 100) {
+  const inugamiJudgeCombo = (tc > 0) ? Math.floor(finalBaseComboBeforeDebuff * debuffMultiplier) : 0;
+  if (inugamiToken && inugamiJudgeCombo >= 100) {
     if (isInstant) fx.triggerPassive(inugamiToken.instanceId || inugamiToken.id);
     multMultiplier *= 10.0;
     logData.multipliers.push(`inugami:x10.0`);

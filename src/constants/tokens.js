@@ -1021,37 +1021,37 @@ const ALL_TOKEN_BASES = [
   // --- パッシブ: 属性4個以上連結倍率 ---
   {
     id: "connect4_mult_fire", name: "炎の四重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
-    params: { color: "fire" }, values: [1.2, 1.5, 2.0], rarity: 2, price: 20,
+    params: { color: "fire" }, values: [1.5, 2, 3], rarity: 2, price: 20,
     desc: "炎ドロップを4個以上繋げて消すと、基礎コンボ数が{values}倍される。",
     attributes: ["fire"], canBeInitial: true
   },
   {
     id: "connect4_mult_water", name: "雨の四重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
-    params: { color: "water" }, values: [1.2, 1.5, 2.0], rarity: 2, price: 20,
+    params: { color: "water" }, values: [1.5, 2, 3], rarity: 2, price: 20,
     desc: "雨ドロップを4個以上繋げて消すと、基礎コンボ数が{values}倍される。",
     attributes: ["water"], canBeInitial: true
   },
   {
     id: "connect4_mult_wood", name: "風の四重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
-    params: { color: "wood" }, values: [1.2, 1.5, 2.0], rarity: 2, price: 20,
+    params: { color: "wood" }, values: [1.5, 2, 3], rarity: 2, price: 20,
     desc: "風ドロップを4個以上繋げて消すと、基礎コンボ数が{values}倍される。",
     attributes: ["wood"], canBeInitial: true
   },
   {
     id: "connect4_mult_light", name: "雷の四重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
-    params: { color: "light" }, values: [1.2, 1.5, 2.0], rarity: 2, price: 20,
+    params: { color: "light" }, values: [1.5, 2, 3], rarity: 2, price: 20,
     desc: "雷ドロップを4個以上繋げて消すと、基礎コンボ数が{values}倍される。",
     attributes: ["light"], canBeInitial: true
   },
   {
     id: "connect4_mult_dark", name: "月の四重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
-    params: { color: "dark" }, values: [1.2, 1.5, 2.0], rarity: 2, price: 20,
+    params: { color: "dark" }, values: [1.5, 2, 3], rarity: 2, price: 20,
     desc: "月ドロップを4個以上繋げて消すと、基礎コンボ数が{values}倍される。",
     attributes: ["dark"], canBeInitial: true
   },
   {
     id: "connect4_mult_heart", name: "癒の四重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
-    params: { color: "heart" }, values: [1.2, 1.5, 2.0], rarity: 2, price: 20,
+    params: { color: "heart" }, values: [1.5, 2, 3], rarity: 2, price: 20,
     desc: "ハートドロップを4個以上繋げて消すと、基礎コンボ数が{values}倍される。",
     attributes: ["heart"], canBeInitial: true
   },
@@ -1059,58 +1059,58 @@ const ALL_TOKEN_BASES = [
   // --- パッシブ: 属性6個以上連結倍率 ---
   {
     id: "connect6_mult_fire", name: "炎の六重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
-    params: { color: "fire", count: 6 }, values: [2.0, 3.0, 4.0], rarity: 3, price: 26,
+    params: { color: "fire", count: 6 }, values: [3, 5, 8], rarity: 3, price: 26,
     desc: "炎ドロップを6個以上繋げて消すと、基礎コンボ数が{values}倍される。",
     attributes: ["fire"], canBeInitial: true
   },
   {
     id: "connect6_mult_water", name: "雨の六重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
-    params: { color: "water", count: 6 }, values: [2.0, 3.0, 4.0], rarity: 3, price: 26,
+    params: { color: "water", count: 6 }, values: [3, 5, 8], rarity: 3, price: 26,
     desc: "雨ドロップを6個以上繋げて消すと、基礎コンボ数が{values}倍される。",
     attributes: ["water"], canBeInitial: true
   },
   {
     id: "connect6_mult_wood", name: "風の六重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
-    params: { color: "wood", count: 6 }, values: [2.0, 3.0, 4.0], rarity: 3, price: 26,
+    params: { color: "wood", count: 6 }, values: [3, 5, 8], rarity: 3, price: 26,
     desc: "風ドロップを6個以上繋げて消すと、基礎コンボ数が{values}倍される。",
     attributes: ["wood"], canBeInitial: true
   },
   {
     id: "connect6_mult_light", name: "雷の六重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
-    params: { color: "light", count: 6 }, values: [2.0, 3.0, 4.0], rarity: 3, price: 26,
+    params: { color: "light", count: 6 }, values: [3, 5, 8], rarity: 3, price: 26,
     desc: "雷ドロップを6個以上繋げて消すと、基礎コンボ数が{values}倍される。",
     attributes: ["light"], canBeInitial: true
   },
   {
     id: "connect6_mult_dark", name: "月の六重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
-    params: { color: "dark", count: 6 }, values: [2.0, 3.0, 4.0], rarity: 3, price: 26,
+    params: { color: "dark", count: 6 }, values: [3, 5, 8], rarity: 3, price: 26,
     desc: "月ドロップを6個以上繋げて消すと、基礎コンボ数が{values}倍される。",
     attributes: ["dark"], canBeInitial: true
   },
   {
     id: "connect6_mult_heart", name: "癒の六重奏", icon: "link", type: "passive", effect: "color_connection_multiplier",
-    params: { color: "heart", count: 6 }, values: [2.0, 3.0, 4.0], rarity: 3, price: 26,
+    params: { color: "heart", count: 6 }, values: [3, 5, 8], rarity: 3, price: 26,
     desc: "ハートドロップを6個以上繋げて消すと、基礎コンボ数が{values}倍される。",
     attributes: ["heart"], canBeInitial: true
   },
 
   // --- パッシブ: コンボ倍率（2色同時）---
-  { id: "bonus_2c_fd", name: "炎月の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["fire", "dark"] }, values: [2, 3, 5], rarity: 2, price: 20, desc: "炎/月を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["fire", "dark"], canBeInitial: true },
-  { id: "bonus_2c_wh", name: "蒼海の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["water", "heart"] }, values: [2, 3, 5], rarity: 2, price: 20, desc: "雨/ハートを同時に消すと、コンボ倍率にプラス{values}。", attributes: ["water", "heart"], canBeInitial: true },
-  { id: "bonus_2c_gl", name: "風雷の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["wood", "light"] }, values: [2, 3, 5], rarity: 2, price: 20, desc: "風/雷を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["wood", "light"], canBeInitial: true },
-  { id: "bonus_2c_wd", name: "雨月の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["water", "dark"] }, values: [2, 3, 5], rarity: 2, price: 20, desc: "雨/月を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["water", "dark"], canBeInitial: true },
-  { id: "bonus_2c_gh", name: "風癒の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["wood", "heart"] }, values: [2, 3, 5], rarity: 2, price: 20, desc: "風/ハートを同時に消すと、コンボ倍率にプラス{values}。", attributes: ["wood", "heart"], canBeInitial: true },
-  { id: "bonus_2c_fl", name: "炎雷の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["fire", "light"] }, values: [2, 3, 5], rarity: 2, price: 20, desc: "炎/雷を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["fire", "light"], canBeInitial: true },
+  { id: "bonus_2c_fd", name: "炎月の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["fire", "dark"] }, values: [4, 5, 8], rarity: 2, price: 20, desc: "炎/月を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["fire", "dark"], canBeInitial: true },
+  { id: "bonus_2c_wh", name: "蒼海の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["water", "heart"] }, values: [4, 5, 8], rarity: 2, price: 20, desc: "雨/ハートを同時に消すと、コンボ倍率にプラス{values}。", attributes: ["water", "heart"], canBeInitial: true },
+  { id: "bonus_2c_gl", name: "風雷の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["wood", "light"] }, values: [4, 5, 8], rarity: 2, price: 20, desc: "風/雷を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["wood", "light"], canBeInitial: true },
+  { id: "bonus_2c_wd", name: "雨月の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["water", "dark"] }, values: [4, 5, 8], rarity: 2, price: 20, desc: "雨/月を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["water", "dark"], canBeInitial: true },
+  { id: "bonus_2c_gh", name: "風癒の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["wood", "heart"] }, values: [4, 5, 8], rarity: 2, price: 20, desc: "風/ハートを同時に消すと、コンボ倍率にプラス{values}。", attributes: ["wood", "heart"], canBeInitial: true },
+  { id: "bonus_2c_fl", name: "炎雷の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["fire", "light"] }, values: [4, 5, 8], rarity: 2, price: 20, desc: "炎/雷を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["fire", "light"], canBeInitial: true },
 
   // --- パッシブ: コンボ倍率（3色同時）---
-  { id: "bonus_3c_fdw", name: "業水の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["fire", "dark", "water"] }, values: [3, 7, 10], rarity: 2, price: 24, desc: "炎/月/雨を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["fire", "dark", "water"], canBeInitial: true },
-  { id: "bonus_3c_fdl", name: "炎雷月の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["fire", "dark", "light"] }, values: [3, 7, 10], rarity: 2, price: 24, desc: "炎/月/雷を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["fire", "dark", "light"], canBeInitial: true },
-  { id: "bonus_3c_whf", name: "紅蓮の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["water", "heart", "fire"] }, values: [3, 7, 10], rarity: 2, price: 24, desc: "雨/ハート/炎を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["water", "heart", "fire"], canBeInitial: true },
-  { id: "bonus_3c_whg", name: "蒼風の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["water", "heart", "wood"] }, values: [3, 7, 10], rarity: 2, price: 24, desc: "雨/ハート/風を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["water", "heart", "wood"], canBeInitial: true },
-  { id: "bonus_3c_gld", name: "神緑の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["wood", "light", "dark"] }, values: [3, 7, 10], rarity: 2, price: 24, desc: "風/雷/月を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["wood", "light", "dark"], canBeInitial: true },
-  { id: "bonus_3c_glh", name: "天恵の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["wood", "light", "heart"] }, values: [3, 7, 10], rarity: 2, price: 24, desc: "風/雷/ハートを同時に消すと、コンボ倍率にプラス{values}。", attributes: ["wood", "light", "heart"], canBeInitial: true },
-  { id: "bonus_3c_fwg", name: "天地の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["fire", "water", "wood"] }, values: [3, 7, 10], rarity: 2, price: 24, desc: "炎/雨/風を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["fire", "water", "wood"], canBeInitial: true },
-  { id: "bonus_3c_ldh", name: "黄昏の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["light", "dark", "heart"] }, values: [3, 7, 10], rarity: 2, price: 24, desc: "雷/月/ハートを同時に消すと、コンボ倍率にプラス{values}。", attributes: ["light", "dark", "heart"], canBeInitial: true },
+  { id: "bonus_3c_fdw", name: "業水の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["fire", "dark", "water"] }, values: [5, 8, 12], rarity: 2, price: 24, desc: "炎/月/雨を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["fire", "dark", "water"], canBeInitial: true },
+  { id: "bonus_3c_fdl", name: "炎雷月の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["fire", "dark", "light"] }, values: [5, 8, 12], rarity: 2, price: 24, desc: "炎/月/雷を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["fire", "dark", "light"], canBeInitial: true },
+  { id: "bonus_3c_whf", name: "紅蓮の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["water", "heart", "fire"] }, values: [5, 8, 12], rarity: 2, price: 24, desc: "雨/ハート/炎を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["water", "heart", "fire"], canBeInitial: true },
+  { id: "bonus_3c_whg", name: "蒼風の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["water", "heart", "wood"] }, values: [5, 8, 12], rarity: 2, price: 24, desc: "雨/ハート/風を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["water", "heart", "wood"], canBeInitial: true },
+  { id: "bonus_3c_gld", name: "神緑の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["wood", "light", "dark"] }, values: [5, 8, 12], rarity: 2, price: 24, desc: "風/雷/月を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["wood", "light", "dark"], canBeInitial: true },
+  { id: "bonus_3c_glh", name: "天恵の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["wood", "light", "heart"] }, values: [5, 8, 12], rarity: 2, price: 24, desc: "風/雷/ハートを同時に消すと、コンボ倍率にプラス{values}。", attributes: ["wood", "light", "heart"], canBeInitial: true },
+  { id: "bonus_3c_fwg", name: "天地の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["fire", "water", "wood"] }, values: [5, 8, 12], rarity: 2, price: 24, desc: "炎/雨/風を同時に消すと、コンボ倍率にプラス{values}。", attributes: ["fire", "water", "wood"], canBeInitial: true },
+  { id: "bonus_3c_ldh", name: "黄昏の律動", icon: "filter_vintage", type: "passive", effect: "color_multiplier", params: { colors: ["light", "dark", "heart"] }, values: [5, 8, 12], rarity: 2, price: 24, desc: "雷/月/ハートを同時に消すと、コンボ倍率にプラス{values}。", attributes: ["light", "dark", "heart"], canBeInitial: true },
 
   // --- パッシブ: コンボ倍率（4色以上・色数指定）---
   {
@@ -1144,12 +1144,12 @@ const ALL_TOKEN_BASES = [
   { id: "req_6_heart", name: "癒の真髄", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "heart", count: 6 }, values: [3, 4, 7], rarity: 1, price: 24, desc: "ハートを合計で6個以上消していると、コンボ倍率にプラス{values}。", attributes: ["heart"], canBeInitial: true },
 
   // --- パッシブ: 色消し数ボーナス（12個以上）---
-  { id: "req_12_fire", name: "炎の極致", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "fire", count: 12 }, values: [3, 4, 5], rarity: 2, price: 31, desc: "炎を合計で12個以上消していると、コンボ倍率にプラス{values}。", attributes: ["fire"], canBeInitial: true },
-  { id: "req_12_water", name: "雨の極致", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "water", count: 12 }, values: [3, 4, 5], rarity: 2, price: 31, desc: "雨を合計で12個以上消していると、コンボ倍率にプラス{values}。", attributes: ["water"], canBeInitial: true },
-  { id: "req_12_wood", name: "風の極致", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "wood", count: 12 }, values: [3, 4, 5], rarity: 2, price: 31, desc: "風を合計で12個以上消していると、コンボ倍率にプラス{values}。", attributes: ["wood"], canBeInitial: true },
-  { id: "req_12_light", name: "雷の極致", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "light", count: 12 }, values: [3, 4, 5], rarity: 2, price: 31, desc: "雷を合計で12個以上消していると、コンボ倍率にプラス{values}。", attributes: ["light"], canBeInitial: true },
-  { id: "req_12_dark", name: "月の極致", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "dark", count: 12 }, values: [3, 4, 5], rarity: 2, price: 31, desc: "月を合計で12個以上消していると、コンボ倍率にプラス{values}。", attributes: ["dark"], canBeInitial: true },
-  { id: "req_12_heart", name: "癒の極致", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "heart", count: 12 }, values: [3, 4, 5], rarity: 2, price: 31, desc: "ハートを合計で12個以上消していると、コンボ倍率にプラス{values}。", attributes: ["heart"], canBeInitial: true },
+  { id: "req_12_fire", name: "炎の極致", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "fire", count: 12 }, values: [6, 9, 13], rarity: 2, price: 31, desc: "炎を合計で12個以上消していると、コンボ倍率にプラス{values}。", attributes: ["fire"], canBeInitial: true },
+  { id: "req_12_water", name: "雨の極致", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "water", count: 12 }, values: [6, 9, 13], rarity: 2, price: 31, desc: "雨を合計で12個以上消していると、コンボ倍率にプラス{values}。", attributes: ["water"], canBeInitial: true },
+  { id: "req_12_wood", name: "風の極致", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "wood", count: 12 }, values: [6, 9, 13], rarity: 2, price: 31, desc: "風を合計で12個以上消していると、コンボ倍率にプラス{values}。", attributes: ["wood"], canBeInitial: true },
+  { id: "req_12_light", name: "雷の極致", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "light", count: 12 }, values: [6, 9, 13], rarity: 2, price: 31, desc: "雷を合計で12個以上消していると、コンボ倍率にプラス{values}。", attributes: ["light"], canBeInitial: true },
+  { id: "req_12_dark", name: "月の極致", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "dark", count: 12 }, values: [6, 9, 13], rarity: 2, price: 31, desc: "月を合計で12個以上消していると、コンボ倍率にプラス{values}。", attributes: ["dark"], canBeInitial: true },
+  { id: "req_12_heart", name: "癒の極致", icon: "query_stats", type: "passive", effect: "color_count_bonus", params: { color: "heart", count: 12 }, values: [6, 9, 13], rarity: 2, price: 31, desc: "ハートを合計で12個以上消していると、コンボ倍率にプラス{values}。", attributes: ["heart"], canBeInitial: true },
 
   // --- パッシブ: 属性別コンボ加算（1コンボにつき+N）---
   // 各属性のドロップを消した1コンボごとにコンボ数を固定値加算する（エンチャント「炎の加護」のトークン版）
@@ -1196,7 +1196,7 @@ const ALL_TOKEN_BASES = [
     type: "passive",
     effect: "combo_if_ge",
     params: { combo: 7 },
-    values: [2, 3, 5],
+    values: [4, 5, 8],
     rarity: 2, price: 26,
     desc: "7コンボ以上で、コンボ倍率にプラス{values}。",
     attributes: [],
@@ -1316,7 +1316,7 @@ const ALL_TOKEN_BASES = [
   // --- パッシブ: リピートドロップ ---
   {
     id: "repeat_combo_mult", name: "連鎖の共鳴", icon: "autorenew", type: "passive", effect: "repeat_combo_mult",
-    values: [2, 3, 4], maxMultipliers: [10, 20, 50], rarity: 3, price: 24,
+    values: [3, 5, 8], maxMultipliers: [10, 20, 50], rarity: 3, price: 24,
     desc: "基礎コンボ数が（1 + リピートドロップの消去数 × {values}）倍になる。",
     attributes: []
   },
@@ -1432,7 +1432,7 @@ const ALL_TOKEN_BASES = [
   {
     id: "legend_inugami", name: "犬神", icon: "pets", type: "passive", effect: "inugami",
     rarity: 4, price: 77, noLevelUp: true,
-    desc: "基礎コンボ数が100以上の時、基礎コンボ数が10倍になる。",
+    desc: "加算後の基礎コンボ数（倍率をかける前）が100以上の時、基礎コンボ数が10倍になる。加算の極意と併用できる。",
     attributes: []
   },
   {
@@ -1650,15 +1650,15 @@ const ALL_TOKEN_BASES = [
   // --- パッシブ: 統計依存（特殊消し）---
   {
     id: "seeker_of_cross", name: "十字の求道者", icon: "category", type: "passive", effect: "stat_shape_cross",
-    values: [1, 2, 3], rarity: 2, price: 20,
-    desc: "現在のゲーム中の「十字消し累計回数」5回につき、十字消しの際に追加でコンボ加算 +[1/2/3]。",
+    values: [3, 8, 15], rarity: 2, price: 20,
+    desc: "現在のゲーム中の「十字消し累計回数」3回につき、十字消しの際に追加でコンボ加算 +[3/8/15]。",
     attributes: [],
     canBeInitial: true
   },
   {
     id: "seeker_of_len4", name: "四連の探求者", icon: "category", type: "passive", effect: "stat_shape_len4",
-    values: [1, 2, 3], rarity: 2, price: 15,
-    desc: "現在のゲーム中の「4個消し累計回数」20回につき、4個消しの際に追加でコンボ加算 +[1/2/3]。",
+    values: [3, 6, 10], rarity: 2, price: 15,
+    desc: "現在のゲーム中の「4個消し累計回数」10回につき、4個消しの際に追加でコンボ加算 +[3/6/10]。",
     attributes: [],
     canBeInitial: true
   },
@@ -1714,7 +1714,7 @@ const ALL_TOKEN_BASES = [
   // --- パッシブ: ハイリスク・ハイリターン ---
   {
     id: "desperate_stance", name: "背水の陣", icon: "warning", type: "passive", effect: "desperate_stance",
-    values: [2, 3, 4], rarity: 3, price: 31,
+    values: [2.5, 4, 6], rarity: 3, price: 31,
     desc: "操作時間が常に4秒固定。基礎コンボ数が{values}倍になる。",
     attributes: [],
     canBeCurseReward: true
@@ -1757,7 +1757,7 @@ const ALL_TOKEN_BASES = [
     icon: "category",
     type: "passive",
     effect: "shape_variety_mult",
-    values: [3, 4, 5],
+    values: [4, 6, 9],
     rarity: 2, price: 31,
     desc: "1ターンの間に異なる特殊消しを2種類以上発動させると、コンボ倍率にプラス{values}。",
     attributes: [],
@@ -2729,7 +2729,7 @@ const ALL_TOKEN_BASES = [
     effect: "additive_mastery",
     values: [5, 20, 100],
     rarity: 3, price: 39,
-    desc: "コンボ倍率系の効果が一切発動しなくなる代わり、すべての「コンボ加算値」が[5/20/100]倍になる。",
+    desc: "基礎倍・倍率プラスの効果が発動しなくなる代わり、すべての「コンボ加算値」が[5/20/100]倍になる（×1未満のペナルティは残る。犬神は発動する）。",
     attributes: [],
     canBeInitial: false
   },
@@ -3920,10 +3920,10 @@ const ALL_TOKEN_BASES = [
     icon: "star_outline",
     type: "passive",
     effect: "square_combo_add",
-    values: [10, 15, 30],
+    values: [20, 50, 120],
     rarity: 2,
     price: 22,
-    desc: "正方形消しでコンボ+[10/15/30]。",
+    desc: "正方形消しでコンボ+[20/50/120]。",
     attributes: [],
     canBeInitial: true
   },

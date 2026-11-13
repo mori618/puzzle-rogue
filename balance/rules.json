@@ -1,18 +1,37 @@
 {
-  "$comment": "判定ルール（docs/balance-ui-design.md §2.4・§3.2）。bands はレア度ごとの Lv1〜3 の下限（上回るのは問題にしない）。standout は突出枠で、バンド判定と逆転判定から外す（記録はする）。",
+  "$comment": "判定ルール（docs/balance-ui-design.md §2.4・§3.2）。bands はレア度ごとの Lv1〜3 の下限（上回るのは問題にしない）。standout は突出枠で、バンド判定と逆転判定から外す（記録はする）。 unmodeled は盤面の消え方を変えるため固定パターンで測れない札（判定対象外）。",
   "bands": {
-    "1": [1.2, 1.4, 1.6],
-    "2": [1.4, 1.7, 2.0],
-    "3": [1.6, 2.0, 2.5],
-    "4": [3.0]
+    "1": [
+      1.2,
+      1.4,
+      1.6
+    ],
+    "2": [
+      1.4,
+      1.7,
+      2.0
+    ],
+    "3": [
+      1.6,
+      2.0,
+      2.5
+    ],
+    "4": [
+      3.0
+    ]
   },
   "standout": [
     "chalice_of_life",
     "thousand_arms",
     "star3_mult_boost",
     "limit_breaker",
-    "absolute_limit_break"
+    "absolute_limit_break",
+    "artisan_of_square"
   ],
   "fireThreshold": 1.001,
-  "randomSamples": 64
+  "randomSamples": 64,
+  "unmodeled": {
+    "dual_match": "2個でも消えるようになる（盤面のコンボ数そのものが増える）",
+    "four_match_restriction": "4個消し以外で消えなくなる（盤面の組み方そのものが変わる）"
+  }
 }

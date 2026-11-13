@@ -98,13 +98,13 @@ export function buildRealtimeBonuses({
 
     if (t.effect === "stat_shape_cross") {
       const v = t.values?.[lv - 1] || 1;
-      const b = Math.floor((currentRunStats.currentShapeCross || 0) / 5) * v;
+      const b = Math.floor((currentRunStats.currentShapeCross || 0) / 3) * v;
       bonuses.stat_shape_additions.cross += b;
       bonuses.tokenIds.stat_shape_additions.cross.push(tId);
     }
     if (t.effect === "stat_shape_len4") {
       const v = t.values?.[lv - 1] || 1;
-      const b = Math.floor((currentRunStats.currentShapeLen4 || 0) / 20) * v;
+      const b = Math.floor((currentRunStats.currentShapeLen4 || 0) / 10) * v;
       bonuses.stat_shape_additions.len4 += b;
       bonuses.tokenIds.stat_shape_additions.len4.push(tId);
     }
