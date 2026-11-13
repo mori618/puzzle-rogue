@@ -10,6 +10,7 @@ import SettingsScreen from "./SettingsScreen";
 import StartOptionScreen from "./StartOptionScreen";
 import TokenEncyclopediaScreen from "./TokenEncyclopediaScreen";
 import UIPreviewScreen from "./UIPreviewScreen";
+import TurnBreakdownPanel from "./TurnBreakdownPanel";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 import { getEnchantDescription } from './constants/enchantments.js';
 import { MAX_COMBO, MAX_TARGET, SAVE_KEY, INITIAL_TOKEN_SLOTS } from './constants/gameConstants.js';
@@ -40,6 +41,7 @@ const App = () => {
     stars,
     activeBuffs,
     lastTurnCombo,
+    lastTurnBreakdown,
     lastErasedColorCounts,
     pendingShopItem,
     setPendingShopItem,
@@ -372,7 +374,8 @@ const App = () => {
             <section className="relative z-10 px-4 py-1.5 flex-none w-full h-[9dvh] min-h-[64px] max-h-[80px] flex flex-col justify-center">
               <div 
                 className="w-full relative cursor-pointer" 
-                onClick={() => setShowComboDetails(!showComboDetails)}
+                onClick={() => lastTurnBreakdown && setShowComboDetails(true)}
+                title="タップで前の手番の内訳"
               >
                 {/* テキスト情報 */}
                 <div className="flex justify-between items-end mb-1 px-1">
@@ -431,7 +434,11 @@ const App = () => {
             return (
               <section className="relative z-30 px-4 py-1.5 flex-none mb-2 flex flex-col justify-between w-full aspect-[2.1]">
                 {isPracticeMode ? (
-                  <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-4 flex flex-col items-center justify-center backdrop-blur-md shadow-inner h-full w-full">
+                  <div
+                    className={`bg-slate-900/40 border border-white/5 rounded-3xl p-4 flex flex-col items-center justify-center backdrop-blur-md shadow-inner h-full w-full ${lastTurnBreakdown ? 'cursor-pointer' : ''}`}
+                    onClick={() => lastTurnBreakdown && setShowComboDetails(true)}
+                    title="タップで前の手番の内訳"
+                  >
                     <div className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 flex items-center gap-2">
                       <span className="w-8 h-[1px] bg-slate-800"></span>
                       Practice Best
@@ -1271,6 +1278,11 @@ const App = () => {
               </div>
             )
           }
+
+          {/* Turn Breakdown Panel（前の手番の内訳） */}
+          {showComboDetails && lastTurnBreakdown && (
+            <TurnBreakdownPanel breakdown={lastTurnBreakdown} onClose={() => setShowComboDetails(false)} />
+          )}
 
           {/* Token Detail Modal */}
           {

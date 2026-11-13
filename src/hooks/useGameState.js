@@ -17,6 +17,7 @@ import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import { calcTurnResult } from '../engine/comboCalculator.js';
 import { buildRealtimeBonuses } from '../engine/realtimeBonuses.js';
+import { buildTurnBreakdown } from '../engine/turnBreakdown.js';
 import soundManager from '../utils/SoundManager';
 import { useGameSettings } from './useGameSettings';
 import { usePuzzleBoard } from './usePuzzleBoard';
@@ -57,6 +58,8 @@ export const useGameState = () => {
   const [skippedTurnsBonus, setSkippedTurnsBonus] = useState(0);
   const [nextTurnTimeMultiplier, setNextTurnTimeMultiplier] = useState(1);
   const [lastTurnCombo, setLastTurnCombo] = useState(0);
+  // 直前の手番の内訳（ターン内訳パネル用）
+  const [lastTurnBreakdown, setLastTurnBreakdown] = useState(null);
   const [lastErasedColorCounts, setLastErasedColorCounts] = useState({});
   const [hasUsedActiveSkillThisTurn, setHasUsedActiveSkillThisTurn] = useState(false);
   // スキル使用によって消去されたドロップ数をターン終了時にマージするための一時的な状態
@@ -1294,6 +1297,10 @@ export const useGameState = () => {
       isCursePassiveNull, isEnchantDisabled, isTrialActive, maxMoveDropThisTurn, moveDropBonus,
       bombSelfErased, repeatSelfErased, starSelfErased, rainbowSelfErased,
     } = calcResult;
+    setLastTurnBreakdown(buildTurnBreakdown(calcResult, {
+      turnCombo: tc, colorComboCounts, erasedColorCounts: finalErasedColorCounts,
+      shapes, detailedShapes, hasSkyfallCombo, turn, maxTurns,
+    }));
 
     if (effectiveCombo >= MAX_COMBO) {
       setCurrentRunStats(prev => {
@@ -4001,6 +4008,7 @@ export const useGameState = () => {
     skippedTurnsBonus, setSkippedTurnsBonus,
     nextTurnTimeMultiplier, setNextTurnTimeMultiplier,
     lastTurnCombo, setLastTurnCombo,
+    lastTurnBreakdown, setLastTurnBreakdown,
     lastErasedColorCounts, setLastErasedColorCounts,
     pendingShopItem, setPendingShopItem,
     showTitle, setShowTitle,
