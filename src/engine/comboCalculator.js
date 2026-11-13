@@ -87,6 +87,7 @@ export function calcTurnResult(input, fx = createNoopFx()) {
     probabilityTriggeredThisTurn = false,
     probabilityTriggeredTotalCount = 0,
     rng = Math.random,
+    titleEffects = [],
   } = input;
 
 
@@ -1599,6 +1600,33 @@ export function calcTurnResult(input, fx = createNoopFx()) {
     multMultiplier *= 10.0;
     logData.multipliers.push(`inugami:x10.0`);
     logData.multiplierSteps.push({ label: inugamiToken.name || '犬神', value: 10.0, type: 'mult', tokenId: inugamiToken.instanceId || inugamiToken.id });
+  }
+
+  // 二つ名効果: コンボ倍率加算（D5: 加算の極意があるときは発動しない）
+  if (!hasMastery) {
+    titleEffects.forEach(eff => {
+      const label = eff.name ? `『${eff.name}』` : '二つ名';
+      if (eff.type === 'combo_multiplier_add') {
+        addedMultiplier += eff.value || 0;
+        logData.multiplierSteps.push({ label, value: 1 + (eff.value || 0), addedValue: eff.value || 0, type: 'add', tokenId: null, source: 'title' });
+      }
+      if (eff.type === 'color_multiplier' && eff.color) {
+        const colorCount = colorComboCounts?.[eff.color] || 0;
+        if (colorCount > 0) {
+          const v = (eff.value || 0) * colorCount;
+          addedMultiplier += v;
+          logData.multiplierSteps.push({ label, value: 1 + v, addedValue: v, type: 'add', tokenId: null, source: 'title' });
+        }
+      }
+      if (eff.type === 'zero_star_combo_mult' && stars === 0) {
+        addedMultiplier += eff.value || 0;
+        logData.multiplierSteps.push({ label, value: 1 + (eff.value || 0), addedValue: eff.value || 0, type: 'add', tokenId: null, source: 'title' });
+      }
+      if (eff.type === 'boss_turn_multiplier' && turn === maxTurns) {
+        addedMultiplier += eff.value || 0;
+        logData.multiplierSteps.push({ label, value: 1 + (eff.value || 0), addedValue: eff.value || 0, type: 'add', tokenId: null, source: 'title' });
+      }
+    });
   }
 
   // コンボ倍率の計算

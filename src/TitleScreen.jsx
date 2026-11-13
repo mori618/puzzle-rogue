@@ -2,7 +2,7 @@ import React from 'react';
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
 
-const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCredits, onSettings, onEncyclopedia, onPractice, onUIPreview }) => {
+const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCredits, onSettings, onEncyclopedia, onTitleEncyclopedia, onPractice, onUIPreview }) => {
     return (
         <div className="w-full h-screen bg-background-dark flex flex-col items-center justify-center relative overflow-hidden font-game-cyber">
             {/* Cyber Grid Background */}
