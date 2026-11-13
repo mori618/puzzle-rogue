@@ -1,0 +1,45 @@
+{
+  "$comment": "基準ビルド（docs/balance-ui-design.md §2.3）。stages は進行度。level は全トークン共通、runState はその時点のラン累計値。pattern は進行シミュレーションで使う「そのビルドが狙う組み方」。excludeFromReversal があるビルドは、所持数の相乗効果で結果が決まるため上位互換の判定に使わない。",
+  "stages": {
+    "early": {
+      "label": "サイクル5相当",
+      "level": 1,
+      "runState": {
+        "stars": 20, "turn": 2, "maxTurns": 3, "tokenSlotExpansionCount": 0,
+        "currentRunStats": {
+          "currentClears": 4, "totalHeartsErased": 40, "currentTotalCombo": 150,
+          "currentShapeRow": 2, "currentShapeCross": 1, "currentShapeLShape": 1, "currentShapeSquare": 1,
+          "currentShapeLen4": 3, "currentShapeLen5": 1, "currentShopRerolls": 3, "currentStarsSpent": 60,
+          "currentCursesRemoved": 0, "skipsPerformed": 0, "maxBaseCombo": 12, "maxComboMultiplier": 3
+        }
+      }
+    },
+    "late": {
+      "label": "サイクル15相当",
+      "level": 3,
+      "runState": {
+        "stars": 80, "turn": 2, "maxTurns": 3, "tokenSlotExpansionCount": 3,
+        "currentRunStats": {
+          "currentClears": 14, "totalHeartsErased": 300, "currentTotalCombo": 50000,
+          "currentShapeRow": 15, "currentShapeCross": 8, "currentShapeLShape": 8, "currentShapeSquare": 6,
+          "currentShapeLen4": 20, "currentShapeLen5": 8, "currentShopRerolls": 25, "currentStarsSpent": 600,
+          "currentCursesRemoved": 2, "skipsPerformed": 2, "maxBaseCombo": 60, "maxComboMultiplier": 50
+        }
+      }
+    }
+  },
+  "builds": [
+    { "id": "B0", "name": "素（トークンなし）", "pattern": "P1", "tokens": [] },
+    { "id": "B1", "name": "Σ積み（炎寄せ）", "pattern": "P3", "tokens": ["bonus_1c_fire", "req_6_fire", "bonus_2c_fd"] },
+    { "id": "B2", "name": "×積み（炎寄せ）", "pattern": "P3", "tokens": ["combo2_mult_fire", "connect6_mult_fire", "forbidden"] },
+    { "id": "B3", "name": "混成標準", "pattern": "P3", "tokens": ["power_up", "bonus_1c_fire", "req_6_fire", "bonus_2c_fd", "combo2_mult_fire", "connect6_mult_fire", "forbidden"] },
+    { "id": "B4", "name": "単色特化（炎）", "pattern": "P5", "tokens": ["passive_contract_fire", "devotion_fire", "req_12_fire", "req_6_fire"] },
+    { "id": "B5", "name": "多色特化", "pattern": "P10", "tokens": ["bonus_3c_fwg", "bonus_4c_fwlh", "bonus_5c", "bonus_6c"] },
+    { "id": "B6", "name": "形消し", "pattern": "P6", "tokens": ["square", "l_shape", "l_shape_double_base_mult", "len4_quad_base_mult", "shape_master", "artisan_of_square"] },
+    { "id": "B7", "name": "加算の極意", "pattern": "P1", "tokens": ["power_up", "combo_exact_3", "cc_add_fire", "additive_mastery"] },
+    { "id": "B8", "name": "特殊ドロップ", "pattern": "P9", "tokens": ["bomb_erase_mult", "repeat_combo_mult", "star_erase_mult"] },
+    { "id": "B9", "name": "呪い", "pattern": "P1", "tokens": ["curse_count_mult", "curse_skyfall", "curse_time"] },
+    { "id": "B10", "name": "累計スケール", "pattern": "P1", "excludeFromReversal": "三星の極雷が★3の所持数で伸びるため、★3の札はここで一律に倍になる", "tokens": ["thousand_arms", "chalice_of_life", "star3_mult_boost", "limit_breaker"] },
+    { "id": "B11", "name": "経済", "pattern": "P1", "tokens": ["collector", "greed_power", "passive_fire_count"] }
+  ]
+}

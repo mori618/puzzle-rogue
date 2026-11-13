@@ -1,0 +1,18 @@
+{
+  "$comment": "判定ルール（docs/balance-ui-design.md §2.4・§3.2）。bands はレア度ごとの Lv1〜3 の下限（上回るのは問題にしない）。standout は突出枠で、バンド判定と逆転判定から外す（記録はする）。",
+  "bands": {
+    "1": [1.2, 1.4, 1.6],
+    "2": [1.4, 1.7, 2.0],
+    "3": [1.6, 2.0, 2.5],
+    "4": [3.0]
+  },
+  "standout": [
+    "chalice_of_life",
+    "thousand_arms",
+    "star3_mult_boost",
+    "limit_breaker",
+    "absolute_limit_break"
+  ],
+  "fireThreshold": 1.001,
+  "randomSamples": 64
+}

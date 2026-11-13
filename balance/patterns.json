@@ -1,0 +1,88 @@
+{
+  "$comment": "基準パズルパターン（docs/balance-ui-design.md §2.2）。groups は1回目に消えたグループ（color・個数・形・落ちコンか・強化ドロップ数）。素コンボ・色別コンボ・色別個数・形の配列は groups から自動で作り、型・脈動・落ちコンなどの連鎖中の加算は realtimeBonuses.js で計算する。トークンの色はシミュレータ側で炎（2色目は月）に寄せて評価する。",
+  "patterns": [
+    {
+      "id": "P1", "name": "平積み多色",
+      "groups": [
+        { "color": "fire", "length": 3 }, { "color": "fire", "length": 3 },
+        { "color": "water", "length": 3 }, { "color": "water", "length": 3 },
+        { "color": "wood", "length": 3 }, { "color": "light", "length": 3 }, { "color": "dark", "length": 3 }
+      ]
+    },
+    {
+      "id": "P2", "name": "平積み＋落ちコン",
+      "groups": [
+        { "color": "fire", "length": 3 }, { "color": "fire", "length": 3 },
+        { "color": "water", "length": 3 }, { "color": "water", "length": 3 },
+        { "color": "wood", "length": 3 }, { "color": "light", "length": 3 }, { "color": "dark", "length": 3 },
+        { "color": "wood", "length": 3, "skyfall": true }, { "color": "heart", "length": 3, "skyfall": true }
+      ]
+    },
+    {
+      "id": "P3", "name": "2色陣（炎15+月15）",
+      "groups": [
+        { "color": "fire", "length": 3 }, { "color": "fire", "length": 3 }, { "color": "fire", "length": 3 },
+        { "color": "fire", "length": 3 }, { "color": "fire", "length": 3 },
+        { "color": "dark", "length": 3 }, { "color": "dark", "length": 3 }, { "color": "dark", "length": 3 },
+        { "color": "dark", "length": 3 }, { "color": "dark", "length": 3 }
+      ]
+    },
+    {
+      "id": "P4", "name": "単色盤面（炎30個一括）",
+      "groups": [{ "color": "fire", "length": 30 }]
+    },
+    {
+      "id": "P5", "name": "単色＋横列5本（炎）",
+      "groups": [
+        { "color": "fire", "length": 6, "shape": "row" }, { "color": "fire", "length": 6, "shape": "row" },
+        { "color": "fire", "length": 6, "shape": "row" }, { "color": "fire", "length": 6, "shape": "row" },
+        { "color": "fire", "length": 6, "shape": "row" }
+      ]
+    },
+    {
+      "id": "P6", "name": "形消し寄せ（十字1・L字1・4個2）",
+      "groups": [
+        { "color": "fire", "length": 5, "shape": "cross" }, { "color": "water", "length": 5, "shape": "l_shape" },
+        { "color": "wood", "length": 4, "shape": "len4" }, { "color": "light", "length": 4, "shape": "len4" },
+        { "color": "fire", "length": 3 }
+      ]
+    },
+    {
+      "id": "P7", "name": "3×3正方形1つ＋平積み",
+      "groups": [
+        { "color": "fire", "length": 9, "shape": "square" }, { "color": "water", "length": 3 },
+        { "color": "water", "length": 3 }, { "color": "wood", "length": 3 }, { "color": "light", "length": 3 }
+      ]
+    },
+    {
+      "id": "P8", "name": "短時間の手数不足",
+      "groups": [
+        { "color": "fire", "length": 3 }, { "color": "water", "length": 3 },
+        { "color": "wood", "length": 3 }, { "color": "light", "length": 3 }
+      ]
+    },
+    {
+      "id": "P9", "name": "特殊ドロップ込み（ボム1・リピート2・スター3・強化8）",
+      "erasedByBombTotal": 1,
+      "erasedByRepeatTotal": 2,
+      "erasedByStarTotal": 3,
+      "extraStats": { "bombSelfErased": 1, "repeatSelfErased": 2, "starSelfErased": 3 },
+      "groups": [
+        { "color": "fire", "length": 4, "shape": "len4", "enhanced": 2 }, { "color": "fire", "length": 3, "enhanced": 1 },
+        { "color": "water", "length": 4, "shape": "len4", "enhanced": 2 }, { "color": "water", "length": 3, "enhanced": 1 },
+        { "color": "wood", "length": 3, "enhanced": 1 }, { "color": "wood", "length": 3 },
+        { "color": "light", "length": 4, "shape": "len4", "enhanced": 1 }, { "color": "dark", "length": 3 }
+      ]
+    },
+    {
+      "id": "P10", "name": "7×6盤面 平積み",
+      "groups": [
+        { "color": "fire", "length": 3 }, { "color": "fire", "length": 3 },
+        { "color": "water", "length": 3 }, { "color": "water", "length": 3 },
+        { "color": "wood", "length": 3 }, { "color": "wood", "length": 3 },
+        { "color": "light", "length": 3 }, { "color": "light", "length": 3 },
+        { "color": "dark", "length": 3 }, { "color": "heart", "length": 3 }
+      ]
+    }
+  ]
+}

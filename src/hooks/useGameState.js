@@ -16,6 +16,7 @@ import { formatNum, getEffectiveCost, getTokenDescription, getTokenDynamicInfo, 
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import { calcTurnResult } from '../engine/comboCalculator.js';
+import { buildRealtimeBonuses } from '../engine/realtimeBonuses.js';
 import soundManager from '../utils/SoundManager';
 import { useGameSettings } from './useGameSettings';
 import { usePuzzleBoard } from './usePuzzleBoard';
@@ -828,127 +829,8 @@ export const useGameState = () => {
       const hasMastery = !!masteryToken;
       const masteryMultiplier = hasMastery ? masteryToken.values[(masteryToken.level || 1) - 1] : 1;
 
-      const bonuses = {
-        len4: 0, row: 0, l_shape: 0,
-        // color_combo: { fire: [{ value, tokenId, tokenName }], ... } 形式
-        color_combo: {},
-        // heart_combo: [{ value, tokenId, tokenName }] 形式
-        heart_combo: [],
-        enhancedOrbBonus: 0, overLink: null,
-        extra_repeat_activations: 0, moveDropBoost: 0,
-        stat_shape_additions: { cross: 0, len4: 0 },
-        skyfall: 0,
-        rainbow: 0,
-        hasMastery,
-        masteryMultiplier,
-        tokenIds: {
-          len4: [], row: [], l_shape: [], heart_combo: [], enhancedOrbBonus: [], overLink: [],
-          rainbow_combo_bonus: [], extra_repeat_activations: [], moveDropBoost: [], stat_shape_additions: { cross: [], len4: [] },
-          skyfall: [], rainbow: []
-        }
-      };
-      effectiveTokens.forEach(t => {
-        if (!t) return;
-        const lv = t.level || 1;
-        const tId = t.instanceId || t.id;
-
-        if (t.effect === 'shape_bonus') {
-          const val = t.values[lv - 1];
-          if (t.params?.shape === 'len4') {
-            bonuses.len4 += val;
-            bonuses.tokenIds.len4.push(tId);
-          }
-          if (t.params?.shape === 'row') {
-            bonuses.row += val;
-            bonuses.tokenIds.row.push(tId);
-          }
-          if (t.params?.shape === 'l_shape') {
-            bonuses.l_shape += val;
-            bonuses.tokenIds.l_shape.push(tId);
-          }
-        }
-
-        if (t.effect === 'heart_combo_bonus') {
-          const val = t.values[lv - 1];
-          // heart_combo は配列形式で { value, tokenId, tokenName } を積む
-          bonuses.heart_combo.push({ value: val, tokenId: tId, tokenName: t.name || 'ハートコンボ' });
-          bonuses.tokenIds.heart_combo.push(tId);
-        }
-
-        if (t.effect === 'enhanced_orb_bonus') {
-          bonuses.enhancedOrbBonus += t.values[lv - 1] || 0;
-          bonuses.tokenIds.enhancedOrbBonus.push(tId);
-        }
-
-        if (t.effect === 'enhanced_link_multiplier') {
-          if (!bonuses.overLink || t.values[lv - 1] > bonuses.overLink.value) {
-            bonuses.overLink = { count: t.params.count, value: t.values[lv - 1] };
-          }
-          bonuses.tokenIds.overLink.push(tId);
-        }
-
-        if (t.effect === 'rainbow_combo_bonus') {
-          bonuses.rainbow += (t.values[lv - 1] || 0);
-          bonuses.tokenIds.rainbow.push(tId);
-        }
-
-        if (t.effect === 'move_drop_boost') {
-          bonuses.moveDropBoost += (t.values[lv - 1] || 0);
-          bonuses.tokenIds.moveDropBoost.push(tId);
-        }
-
-        if (t.effect === 'bonus_skyfall') {
-          bonuses.skyfall += (t.values[lv - 1] || 0);
-          bonuses.tokenIds.skyfall.push(tId);
-        }
-
-        if (t.effect === 'extra_repeat_activations') {
-          bonuses.extra_repeat_activations += t.values[lv - 1] || 0;
-          bonuses.tokenIds.extra_repeat_activations.push(tId);
-        }
-
-        if (t.effect === "stat_shape_cross") {
-          const v = t.values?.[lv - 1] || 1;
-          const b = Math.floor((currentRunStats.currentShapeCross || 0) / 5) * v;
-          bonuses.stat_shape_additions.cross += b;
-          bonuses.tokenIds.stat_shape_additions.cross.push(tId);
-        }
-        if (t.effect === "stat_shape_len4") {
-          const v = t.values?.[lv - 1] || 1;
-          const b = Math.floor((currentRunStats.currentShapeLen4 || 0) / 20) * v;
-          bonuses.stat_shape_additions.len4 += b;
-          bonuses.tokenIds.stat_shape_additions.len4.push(tId);
-        }
-
-        if (t.effect === 'color_combo_add' && t.params?.color) {
-          const color = t.params.color;
-          const lv = t.level || 1;
-          const val = t.values?.[lv - 1] || 1;
-          // color_combo は配列形式で { value, tokenId, tokenName } を積む
-          if (!bonuses.color_combo[color]) bonuses.color_combo[color] = [];
-          bonuses.color_combo[color].push({ value: val, tokenId: tId, tokenName: t.name || '色コンボ' });
-        }
-
-        const enchList = isEnchantDisabled ? [] : (t.enchantments || []);
-        enchList.forEach(enc => {
-          if (enc.effect === 'color_combo' && enc.params?.color) {
-            const color = enc.params.color;
-            if (!bonuses.color_combo[color]) bonuses.color_combo[color] = [];
-            bonuses.color_combo[color].push({ value: enc.value || 1, tokenId: tId, tokenName: t.name || '色コンボ' });
-          }
-          if (enc.effect === 'bomb_burst_combo') {
-            bonuses.bomb_burst_combo = (bonuses.bomb_burst_combo || 0) + (enc.value || 3);
-          }
-        });
-      });
-
-      activeBuffs.forEach(buff => {
-        if (buff.action === "color_combo_add_residual" && buff.params?.color) {
-          const color = buff.params.color;
-          const val = buff.params.value;
-          if (!bonuses.color_combo[color]) bonuses.color_combo[color] = [];
-          bonuses.color_combo[color].push({ value: val, tokenId: buff.tokenId || 'residual', tokenName: buff.name || '残滓の脈動' });
-        }
+      const bonuses = buildRealtimeBonuses({
+        effectiveTokens, currentRunStats, activeBuffs, isEnchantDisabled, hasMastery, masteryMultiplier,
       });
 
       engineRef.current.setRealtimeBonuses(bonuses);

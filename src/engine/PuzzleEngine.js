@@ -3,6 +3,7 @@ import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import soundManager from '../utils/SoundManager';
 import { SE_IDS } from '../constants/sounds';
+import { calcGroupAddition } from './realtimeBonuses.js';
 
 // --- Puzzle Engine (Imperative Logic) ---
 // --- Puzzle Engine (Imperative Logic) ---
@@ -2051,126 +2052,30 @@ class PuzzleEngine {
           }
 
           // --- 特殊消しリアルタイム加算 ---
-          let addition = 1;
+          const groupResult = calcGroupAddition(this.realtimeBonuses, {
+            shape,
+            type,
+            hasRainbow,
+            involvedRainbow: hasRainbow,
+            isSkyfall: group.some(o => o.isSkyfall),
+            enhancedCount: group.filter(o => o.isEnhanced).length,
+          }, {
+            pureMode: this.pureMode,
+            noSpecialEffects: this.noSpecialEffects,
+            overLinkMultiplier,
+          });
+          const addition = groupResult.addition;
           // トークン演出用ボーナス（通常加算後に個別表示）
-          const tokenBonuses = [];
-
-
-          if (!this.pureMode) {
-            // Rainbow Combo Bonus
-            if (hasRainbow && !this.noSpecialEffects && this.realtimeBonuses?.rainbow_combo_bonus) {
-              addition += this.realtimeBonuses.rainbow_combo_bonus;
-              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.rainbow_combo_bonus) {
-                this.realtimeBonuses.tokenIds.rainbow_combo_bonus.forEach(id => this.onPassiveTrigger(id));
-              }
+          const tokenBonuses = groupResult.tokenBonuses;
+          overLinkMultiplier = groupResult.overLinkMultiplier;
+          groupResult.events.forEach(ev => {
+            if (ev.kind === 'trigger') {
+              if (this.onPassiveTrigger) this.onPassiveTrigger(ev.id);
+            } else if (ev.kind === 'se') {
+              if (ev.id === 'MATCH_PLUS' && !this.onPassiveTrigger) return;
+              soundManager.playSE(SE_IDS[ev.id]);
             }
-
-            // 強化ドロップボーナス（1回目のみ加算するのが自然だが、リピートという性質上毎回適用する）
-            const enhancedCount = this.noSpecialEffects ? 0 : group.filter(o => o.isEnhanced).length;
-            const enhancedBonusPerOrb = 1 + (this.realtimeBonuses?.enhancedOrbBonus || 0);
-            if (enhancedCount > 0 && this.realtimeBonuses?.enhancedOrbBonus > 0 && this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.enhancedOrbBonus) {
-              this.realtimeBonuses.tokenIds.enhancedOrbBonus.forEach(id => this.onPassiveTrigger(id));
-              soundManager.playSE(SE_IDS.MATCH_PLUS);
-            }
-            addition += enhancedCount * enhancedBonusPerOrb;
-
-            // 過剰結合チェック
-            if (enhancedCount >= (this.realtimeBonuses?.overLink?.count || 999)) {
-              if (!overLinkMultiplier || overLinkMultiplier < (this.realtimeBonuses?.overLink?.value || 1)) {
-                overLinkMultiplier = this.realtimeBonuses?.overLink?.value || 1;
-                if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.overLink) {
-                  this.realtimeBonuses.tokenIds.overLink.forEach(id => this.onPassiveTrigger(id));
-                }
-              }
-            }
-
-            // Base Bonuses
-            if (shape === "len5") addition += 1;
-            if (shape === "l_shape") addition += 1;
-            if (shape === "cross") addition += 2;
-            if (shape === "row") addition += 2;
-
-            if (shape === "len4" && this.realtimeBonuses?.len4) {
-              addition += this.realtimeBonuses.len4;
-              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.len4) {
-                this.realtimeBonuses.tokenIds.len4.forEach(id => this.onPassiveTrigger(id));
-              }
-            }
-            if (shape === "len4" && this.realtimeBonuses?.stat_shape_additions?.len4) {
-              addition += this.realtimeBonuses.stat_shape_additions.len4;
-              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.stat_shape_additions?.len4) {
-                this.realtimeBonuses.tokenIds.stat_shape_additions.len4.forEach(id => this.onPassiveTrigger(id));
-              }
-            }
-            if (shape === "row" && this.realtimeBonuses?.row) {
-              addition += this.realtimeBonuses.row;
-              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.row) {
-                this.realtimeBonuses.tokenIds.row.forEach(id => this.onPassiveTrigger(id));
-              }
-            }
-            if (shape === "l_shape" && this.realtimeBonuses?.l_shape) {
-              addition += this.realtimeBonuses.l_shape;
-              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.l_shape) {
-                this.realtimeBonuses.tokenIds.l_shape.forEach(id => this.onPassiveTrigger(id));
-              }
-            }
-            if (shape === "cross" && this.realtimeBonuses?.stat_shape_additions?.cross) {
-              addition += this.realtimeBonuses.stat_shape_additions.cross;
-              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.stat_shape_additions?.cross) {
-                this.realtimeBonuses.tokenIds.stat_shape_additions.cross.forEach(id => this.onPassiveTrigger(id));
-              }
-            }
-
-            // Color Combo Bonus: トークン情報付き配列形式に対応
-            if (type && this.realtimeBonuses?.color_combo?.[type]) {
-              const colorEntries = this.realtimeBonuses.color_combo[type];
-              // tokenBonusInfo: 合算値 + 代表トークン情報
-              const tokenBonusValue = colorEntries.reduce((s, e) => s + (e.value || 0), 0);
-              const tokenBonusInfo = colorEntries.length > 0
-                ? { name: colorEntries[0].tokenName, id: colorEntries[0].tokenId }
-                : null;
-              if (tokenBonusValue > 0) {
-                tokenBonuses.push({ amount: tokenBonusValue, info: tokenBonusInfo });
-              }
-            }
-
-            // Heart Combo Bonus: トークン情報付き配列形式に対応
-            if (type === 'heart' && this.realtimeBonuses?.heart_combo?.length > 0) {
-              const heartEntries = this.realtimeBonuses.heart_combo;
-              const heartBonusValue = heartEntries.reduce((s, e) => s + (e.value || 0), 0);
-              const heartBonusInfo = { name: heartEntries[0].tokenName, id: heartEntries[0].tokenId };
-              if (heartBonusValue > 0) {
-                tokenBonuses.push({ amount: heartBonusValue, info: heartBonusInfo });
-              }
-              if (this.onPassiveTrigger) {
-                heartEntries.forEach(e => this.onPassiveTrigger(e.tokenId));
-              }
-            }
-
-            // Skyfall Bonus
-            const isSkyfall = group.some(o => o.isSkyfall);
-            if (isSkyfall && this.realtimeBonuses?.skyfall) {
-              addition += this.realtimeBonuses.skyfall;
-              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.skyfall) {
-                this.realtimeBonuses.tokenIds.skyfall.forEach(id => this.onPassiveTrigger(id));
-              }
-            }
-
-            // Rainbow Bridge (虹ドロップがコンボに関与した際のボーナス)
-            const involvedRainbow = group.some(o => o.isRainbow);
-            if (involvedRainbow && this.realtimeBonuses?.rainbow) {
-              addition += Number(this.realtimeBonuses.rainbow || 0);
-              if (this.onPassiveTrigger && this.realtimeBonuses.tokenIds?.rainbow) {
-                this.realtimeBonuses.tokenIds.rainbow.forEach(id => this.onPassiveTrigger(id));
-              }
-              soundManager.playSE(SE_IDS.MATCH_RAINBOW);
-            }
-
-            // Apply Mastery Multiplier (Real-time)
-            if (this.realtimeBonuses?.masteryMultiplier) {
-              addition *= this.realtimeBonuses.masteryMultiplier;
-            }
-          }
+          });
 
           group.forEach((o) => {
             if (o.el) {
