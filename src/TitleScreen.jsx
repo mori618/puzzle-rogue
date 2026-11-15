@@ -91,6 +91,16 @@ const TitleScreen = ({ onStart, onHelp, onStats, hasSaveData, onContinue, onCred
                     </button>
                     <button
                         onClick={() => {
+                            onTitleEncyclopedia && onTitleEncyclopedia();
+                            soundManager.playSE(SE_IDS.UI_CLICK);
+                        }}
+                        className="w-full btn-game-cyber py-3 flex items-center justify-center gap-2 font-japanese"
+                    >
+                        <span className="material-icons-round text-lg text-yellow-300">stars</span>
+                        二つ名図鑑
+                    </button>
+                    <button
+                        onClick={() => {
                             onSettings();
                             soundManager.playSE(SE_IDS.UI_CLICK);
                         }}

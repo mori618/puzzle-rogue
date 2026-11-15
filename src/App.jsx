@@ -10,6 +10,8 @@ import CreditsScreen from "./CreditsScreen";
 import SettingsScreen from "./SettingsScreen";
 import StartOptionScreen from "./StartOptionScreen";
 import TokenEncyclopediaScreen from "./TokenEncyclopediaScreen";
+import TitleEncyclopediaScreen from "./TitleEncyclopediaScreen";
+import { getTitleDisplayName } from "./constants/titles.js";
 import UIPreviewScreen from "./UIPreviewScreen";
 import TurnBreakdownPanel from "./TurnBreakdownPanel";
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
@@ -55,6 +57,10 @@ const App = () => {
     showCredits, setShowCredits,
     showStartOption, setShowStartOption,
     showEncyclopedia, setShowEncyclopedia,
+    showTitleEncyclopedia, setShowTitleEncyclopedia,
+    unlockedTitles, equippedTitle,
+    equipTitlePrefix, equipTitleSuffix, equipEvolvedTitle, setTitleBiasColor, setTitleDuoColors,
+    stats,
     settings,
     currentRunTotalCombo,
     currentRunStats,
@@ -186,6 +192,20 @@ const App = () => {
 
   if (showTitle) {
     return (
+      <>
+      {showTitleEncyclopedia && (
+        <TitleEncyclopediaScreen
+        onClose={() => setShowTitleEncyclopedia(false)}
+        unlockedTitles={unlockedTitles}
+        equippedTitle={equippedTitle}
+        equipTitlePrefix={equipTitlePrefix}
+        equipTitleSuffix={equipTitleSuffix}
+        equipEvolvedTitle={equipEvolvedTitle}
+        stats={stats}
+        currentRunStats={currentRunStats}
+        lockedReason={hasSaveData ? "進行中のゲームがあるため変更できません（新しく始めるときに変更できます）" : null}
+      />
+      )}
       <TitleScreen
         hasSaveData={hasSaveData}
         onContinue={() => {
@@ -206,7 +226,9 @@ const App = () => {
         onEncyclopedia={() => setShowEncyclopedia(true)}
         onPractice={handleStartPractice}
         onUIPreview={() => setShowUIPreview(true)}
+        onTitleEncyclopedia={() => setShowTitleEncyclopedia(true)}
       />
+      </>
     );
   }
 
@@ -214,7 +236,32 @@ const App = () => {
   return (
     <div className="bg-background-dark font-display text-slate-100 h-[100dvh] overflow-hidden flex justify-center w-full">
       {showStartOption && (
-        <StartOptionScreen onSelect={handleStartOptionSelection} />
+        <StartOptionScreen
+          onSelect={handleStartOptionSelection}
+          titlePanel={{
+            titleName: getTitleDisplayName(equippedTitle),
+            onOpenTitles: () => setShowTitleEncyclopedia(true),
+            needsBias: equippedTitle.prefixId === 'p_bias',
+            biasColor: equippedTitle.biasColor,
+            onSetBias: setTitleBiasColor,
+            needsDuo: equippedTitle.suffixId === 's_duo',
+            duoColors: equippedTitle.duoColors || [],
+            onSetDuo: setTitleDuoColors,
+          }}
+        />
+      )}
+      {showStartOption && showTitleEncyclopedia && (
+        <TitleEncyclopediaScreen
+        onClose={() => setShowTitleEncyclopedia(false)}
+        unlockedTitles={unlockedTitles}
+        equippedTitle={equippedTitle}
+        equipTitlePrefix={equipTitlePrefix}
+        equipTitleSuffix={equipTitleSuffix}
+        equipEvolvedTitle={equipEvolvedTitle}
+        stats={stats}
+        currentRunStats={currentRunStats}
+        lockedReason={null}
+      />
       )}
       {/* Mobile Container */}
       <div className="w-full max-w-md h-full flex flex-col justify-between relative bg-background-dark shadow-2xl overflow-hidden">
@@ -267,7 +314,12 @@ const App = () => {
                 </>
               ) : (
                 <>
-                  <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Current Stage</span>
+                  <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+                    Current Stage
+                    {(equippedTitle.prefixId || equippedTitle.suffixId || equippedTitle.evolvedId) && (
+                      <span className="ml-2 normal-case tracking-normal text-yellow-300/90 font-bold">{getTitleDisplayName(equippedTitle)}</span>
+                    )}
+                  </span>
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-bold text-white whitespace-nowrap">
                       <span className="text-[10px] uppercase text-slate-400 mr-1">Cycle</span>

@@ -273,6 +273,7 @@ const TitleEncyclopediaScreen = ({
   equipEvolvedTitle,
   stats = {},
   currentRunStats = {},
+  lockedReason = null, // 装備を変えられないときの理由（D4: 二つ名の変更はラン開始時のみ）
 }) => {
   const [activeTab, setActiveTab] = useState('prefix');
 
@@ -287,19 +288,19 @@ const TitleEncyclopediaScreen = ({
   );
 
   const handleEquipPrefix = (id) => {
-    if (!equipTitlePrefix) return;
+    if (!equipTitlePrefix || lockedReason) return;
     const isAlreadyEquipped = equippedTitle.prefixId === id;
     equipTitlePrefix(isAlreadyEquipped ? null : id);
   };
 
   const handleEquipSuffix = (id) => {
-    if (!equipTitleSuffix) return;
+    if (!equipTitleSuffix || lockedReason) return;
     const isAlreadyEquipped = equippedTitle.suffixId === id;
     equipTitleSuffix(isAlreadyEquipped ? null : id);
   };
 
   const handleEquipEvolved = (id) => {
-    if (!equipEvolvedTitle) return;
+    if (!equipEvolvedTitle || lockedReason) return;
     equipEvolvedTitle(id);
   };
 
@@ -314,7 +315,7 @@ const TitleEncyclopediaScreen = ({
   const totalCount = PREFIX_TITLES.length + SUFFIX_TITLES.length + EVOLVED_TITLES.length;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background-dark flex flex-col font-game-cyber">
+    <div className="fixed inset-0 z-[150] bg-background-dark flex flex-col font-game-cyber">
       {/* Header */}
       <div className="relative px-4 pt-[calc(12px+env(safe-area-inset-top,16px))] pb-3 border-b border-white/10 bg-slate-900/80 backdrop-blur-md flex-none">
         <div className="flex items-center justify-between mb-2">
@@ -330,6 +331,12 @@ const TitleEncyclopediaScreen = ({
           </button>
         </div>
 
+        {lockedReason && (
+          <div className="rounded-lg px-3 py-1.5 mb-2 border border-amber-500/30 bg-amber-500/10 text-[11px] text-amber-200 flex items-center gap-1.5">
+            <span className="material-icons-round text-sm">lock</span>
+            {lockedReason}
+          </div>
+        )}
         {/* Current equipped title display */}
         <div className={`rounded-xl px-3 py-2 border flex items-center gap-2 mb-2
           ${activeSetBonus

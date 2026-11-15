@@ -1,6 +1,60 @@
 import React from 'react';
 
-const StartOptionScreen = ({ onSelect }) => {
+const COLOR_CHOICES = [
+  { id: 'fire', label: '炎', cls: 'bg-red-500' },
+  { id: 'water', label: '雨', cls: 'bg-blue-500' },
+  { id: 'wood', label: '風', cls: 'bg-green-500' },
+  { id: 'light', label: '雷', cls: 'bg-yellow-400' },
+  { id: 'dark', label: '月', cls: 'bg-purple-500' },
+  { id: 'heart', label: '癒', cls: 'bg-pink-500' },
+];
+
+/**
+ * 二つ名の確認・変更（D4: ラン開始時のみ変更可）と、偏愛の・二極化の属性指定（D6）。
+ */
+const TitlePanel = ({ titleName, onOpenTitles, needsBias, biasColor, onSetBias, needsDuo, duoColors = [], onSetDuo }) => {
+  const toggleDuo = (c) => {
+    const next = duoColors.includes(c) ? duoColors.filter(x => x !== c) : [...duoColors, c].slice(-2);
+    onSetDuo(next);
+  };
+  const missing = (needsBias && !biasColor) || (needsDuo && duoColors.length < 2);
+  return (
+    <div className="max-w-3xl mx-auto mb-8 rounded-2xl border border-yellow-500/20 bg-slate-900/70 p-4 text-left">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] text-slate-400 font-bold tracking-widest">二つ名（ラン中は変更できません）</p>
+          <p className="text-base font-black text-yellow-200 truncate">{titleName}</p>
+        </div>
+        <button onClick={onOpenTitles} className="shrink-0 btn-game-cyber px-4 py-2 text-xs font-bold">二つ名を変更</button>
+      </div>
+      {needsBias && (
+        <div className="mt-3">
+          <p className="text-[11px] text-slate-300 mb-1">偏愛の: 出現率を上げる属性を1つ選ぶ</p>
+          <div className="flex gap-2 flex-wrap">
+            {COLOR_CHOICES.map(c => (
+              <button key={c.id} onClick={() => onSetBias(c.id)}
+                className={`w-9 h-9 rounded-full text-xs font-bold text-white ${c.cls} ${biasColor === c.id ? 'ring-2 ring-white' : 'opacity-50'}`}>{c.label}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      {needsDuo && (
+        <div className="mt-3">
+          <p className="text-[11px] text-slate-300 mb-1">二極化: 偏らせる属性を2つ選ぶ</p>
+          <div className="flex gap-2 flex-wrap">
+            {COLOR_CHOICES.map(c => (
+              <button key={c.id} onClick={() => toggleDuo(c.id)}
+                className={`w-9 h-9 rounded-full text-xs font-bold text-white ${c.cls} ${duoColors.includes(c.id) ? 'ring-2 ring-white' : 'opacity-50'}`}>{c.label}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      {missing && <p className="mt-2 text-[11px] text-amber-300">属性を選ぶまで、この二つ名の出現率効果は発動しません。</p>}
+    </div>
+  );
+};
+
+const StartOptionScreen = ({ onSelect, titlePanel = null }) => {
   const options = [
     {
       id: 'safety',
@@ -52,10 +106,12 @@ const StartOptionScreen = ({ onSelect }) => {
         </p>
         
         {/* メインタイトル */}
-        <h2 className="text-3xl md:text-4xl font-game-header font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 mb-14 drop-shadow-[0_2px_8px_rgba(245,158,11,0.3)] animate-in slide-in-from-bottom-4 duration-700">
+        <h2 className="text-3xl md:text-4xl font-game-header font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 mb-8 drop-shadow-[0_2px_8px_rgba(245,158,11,0.3)] animate-in slide-in-from-bottom-4 duration-700">
           始まりの力を選択
         </h2>
         
+        {titlePanel && <TitlePanel {...titlePanel} />}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
           {options.map((option) => (
             <button

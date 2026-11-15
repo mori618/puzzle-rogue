@@ -264,6 +264,14 @@ export const useGameState = () => {
     setEquippedTitle(prev => ({ ...prev, suffixId: suffixId || null, evolvedId: null }));
   }, []);
 
+  // 偏愛の・二極化 の属性指定（D6: ラン開始時に選ぶ）
+  const setTitleBiasColor = useCallback((color) => {
+    setEquippedTitle(prev => ({ ...prev, biasColor: color }));
+  }, []);
+  const setTitleDuoColors = useCallback((colors) => {
+    setEquippedTitle(prev => ({ ...prev, duoColors: colors }));
+  }, []);
+
   const equipEvolvedTitle = useCallback((evolvedId) => {
     const evo = EVOLVED_TITLES.find(e => e.id === evolvedId);
     if (!evo) return;
@@ -4302,7 +4310,7 @@ export const useGameState = () => {
     showTitleEncyclopedia, setShowTitleEncyclopedia,
     unlockedTitles, setUnlockedTitles,
     equippedTitle, setEquippedTitle,
-    equipTitlePrefix, equipTitleSuffix, equipEvolvedTitle,
+    equipTitlePrefix, equipTitleSuffix, equipEvolvedTitle, setTitleBiasColor, setTitleDuoColors,
     activeTitleEffects,
     checkTitleUnlocks,
     savedBoard, setSavedBoard,
