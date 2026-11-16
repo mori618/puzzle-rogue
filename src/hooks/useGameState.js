@@ -1838,7 +1838,6 @@ export const useGameState = () => {
       currentShapeLShape: (prev.currentShapeLShape || 0) + countLShape,
       currentShapeSquare: (prev.currentShapeSquare || 0) + countSquare,
       currentShapeLen5: (prev.currentShapeLen5 || 0) + countLen5,
-      totalHeartsErased: (prev.totalHeartsErased || 0) + (finalErasedColorCounts.heart || 0),
       maxMoveDrop: Math.max(prev.maxMoveDrop || 0, maxMoveDropThisTurn),
       maxBombEraseOnce: Math.max(prev.maxBombEraseOnce || 0, erasedByBombTotal),
       maxRepeatOnce: Math.max(prev.maxRepeatOnce || 0, erasedByRepeatTotal),
