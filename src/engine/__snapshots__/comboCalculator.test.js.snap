@@ -1,0 +1,7607 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`calcTurnResult > 代表ビルドのスナップショット 1`] = `
+{
+  "mult/monoFire": {
+    "addedMultiplier": 0,
+    "bonus": 0,
+    "effectiveCombo": 108,
+    "finalBaseCombo": 6,
+    "finalComboMultiplier": 18,
+    "steps": [
+      {
+        "kind": "multiplier",
+        "label": "炎の連舞",
+        "type": "mult",
+        "value": 2,
+      },
+      {
+        "kind": "multiplier",
+        "label": "炎の六重奏",
+        "type": "mult",
+        "value": 3,
+      },
+      {
+        "kind": "multiplier",
+        "label": "禁忌の儀式",
+        "type": "mult",
+        "value": 3,
+      },
+    ],
+    "tc": 6,
+  },
+  "mult/shapes": {
+    "addedMultiplier": 1,
+    "bonus": 0,
+    "effectiveCombo": 36,
+    "finalBaseCombo": 6,
+    "finalComboMultiplier": 6,
+    "steps": [
+      {
+        "kind": "multiplier",
+        "label": "正方形消し(基礎)",
+        "type": "add",
+        "value": 2,
+      },
+      {
+        "kind": "multiplier",
+        "label": "禁忌の儀式",
+        "type": "mult",
+        "value": 3,
+      },
+    ],
+    "tc": 6,
+  },
+  "mult/spread": {
+    "addedMultiplier": 0,
+    "bonus": 0,
+    "effectiveCombo": 42,
+    "finalBaseCombo": 7,
+    "finalComboMultiplier": 6,
+    "steps": [
+      {
+        "kind": "multiplier",
+        "label": "炎の連舞",
+        "type": "mult",
+        "value": 2,
+      },
+      {
+        "kind": "multiplier",
+        "label": "禁忌の儀式",
+        "type": "mult",
+        "value": 3,
+      },
+    ],
+    "tc": 7,
+  },
+  "sigma/monoFire": {
+    "addedMultiplier": 3,
+    "bonus": 15,
+    "effectiveCombo": 84,
+    "finalBaseCombo": 21,
+    "finalComboMultiplier": 4,
+    "steps": [
+      {
+        "kind": "bonus",
+        "label": "力の鼓動",
+        "type": undefined,
+        "value": 15,
+      },
+      {
+        "kind": "multiplier",
+        "label": "炎の力",
+        "type": "add",
+        "value": 4,
+      },
+    ],
+    "tc": 6,
+  },
+  "sigma/shapes": {
+    "addedMultiplier": 8,
+    "bonus": 15,
+    "effectiveCombo": 189,
+    "finalBaseCombo": 21,
+    "finalComboMultiplier": 9,
+    "steps": [
+      {
+        "kind": "bonus",
+        "label": "力の鼓動",
+        "type": undefined,
+        "value": 15,
+      },
+      {
+        "kind": "multiplier",
+        "label": "正方形消し(基礎)",
+        "type": "add",
+        "value": 2,
+      },
+      {
+        "kind": "multiplier",
+        "label": "炎の力",
+        "type": "add",
+        "value": 4,
+      },
+      {
+        "kind": "multiplier",
+        "label": "炎月の律動",
+        "type": "add",
+        "value": 5,
+      },
+    ],
+    "tc": 6,
+  },
+  "sigma/spread": {
+    "addedMultiplier": 7,
+    "bonus": 15,
+    "effectiveCombo": 176,
+    "finalBaseCombo": 22,
+    "finalComboMultiplier": 8,
+    "steps": [
+      {
+        "kind": "bonus",
+        "label": "力の鼓動",
+        "type": undefined,
+        "value": 15,
+      },
+      {
+        "kind": "multiplier",
+        "label": "炎の力",
+        "type": "add",
+        "value": 4,
+      },
+      {
+        "kind": "multiplier",
+        "label": "炎月の律動",
+        "type": "add",
+        "value": 5,
+      },
+    ],
+    "tc": 7,
+  },
+}
+`;
+
+exports[`calcTurnResult > 全トークン単体のスナップショット 1`] = `
+{
+  "active_calm@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_calm@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_calm@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_d_l@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_d_l@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_d_l@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_f_w@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_f_w@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_f_w@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_g_f@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_g_f@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_g_f@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_h_f@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_h_f@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_h_f@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_l_d@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_l_d@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_l_d@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_w_g@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_w_g@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_convert_w_g@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_double_probability@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_double_probability@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_double_probability@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_finger_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_force_trigger@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_force_trigger@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_force_trigger@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_fd_l@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_fd_l@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_fd_l@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_fd_w@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_fd_w@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_fd_w@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_fw_g@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_fw_g@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_fw_g@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_gl_d@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_gl_d@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_gl_d@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_gl_h@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_gl_h@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_gl_h@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_ld_h@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_ld_h@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_ld_h@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_wh_f@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_wh_f@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_wh_f@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_wh_g@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_wh_g@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_m_conv_wh_g@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_magic_finger_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_mult_1@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_mult_1@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_mult_1@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_mult_2@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_mult_2@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_mult_2@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_residual_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_cross@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_cross@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_cross@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_l_shape@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_l_shape@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_l_shape@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_len4@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_len4@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_len4@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_row@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_row@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_row@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_square@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_square@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_shape_square@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_d_10@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_d_10@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_d_10@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_f_10@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_f_10@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_f_10@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_g_10@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_g_10@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_g_10@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_h_10@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_h_10@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_h_10@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_l_10@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_l_10@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_l_10@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_w_10@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_w_10@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_spawn_w_10@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_square_judgment@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_square_judgment@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_square_judgment@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_d_5@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_d_5@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_d_5@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_f_5@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_f_5@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_f_5@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_g_5@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_g_5@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_g_5@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_h_5@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_h_5@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_h_5@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_l_5@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_l_5@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_l_5@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_w_5@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_w_5@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "active_turn_end_spawn_w_5@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "additive_mastery@Lv1": {
+    "monoFire": 6,
+    "shapes": 6,
+    "spread": 7,
+  },
+  "additive_mastery@Lv2": {
+    "monoFire": 6,
+    "shapes": 6,
+    "spread": 7,
+  },
+  "additive_mastery@Lv3": {
+    "monoFire": 6,
+    "shapes": 6,
+    "spread": 7,
+  },
+  "artisan_of_square@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "artisan_of_square@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "artisan_of_square@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "attr_res_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 13,
+    "spread": 7,
+  },
+  "attr_res_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 13,
+    "spread": 7,
+  },
+  "attr_res_dark@Lv3": {
+    "monoFire": 7,
+    "shapes": 14,
+    "spread": 8,
+  },
+  "attr_res_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 13,
+    "spread": 7,
+  },
+  "attr_res_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 13,
+    "spread": 7,
+  },
+  "attr_res_fire@Lv3": {
+    "monoFire": 7,
+    "shapes": 14,
+    "spread": 8,
+  },
+  "attr_res_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 13,
+    "spread": 7,
+  },
+  "attr_res_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 13,
+    "spread": 7,
+  },
+  "attr_res_heart@Lv3": {
+    "monoFire": 7,
+    "shapes": 14,
+    "spread": 8,
+  },
+  "attr_res_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 13,
+    "spread": 7,
+  },
+  "attr_res_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 13,
+    "spread": 7,
+  },
+  "attr_res_light@Lv3": {
+    "monoFire": 7,
+    "shapes": 14,
+    "spread": 8,
+  },
+  "attr_res_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 13,
+    "spread": 7,
+  },
+  "attr_res_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 13,
+    "spread": 7,
+  },
+  "attr_res_water@Lv3": {
+    "monoFire": 7,
+    "shapes": 14,
+    "spread": 8,
+  },
+  "attr_res_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 13,
+    "spread": 7,
+  },
+  "attr_res_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 13,
+    "spread": 7,
+  },
+  "attr_res_wood@Lv3": {
+    "monoFire": 7,
+    "shapes": 14,
+    "spread": 8,
+  },
+  "bargain@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "bargain@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "bargain@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bal_5@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bal_5@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bal_5@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_fd@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_fd@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_fd@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_fl@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_fl@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_fl@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_gh@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_gh@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_gh@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_gl@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_gl@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_gl@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_wd@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_wd@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_wd@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_wh@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_wh@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_bi_wh@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono1@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono1@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono1@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono2@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono2@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono2@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono3@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono3@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono3@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono4@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono4@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono4@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono5@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono5@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono5@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono6@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono6@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_mono6@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_fdl@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_fdl@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_fdl@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_fdw@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_fdw@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_fdw@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_fwg@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_fwg@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_fwg@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_gld@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_gld@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_gld@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_glh@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_glh@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_glh@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_ldh@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_ldh@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_ldh@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_whf@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_whf@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_whf@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_whg@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_whg@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "board_tri_whg@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "bomb_erase_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "bomb_erase_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "bomb_erase_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "bonus_1c_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "bonus_1c_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_1c_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 30,
+    "spread": 28,
+  },
+  "bonus_1c_fire@Lv1": {
+    "monoFire": 12,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "bonus_1c_fire@Lv2": {
+    "monoFire": 18,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_1c_fire@Lv3": {
+    "monoFire": 24,
+    "shapes": 30,
+    "spread": 28,
+  },
+  "bonus_1c_heart@Lv1": {
+    "monoFire": 12,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "bonus_1c_heart@Lv2": {
+    "monoFire": 18,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_1c_heart@Lv3": {
+    "monoFire": 24,
+    "shapes": 30,
+    "spread": 28,
+  },
+  "bonus_1c_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "bonus_1c_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_1c_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 30,
+    "spread": 28,
+  },
+  "bonus_1c_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "bonus_1c_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_1c_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 30,
+    "spread": 28,
+  },
+  "bonus_1c_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "bonus_1c_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_1c_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 30,
+    "spread": 28,
+  },
+  "bonus_2c_fd@Lv1": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "bonus_2c_fd@Lv2": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_2c_fd@Lv3": {
+    "monoFire": 6,
+    "shapes": 36,
+    "spread": 35,
+  },
+  "bonus_2c_fl@Lv1": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "bonus_2c_fl@Lv2": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_2c_fl@Lv3": {
+    "monoFire": 6,
+    "shapes": 36,
+    "spread": 35,
+  },
+  "bonus_2c_gh@Lv1": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "bonus_2c_gh@Lv2": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_2c_gh@Lv3": {
+    "monoFire": 6,
+    "shapes": 36,
+    "spread": 35,
+  },
+  "bonus_2c_gl@Lv1": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "bonus_2c_gl@Lv2": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_2c_gl@Lv3": {
+    "monoFire": 6,
+    "shapes": 36,
+    "spread": 35,
+  },
+  "bonus_2c_wd@Lv1": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "bonus_2c_wd@Lv2": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_2c_wd@Lv3": {
+    "monoFire": 6,
+    "shapes": 36,
+    "spread": 35,
+  },
+  "bonus_2c_wh@Lv1": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "bonus_2c_wh@Lv2": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_2c_wh@Lv3": {
+    "monoFire": 6,
+    "shapes": 36,
+    "spread": 35,
+  },
+  "bonus_3c_fdl@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_3c_fdl@Lv2": {
+    "monoFire": 6,
+    "shapes": 48,
+    "spread": 49,
+  },
+  "bonus_3c_fdl@Lv3": {
+    "monoFire": 6,
+    "shapes": 66,
+    "spread": 70,
+  },
+  "bonus_3c_fdw@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_3c_fdw@Lv2": {
+    "monoFire": 6,
+    "shapes": 48,
+    "spread": 49,
+  },
+  "bonus_3c_fdw@Lv3": {
+    "monoFire": 6,
+    "shapes": 66,
+    "spread": 70,
+  },
+  "bonus_3c_fwg@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_3c_fwg@Lv2": {
+    "monoFire": 6,
+    "shapes": 48,
+    "spread": 49,
+  },
+  "bonus_3c_fwg@Lv3": {
+    "monoFire": 6,
+    "shapes": 66,
+    "spread": 70,
+  },
+  "bonus_3c_gld@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_3c_gld@Lv2": {
+    "monoFire": 6,
+    "shapes": 48,
+    "spread": 49,
+  },
+  "bonus_3c_gld@Lv3": {
+    "monoFire": 6,
+    "shapes": 66,
+    "spread": 70,
+  },
+  "bonus_3c_glh@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_3c_glh@Lv2": {
+    "monoFire": 6,
+    "shapes": 48,
+    "spread": 49,
+  },
+  "bonus_3c_glh@Lv3": {
+    "monoFire": 6,
+    "shapes": 66,
+    "spread": 70,
+  },
+  "bonus_3c_ldh@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_3c_ldh@Lv2": {
+    "monoFire": 6,
+    "shapes": 48,
+    "spread": 49,
+  },
+  "bonus_3c_ldh@Lv3": {
+    "monoFire": 6,
+    "shapes": 66,
+    "spread": 70,
+  },
+  "bonus_3c_whf@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_3c_whf@Lv2": {
+    "monoFire": 6,
+    "shapes": 48,
+    "spread": 49,
+  },
+  "bonus_3c_whf@Lv3": {
+    "monoFire": 6,
+    "shapes": 66,
+    "spread": 70,
+  },
+  "bonus_3c_whg@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "bonus_3c_whg@Lv2": {
+    "monoFire": 6,
+    "shapes": 48,
+    "spread": 49,
+  },
+  "bonus_3c_whg@Lv3": {
+    "monoFire": 6,
+    "shapes": 66,
+    "spread": 70,
+  },
+  "bonus_4c_fwlh@Lv1": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 10,
+  },
+  "bonus_4c_fwlh@Lv2": {
+    "monoFire": 6,
+    "shapes": 20,
+    "spread": 11,
+  },
+  "bonus_4c_fwlh@Lv3": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 14,
+  },
+  "bonus_5c@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 14,
+  },
+  "bonus_5c@Lv2": {
+    "monoFire": 6,
+    "shapes": 27,
+    "spread": 16,
+  },
+  "bonus_5c@Lv3": {
+    "monoFire": 6,
+    "shapes": 36,
+    "spread": 21,
+  },
+  "bonus_6c@Lv1": {
+    "monoFire": 6,
+    "shapes": 36,
+    "spread": 21,
+  },
+  "bonus_6c@Lv2": {
+    "monoFire": 6,
+    "shapes": 39,
+    "spread": 23,
+  },
+  "bonus_6c@Lv3": {
+    "monoFire": 6,
+    "shapes": 48,
+    "spread": 28,
+  },
+  "bonus_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "bonus_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "bonus_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "bonus_skyfall@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "bonus_skyfall@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "bonus_skyfall@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cc_add_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_of_life@Lv1": {
+    "monoFire": 96,
+    "shapes": 192,
+    "spread": 112,
+  },
+  "chalice_of_life@Lv2": {
+    "monoFire": 167,
+    "shapes": 335,
+    "spread": 195,
+  },
+  "chalice_of_life@Lv3": {
+    "monoFire": 486,
+    "shapes": 972,
+    "spread": 567,
+  },
+  "charge_boost@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "charge_boost@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "charge_boost@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chronos_master@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chronos_master@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chronos_master@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "col_double_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "col_double_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "col_double_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "col_l_l@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "col_l_l@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "col_l_l@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "col_r_d@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "col_r_d@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "col_r_d@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "col_slash_combo@Lv1": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 7,
+  },
+  "col_slash_combo@Lv2": {
+    "monoFire": 6,
+    "shapes": 26,
+    "spread": 7,
+  },
+  "col_slash_combo@Lv3": {
+    "monoFire": 6,
+    "shapes": 40,
+    "spread": 7,
+  },
+  "col_thunder_plus@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "col_thunder_plus@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "col_thunder_plus@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "collector@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "collector@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "collector@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "color_shift@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "color_shift@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "color_shift@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_fire@Lv1": {
+    "monoFire": 9,
+    "shapes": 12,
+    "spread": 10,
+  },
+  "combo2_mult_fire@Lv2": {
+    "monoFire": 10,
+    "shapes": 12,
+    "spread": 11,
+  },
+  "combo2_mult_fire@Lv3": {
+    "monoFire": 12,
+    "shapes": 12,
+    "spread": 14,
+  },
+  "combo2_mult_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo2_mult_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo_exact_10@Lv1": {
+    "monoFire": 26,
+    "shapes": 52,
+    "spread": 27,
+  },
+  "combo_exact_10@Lv2": {
+    "monoFire": 66,
+    "shapes": 132,
+    "spread": 67,
+  },
+  "combo_exact_10@Lv3": {
+    "monoFire": 156,
+    "shapes": 312,
+    "spread": 157,
+  },
+  "combo_exact_3@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo_exact_3@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo_exact_3@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "combo_ge_7@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 14,
+  },
+  "combo_ge_7@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 21,
+  },
+  "combo_ge_7@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 35,
+  },
+  "connect4_mult_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 14,
+    "spread": 7,
+  },
+  "connect4_mult_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 15,
+    "spread": 7,
+  },
+  "connect4_mult_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 7,
+  },
+  "connect4_mult_fire@Lv1": {
+    "monoFire": 7,
+    "shapes": 14,
+    "spread": 7,
+  },
+  "connect4_mult_fire@Lv2": {
+    "monoFire": 7,
+    "shapes": 15,
+    "spread": 7,
+  },
+  "connect4_mult_fire@Lv3": {
+    "monoFire": 9,
+    "shapes": 18,
+    "spread": 7,
+  },
+  "connect4_mult_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 14,
+    "spread": 7,
+  },
+  "connect4_mult_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 15,
+    "spread": 7,
+  },
+  "connect4_mult_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 7,
+  },
+  "connect4_mult_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 14,
+    "spread": 7,
+  },
+  "connect4_mult_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 15,
+    "spread": 7,
+  },
+  "connect4_mult_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 7,
+  },
+  "connect4_mult_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 14,
+    "spread": 7,
+  },
+  "connect4_mult_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 15,
+    "spread": 7,
+  },
+  "connect4_mult_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 7,
+  },
+  "connect4_mult_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 14,
+    "spread": 7,
+  },
+  "connect4_mult_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 15,
+    "spread": 7,
+  },
+  "connect4_mult_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 18,
+    "spread": 7,
+  },
+  "connect6_mult_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_fire@Lv1": {
+    "monoFire": 12,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_fire@Lv2": {
+    "monoFire": 13,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_fire@Lv3": {
+    "monoFire": 18,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 7,
+  },
+  "connect6_mult_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 27,
+    "spread": 7,
+  },
+  "connect6_mult_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 36,
+    "spread": 7,
+  },
+  "connect6_mult_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "connect6_mult_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_bomb_target_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_bomb_target_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_bomb_target_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_bomb_target_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_bomb_target_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_bomb_target_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_d@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_d@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_d@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_f@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_f@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_f@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_g@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_g@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_g@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_l@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_l@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_l@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_w@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_w@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_h_w@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_fd_l@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_fd_l@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_fd_l@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_fd_w@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_fd_w@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_fd_w@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_fw_g@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_fw_g@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_fw_g@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_gl_d@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_gl_d@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_gl_d@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_gl_h@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_gl_h@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_gl_h@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_ld_h@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_ld_h@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_ld_h@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_wh_f@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_wh_f@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_wh_f@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_wh_g@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_wh_g@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_m_wh_g@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_chaos@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_chaos@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_chaos@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_erosion@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_erosion@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_erosion@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_flux@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_flux@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_flux@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_harmony@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_harmony@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_harmony@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_order@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_order@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_order@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_reversal@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_reversal@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_p_reversal@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_repeat_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_repeat_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_repeat_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_repeat_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_repeat_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_repeat_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_star_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_star_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_star_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_star_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_star_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "conv_star_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "copy_token@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "copy_token@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "copy_token@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "critical_passive@Lv1": {
+    "monoFire": 120,
+    "shapes": 126,
+    "spread": 140,
+  },
+  "critical_passive@Lv2": {
+    "monoFire": 300,
+    "shapes": 306,
+    "spread": 350,
+  },
+  "critical_passive@Lv3": {
+    "monoFire": 600,
+    "shapes": 606,
+    "spread": 700,
+  },
+  "cross@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cross@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cross@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cross_count_token@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cross_count_token@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cross_count_token@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cross_double_base_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cross_double_base_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cross_double_base_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cross_multiply_move_drop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cross_multiply_move_drop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cross_multiply_move_drop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_active_passive_null@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_active_passive_null@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_active_passive_null@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_active_time@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_active_time@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_active_time@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_count_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_count_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_count_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_decay@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_decay@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_decay@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_double_target@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_double_target@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_double_target@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_eater@Lv1": {
+    "monoFire": 18,
+    "shapes": 36,
+    "spread": 21,
+  },
+  "curse_eater@Lv2": {
+    "monoFire": 19,
+    "shapes": 39,
+    "spread": 23,
+  },
+  "curse_eater@Lv3": {
+    "monoFire": 24,
+    "shapes": 48,
+    "spread": 28,
+  },
+  "curse_engraver@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_engraver@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_engraver@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_fake_seller@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_fake_seller@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_fake_seller@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_greed@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_greed@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_greed@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_half@Lv1": {
+    "monoFire": 3,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "curse_half@Lv2": {
+    "monoFire": 3,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "curse_half@Lv3": {
+    "monoFire": 3,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "curse_heart@Lv1": {
+    "monoFire": 5,
+    "shapes": 10,
+    "spread": 6,
+  },
+  "curse_heart@Lv2": {
+    "monoFire": 5,
+    "shapes": 10,
+    "spread": 6,
+  },
+  "curse_heart@Lv3": {
+    "monoFire": 5,
+    "shapes": 10,
+    "spread": 6,
+  },
+  "curse_init@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_init@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_init@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_level_fail_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_level_fail_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_level_fail_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_level_fail_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_level_fail_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_level_fail_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_multiplied_a@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_multiplied_a@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_multiplied_a@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_multiplied_p@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_multiplied_p@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_multiplied_p@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_multiply@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_multiply@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_multiply@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_roulette@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_roulette@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_roulette@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_skyfall@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_skyfall@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_skyfall@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_time@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_time@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_time@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_turns@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_turns@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "curse_turns@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "cursed_power@Lv1": {
+    "monoFire": 36,
+    "shapes": 72,
+    "spread": 37,
+  },
+  "cursed_power@Lv2": {
+    "monoFire": 66,
+    "shapes": 132,
+    "spread": 67,
+  },
+  "cursed_power@Lv3": {
+    "monoFire": 106,
+    "shapes": 212,
+    "spread": 107,
+  },
+  "darkd@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "darkd@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "darkd@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "desperate_stance@Lv1": {
+    "monoFire": 12,
+    "shapes": 24,
+    "spread": 14,
+  },
+  "desperate_stance@Lv2": {
+    "monoFire": 13,
+    "shapes": 27,
+    "spread": 16,
+  },
+  "desperate_stance@Lv3": {
+    "monoFire": 18,
+    "shapes": 36,
+    "spread": 21,
+  },
+  "devil_loan@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "devil_loan@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "devil_loan@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "devotion_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "devotion_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "devotion_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "devotion_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "devotion_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "devotion_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "dual_match@Lv1": {
+    "monoFire": 4,
+    "shapes": 10,
+    "spread": 5,
+  },
+  "dual_match@Lv2": {
+    "monoFire": 7,
+    "shapes": 13,
+    "spread": 8,
+  },
+  "dual_match@Lv3": {
+    "monoFire": 9,
+    "shapes": 15,
+    "spread": 10,
+  },
+  "duration_booster@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "duration_booster@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "duration_booster@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "echo_of_max@Lv1": {
+    "monoFire": 8,
+    "shapes": 14,
+    "spread": 9,
+  },
+  "echo_of_max@Lv2": {
+    "monoFire": 10,
+    "shapes": 16,
+    "spread": 12,
+  },
+  "echo_of_max@Lv3": {
+    "monoFire": 18,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "empty_slot_beauty@Lv1": {
+    "monoFire": 60,
+    "shapes": 120,
+    "spread": 70,
+  },
+  "empty_slot_beauty@Lv2": {
+    "monoFire": 180,
+    "shapes": 360,
+    "spread": 210,
+  },
+  "empty_slot_beauty@Lv3": {
+    "monoFire": 518,
+    "shapes": 1037,
+    "spread": 605,
+  },
+  "empty_wallet@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "empty_wallet@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "empty_wallet@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "end_of_thought@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "end_of_thought@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "end_of_thought@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_d@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_d@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_d@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_f@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_f@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_f@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_fd@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_fd@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_fd@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_fl@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_fl@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_fl@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_g@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_g@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_g@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_gh@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_gh@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_gh@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_gl@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_gl@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_gl@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_h@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_h@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_h@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_l@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_l@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_l@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_w@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_w@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_w@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_wd@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_wd@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_wd@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_wh@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_wh@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enh_wh@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enhance_amp@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enhance_amp@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "enhance_amp@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erase_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "erosion_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "eternal_moment@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "eternal_moment@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "eternal_moment@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "exchange_star3@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "exchange_star3@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "exchange_star3@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "fired@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "fired@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "fired@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "forbidden@Lv1": {
+    "monoFire": 12,
+    "shapes": 24,
+    "spread": 14,
+  },
+  "forbidden@Lv2": {
+    "monoFire": 13,
+    "shapes": 27,
+    "spread": 16,
+  },
+  "forbidden@Lv3": {
+    "monoFire": 18,
+    "shapes": 36,
+    "spread": 21,
+  },
+  "four_match_restriction@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "four_match_restriction@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "four_match_restriction@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "fuse_line@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "fuse_line@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "fuse_line@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gale_gravity@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gale_gravity@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gale_gravity@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gamble@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gamble@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gamble@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gamble_high@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gamble_high@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gamble_high@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_bomb_rand@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_bomb_rand@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_bomb_rand@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rand_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_repeat_rand@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_repeat_rand@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_repeat_rand@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_star_rand@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_star_rand@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_star_rand@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_token_s1@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_token_s1@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_token_s1@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_token_s2@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_token_s2@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_token_s2@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_token_s3@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_token_s3@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_token_s3@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "giant@Lv1": {
+    "monoFire": 12,
+    "shapes": 24,
+    "spread": 14,
+  },
+  "giant@Lv2": {
+    "monoFire": 13,
+    "shapes": 27,
+    "spread": 16,
+  },
+  "giant@Lv3": {
+    "monoFire": 18,
+    "shapes": 36,
+    "spread": 21,
+  },
+  "gravity_overdrive@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gravity_overdrive@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gravity_overdrive@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "greed_power@Lv1": {
+    "monoFire": 18,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "greed_power@Lv2": {
+    "monoFire": 30,
+    "shapes": 36,
+    "spread": 35,
+  },
+  "greed_power@Lv3": {
+    "monoFire": 42,
+    "shapes": 48,
+    "spread": 49,
+  },
+  "guide_of_fivestar@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "guide_of_fivestar@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "guide_of_fivestar@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "heart_charge@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "heart_charge@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "heart_charge@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "heart_conversion@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "heart_conversion@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "heart_conversion@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "heartd@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "heartd@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "heartd@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "ignited_drop_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "ignited_drop_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "ignited_drop_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "ignited_drop_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "ignited_drop_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "ignited_drop_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_cross_simultaneous_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 36,
+    "spread": 7,
+  },
+  "l_cross_simultaneous_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 39,
+    "spread": 7,
+  },
+  "l_cross_simultaneous_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 48,
+    "spread": 7,
+  },
+  "l_shape@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape_count_star@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape_count_star@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape_count_star@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape_double_base_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape_double_base_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape_double_base_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape_skill_max@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape_skill_max@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape_skill_max@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape_spawn_repeat@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape_spawn_repeat@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "l_shape_spawn_repeat@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "last_turn_burst@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "last_turn_burst@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "last_turn_burst@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lead_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_acrobat@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_acrobat@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_acrobat@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_awakening@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_awakening@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_awakening@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_celeb@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_celeb@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_celeb@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_chef@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_chef@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_chef@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_inugami@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_inugami@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_inugami@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_king@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_king@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_king@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_limit_breaker@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_limit_breaker@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_limit_breaker@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_magic_stone@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_magic_stone@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_magic_stone@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_saint@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_saint@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_saint@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_sky_god@Lv1": {
+    "monoFire": 24,
+    "shapes": 48,
+    "spread": 28,
+  },
+  "legend_sky_god@Lv2": {
+    "monoFire": 24,
+    "shapes": 48,
+    "spread": 28,
+  },
+  "legend_sky_god@Lv3": {
+    "monoFire": 24,
+    "shapes": 48,
+    "spread": 28,
+  },
+  "legend_vacation@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_vacation@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "legend_vacation@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4_count_all_plus@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4_count_all_plus@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4_count_all_plus@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4_quad_base_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4_quad_base_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4_quad_base_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4_spawn_plus@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4_spawn_plus@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4_spawn_plus@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4_spawn_token@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4_spawn_token@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len4_spawn_token@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len5@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len5@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len5@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len5_count_level_up@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len5_count_level_up@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "len5_count_level_up@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "level3_count_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "level3_count_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "level3_count_mult@Lv3": {
+    "monoFire": 24,
+    "shapes": 30,
+    "spread": 28,
+  },
+  "lightd@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lightd@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "lightd@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "limit_breaker@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "limit_breaker@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "limit_breaker@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "magic_reflux_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "magic_reflux_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "magic_reflux_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "magic_reflux_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "magic_reflux_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "magic_reflux_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "magical_leadership@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "magical_leadership@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "magical_leadership@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "mana_crystal@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "mana_crystal@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "mana_crystal@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "medal_of_spendthrift@Lv1": {
+    "monoFire": 9,
+    "shapes": 15,
+    "spread": 10,
+  },
+  "medal_of_spendthrift@Lv2": {
+    "monoFire": 12,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "medal_of_spendthrift@Lv3": {
+    "monoFire": 15,
+    "shapes": 21,
+    "spread": 17,
+  },
+  "memory_of_combo@Lv1": {
+    "monoFire": 12,
+    "shapes": 24,
+    "spread": 13,
+  },
+  "memory_of_combo@Lv2": {
+    "monoFire": 18,
+    "shapes": 36,
+    "spread": 19,
+  },
+  "memory_of_combo@Lv3": {
+    "monoFire": 24,
+    "shapes": 48,
+    "spread": 25,
+  },
+  "memory_of_flash@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "memory_of_flash@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "memory_of_flash@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "meteor_bomb@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "meteor_bomb@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "meteor_bomb@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_demon@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_demon@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_demon@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_dice@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_dice@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_dice@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_dice_duo@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_dice_duo@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_dice_duo@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_fishing@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_fishing@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_fishing@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_fishing_big@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_fishing_big@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_fishing_big@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_highlow@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_highlow@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_highlow@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_janken@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_janken@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_janken@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_mash@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_mash@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_mash@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_mash_duo@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_mash_duo@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_mash_duo@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_running@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_running@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_running@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_target@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_target@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_target@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_target_pro@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_target_pro@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "minigame_target_pro@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "mirror_pair@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "mirror_pair@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "mirror_pair@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_drop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_drop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_drop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_drop_add_active@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_drop_add_active@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_drop_add_active@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_drop_boost@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_drop_boost@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_drop_boost@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_drop_lucky@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_drop_lucky@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_drop_lucky@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_repeater@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_repeater@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "move_repeater@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "one_stroke_seal@Lv1": {
+    "monoFire": 24,
+    "shapes": 48,
+    "spread": 28,
+  },
+  "one_stroke_seal@Lv2": {
+    "monoFire": 28,
+    "shapes": 57,
+    "spread": 33,
+  },
+  "one_stroke_seal@Lv3": {
+    "monoFire": 39,
+    "shapes": 78,
+    "spread": 45,
+  },
+  "org_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "org_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "over_link@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "over_link@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "over_link@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_add_probability@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_add_probability@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_add_probability@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_alchemy_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_chain_explosion@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_chain_explosion@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_chain_explosion@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_contract_dark@Lv1": {
+    "monoFire": 3,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_dark@Lv2": {
+    "monoFire": 3,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_dark@Lv3": {
+    "monoFire": 3,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_fire@Lv1": {
+    "monoFire": 18,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_fire@Lv2": {
+    "monoFire": 22,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_fire@Lv3": {
+    "monoFire": 30,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_heart@Lv1": {
+    "monoFire": 18,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_heart@Lv2": {
+    "monoFire": 22,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_heart@Lv3": {
+    "monoFire": 30,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_water@Lv1": {
+    "monoFire": 3,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_water@Lv2": {
+    "monoFire": 3,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_water@Lv3": {
+    "monoFire": 3,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_contract_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 6,
+    "spread": 3,
+  },
+  "passive_dark_count@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_dark_count@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_dark_count@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_fire_count@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_fire_count@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_fire_count@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_hand_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_light_count@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_light_count@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_light_count@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_meteor_shower@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_meteor_shower@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_meteor_shower@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_probability_trigger_add@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_probability_trigger_add@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_probability_trigger_add@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_probability_trigger_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_probability_trigger_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_probability_trigger_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_repeat_regeneration@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_repeat_regeneration@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_repeat_regeneration@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_star_gamble@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_star_gamble@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_star_gamble@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_star_gamble_2@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_star_gamble_2@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_star_gamble_2@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_token_gamble@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_token_gamble@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_token_gamble@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_token_gamble_2@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_token_gamble_2@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_token_gamble_2@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_wood_count@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_wood_count@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "passive_wood_count@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "picky_eater@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "picky_eater@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "picky_eater@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "play_count_mult@Lv1": {
+    "monoFire": 12,
+    "shapes": 18,
+    "spread": 14,
+  },
+  "play_count_mult@Lv2": {
+    "monoFire": 15,
+    "shapes": 21,
+    "spread": 17,
+  },
+  "play_count_mult@Lv3": {
+    "monoFire": 18,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "play_loss_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "play_loss_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "play_loss_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "polishing_claw@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "polishing_claw@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "polishing_claw@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "power_up@Lv1": {
+    "monoFire": 8,
+    "shapes": 16,
+    "spread": 9,
+  },
+  "power_up@Lv2": {
+    "monoFire": 12,
+    "shapes": 24,
+    "spread": 13,
+  },
+  "power_up@Lv3": {
+    "monoFire": 21,
+    "shapes": 42,
+    "spread": 22,
+  },
+  "pride_of_spendthrift@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "pride_of_spendthrift@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "pride_of_spendthrift@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "proof_of_veteran@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "proof_of_veteran@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "proof_of_veteran@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "pure_power@Lv1": {
+    "monoFire": 24,
+    "shapes": 48,
+    "spread": 28,
+  },
+  "pure_power@Lv2": {
+    "monoFire": 25,
+    "shapes": 51,
+    "spread": 30,
+  },
+  "pure_power@Lv3": {
+    "monoFire": 30,
+    "shapes": 60,
+    "spread": 35,
+  },
+  "rabbit_active@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rabbit_active@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rabbit_active@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rabbit_passive@Lv1": {
+    "monoFire": 18,
+    "shapes": 24,
+    "spread": 21,
+  },
+  "rabbit_passive@Lv2": {
+    "monoFire": 21,
+    "shapes": 27,
+    "spread": 24,
+  },
+  "rabbit_passive@Lv3": {
+    "monoFire": 24,
+    "shapes": 30,
+    "spread": 28,
+  },
+  "random_add@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "random_add@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "random_add@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rearguard_stance@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rearguard_stance@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rearguard_stance@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rebirth_fuse@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rebirth_fuse@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rebirth_fuse@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "refresh@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "refresh@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "refresh@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_chance_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_chance_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_chance_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_chance_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_chance_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_chance_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_combo_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_combo_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_combo_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_erase_combo@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_erase_combo@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_erase_combo@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_extra_activations@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_extra_activations@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "repeat_extra_activations@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_fire@Lv1": {
+    "monoFire": 18,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_fire@Lv2": {
+    "monoFire": 24,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_fire@Lv3": {
+    "monoFire": 30,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_12_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_6_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_6_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_6_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_6_fire@Lv1": {
+    "monoFire": 18,
+    "shapes": 12,
+    "spread": 21,
+  },
+  "req_6_fire@Lv2": {
+    "monoFire": 24,
+    "shapes": 12,
+    "spread": 28,
+  },
+  "req_6_fire@Lv3": {
+    "monoFire": 42,
+    "shapes": 12,
+    "spread": 49,
+  },
+  "req_6_heart@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_6_heart@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_6_heart@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_6_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 7,
+  },
+  "req_6_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 30,
+    "spread": 7,
+  },
+  "req_6_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 48,
+    "spread": 7,
+  },
+  "req_6_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_6_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_6_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_6_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_6_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "req_6_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_b_f@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_b_f@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_b_f@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_c_h@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_c_h@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_c_h@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_clear@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_clear@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_clear@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_count_convert_top@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_count_convert_top@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_count_convert_top@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_d@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_d@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_d@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_f@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_f@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_f@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_free_reroll@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_free_reroll@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_free_reroll@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_g@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_g@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_g@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_h@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_h@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_h@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_l@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_l@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_l@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_match_restriction@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_match_restriction@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_match_restriction@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_spawn_star@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_spawn_star@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_spawn_star@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_triple_base_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_triple_base_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_triple_base_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_w@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_w@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "row_w@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "same_color_streak@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "same_color_streak@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "same_color_streak@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "seeker_of_cross@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "seeker_of_cross@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "seeker_of_cross@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "seeker_of_len4@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "seeker_of_len4@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "seeker_of_len4@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "shape_master@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 7,
+  },
+  "shape_master@Lv2": {
+    "monoFire": 6,
+    "shapes": 30,
+    "spread": 7,
+  },
+  "shape_master@Lv3": {
+    "monoFire": 6,
+    "shapes": 36,
+    "spread": 7,
+  },
+  "shop_expand@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "shop_expand@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "shop_expand@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "shop_rarity_boost@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "shop_rarity_boost@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "shop_rarity_boost@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "skill_levelup@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "skill_levelup@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "skill_levelup@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "skip_master@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "skip_master@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "skip_master@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_d1@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_d1@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_d1@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_d_stop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_d_stop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_d_stop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_f1@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_f1@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_f1@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_f_stop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_f_stop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_f_stop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_fd_2@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_fd_2@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_fd_2@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_fd_stop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_fd_stop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_fd_stop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_fl_2@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_fl_2@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_fl_2@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_fl_stop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_fl_stop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_fl_stop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_g1@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_g1@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_g1@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_g_stop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_g_stop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_g_stop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_gh_2@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_gh_2@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_gh_2@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_gh_stop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_gh_stop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_gh_stop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_gl_2@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_gl_2@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_gl_2@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_gl_stop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_gl_stop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_gl_stop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_h1@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_h1@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_h1@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_h_stop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_h_stop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_h_stop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_l1@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_l1@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_l1@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_l_stop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_l_stop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_l_stop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_limit@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_limit@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_limit@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_limit_ldh@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_limit_ldh@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_limit_ldh@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_w1@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_w1@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_w1@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_w_stop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_w_stop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_w_stop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_wd_2@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_wd_2@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_wd_2@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_wd_stop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_wd_stop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_wd_stop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_wh_2@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_wh_2@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_wh_2@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_wh_stop@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_wh_stop@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "sky_wh_stop@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "speed_of_light_thought@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "speed_of_light_thought@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "speed_of_light_thought@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "square@Lv1": {
+    "monoFire": 6,
+    "shapes": 24,
+    "spread": 7,
+  },
+  "square@Lv2": {
+    "monoFire": 6,
+    "shapes": 27,
+    "spread": 7,
+  },
+  "square@Lv3": {
+    "monoFire": 6,
+    "shapes": 36,
+    "spread": 7,
+  },
+  "square_combo_addition@Lv1": {
+    "monoFire": 6,
+    "shapes": 32,
+    "spread": 7,
+  },
+  "square_combo_addition@Lv2": {
+    "monoFire": 6,
+    "shapes": 42,
+    "spread": 7,
+  },
+  "square_combo_addition@Lv3": {
+    "monoFire": 6,
+    "shapes": 72,
+    "spread": 7,
+  },
+  "square_convert_left_bottom@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "square_convert_left_bottom@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "square_convert_left_bottom@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "square_count_combo_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "square_count_combo_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "square_count_combo_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "square_spawn_repeat@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "square_spawn_repeat@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "square_spawn_repeat@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star1_combo_boost@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star1_combo_boost@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star1_combo_boost@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star2_time_boost@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star2_time_boost@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star2_time_boost@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star3_mult_boost@Lv1": {
+    "monoFire": 12,
+    "shapes": 24,
+    "spread": 14,
+  },
+  "star3_mult_boost@Lv2": {
+    "monoFire": 13,
+    "shapes": 27,
+    "spread": 16,
+  },
+  "star3_mult_boost@Lv3": {
+    "monoFire": 18,
+    "shapes": 36,
+    "spread": 21,
+  },
+  "star_chance_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_chance_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_chance_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_chance_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_chance_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_chance_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_cross_boost@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_cross_boost@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_cross_boost@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_earn_boost@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_earn_boost@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_earn_boost@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_erase_mult@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_erase_mult@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "star_erase_mult@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "stardust_catalyst@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "stardust_catalyst@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "stardust_catalyst@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "tempo_rhythm@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "tempo_rhythm@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "tempo_rhythm@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "thousand_arms@Lv1": {
+    "monoFire": 60,
+    "shapes": 120,
+    "spread": 70,
+  },
+  "thousand_arms@Lv2": {
+    "monoFire": 120,
+    "shapes": 240,
+    "spread": 140,
+  },
+  "thousand_arms@Lv3": {
+    "monoFire": 300,
+    "shapes": 600,
+    "spread": 350,
+  },
+  "time_bank@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_bank@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_bank@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_burst@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_burst@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_burst@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_ext@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_ext@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_ext@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_release@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_release@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_release@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_skipper@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_skipper@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "time_skipper@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "total_level_boost@Lv1": {
+    "monoFire": 7,
+    "shapes": 14,
+    "spread": 8,
+  },
+  "total_level_boost@Lv2": {
+    "monoFire": 10,
+    "shapes": 20,
+    "spread": 11,
+  },
+  "total_level_boost@Lv3": {
+    "monoFire": 18,
+    "shapes": 36,
+    "spread": 19,
+  },
+  "trial@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "trial@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "trial@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_d_l@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_d_l@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_d_l@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_f_d@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_f_d@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_f_d@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_g_w@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_g_w@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_g_w@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_h_f@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_h_f@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_h_f@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_l_g@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_l_g@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_l_g@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_w_f@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_w_f@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_convert_w_f@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_d@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_d@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_d@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_f@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_f@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_f@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_g@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_g@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_g@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_h@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_h@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_h@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_l@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_l@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_l@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_w@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_w@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_full_board_w@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_bomb_1@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_bomb_1@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_bomb_1@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_d@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_d@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_d@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_f@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_f@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_f@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_g@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_g@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_g@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_h@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_h@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_h@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_l@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_l@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_l@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_mixed_1@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_mixed_1@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_mixed_1@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_plus_5@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_plus_5@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_plus_5@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_repeat_1@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_repeat_1@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_repeat_1@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_star_3@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_star_3@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_star_3@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_w@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_w@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "turn_end_spawn_w@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "tyrant_decree@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "tyrant_decree@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "tyrant_decree@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "waterd@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "waterd@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "waterd@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "wolf_active@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "wolf_active@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "wolf_active@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "woodd@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "woodd@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "woodd@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "zero_charge@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "zero_charge@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "zero_charge@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+}
+`;
