@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import TokenTags from './TokenTags';
 import { ScreenHeader } from './ScreenShell';
 import { ALL_TOKEN_BASES } from './constants/tokens.js';
 // エンチャント廃止に伴いコメントアウト
@@ -226,6 +227,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
                                     <h3 className="text-xs md:text-sm font-bold text-white truncate drop-shadow-sm leading-tight">
                                         {item.name}
                                     </h3>
+                                    <TokenTags token={item} className="mt-1" />
                                     {/* 簡易説明文 */}
                                     <p className="text-[10px] text-slate-400 line-clamp-2 mt-1 leading-snug">
                                         {getTokenDescription(item)}
@@ -278,6 +280,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
                                         <span>Effect / Description</span>
                                         <span className="text-indigo-300 font-bold">属性: {translateAttributes(selectedItem.attributes)}</span>
                                     </h4>
+                                    <TokenTags token={selectedItem} className="mb-2" />
                                     <p className="text-sm leading-relaxed text-slate-200">
                                         {getTokenDescription(selectedItem) || '説明がありません'}
                                     </p>

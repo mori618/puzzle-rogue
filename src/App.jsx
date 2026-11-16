@@ -1,5 +1,7 @@
 // リファクタリング後の App.jsx
 import React from "react";
+import TokenTags from "./TokenTags";
+import TurnBreakdownPanel from "./TurnBreakdownPanel";
 import ShopScreen from "./ShopScreen";
 import TitleScreen from "./TitleScreen";
 import PauseScreen from "./PauseScreen";
@@ -61,6 +63,7 @@ const App = () => {
     stars,
     activeBuffs,
     lastTurnCombo,
+    lastTurnBreakdown,
     lastErasedColorCounts,
     showLastTurnConditions,
     pendingShopItem,
@@ -398,7 +401,8 @@ const App = () => {
             <section className="hud-goal-sec relative z-10 px-4 pt-3 flex-none w-full">
               <div 
                 className="hud-goal-card w-full relative cursor-pointer" 
-                onClick={() => setShowComboDetails(!showComboDetails)}
+                onClick={() => lastTurnBreakdown && setShowComboDetails(true)}
+                title="タップで前の手番の内訳"
               >
                 {/* テキスト情報 */}
                 <div className="hud-goal-row flex items-baseline gap-1.5 mb-1.5 px-0.5 min-w-0">
@@ -459,7 +463,11 @@ const App = () => {
             return (
               <section className="hud-belt relative z-30 px-4 pt-2.5 flex-none flex flex-col gap-2 w-full">
                 {isPracticeMode ? (
-                  <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-4 flex flex-col items-center justify-center backdrop-blur-md shadow-inner w-full min-h-[140px]">
+                  <div
+                    className={`bg-slate-900/40 border border-white/5 rounded-3xl p-4 flex flex-col items-center justify-center backdrop-blur-md shadow-inner w-full min-h-[140px] ${lastTurnBreakdown ? 'cursor-pointer' : ''}`}
+                    onClick={() => lastTurnBreakdown && setShowComboDetails(true)}
+                    title="タップで前の手番の内訳"
+                  >
                     <div className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 flex items-center gap-2">
                       <span className="w-8 h-[1px] bg-slate-800"></span>
                       Practice Best
@@ -1405,6 +1413,11 @@ const App = () => {
             />
           )}
 
+          {/* Turn Breakdown Panel（前の手番の内訳） */}
+          {showComboDetails && lastTurnBreakdown && (
+            <TurnBreakdownPanel breakdown={lastTurnBreakdown} onClose={() => setShowComboDetails(false)} />
+          )}
+
           {/* Token Detail Modal */}
           {
             selectedTokenDetail && (() => {
@@ -1455,6 +1468,7 @@ const App = () => {
 
                     {/* 効果説明 */}
                     <div className="bg-slate-900/60 rounded-xl p-3 mb-3 border border-white/5">
+                      <TokenTags token={t} className="mb-2" />
                       <p className="text-xs text-slate-300 leading-relaxed">{getTokenDescription(t, lv, currentRunStats, tokens, activeBuffs)}</p>
 
                       {/* 動的情報の表示 (メイン) */}

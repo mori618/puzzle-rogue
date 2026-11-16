@@ -1,4 +1,5 @@
 import React from 'react';
+import TokenTags from './TokenTags';
 import { getTokenIcon, getAttributeBarStyles, canAffordWithCredit } from './utils/tokenUtils';
 import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
@@ -66,6 +67,7 @@ const NormalItemCard = ({ item, stars, onBuy, isBought, creditLimit = 0 }) => {
                         <span className="text-[9px] bg-red-500/20 text-red-300 border border-red-500/30 px-1.5 py-0.2 rounded-full font-bold">SALE</span>
                     )}
                 </div>
+                <TokenTags token={item} className="mt-1" />
                 <p className="text-xs text-slate-400 mt-1 leading-tight">{item.desc}</p>
             </div>
             <button
