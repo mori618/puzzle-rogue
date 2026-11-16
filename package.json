@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "export:notebooklm": "node scripts/export-notebooklm.mjs",
     "balance": "node scripts/balance-sim.mjs",
-    "gen:layers": "node scripts/gen-token-layers.mjs"
+    "gen:layers": "node scripts/gen-token-layers.mjs",
+    "gen:spec": "node scripts/gen-spec-appendix.mjs"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.18",

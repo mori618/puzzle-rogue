@@ -26,7 +26,13 @@
     "star3_mult_boost",
     "limit_breaker",
     "absolute_limit_break",
-    "artisan_of_square"
+    "artisan_of_square",
+    "chalice_fire",
+    "chalice_water",
+    "chalice_wood",
+    "chalice_light",
+    "chalice_dark",
+    "chalice_multicolor"
   ],
   "fireThreshold": 1.001,
   "randomSamples": 64,

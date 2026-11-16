@@ -7,7 +7,7 @@
       "runState": {
         "stars": 20, "turn": 2, "maxTurns": 3, "tokenSlotExpansionCount": 0,
         "currentRunStats": {
-          "currentClears": 4, "totalHeartsErased": 40, "currentTotalCombo": 150,
+          "currentClears": 4, "totalHeartsErased": 40, "fiveColorTurns": 1, "currentDropsErased": { "fire": 60, "water": 60, "wood": 60, "light": 60, "dark": 60, "heart": 40 }, "currentTotalCombo": 150,
           "currentShapeRow": 2, "currentShapeCross": 1, "currentShapeLShape": 1, "currentShapeSquare": 1,
           "currentShapeLen4": 3, "currentShapeLen5": 1, "currentShopRerolls": 3, "currentStarsSpent": 60,
           "currentCursesRemoved": 0, "skipsPerformed": 0, "maxBaseCombo": 12, "maxComboMultiplier": 3
@@ -20,7 +20,7 @@
       "runState": {
         "stars": 80, "turn": 2, "maxTurns": 3, "tokenSlotExpansionCount": 3,
         "currentRunStats": {
-          "currentClears": 14, "totalHeartsErased": 300, "currentTotalCombo": 50000,
+          "currentClears": 14, "totalHeartsErased": 300, "fiveColorTurns": 10, "currentDropsErased": { "fire": 400, "water": 400, "wood": 400, "light": 400, "dark": 400, "heart": 300 }, "currentTotalCombo": 50000,
           "currentShapeRow": 15, "currentShapeCross": 8, "currentShapeLShape": 8, "currentShapeSquare": 6,
           "currentShapeLen4": 20, "currentShapeLen5": 8, "currentShopRerolls": 25, "currentStarsSpent": 600,
           "currentCursesRemoved": 2, "skipsPerformed": 2, "maxBaseCombo": 60, "maxComboMultiplier": 50
@@ -40,6 +40,8 @@
     { "id": "B8", "name": "特殊ドロップ", "pattern": "P9", "tokens": ["bomb_erase_mult", "repeat_combo_mult", "star_erase_mult"] },
     { "id": "B9", "name": "呪い", "pattern": "P1", "tokens": ["curse_count_mult", "curse_skyfall", "curse_time"] },
     { "id": "B10", "name": "累計スケール", "pattern": "P1", "tokens": ["thousand_arms", "chalice_of_life", "star3_mult_boost", "limit_breaker"] },
+    { "id": "B4s", "name": "単色特化＋炎の器", "pattern": "P5", "tokens": ["passive_contract_fire", "devotion_fire", "req_12_fire", "req_6_fire", "chalice_fire"] },
+    { "id": "B5s", "name": "多色特化＋五彩の器", "pattern": "P10", "tokens": ["bonus_3c_fwg", "bonus_4c_fwlh", "bonus_5c", "bonus_6c", "chalice_multicolor"] },
     { "id": "B11", "name": "経済", "pattern": "P1", "tokens": ["collector", "greed_power", "passive_fire_count"] }
   ]
 }

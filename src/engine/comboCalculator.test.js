@@ -121,6 +121,13 @@ describe('calcTurnResult', () => {
     expect(names).toContain('setLastErasedColorCounts');
   });
 
+  it('◯◯の器: その色30個ごとに基礎 ×2（Lv1）、五彩の器: 5色同時3回ごとに ×2', () => {
+    const byId = Object.fromEntries(ALL_TOKEN_BASES.map(t => [t.id, t]));
+    const stats = { ...RUN_STATE.currentRunStats, currentDropsErased: { fire: 95 }, fiveColorTurns: 7 };
+    expect(run([makeToken(byId.chalice_fire, 1)], 'spread', { currentRunStats: stats }).effectiveCombo).toBe(7 * 8);
+    expect(run([makeToken(byId.chalice_multicolor, 1)], 'spread', { currentRunStats: stats }).effectiveCombo).toBe(7 * 4);
+  });
+
   describe('加算の極意（D1・D2）', () => {
     const byId = Object.fromEntries(ALL_TOKEN_BASES.map(t => [t.id, t]));
 

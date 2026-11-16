@@ -941,6 +941,24 @@ export function calcTurnResult(input, fx = createNoopFx()) {
         logData.multiplierSteps.push({ label: t.name || '生命の器', value: v, type: 'mult', tokenId: tId });
       }
     }
+    // ◯◯の器（D9）・五彩の器（§7.3）: 生命の器と同じく、累計に応じて指数で伸びるスケール枠
+    if (t.effect === "stat_color_chalice" || t.effect === "stat_multicolor_chalice") {
+      const isMulti = t.effect === "stat_multicolor_chalice";
+      const total = isMulti
+        ? (currentRunStats.fiveColorTurns || 0)
+        : (currentRunStats.currentDropsErased?.[t.params?.color] || 0);
+      const count = Math.floor(total / (isMulti ? 3 : 30));
+      const base = t.values?.[lv - 1] || 2;
+      if (count > 0) {
+        let v = Math.pow(base, count);
+        v = applyMultiplierCap(v, t);
+        if (isInstant) fx.triggerPassive(tId);
+        multMultiplier *= v;
+        exponentialMultiplier += (v - 1.0);
+        logData.multipliers.push(`${t.effect}:x${v.toFixed(2)}(count:${total})`);
+        logData.multiplierSteps.push({ label: t.name, value: v, type: 'mult', tokenId: tId });
+      }
+    }
     if (t.effect === "stat_time_skipper") {
       const skipCount = currentRunStats.skipsPerformed || 0;
       const count = Math.floor(skipCount / 5);

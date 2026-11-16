@@ -37,6 +37,8 @@ export function statsOnTurnEnd(stats, run, t) {
     maxSkillsUsedSingleTurn: max(run.maxSkillsUsedSingleTurn, t.skillsUsedThisTurn),
   };
   if (colors.length === 2 && (t.effectiveCombo || 0) >= 30) nextRun.achievedTwoColor30Combo = true;
+  // 五彩の器（トークン）用: 5色以上を同時に消した手番の数
+  if (colors.length >= 5) nextRun.fiveColorTurns = (run.fiveColorTurns || 0) + 1;
   if (eq.has('p_speed')) nextRun.maxTimeLeftWithPrefix = max(run.maxTimeLeftWithPrefix, remainSec);
   if (eq.has('p_berserk') && (t.remainingTimeMs || 0) < 1000) nextRun.asuraChallengeCombo = max(run.asuraChallengeCombo, t.effectiveCombo);
   if (eq.has('p_amp')) nextRun.maxComboWithPrefix = max(run.maxComboWithPrefix, t.effectiveCombo);

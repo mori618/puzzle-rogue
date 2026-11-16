@@ -1635,7 +1635,7 @@ describe('31. パッシブトークンの全効果タイプ存在確認', () => 
       'contract_of_void', 'copy_left', 'critical_strike',
       'cross_count', 'cross_enchant_self', 'cross_multiply_move_drop',
       'curse_count_combo_mult', 'cursed_power',
-      'desperate_stance', 'devotion_fire', 'devotion_water', 'element_contract', 'element_lead',
+      'desperate_stance', 'devotion_fire', 'devotion_water', 'stat_color_chalice', 'stat_multicolor_chalice', 'element_contract', 'element_lead',
       'empty_wallet', 'enchant_count_combo_mult', 'enchant_grant_boost',
       'enhance_chance', 'enhanced_link_multiplier', 'enhanced_orb_bonus',
       'erosion_color', 'expand_board', 'extra_repeat_activations',

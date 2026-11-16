@@ -1594,6 +1594,48 @@ const ALL_TOKEN_BASES = [
     canBeInitial: true
   },
   {
+    id: "chalice_fire", name: "炎の器", icon: "local_fire_department", type: "passive", effect: "stat_color_chalice",
+    params: { color: "fire" }, values: [2, 3, 4], rarity: 2, price: 26,
+    desc: "このゲームで消去した炎ドロップ数30個ごとに、基礎コンボ数が{values}倍される。",
+    attributes: ["fire"],
+    canBeInitial: true
+  },
+  {
+    id: "chalice_water", name: "雨の器", icon: "water_drop", type: "passive", effect: "stat_color_chalice",
+    params: { color: "water" }, values: [2, 3, 4], rarity: 2, price: 26,
+    desc: "このゲームで消去した雨ドロップ数30個ごとに、基礎コンボ数が{values}倍される。",
+    attributes: ["water"],
+    canBeInitial: true
+  },
+  {
+    id: "chalice_wood", name: "風の器", icon: "air", type: "passive", effect: "stat_color_chalice",
+    params: { color: "wood" }, values: [2, 3, 4], rarity: 2, price: 26,
+    desc: "このゲームで消去した風ドロップ数30個ごとに、基礎コンボ数が{values}倍される。",
+    attributes: ["wood"],
+    canBeInitial: true
+  },
+  {
+    id: "chalice_light", name: "雷の器", icon: "bolt", type: "passive", effect: "stat_color_chalice",
+    params: { color: "light" }, values: [2, 3, 4], rarity: 2, price: 26,
+    desc: "このゲームで消去した雷ドロップ数30個ごとに、基礎コンボ数が{values}倍される。",
+    attributes: ["light"],
+    canBeInitial: true
+  },
+  {
+    id: "chalice_dark", name: "月の器", icon: "dark_mode", type: "passive", effect: "stat_color_chalice",
+    params: { color: "dark" }, values: [2, 3, 4], rarity: 2, price: 26,
+    desc: "このゲームで消去した月ドロップ数30個ごとに、基礎コンボ数が{values}倍される。",
+    attributes: ["dark"],
+    canBeInitial: true
+  },
+  {
+    id: "chalice_multicolor", name: "五彩の器", icon: "palette", type: "passive", effect: "stat_multicolor_chalice",
+    values: [2, 3, 4], rarity: 2, price: 26,
+    desc: "このゲームで5色以上を同時に消した手番3回ごとに、基礎コンボ数が{values}倍される。",
+    attributes: [],
+    canBeInitial: true
+  },
+  {
     id: "time_skipper", name: "早送りの極意", icon: "fast_forward", type: "passive", effect: "stat_time_skipper",
     values: [2, 3, 4], rarity: 2, price: 24,
     desc: "スキップしたターン数5回につき、コンボ倍率にプラス{values}。",

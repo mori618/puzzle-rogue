@@ -1918,6 +1918,66 @@ exports[`calcTurnResult > 全トークン単体のスナップショット 1`] =
     "shapes": 12,
     "spread": 7,
   },
+  "chalice_dark@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_dark@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_dark@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_fire@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_fire@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_fire@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_light@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_light@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_light@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_multicolor@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_multicolor@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_multicolor@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
   "chalice_of_life@Lv1": {
     "monoFire": 96,
     "shapes": 192,
@@ -1932,6 +1992,36 @@ exports[`calcTurnResult > 全トークン単体のスナップショット 1`] =
     "monoFire": 1536,
     "shapes": 3072,
     "spread": 1792,
+  },
+  "chalice_water@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_water@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_water@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_wood@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_wood@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "chalice_wood@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
   },
   "charge_boost@Lv1": {
     "monoFire": 6,
