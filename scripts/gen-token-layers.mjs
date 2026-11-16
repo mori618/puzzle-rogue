@@ -40,7 +40,7 @@ const RUN_STATS = {
   currentClears: 14, totalHeartsErased: 300, currentTotalCombo: 50000, maxCombo: 200,
   currentShapeRow: 15, currentShapeCross: 8, currentShapeLShape: 8, currentShapeSquare: 6, currentShapeLen4: 20, currentShapeLen5: 8,
   currentShopRerolls: 25, currentStarsSpent: 600, currentCursesRemoved: 2, skipsPerformed: 2, maxBaseCombo: 60, maxComboMultiplier: 50,
-  currentDropsErased: { fire: 400, water: 400, wood: 400, light: 400, dark: 400, heart: 300 },
+  currentDropsErased: { fire: 400, water: 400, wood: 400, light: 400, dark: 400, heart: 300 }, fiveColorTurns: 10,
 };
 
 /** 札の色を炎（2色目は月…）に寄せて、パターンの色で発動するようにする */

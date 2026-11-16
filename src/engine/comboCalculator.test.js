@@ -121,6 +121,24 @@ describe('calcTurnResult', () => {
     expect(names).toContain('setLastErasedColorCounts');
   });
 
+  it('炎の器: その色30個ごとに ×2（Lv1）、五彩の器: 5色同時3回ごとに ×2', () => {
+    const byId = Object.fromEntries(ALL_TOKEN_BASES.map(t => [t.id, t]));
+    const stats = { ...RUN_STATE.currentRunStats, currentDropsErased: { fire: 95 }, fiveColorTurns: 7 };
+    expect(run([makeToken(byId.chalice_fire, 1)], 'spread', { currentRunStats: stats }).effectiveCombo).toBe(7 * 8);
+    expect(run([makeToken(byId.chalice_multicolor, 1)], 'spread', { currentRunStats: stats }).effectiveCombo).toBe(7 * 4);
+  });
+
+  it('狂神の偏愛: 炎だけを消せば倍率が上がり、他の色を消すと0になる', () => {
+    const byId = Object.fromEntries(ALL_TOKEN_BASES.map(t => [t.id, t]));
+    const devotion = makeToken(byId.devotion_fire, 1);
+    const monoFire = calcTurnResult({
+      ...RUN_STATE, turnCombo: 5, colorComboCounts: { fire: 5 }, erasedColorCounts: { fire: 15 },
+      finalErasedColorCounts: { fire: 15 }, shapes: [], detailedShapes: [], tokens: [devotion],
+    }, createNoopFx());
+    expect(monoFire.effectiveCombo).toBe(5 * byId.devotion_fire.values[0]);
+    expect(run([devotion], 'spread').effectiveCombo).toBe(0);
+  });
+
   // 全トークン × Lv1〜3 × 3パターンの結果を固定する。
   // 以降の段階（層の統合・数値調整）で意図しない変化が出たら、ここで検出する。
   it('全トークン単体のスナップショット', () => {

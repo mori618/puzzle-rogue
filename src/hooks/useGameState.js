@@ -2492,10 +2492,13 @@ export const useGameState = () => {
         }
       });
 
+      // 五彩の器用: 5色以上を同時に消した手番の数
+      const colorsThisTurn = Object.keys(colorComboCounts || {}).filter(c => (colorComboCounts[c] || 0) > 0).length;
       const nextStats = {
         ...prev,
         totalHeartsErased: nextHearts,
-        currentDropsErased: nextDrops
+        currentDropsErased: nextDrops,
+        fiveColorTurns: (prev.fiveColorTurns || 0) + (colorsThisTurn >= 5 ? 1 : 0),
       };
 
       return nextStats;
