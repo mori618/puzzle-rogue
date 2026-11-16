@@ -20,6 +20,7 @@ import { formatJapaneseNumber } from '../utils/numberUtils.js';
 import { buildEffectiveTokens, resolveCopiedToken, getBuffsInEffect, decrementBuffDurations, isTrialStageActive } from '../utils/effectiveTokens.js';
 import { PuzzleEngine } from '../engine/PuzzleEngine.js';
 import { calcTurnResult } from '../engine/comboCalculator.js';
+import { buildTurnBreakdown } from '../engine/turnBreakdown.js';
 import { getMoveTimeRhythmEffect } from '../utils/moveTimeRhythm.js';
 import playLog, { compactToken, compactTokens, compactBuffs } from '../utils/playLogger.js';
 import { safeSetItem, safeRemoveItem } from '../utils/safeStorage.js';
@@ -99,6 +100,8 @@ export const useGameState = () => {
   const [turnBeforeSkip, setTurnBeforeSkip] = useState(null);
   const [nextTurnTimeMultiplier, setNextTurnTimeMultiplier] = useState(1);
   const [lastTurnCombo, setLastTurnCombo] = useState(0);
+  // 直前の手番の内訳（ターン内訳パネル用）
+  const [lastTurnBreakdown, setLastTurnBreakdown] = useState(null);
   const [lastErasedColorCounts, setLastErasedColorCounts] = useState({});
   // 直前の手番結果による「条件達成（緑）」表示を出すかどうか。次の操作開始・次サイクル開始で消す
   const [showLastTurnConditions, setShowLastTurnConditions] = useState(false);
@@ -1681,6 +1684,10 @@ export const useGameState = () => {
       turnBaseCombo,
       turnBaseMultiplier,
     } = calcResult;
+    setLastTurnBreakdown(buildTurnBreakdown(calcResult, {
+      turnCombo: tc, colorComboCounts, erasedColorCounts: finalErasedColorCounts,
+      shapes, detailedShapes, hasSkyfallCombo, turn, maxTurns,
+    }));
 
     // 限界到達のダイアログは、コンボ数の演出を見せ終わってから出す（下の showComboBreakdownLocal の後）
     const isFirstMaxComboReach = effectiveCombo >= MAX_COMBO && !currentRunStats.hasReachedMaxCombo && !isPracticeMode;
@@ -5465,6 +5472,7 @@ export const useGameState = () => {
     skippedTurnsBonus, setSkippedTurnsBonus,
     nextTurnTimeMultiplier, setNextTurnTimeMultiplier,
     lastTurnCombo, setLastTurnCombo,
+    lastTurnBreakdown, setLastTurnBreakdown,
     lastErasedColorCounts, setLastErasedColorCounts,
     showLastTurnConditions,
     pendingShopItem, setPendingShopItem,
