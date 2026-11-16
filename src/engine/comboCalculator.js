@@ -9,11 +9,11 @@
 import { ALL_TOKEN_BASES } from '../constants/tokens.js';
 import { ENCHANTMENTS } from '../constants/enchantments.js';
 import { MAX_COMBO, INITIAL_TOKEN_SLOTS } from '../constants/gameConstants.js';
-import { calcBaseCombo, calcComboMultiplier, applyComboMultiplier, INUGAMI_THRESHOLD } from '../utils/comboFormula';
-import { filterPoolByFreeSlots, applyNewTokenLevel, countPlayTokens, countRabbitTokens } from '../utils/tokenUtils';
+import { calcBaseCombo, calcComboMultiplier, applyComboMultiplier, INUGAMI_THRESHOLD } from '../utils/comboFormula.js';
+import { filterPoolByFreeSlots, applyNewTokenLevel, countPlayTokens, countRabbitTokens } from '../utils/tokenUtils.js';
 import { buildEffectiveTokens } from '../utils/effectiveTokens.js';
 import { getMoveTimeRhythmEffect } from '../utils/moveTimeRhythm.js';
-import { computeTitleComboModifiers, getTokenTitleCounts } from '../utils/titleManager';
+import { computeTitleComboModifiers, getTokenTitleCounts } from '../utils/titleManager.js';
 
 export const FX_METHODS = [
   'triggerPassive',

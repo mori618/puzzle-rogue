@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "export:notebooklm": "node scripts/export-notebooklm.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "gen:layers": "node scripts/gen-token-layers.mjs"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.18",
