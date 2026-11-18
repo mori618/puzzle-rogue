@@ -183,7 +183,7 @@ const BackupScreen = ({ onClose }) => {
                                 readOnly
                                 value={exportedCode}
                                 onFocus={(e) => e.target.select()}
-                                className="mt-2 w-full h-16 text-[10px] font-mono bg-slate-950 text-slate-400 rounded-lg p-2 border border-white/10 resize-none select-text"
+                                className="mt-2 w-full h-16 text-[11px] font-mono bg-slate-950 text-slate-400 rounded-lg p-2 border border-white/10 resize-none select-text"
                                 style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
                             />
                         )}

@@ -58,13 +58,13 @@ const NormalItemCard = ({ item, stars, onBuy, isBought, creditLimit = 0 }) => {
             <div className="ml-3 flex-1 min-w-0 mr-2">
                 <div className="flex items-center gap-1.5 flex-wrap">
                     <h3 className="font-bold text-white text-sm md:text-base truncate">{item.name}</h3>
-                    <div className="flex text-gold text-[8px] md:text-[10px]">
+                    <div className="flex text-gold text-[10px] md:text-[11px]">
                         {Array.from({ length: item.rarity || 1 }).map((_, i) => (
-                            <span key={i} className="material-icons-round text-[10px] md:text-[12px]">star</span>
+                            <span key={i} className="material-icons-round text-[11px] md:text-[12px]">star</span>
                         ))}
                     </div>
                     {item.isSale && (
-                        <span className="text-[9px] bg-red-500/20 text-red-300 border border-red-500/30 px-1.5 py-0.2 rounded-full font-bold">SALE</span>
+                        <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-500/30 px-1.5 py-0.2 rounded-full font-bold">セール</span>
                     )}
                 </div>
                 <TokenTags token={item} className="mt-1" />
@@ -77,9 +77,9 @@ const NormalItemCard = ({ item, stars, onBuy, isBought, creditLimit = 0 }) => {
                 className={`px-3 py-1.5 flex flex-col items-center justify-center min-w-[72px] ${isAffordable ? 'btn-game-primary' : 'btn-game-cyber'}`}
             >
                 <span className="text-xs font-bold flex items-center gap-0.5">
-                    {item.price} <span className="material-icons-round text-[9px]">star</span>
+                    {item.price} <span className="material-icons-round text-[10px]">star</span>
                 </span>
-                <span className="text-[9px] uppercase font-bold opacity-80">{isOnCredit ? '借金' : (isAffordable ? 'Buy' : 'Locked')}</span>
+                <span className="text-[10px] uppercase font-bold opacity-80">{isOnCredit ? '借金で買う' : (isAffordable ? '買う' : '★不足')}</span>
             </button>
         </div>
     );
@@ -127,10 +127,10 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
                     <div className="flex items-center space-x-2 flex-wrap">
                         <h3 className="font-bold text-white text-base truncate">{title}</h3>
                         {badgeText && (
-                            <span className="text-[9px] bg-emerald-700/40 text-emerald-200 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">{badgeText}</span>
+                            <span className="text-[10px] bg-emerald-700/40 text-emerald-200 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">{badgeText}</span>
                         )}
                         {disabled && (
-                            <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-bold">購入済</span>
+                            <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-bold">購入済</span>
                         )}
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5 leading-tight">{disabledReason || desc}</p>
@@ -140,7 +140,7 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
             <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl bg-black/35 border border-white/5">
                 <div className="flex items-center space-x-1.5 mb-1">
                     <span className="material-icons-round text-slate-400 text-xs">info</span>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">効果</span>
+                    <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">効果</span>
                 </div>
                 <p className="text-sm text-slate-200 leading-relaxed">{desc}</p>
             </div>
@@ -158,7 +158,7 @@ const AwakeningCard = ({ icon, title, desc, price, stars, onBuy: onCardBuy, disa
                         <>
                             <span className="material-icons-round text-gold text-sm">star</span>
                             <span>{price} で購入</span>
-                            {!isAffordable && !disabled && <span className="text-[10px] opacity-70 ml-1">(★不足)</span>}
+                            {!isAffordable && !disabled && <span className="text-[11px] opacity-70 ml-1">(★不足)</span>}
                         </>
                     )}
                 </button>
@@ -248,7 +248,7 @@ const ShopScreen = ({
                     <button onClick={onClose} style={{ touchAction: 'manipulation' }} className="p-1 rounded-xl btn-game-cyber w-9 h-9 flex items-center justify-center text-slate-400">
                         <span className="material-icons-round text-lg">arrow_back</span>
                     </button>
-                    <h1 className="text-sm font-game-header tracking-widest text-indigo-300">Merchant's Wares</h1>
+                    <h1 className="text-sm font-game-header tracking-widest text-indigo-300">ショップ</h1>
                     <div className="flex items-center space-x-1 text-white">
                         <button onClick={onPause} style={{ touchAction: 'manipulation' }} className="p-1 mr-1 rounded-xl btn-game-cyber w-9 h-9 flex items-center justify-center text-slate-400">
                             <span className="material-icons-round text-lg">pause</span>
@@ -336,7 +336,7 @@ const ShopScreen = ({
                             <div>
                                 <div className="flex items-center space-x-2 mb-3">
                                     <span className="material-icons-round text-primary text-sm">auto_fix_high</span>
-                                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Passive Artifacts</h2>
+                                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">パッシブトークン</h2>
                                 </div>
                                 <div className="space-y-3">
                                     {passiveItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} creditLimit={creditLimit} onBuy={handleBuy} isBought={boughtItemId === (item.id || item.instanceId)} />)}
@@ -347,7 +347,7 @@ const ShopScreen = ({
                             <div>
                                 <div className="flex items-center space-x-2 mb-3 pt-2">
                                     <span className="material-icons-round text-primary text-sm">flash_on</span>
-                                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Active Spells</h2>
+                                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">アクティブスキル</h2>
                                 </div>
                                 <div className="space-y-3">
                                     {activeItems.map((item, idx) => <NormalItemCard key={idx} item={item} stars={stars} creditLimit={creditLimit} onBuy={handleBuy} isBought={boughtItemId === (item.id || item.instanceId)} />)}
@@ -379,7 +379,7 @@ const ShopScreen = ({
                                 {enchantItems.map((item, idx) => {
                                     const isAffordable = stars >= item.price;
                                     const style = getEnchantRarityStyle(item.rarity || 1);
-                                    const rarityLabel = item.rarity === 3 ? 'Epic' : item.rarity === 2 ? 'Rare' : 'Uncommon';
+                                    const rarityLabel = item.rarity === 3 ? '最上級' : item.rarity === 2 ? '上級' : '通常';
                                     return (
                                         <div key={idx} className={`rounded-2xl bg-gradient-to-br ${style.cardBg} border ${style.border} shadow-lg ${style.glow} overflow-hidden`}>
                                             <div className="px-4 pt-4 pb-3 flex items-center space-x-3">
@@ -389,9 +389,9 @@ const ShopScreen = ({
                                                 <div className="flex-1">
                                                     <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                                                         <h3 className="font-bold text-white text-base">{item.name}</h3>
-                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${style.badge}`}>{rarityLabel}</span>
+                                                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${style.badge}`}>{rarityLabel}</span>
                                                     </div>
-                                                    <div className="flex text-gold text-[10px] mt-0.5">
+                                                    <div className="flex text-gold text-[11px] mt-0.5">
                                                         {Array.from({ length: item.rarity || 1 }).map((_, i) => (
                                                             <span key={i} className="material-icons-round">star</span>
                                                         ))}
@@ -401,7 +401,7 @@ const ShopScreen = ({
                                             <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl bg-black/25 border border-white/5">
                                                 <div className="flex items-center space-x-1.5 mb-1">
                                                     <span className="material-icons-round text-slate-400 text-xs">info</span>
-                                                    <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">効果</span>
+                                                    <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">効果</span>
                                                 </div>
                                                 <p className="text-sm text-slate-200 leading-relaxed">{item.desc}</p>
                                             </div>
@@ -418,7 +418,7 @@ const ShopScreen = ({
 
                                                     <span className="material-icons-round text-gold text-sm">star</span>
                                                     <span>{item.price} で購入</span>
-                                                    {!isAffordable && <span className="text-[10px] opacity-70 ml-1">(★不足)</span>}
+                                                    {!isAffordable && <span className="text-[11px] opacity-70 ml-1">(★不足)</span>}
                                                 </button>
                                             </div>
                                         </div>
@@ -514,7 +514,7 @@ const ShopScreen = ({
                         className={`h-full aspect-square flex flex-col items-center justify-center btn-game-cyber rounded-xl text-slate-300 relative ${isInDebt ? 'opacity-40' : ''}`}
                     >
                         {freeRerolls > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-slate-900 animate-bounce">
+                            <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-slate-900 animate-bounce">
                                 {freeRerolls}
                             </span>
                         )}
@@ -522,11 +522,11 @@ const ShopScreen = ({
                         <div className="flex flex-col items-center leading-none">
                             <span className="flex items-center bg-black/40 px-1.5 py-0.5 rounded-full border border-white/5">
                                 {freeRerolls > 0 ? (
-                                    <span className="text-[8px] font-bold text-green-400">FREE</span>
+                                    <span className="text-[10px] font-bold text-green-400">無料</span>
                                 ) : (
                                     <>
-                                        <span className="text-[9px] font-mono font-bold text-yellow-400">{formatJapaneseNumber(rerollPrice)}</span>
-                                        <span className="material-icons-round text-gold text-[8px] ml-0.5">star</span>
+                                        <span className="text-[10px] font-mono font-bold text-yellow-400">{formatJapaneseNumber(rerollPrice)}</span>
+                                        <span className="material-icons-round text-gold text-[10px] ml-0.5">star</span>
                                     </>
                                 )}
                             </span>
@@ -537,7 +537,7 @@ const ShopScreen = ({
                         style={{ touchAction: 'manipulation' }}
                         className="h-full flex-1 btn-game-primary flex items-center justify-center space-x-2 text-white relative overflow-hidden"
                     >
-                        <span className="text-base font-bold tracking-wide relative z-10">Return</span>
+                        <span className="text-base font-bold tracking-wide relative z-10">ショップを出る</span>
                         <span className="material-icons-round text-base">arrow_forward</span>
                     </button>
                 </div>

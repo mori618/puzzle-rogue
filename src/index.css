@@ -1782,7 +1782,7 @@ button:disabled {
 /* トークンのレベルタグ（枠線を排除し、右下にさりげなく配置） */
 .token-level-tag {
   font-family: var(--font-sans), sans-serif;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   padding: 0;
   background: transparent !important;
@@ -1837,7 +1837,7 @@ button:disabled {
 /* 中央配置用レベルバッジ（台形デザイン） */
 .token-level-tag-center {
   font-family: var(--font-sans), sans-serif;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   padding: 0;
   background: transparent !important;
@@ -1984,7 +1984,7 @@ button:disabled {
 /* ステータスタグの基本設計（極小サイバーHUDタグ） */
 .token-status-tag {
   position: absolute;
-  font-size: 7px;
+  font-size: 9px;
   font-weight: 900;
   padding: 1px 3.5px;
   border-radius: 2px;
@@ -2174,7 +2174,7 @@ button:disabled {
 }
 .hud-logo-sub {
   font-family: var(--font-game-cyber); font-weight: 800;
-  font-size: 7.5px; letter-spacing: 0.3em; color: #a78bfa; margin-top: 2px;
+  font-size: 9px; letter-spacing: 0.25em; color: #a78bfa; margin-top: 2px;
 }
 .hud-starshop {
   flex: none; display: flex; align-items: center; gap: 8px;
@@ -2264,7 +2264,7 @@ button:disabled {
   background: #1a1230; border: 1.5px solid #6d4bd8;
 }
 .tk-cap .tk-ico { font-size: clamp(13px, 4.2vw, 17px); }
-.tk-cap .tk-lv { font-size: clamp(7px, 2.1vw, 8.5px); }
+.tk-cap .tk-lv { font-size: clamp(9.5px, 2.7vw, 11px); }
 .tk-attr-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 9px; z-index: 3; }
 .tk-cap-fill {
   position: absolute; left: 0; top: 0; bottom: 0; z-index: 1;
@@ -2284,7 +2284,7 @@ button:disabled {
 }
 .tk-cir::before { content: ""; position: absolute; inset: 6%; border-radius: 50%; background: var(--in, #1a1230); z-index: 0; }
 .tk-cir .tk-ico { font-size: clamp(18px, 6vw, 24px); }
-.tk-cir .tk-lv { position: absolute; bottom: 14%; left: 50%; transform: translateX(-50%); font-size: clamp(7px, 2.1vw, 8.5px); }
+.tk-cir .tk-lv { position: absolute; bottom: 14%; left: 50%; transform: translateX(-50%); font-size: clamp(9.5px, 2.7vw, 11px); }
 .tk-cir .tk-lv-buff { color: #67e8f9; font-size: clamp(9px, 2.6vw, 11px); bottom: 11%; }
 .tk-attr-arc {
   position: absolute; inset: 6%; border-radius: 50%; z-index: 1; background: var(--arc);
@@ -2312,7 +2312,7 @@ button:disabled {
 /* バッジ */
 .tk-badge-stack {
   position: absolute; top: -2px; right: -2px; z-index: 4;
-  font-family: var(--font-game-cyber); font-weight: 800; font-size: 9px; line-height: 1;
+  font-family: var(--font-game-cyber); font-weight: 800; font-size: 11px; line-height: 1;
   padding: 2px 4px; border-radius: 4px; background: #22d3ee; color: #062a33;
 }
 .tk-badge-lock {
@@ -2325,9 +2325,9 @@ button:disabled {
   position: absolute; top: -3px; left: -3px; z-index: 4;
   width: 15px; height: 15px; border-radius: 50%;
   display: grid; place-items: center; background: #fbbf24; color: #1a1230;
-  font-family: var(--font-game-cyber); font-weight: 800; font-size: 9px; line-height: 1;
+  font-family: var(--font-game-cyber); font-weight: 800; font-size: 11px; line-height: 1;
 }
-.tk-cap .tk-badge-one { position: relative; top: auto; left: auto; width: 13px; height: 13px; font-size: 8px; margin-left: 1px; }
+.tk-cap .tk-badge-one { position: relative; top: auto; left: auto; width: 13px; height: 14px; font-size: 11px; margin-left: 1px; }
 
 /* ---- 操作時間ゲージ（盤面との境目） ---- */
 /* 親の gap-2（8px）を打ち消して、盤面の上端ちょうどに重ねる */
@@ -2483,7 +2483,7 @@ button:disabled {
   text-overflow: ellipsis;
 }
 .screen-title-sub {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   color: #94a3b8;
   letter-spacing: 0.04em;
@@ -2760,7 +2760,7 @@ button:disabled {
 }
 .title-card-icon .material-icons-round { font-size: 20px; }
 .title-card-label { font-size: 14px; font-weight: 800; color: #fff; line-height: 1.2; white-space: nowrap; }
-.title-card-desc { font-size: 10.5px; color: #94a3b8; line-height: 1.3; margin-top: 2px; }
+.title-card-desc { font-size: 11px; color: #94a3b8; line-height: 1.3; margin-top: 2px; }
 
 /* 下部の小さなアイコンボタン列 */
 .title-util-btn {
@@ -2770,7 +2770,7 @@ button:disabled {
   gap: 2px;
   padding: 6px 4px;
   border-radius: 12px;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   color: #94a3b8;
   transition: color 0.15s ease, background 0.15s ease;
@@ -2959,7 +2959,7 @@ button:disabled {
 
 .deck-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .deck-card-code {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.22em;
   color: color-mix(in srgb, var(--c1) 70%, #94a3b8);
@@ -2977,7 +2977,7 @@ button:disabled {
 }
 .deck-card-meta { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
 .deck-card-tag {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 800;
   padding: 2px 9px;
   border-radius: 999px;
@@ -3065,6 +3065,46 @@ button:disabled {
 
   .tk-cap { aspect-ratio: 1.6 / 1; }
   .tk-cap .tk-ico { font-size: clamp(16px, 5.4vw, 22px); }
-  .tk-cap .tk-lv, .tk-cir .tk-lv { font-size: clamp(8px, 2.6vw, 10px); }
+  .tk-cap .tk-lv, .tk-cir .tk-lv { font-size: clamp(10px, 2.8vw, 12px); }
   .tk-cir .tk-ico { font-size: clamp(22px, 7.4vw, 30px); }
 }
+
+/* ===== トークン並び替え（長押し → ドラッグ） ===== */
+.tk-row { touch-action: none; }
+.tk-slot { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+/* 持ち上げ中の元スロット */
+.tk-slot.tk-lifted { opacity: 0.3; transform: scale(0.92); }
+/* 置き先のスロット */
+.tk-slot.tk-drop-target {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 2px #fbbf24, 0 0 14px rgba(251, 191, 36, 0.6);
+}
+.tk-slot.tk-empty.tk-drop-target { border-color: #fbbf24; border-style: solid; }
+/* 指に追従するトークン */
+.tk-drag-ghost {
+  position: fixed; z-index: 9999; pointer-events: none;
+  width: 64px; height: 30px; border-radius: 999px;
+  transform: translate(-50%, -50%) scale(1.15);
+  display: flex; align-items: center; justify-content: center;
+  background: #2a1b4a; border: 2px solid #fbbf24; color: #fff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55), 0 0 16px rgba(251, 191, 36, 0.45);
+}
+.tk-drag-ghost .material-icons-round { font-size: 20px; }
+.tk-drag-ghost-cir { width: 52px; height: 52px; border-radius: 50%; }
+.tk-drag-ghost-cir .material-icons-round { font-size: 26px; }
+/* 並び替え中の操作ヒント */
+.tk-reorder-hint {
+  position: fixed; z-index: 9998; pointer-events: none;
+  left: 50%; top: calc(12px + env(safe-area-inset-top, 0px)); transform: translateX(-50%);
+  padding: 8px 14px; border-radius: 999px; white-space: nowrap;
+  background: rgba(15, 10, 30, 0.92); border: 1px solid rgba(251, 191, 36, 0.5);
+  color: #fde68a; font-size: 12px; font-weight: 700;
+}
+
+/* デッキ選択：各デッキの内容説明 */
+.deck-card-desc {
+  font-size: 12px; font-weight: 600; line-height: 1.4;
+  color: rgba(226, 232, 240, 0.85);
+  margin-top: 2px;
+}
+.hud-logo-static, .hud-logo-static:hover, .hud-logo-static:active { background: transparent; transform: none; cursor: default; }

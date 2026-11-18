@@ -19,7 +19,7 @@ const DEV_UPDATE_INFO = typeof __LAST_UPDATE_INFO__ !== 'undefined'
 const DevUpdateInfo = () => {
     if (!SHOW_DEV_UPDATE_INFO || !DEV_UPDATE_INFO.date) return null;
     return (
-        <div className="w-full flex items-center justify-center gap-1.5 text-[10px] text-slate-500 select-none min-w-0">
+        <div className="w-full flex items-center justify-center gap-1.5 text-[11px] text-slate-500 select-none min-w-0">
             <span className="material-icons-round text-[12px] text-amber-500/80">update</span>
             <span className="font-mono shrink-0">{DEV_UPDATE_INFO.date} {DEV_UPDATE_INFO.time}</span>
             {DEV_UPDATE_INFO.summary && (

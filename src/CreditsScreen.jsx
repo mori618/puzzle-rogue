@@ -88,7 +88,7 @@ SOFTWARE.`
             <div className="flex flex-col gap-6">
                 {/* 開発者 */}
                 <div className="ui-card py-5 flex flex-col items-center gap-1">
-                    <span className="text-[10px] font-bold text-slate-500 tracking-[0.3em]">DEVELOPER</span>
+                    <span className="text-[11px] font-bold text-slate-500 tracking-[0.3em]">DEVELOPER</span>
                     <p className="text-2xl font-game-header tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-amber-500">
                         MORI
                     </p>
@@ -120,7 +120,7 @@ SOFTWARE.`
                                         <span className="material-icons-round text-[18px] transition-transform group-open:rotate-180">expand_more</span>
                                     </span>
                                 </summary>
-                                <pre className="text-[9.5px] text-slate-400 font-mono leading-relaxed whitespace-pre-wrap px-4 pb-4">
+                                <pre className="text-[11px] text-slate-400 font-mono leading-relaxed whitespace-pre-wrap px-4 pb-4">
                                     {lib.text}
                                 </pre>
                             </details>
@@ -128,7 +128,7 @@ SOFTWARE.`
                     </div>
                 </UiSection>
 
-                <p className="text-center text-[10px] text-slate-600 font-mono tracking-widest">© 2026 MORI</p>
+                <p className="text-center text-[11px] text-slate-600 font-mono tracking-widest">© 2026 MORI</p>
             </div>
         </ScreenShell>
     );

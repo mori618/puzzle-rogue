@@ -93,7 +93,7 @@ export const UpdateSettingsSection = () => {
                         <span className="material-icons-round text-base">refresh</span>
                         今すぐ更新
                     </button>
-                    <p className="text-slate-500 text-[10px] mt-2 leading-relaxed">
+                    <p className="text-slate-500 text-[11px] mt-2 leading-relaxed">
                         ゲームが再読み込みされます。進行中のランは最後にセーブされた時点から再開します。
                     </p>
                 </>

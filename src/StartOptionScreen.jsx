@@ -10,6 +10,7 @@ const DECKS = [
     code: 'GUARD',
     name: '安全',
     tag: 'おすすめ',
+    desc: '★1パッシブ＋★1スキル・20★・操作時間+3秒',
     icon: 'shield',
     level: 1,
     c1: '#6ee7b7',
@@ -22,6 +23,7 @@ const DECKS = [
     code: 'BALANCE',
     name: '堅実',
     tag: 'バランス',
+    desc: '★2パッシブ＋★1スキル・10★',
     icon: 'balance',
     level: 2,
     c1: '#93c5fd',
@@ -34,6 +36,7 @@ const DECKS = [
     code: 'ASSAULT',
     name: '挑戦',
     tag: '上級者向け',
+    desc: 'ランダムな呪いを1つ背負って開始・10★',
     icon: 'local_fire_department',
     level: 3,
     c1: '#fcd34d',
@@ -45,7 +48,7 @@ const DECKS = [
 // 選んだカードを光らせてから開始するまでの時間
 const SELECT_DELAY_MS = 450;
 
-const StartOptionScreen = ({ onSelect }) => {
+const StartOptionScreen = ({ onSelect, onBack, hasSaveData }) => {
   const [picked, setPicked] = useState(null);
 
   const handlePick = (id) => {
@@ -61,11 +64,27 @@ const StartOptionScreen = ({ onSelect }) => {
       <div className="screen-shell-glow" aria-hidden="true" />
 
       <div className="relative z-10 w-full max-w-md md:max-w-4xl my-auto px-4 py-[calc(24px+env(safe-area-inset-top,0px))] pb-[calc(24px+env(safe-area-inset-bottom,0px))]">
+        {onBack && (
+          <button
+            type="button"
+            onClick={() => { if (picked) return; soundManager.playSE(SE_IDS.UI_CLICK); onBack(); }}
+            className="fixed left-4 top-[calc(16px+env(safe-area-inset-top,0px))] w-10 h-10 rounded-xl btn-game-cyber flex items-center justify-center text-slate-300 z-20"
+            aria-label="タイトルへ戻る"
+            style={{ touchAction: 'manipulation' }}
+          >
+            <span className="material-icons-round">arrow_back</span>
+          </button>
+        )}
         {/* 見出し */}
         <div className="deck-heading">
           <p className="deck-heading-sub">SELECT YOUR DECK</p>
           <h2 className="deck-heading-title">始まりの力を選択</h2>
           <div className="deck-heading-rule" aria-hidden="true"><span /></div>
+          {hasSaveData && (
+            <p className="mt-3 text-center text-[12px] font-bold text-amber-300">
+              デッキを選ぶと、中断中のプレイデータは消えます
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
@@ -103,6 +122,7 @@ const StartOptionScreen = ({ onSelect }) => {
                     ))}
                   </span>
                 </span>
+                <span className="deck-card-desc">{d.desc}</span>
               </span>
 
               <span className="deck-card-go material-icons-round" aria-hidden="true">arrow_forward_ios</span>
