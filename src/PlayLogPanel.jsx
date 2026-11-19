@@ -37,7 +37,7 @@ const PlayLogPanel = () => {
           <span className="material-icons-round text-sm text-sky-400">description</span>
           テスト記録
         </span>
-        <span className="text-[10px] text-slate-500 font-mono">{eventCount} events</span>
+        <span className="text-[11px] text-slate-500 font-mono">{eventCount} events</span>
       </div>
       <textarea
         value={memo}
@@ -63,21 +63,21 @@ const PlayLogPanel = () => {
           コピー
         </button>
       </div>
-      {status && <div className="text-[10px] text-sky-300 mt-1 text-center">{status}</div>}
+      {status && <div className="text-[11px] text-sky-300 mt-1 text-center">{status}</div>}
       <button
         onClick={() => setShowArchive(v => !v)}
-        className="w-full text-[10px] text-slate-500 mt-2 underline"
+        className="w-full text-[11px] text-slate-500 mt-2 underline"
       >
         {showArchive ? '過去の記録を閉じる' : '過去の記録（最大5件）'}
       </button>
       {showArchive && (
         <div className="mt-1 flex flex-col gap-1">
-          {archive.length === 0 && <div className="text-[10px] text-slate-600 text-center">なし</div>}
+          {archive.length === 0 && <div className="text-[11px] text-slate-600 text-center">なし</div>}
           {archive.map(log => (
             <button
               key={log.runId}
               onClick={() => playLog.download(log)}
-              className="w-full bg-slate-900/60 hover:bg-slate-800 text-[10px] text-slate-400 py-1.5 px-2 rounded flex justify-between items-center"
+              className="w-full bg-slate-900/60 hover:bg-slate-800 text-[11px] text-slate-400 py-1.5 px-2 rounded flex justify-between items-center"
             >
               <span className="font-mono">{new Date(log.startedAt).toLocaleString()}</span>
               <span>C{log.final?.cycle ?? '?'} / {log.endReason || '-'}</span>

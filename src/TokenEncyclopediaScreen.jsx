@@ -210,13 +210,13 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
                                         </span>
                                     </div>
                                     <div className="flex flex-col items-end">
-                                        <span className="text-[9px] font-bold opacity-60 text-slate-400 tracking-tighter">
-                                            {item.category === 'enchant' ? 'ENCHANT' : (item.category === 'skill' ? 'ACTIVE' : (item.category === 'curse' ? 'CURSE' : 'PASSIVE'))}
+                                        <span className="text-[10px] font-bold opacity-60 text-slate-400 tracking-tighter">
+                                            {item.category === 'enchant' ? 'エンチャント' : (item.category === 'skill' ? 'アクティブ' : (item.category === 'curse' ? '呪い' : 'パッシブ'))}
                                         </span>
                                         {item.category !== 'enchant' && item.category !== 'curse' && (
-                                            <div className="flex text-gold text-[8px] mt-0.5">
+                                            <div className="flex text-gold text-[10px] mt-0.5">
                                                 {Array.from({ length: item.rarity || 1 }).map((_, i) => (
-                                                    <span key={i} className="material-icons-round text-[9px]">star</span>
+                                                    <span key={i} className="material-icons-round text-[10px]">star</span>
                                                 ))}
                                             </div>
                                         )}
@@ -229,7 +229,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
                                     </h3>
                                     <TokenTags token={item} className="mt-1" />
                                     {/* 簡易説明文 */}
-                                    <p className="text-[10px] text-slate-400 line-clamp-2 mt-1 leading-snug">
+                                    <p className="text-[11px] text-slate-400 line-clamp-2 mt-1 leading-snug">
                                         {getTokenDescription(item)}
                                     </p>
                                 </div>
@@ -268,7 +268,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
                                     <div className="flex items-center gap-2 mt-1">
                                         <p className="text-xs text-slate-400 font-mono">ID: {selectedItem.id}</p>
                                         {selectedItem.canBeInitial && (
-                                            <span className="bg-emerald-950/60 border border-emerald-500/30 text-emerald-200 text-[9px] px-2 py-0.5 rounded-md font-bold">初期取得可</span>
+                                            <span className="bg-emerald-950/60 border border-emerald-500/30 text-emerald-200 text-[10px] px-2 py-0.5 rounded-md font-bold">初期取得可</span>
                                         )}
                                     </div>
                                 </div>
@@ -276,8 +276,8 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
 
                             <div className="space-y-4">
                                 <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5">
-                                    <h4 className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5 flex justify-between">
-                                        <span>Effect / Description</span>
+                                    <h4 className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5 flex justify-between">
+                                        <span>効果</span>
                                         <span className="text-indigo-300 font-bold">属性: {translateAttributes(selectedItem.attributes)}</span>
                                     </h4>
                                     <TokenTags token={selectedItem} className="mb-2" />
@@ -288,7 +288,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
                                     {selectedItem.category !== 'enchant' && getTokenTags(selectedItem).length > 0 && (
                                         <div className="flex flex-wrap gap-1 mt-2.5" data-testid="token-tags">
                                             {getTokenTags(selectedItem).map(tag => (
-                                                <span key={tag} className="text-[10px] font-bold text-slate-300 bg-slate-800/80 border border-white/10 rounded-full px-2 py-0.5">
+                                                <span key={tag} className="text-[11px] font-bold text-slate-300 bg-slate-800/80 border border-white/10 rounded-full px-2 py-0.5">
                                                     {TOKEN_TAGS[tag]?.label || tag}
                                                 </span>
                                             ))}
@@ -298,7 +298,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="bg-slate-950/40 p-3 rounded-xl border border-white/5">
-                                        <h4 className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1">Item Type</h4>
+                                        <h4 className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">種類</h4>
                                         <div className="flex items-center gap-1 font-bold text-white mt-0.5">
                                             <span className={`material-icons-round text-sm ${getIconStyle(selectedItem)}`}>
                                                 {selectedItem.category === 'enchant' ? 'auto_fix_high' : (selectedItem.category === 'skill' ? 'bolt' : 'inventory_2')}
@@ -311,7 +311,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
                                         </div>
                                     </div>
                                     <div className="bg-slate-950/40 p-3 rounded-xl border border-white/5">
-                                        <h4 className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1">Base Price</h4>
+                                        <h4 className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">基本価格</h4>
                                         <div className="flex items-center gap-1 font-bold text-yellow-400 mt-0.5">
                                             <span>{selectedItem.price || 0}</span>
                                             <span className="material-icons-round text-xs">star</span>
@@ -319,7 +319,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
                                     </div>
                                     {selectedItem.cost !== undefined && (
                                         <div className="bg-slate-950/40 p-3 rounded-xl border border-white/5">
-                                            <h4 className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1">Initial Cost (Energy)</h4>
+                                            <h4 className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">必要チャージ</h4>
                                             <div className="flex items-center gap-1 font-bold text-blue-400 mt-0.5">
                                                 <span className="material-icons-round text-sm">bolt</span>
                                                 <span>{selectedItem.cost} ターン</span>
@@ -330,7 +330,7 @@ const TokenEncyclopediaScreen = ({ onClose }) => {
 
                                 {selectedItem.conditionDesc && (
                                     <div className="bg-red-950/20 p-4 rounded-xl border border-red-500/20">
-                                        <h4 className="text-[9px] text-red-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
+                                        <h4 className="text-[10px] text-red-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
                                             <span className="material-icons-round text-[12px]">lock_open</span> 解除条件
                                         </h4>
                                         <p className="text-sm text-red-200 font-bold">{selectedItem.conditionDesc}</p>

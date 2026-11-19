@@ -64,7 +64,7 @@ const OrbIcon = ({ type, icon, special, size = 'md' }) => {
 
             {/* スペシャルマーク：外側ラッパーにabsoluteで配置するため回転の影響を受けない */}
             {special === 'enhanced' && (
-                <div className="absolute top-[-3px] right-[-3px] w-4 h-4 bg-yellow-400 text-white text-[10px] leading-none font-bold flex items-center justify-center rounded-full border border-white shadow z-10">+</div>
+                <div className="absolute top-[-3px] right-[-3px] w-4 h-4 bg-yellow-400 text-white text-[11px] leading-none font-bold flex items-center justify-center rounded-full border border-white shadow z-10">+</div>
             )}
             {special === 'bomb' && (
                 <span className="material-icons-round absolute top-[-5px] left-[-5px] text-[16px] text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] z-10">cyclone</span>
@@ -442,7 +442,7 @@ const TabDrops = () => {
                             <OrbIcon type={type} icon={icon} size="sm" />
                             <div>
                                 <div className={`font-bold text-xs ${color}`}>{label}</div>
-                                <div className="text-[10px] text-slate-400">{desc}</div>
+                                <div className="text-[11px] text-slate-400">{desc}</div>
                             </div>
                         </div>
                     ))}
@@ -460,7 +460,7 @@ const TabDrops = () => {
                                 <div className="flex-1 min-w-0">
                                     <div className="font-bold text-white text-sm mb-1">{label}</div>
                                     <p className="text-xs text-slate-300 mb-1.5">{desc}</p>
-                                    <div className="text-[10px] text-slate-500 bg-black/20 rounded px-2 py-1">
+                                    <div className="text-[11px] text-slate-500 bg-black/20 rounded px-2 py-1">
                                         🔧 {how}
                                     </div>
                                 </div>
@@ -740,8 +740,8 @@ const TabShop = () => (
                 ].map(({ stars, label, color, bg, desc }) => (
                     <div key={label} className={`${bg} border rounded-xl p-2.5 text-center`}>
                         <div className={`font-bold text-sm ${color}`}>{stars}</div>
-                        <div className="text-[10px] text-slate-300 mt-1">{label}</div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">{desc}</div>
+                        <div className="text-[11px] text-slate-300 mt-1">{label}</div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">{desc}</div>
                     </div>
                 ))}
             </div>
@@ -783,7 +783,7 @@ const TabShop = () => (
                 ].map(({ name, effect }) => (
                     <div key={name} className="bg-slate-800/40 border border-white/8 rounded-lg p-2">
                         <div className="text-xs font-bold text-white">{name}</div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">{effect}</div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">{effect}</div>
                     </div>
                 ))}
             </div>

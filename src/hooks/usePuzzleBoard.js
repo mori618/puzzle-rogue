@@ -25,9 +25,11 @@ export const usePuzzleBoard = ({ tokens, setTokens, notify }) => {
       const otherType = prev.filter(t => t == null || (isSkill ? t.type !== 'skill' : t.type === 'skill'));
       // 対象トークンを取り除いた同タイプリスト
       const withoutSelf = sameType.filter(t => t.instanceId !== token.instanceId);
+      // 並び替え中にレベル等が変わっていても最新の状態を使う（古いオブジェクトで上書きしない）
+      const latest = sameType.find(t => t.instanceId === token.instanceId) || token;
       // 指定位置（1始まり）に挿入
       const clampedPos = Math.max(0, Math.min(targetPos - 1, withoutSelf.length));
-      withoutSelf.splice(clampedPos, 0, token);
+      withoutSelf.splice(clampedPos, 0, latest);
       // 同タイプを前に、別タイプを後ろに結合
       return [...withoutSelf, ...otherType];
     });

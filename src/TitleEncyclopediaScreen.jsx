@@ -157,8 +157,8 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
 
       {/* 現在装備中のバッジ表示バー */}
       <div className="flex-none px-4 py-3 bg-slate-900/90 border-b border-white/10 z-10 backdrop-blur-sm">
-        <div className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1.5 flex items-center justify-between">
-          <span>EQUIPPED TITLE / 現在装備中の二つ名</span>
+        <div className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1.5 flex items-center justify-between">
+          <span>現在装備中の二つ名</span>
         </div>
         <div className="p-3 rounded-xl border transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-2 bg-slate-950/60 border-white/10">
           <div className="flex items-center gap-2 flex-wrap">
@@ -186,7 +186,7 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
           }`}
         >
           <span className="material-icons-round text-base">label</span>
-          <span className="flex flex-col items-start leading-tight"><span>A枠・接頭辞</span><span className="text-[10px] opacity-70 font-semibold">全{PREFIX_TITLES.length}種</span></span>
+          <span className="flex flex-col items-start leading-tight"><span>A枠・接頭辞</span><span className="text-[11px] opacity-70 font-semibold">全{PREFIX_TITLES.length}種</span></span>
         </button>
         <button
           onClick={() => {
@@ -200,7 +200,7 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
           }`}
         >
           <span className="material-icons-round text-base">loyalty</span>
-          <span className="flex flex-col items-start leading-tight"><span>B枠・接尾辞</span><span className="text-[10px] opacity-70 font-semibold">全{SUFFIX_TITLES.length}種</span></span>
+          <span className="flex flex-col items-start leading-tight"><span>B枠・接尾辞</span><span className="text-[11px] opacity-70 font-semibold">全{SUFFIX_TITLES.length}種</span></span>
         </button>
         <button
           onClick={() => {
@@ -214,7 +214,7 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
           }`}
         >
           <span className="material-icons-round text-base">flare</span>
-          <span className="flex flex-col items-start leading-tight"><span>進化</span><span className="text-[10px] opacity-70 font-semibold">全{EVOLVED_TITLES.length}種</span></span>
+          <span className="flex flex-col items-start leading-tight"><span>進化</span><span className="text-[11px] opacity-70 font-semibold">全{EVOLVED_TITLES.length}種</span></span>
         </button>
       </div>
 
@@ -288,7 +288,7 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
                         }`}>
                           {unlocked ? title.name : hiddenName}
                         </span>
-                        <span className={`text-[9px] border px-1.5 py-0.5 rounded font-bold ${
+                        <span className={`text-[10px] border px-1.5 py-0.5 rounded font-bold ${
                           evolved
                             ? 'bg-amber-900/30 border-amber-500/30 text-amber-300'
                             : 'bg-slate-800/80 border-white/10 text-slate-400'
@@ -297,7 +297,7 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
                         </span>
                       </div>
                       {unlocked && (
-                        <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        <span className={`shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full ${
                           isEquipped ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400'
                         }`}>
                           {isEquipped ? '装着中' : '装着する'}
@@ -379,12 +379,12 @@ const TitleEncyclopediaScreen = ({ onClose, initialTab = 'prefix', switchCost = 
                           <span className="text-sm font-black text-white">
                             【{evo.name}】
                           </span>
-                          <span className="text-[9px] bg-indigo-900/50 border border-indigo-500/30 px-1.5 py-0.5 rounded text-indigo-300 font-bold">
+                          <span className="text-[10px] bg-indigo-900/50 border border-indigo-500/30 px-1.5 py-0.5 rounded text-indigo-300 font-bold">
                             {slot === 'prefix' ? 'A枠' : 'B枠'}・{modeLabel}: {baseLabel}
                           </span>
                         </div>
                         {unlocked && (
-                          <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          <span className={`shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full ${
                             isEquipped ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
                           }`}>
                             {isEquipped ? '装着中' : '装着する'}

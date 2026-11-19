@@ -11,14 +11,14 @@ const TokenTags = ({ token, className = '' }) => {
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
       {layers.map(l => (
-        <span key={l} className={`text-[9px] leading-none font-bold px-1.5 py-0.5 rounded border ${LAYER_LABELS[l].className}`}>
+        <span key={l} className={`text-[10px] leading-none font-bold px-1.5 py-0.5 rounded border ${LAYER_LABELS[l].className}`}>
           {LAYER_LABELS[l].label}
         </span>
       ))}
       {chips.map((c, i) => (
         <span
           key={i}
-          className={`text-[9px] leading-none px-1.5 py-0.5 rounded border ${c.kind === 'cost' ? 'bg-red-500/10 text-red-300 border-red-500/30' : 'bg-slate-700/60 text-slate-200 border-white/10'}`}
+          className={`text-[10px] leading-none px-1.5 py-0.5 rounded border ${c.kind === 'cost' ? 'bg-red-500/10 text-red-300 border-red-500/30' : 'bg-slate-700/60 text-slate-200 border-white/10'}`}
         >
           {c.text}
         </span>

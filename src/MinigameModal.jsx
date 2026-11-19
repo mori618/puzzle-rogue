@@ -80,12 +80,12 @@ const JankenGame = ({ state, onResolve }) => {
       <div className="flex items-center justify-center gap-6 h-20">
         <div className="text-center">
           <div className="text-5xl">{last ? HAND_EMOJI[last.player] : '❔'}</div>
-          <div className="text-[10px] text-slate-400 mt-1">あなた</div>
+          <div className="text-[11px] text-slate-400 mt-1">あなた</div>
         </div>
         <div className="text-slate-500 font-bold">VS</div>
         <div className="text-center">
           <div className="text-5xl">{last ? HAND_EMOJI[last.cpu] : '❔'}</div>
-          <div className="text-[10px] text-slate-400 mt-1">相手</div>
+          <div className="text-[11px] text-slate-400 mt-1">相手</div>
         </div>
       </div>
       <p
@@ -109,7 +109,7 @@ const JankenGame = ({ state, onResolve }) => {
               className="bg-slate-700 hover:bg-slate-600 border border-white/10 rounded-xl py-3 flex flex-col items-center active:scale-95"
             >
               <span className="text-3xl">{HAND_EMOJI[h]}</span>
-              <span className="text-[10px] text-slate-300 font-bold mt-1">{HAND_LABEL[h]}</span>
+              <span className="text-[11px] text-slate-300 font-bold mt-1">{HAND_LABEL[h]}</span>
             </button>
           ))}
         </div>
@@ -421,7 +421,7 @@ const DiceGame = ({ state, onResolve }) => {
         </div>
         {!rolling && face && <div className="text-sm text-slate-300 mt-2 font-bold">{face}の目</div>}
       </div>
-      <div className="grid grid-cols-3 gap-1 text-[10px]">
+      <div className="grid grid-cols-3 gap-1 text-[11px]">
         {[1, 2, 3, 4, 5, 6].map(n => (
           <div key={n} className={`rounded px-1 py-1 text-center border ${!rolling && face === n ? 'border-amber-300 bg-amber-500/20 text-amber-200' : 'border-white/5 bg-slate-900/50 text-slate-400'}`}>
             {n}: {DICE_FACES[n].label}

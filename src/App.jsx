@@ -29,6 +29,7 @@ import soundManager from './utils/SoundManager';
 import { SE_IDS } from './constants/sounds';
 import { getEffectiveCost, getTokenDescription } from './utils/tokenUtils';
 import { useGameState } from "./hooks/useGameState";
+import { useTokenReorder } from "./hooks/useTokenReorder";
 import { safeRemoveItem } from "./utils/safeStorage.js";
 
 const App = () => {
@@ -101,7 +102,6 @@ const App = () => {
     payTitleSwitch,
     isAwakeningLevelUpBought,
     showMaxComboWarpDialog, setShowMaxComboWarpDialog,
-    draggedToken, setDraggedToken,
     
     // ユーティリティ/Ref
     getTokenDynamicInfo,
@@ -133,7 +133,6 @@ const App = () => {
     notify,
     startNextCycle,
     skipTurns,
-    resetGame,
     handleStartOptionSelection,
     handleGiveUp,
     purifyCurse,
@@ -145,9 +144,6 @@ const App = () => {
     handleStartPractice,
     openShop,
     refreshShop,
-    handleDragStart,
-    handleDragOver,
-    handleDrop,
     getTokenSlotExpandPrice,
   } = gameState;
 
@@ -168,6 +164,25 @@ const App = () => {
   React.useEffect(() => {
     if (!goalReached) setSkipPromptDismissed(false);
   }, [goalReached]);
+
+  // トークン欄の長押しドラッグ並び替え
+  const reorderMaxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
+  const tokenReorder = useTokenReorder({
+    // 空きスロットに落とした場合は末尾扱いにし、位置が変わらないときは何もしない
+    moveToken: (tok, pos) => {
+      const isSkill = tok.type === 'skill';
+      const same = tokens.filter(t => t && (isSkill ? t.type === 'skill' : t.type !== 'skill'));
+      const curPos = same.findIndex(t => t.instanceId === tok.instanceId) + 1;
+      const clamped = Math.max(1, Math.min(pos, same.length));
+      if (curPos === clamped) return;
+      moveToken(tok, clamped);
+    },
+    pages: {
+      passive: { count: Math.ceil(Math.max(reorderMaxSlots, tokens.filter(t => t && t.type !== 'skill').length) / 5), set: setPassiveTokenPage },
+      active: { count: Math.ceil(Math.max(reorderMaxSlots, tokens.filter(t => t && t.type === 'skill').length) / 5), set: setActiveTokenPage },
+    },
+    onPickUp: () => soundManager.playSE(SE_IDS.DRAG_START),
+  });
 
   if (showUIPreview) {
     return (
@@ -229,9 +244,7 @@ const App = () => {
           // if (engineRef.current && savedBoard) engineRef.current.init(savedBoard);
         }}
         onStart={() => {
-          safeRemoveItem(SAVE_KEY);
-          setHasSaveData(false);
-          resetGame();
+          // セーブデータの削除はデッキを選んだ時点まで遅らせる（戻るで中断データを残せるように）
           setShowStartOption(true);
           setShowTitle(false);
         }}
@@ -249,8 +262,34 @@ const App = () => {
 
   return (
     <div className="bg-background-dark font-display text-slate-100 h-[100dvh] overflow-hidden flex justify-center w-full">
+      {/* 並び替え中に指へ追従するトークン */}
+      {tokenReorder.drag && (
+        <div
+          className={`tk-drag-ghost ${tokenReorder.drag.kind === 'active' ? 'tk-drag-ghost-cir' : ''}`}
+          style={{ left: tokenReorder.drag.x, top: tokenReorder.drag.y }}
+          aria-hidden="true"
+        >
+          <span className="material-icons-round">{getTokenIcon(tokenReorder.drag.token)}</span>
+        </div>
+      )}
+      {tokenReorder.drag && (
+        <div className="tk-reorder-hint" aria-hidden="true">
+          置きたい場所で指を離す（端で止めるとページ送り）
+        </div>
+      )}
       {showStartOption && (
-        <StartOptionScreen onSelect={handleStartOptionSelection} />
+        <StartOptionScreen
+          hasSaveData={hasSaveData}
+          onSelect={(id) => {
+            safeRemoveItem(SAVE_KEY);
+            setHasSaveData(false);
+            handleStartOptionSelection(id);
+          }}
+          onBack={() => {
+            setShowStartOption(false);
+            setShowTitle(true);
+          }}
+        />
       )}
       {/* Mobile Container */}
       <div className="w-full max-w-md h-full flex flex-col justify-between relative bg-background-dark shadow-2xl overflow-hidden">
@@ -260,11 +299,11 @@ const App = () => {
           <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
         </div>
 
-        {/* Notification Banner (Top Left) - Refined and Larger */}
-        <div className="absolute top-[86px] left-4 z-[200] pointer-events-none flex flex-col gap-3 max-w-[85%]">
+        {/* 通知バナー：ヘッダーの上に重ねて表示し、目標スコアや盤面を隠さない（タップは下へ素通し） */}
+        <div className="absolute top-[calc(6px+env(safe-area-inset-top,0px))] left-3 right-3 z-[200] pointer-events-none flex flex-col items-center">
           {currentToast && (
-            <div key={currentToast.id} className="glass-panel border-white/20 p-3 rounded-2xl flex items-center gap-4 animate-token-toast shadow-2xl bg-slate-900/90 backdrop-blur-xl border-l-4 border-l-primary">
-              <div className="relative w-12 h-12 shrink-0 border border-white/10 rounded-xl flex items-center justify-center bg-slate-800 shadow-inner">
+            <div key={currentToast.id} className="w-full max-w-sm glass-panel border-white/20 px-3 py-2 rounded-2xl flex items-center gap-3 animate-token-toast shadow-2xl bg-slate-900/95 backdrop-blur-xl border-l-4 border-l-primary">
+              <div className="relative w-10 h-10 shrink-0 border border-white/10 rounded-xl flex items-center justify-center bg-slate-800 shadow-inner">
                 {currentToast.token && (
                   <>
                     <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg z-10" style={getAttributeBarStyles(currentToast.token?.attributes)}></div>
@@ -291,7 +330,7 @@ const App = () => {
         <div
           className="flex-1 min-h-0 flex flex-col gap-2 relative z-30"
         >
-          {/* Top Status Bar: 左=メニュー / 中央=ロゴ（押すとメニュー） / 右=★とショップ */}
+          {/* Top Status Bar: 左=メニュー / 中央=ロゴ / 右=★とショップ */}
           <header className="hud-header relative z-10 px-4 pt-[calc(10px+env(safe-area-inset-top,20px))] pb-2 glass-panel border-b border-white/5 shrink-0">
             <button
               type="button"
@@ -302,15 +341,11 @@ const App = () => {
               <span className="material-icons-round">menu</span>
             </button>
             <div className="hud-header-center">
-              <button
-                type="button"
-                onClick={() => { soundManager.playSE(SE_IDS.UI_CLICK); setShowPause(true); }}
-                className="hud-logo"
-                aria-label="メニューを開く"
-              >
+              {/* ロゴは飾りのみ（メニューは左のボタンから。誤タップでのポーズを防ぐ） */}
+              <div className="hud-logo hud-logo-static" aria-hidden="true">
                 <span className="hud-logo-main">PUZZLE</span>
                 <span className="hud-logo-sub">{isPracticeMode ? 'PRACTICE' : 'ROGUE-LIKE'}</span>
-              </button>
+              </div>
             </div>
             {!isPracticeMode ? (
               <div className="hud-starshop">
@@ -349,7 +384,7 @@ const App = () => {
                     <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-300">
                       <span className="material-icons-round text-xs">timer</span>
                     </div>
-                    <span className="text-[10px] font-black text-indigo-300 uppercase tracking-tighter">Time</span>
+                    <span className="text-[11px] font-black text-indigo-300 uppercase tracking-tighter">操作時間</span>
                   </div>
                   <div className="flex items-center gap-1 bg-black/30 p-0.5 rounded-xl border border-white/5">
                     <button
@@ -363,7 +398,7 @@ const App = () => {
                     </button>
                     <div className="w-12 flex flex-col items-center">
                       <span className="text-base font-mono font-black text-white leading-none">{(practiceTimeLimit / 1000).toFixed(0)}</span>
-                      <span className="text-[7px] font-black text-indigo-400">SEC</span>
+                      <span className="text-[10px] font-black text-indigo-400">秒</span>
                     </div>
                     <button
                       onClick={() => {
@@ -383,7 +418,7 @@ const App = () => {
                     <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-300">
                       <span className="material-icons-round text-xs">psychology</span>
                     </div>
-                    <span className="text-[10px] font-black text-indigo-300 uppercase tracking-tighter">Pure Mode</span>
+                    <span className="text-[11px] font-black text-indigo-300 uppercase tracking-tighter">ピュアモード</span>
                   </div>
                   <button
                     onClick={() => {
@@ -468,7 +503,7 @@ const App = () => {
                     onClick={() => lastTurnBreakdown && setShowComboDetails(true)}
                     title="タップで前の手番の内訳"
                   >
-                    <div className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 flex items-center gap-2">
+                    <div className="text-[11px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 flex items-center gap-2">
                       <span className="w-8 h-[1px] bg-slate-800"></span>
                       Practice Best
                       <span className="w-8 h-[1px] bg-slate-800"></span>
@@ -482,7 +517,7 @@ const App = () => {
                           <span className="text-5xl font-black font-mono text-white opacity-80">
                             {formatJapaneseNumber(currentRunStats.maxCombo || 0)}
                           </span>
-                          <span className="text-xl font-black text-slate-500 uppercase tracking-tighter italic">Combo</span>
+                          <span className="text-xl font-black text-slate-500 uppercase tracking-tighter italic">コンボ</span>
                         </div>
                       </div>
                     </div>
@@ -501,10 +536,11 @@ const App = () => {
                           danger={turn === maxTurns && !goalReached}
                         />
                       </div>
-                      <div className="overflow-hidden -mx-1 -my-1 px-1 py-1"
+                      <div className="overflow-hidden -mx-1 -my-1 px-1 py-1 tk-row" data-token-row="passive"
                         onTouchStart={e => { passiveSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
                         onTouchEnd={e => {
                           if (!passiveSwipeRef.current) return;
+                          if (tokenReorder.isDragging()) { passiveSwipeRef.current = null; return; }
                           const dx = e.changedTouches[0].clientX - passiveSwipeRef.current.x;
                           const dy = e.changedTouches[0].clientY - passiveSwipeRef.current.y;
                           passiveSwipeRef.current = null;
@@ -517,7 +553,7 @@ const App = () => {
                           const onUp = eu => {
                             window.removeEventListener('mouseup', onUp);
                             const dx = eu.clientX - startX;
-                            if (Math.abs(dx) < 30) return;
+                            if (Math.abs(dx) < 30 || tokenReorder.isDragging()) return;
                             if (dx < 0) setPassiveTokenPage(p => Math.min(p + 1, passivePages - 1));
                             else setPassiveTokenPage(p => Math.max(p - 1, 0));
                           };
@@ -573,18 +609,15 @@ const App = () => {
                                   <div
                                     key={`passive-p${pageIdx}-${slotIdx}`}
                                     onClick={() => {
+                                      if (tokenReorder.consumeClick()) return;
                                       if (isExpandable) {
                                         setShowSlotExpandConfirm(true);
                                       } else if (!isLocked && t) {
                                         setSelectedTokenDetail({ token: t });
                                       }
                                     }}
-                                    draggable={!!t && !isLocked}
-                                    onDragStart={(e) => handleDragStart(e, t)}
-                                    onDragOver={handleDragOver}
-                                    onDrop={(e) => handleDrop(e, globalSlot + 1, false)}
-                                    onDragEnd={() => setDraggedToken(null)}
-                                    className={`tk-slot tk-cap ${draggedToken === t ? 'opacity-40 scale-95' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isSlot1Inactive ? 'opacity-60' : ''} ${
+                                    {...tokenReorder.getSlotProps(t, 'passive', globalSlot, isLocked)}
+                                    className={`tk-slot tk-cap ${tokenReorder.drag && tokenReorder.drag.token === t ? 'tk-lifted' : ''} ${tokenReorder.drag?.kind === 'passive' && tokenReorder.drag.overSlot === globalSlot && tokenReorder.drag.fromSlot !== globalSlot ? 'tk-drop-target' : ''} ${animClass} ${shadowClass} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isSlot1Inactive ? 'opacity-60' : ''} ${
                                       isLocked
                                         ? (isExpandable ? 'tk-add cursor-pointer' : 'tk-empty tk-locked opacity-40 cursor-not-allowed')
                                         : (t
@@ -634,10 +667,11 @@ const App = () => {
 
                     {/* Active Tokens Row（見出しなし） */}
                     <div className="w-full flex flex-col gap-2">
-                      <div className="overflow-hidden -mx-1 -my-1 px-1 py-1"
+                      <div className="overflow-hidden -mx-1 -my-1 px-1 py-1 tk-row" data-token-row="active"
                         onTouchStart={e => { activeSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
                         onTouchEnd={e => {
                           if (!activeSwipeRef.current) return;
+                          if (tokenReorder.isDragging()) { activeSwipeRef.current = null; return; }
                           const dx = e.changedTouches[0].clientX - activeSwipeRef.current.x;
                           const dy = e.changedTouches[0].clientY - activeSwipeRef.current.y;
                           activeSwipeRef.current = null;
@@ -650,7 +684,7 @@ const App = () => {
                           const onUp = eu => {
                             window.removeEventListener('mouseup', onUp);
                             const dx = eu.clientX - startX;
-                            if (Math.abs(dx) < 30) return;
+                            if (Math.abs(dx) < 30 || tokenReorder.isDragging()) return;
                             if (dx < 0) setActiveTokenPage(p => Math.min(p + 1, activePages - 1));
                             else setActiveTokenPage(p => Math.max(p - 1, 0));
                           };
@@ -711,18 +745,15 @@ const App = () => {
                                   <div
                                     key={`active-p${pageIdx}-${slotIdx}`}
                                     onClick={() => {
+                                      if (tokenReorder.consumeClick()) return;
                                       if (isExpandable) {
                                         setShowSlotExpandConfirm(true);
                                       } else if (!isLocked && t) {
                                         setSelectedTokenDetail({ token: t });
                                       }
                                     }}
-                                    draggable={!!t && !isLocked}
-                                    onDragStart={(e) => handleDragStart(e, t)}
-                                    onDragOver={handleDragOver}
-                                    onDrop={(e) => handleDrop(e, globalSlot + 1, true)}
-                                    onDragEnd={() => setDraggedToken(null)}
-                                    className={`tk-slot tk-cir ${draggedToken === t ? 'opacity-40 scale-95' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isActiveSlot1Inactive ? 'opacity-60' : ''} ${containerClasses}`}
+                                    {...tokenReorder.getSlotProps(t, 'active', globalSlot, isLocked)}
+                                    className={`tk-slot tk-cir ${tokenReorder.drag && tokenReorder.drag.token === t ? 'tk-lifted' : ''} ${tokenReorder.drag?.kind === 'active' && tokenReorder.drag.overSlot === globalSlot && tokenReorder.drag.fromSlot !== globalSlot ? 'tk-drop-target' : ''} ${levelUpTokenId === (t?.instanceId || t?.id) ? 'animate-token-levelup z-50' : ''} ${isActiveSlot1Inactive ? 'opacity-60' : ''} ${containerClasses}`}
                                     style={t && !isLocked ? { '--p': `${ringPercent}%`, '--arc': getAttributeArc(t?.attributes) } : undefined}
                                   >
                                     {isLocked ? (
@@ -956,11 +987,11 @@ const App = () => {
 
                 <div className="bg-slate-800/40 border border-white/10 rounded-2xl p-4 mb-4 w-full max-w-[280px] grid grid-cols-2 gap-4 animate-fade-in">
                   <div className="text-center">
-                    <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">最終到達サイクル</div>
+                    <div className="text-[11px] uppercase text-slate-400 font-bold tracking-wider">最終到達サイクル</div>
                     <div className="text-2xl font-black text-white font-mono mt-1">{(currentRunStats?.currentClears || 0) + 1}</div>
                   </div>
                   <div className="text-center border-l border-white/10">
-                    <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">最大コンボ</div>
+                    <div className="text-[11px] uppercase text-slate-400 font-bold tracking-wider">最大コンボ</div>
                     <div className="text-2xl font-black text-yellow-400 font-mono mt-1">{currentRunStats?.maxCombo || 0}</div>
                   </div>
                 </div>
@@ -1009,18 +1040,18 @@ const App = () => {
                   
                   <div className="bg-slate-950/50 rounded-xl p-2.5 mb-4 flex justify-around items-center border border-white/5">
                     <div className="text-center">
-                      <span className="text-[9px] text-slate-500 block uppercase">必要スター</span>
+                      <span className="text-[10px] text-slate-500 block uppercase">必要スター</span>
                       <span className="text-sm font-black text-amber-400 font-mono">★{price}</span>
                     </div>
                     <div className="w-[1px] h-6 bg-slate-800" />
                     <div className="text-center">
-                      <span className="text-[9px] text-slate-500 block uppercase">所持スター</span>
+                      <span className="text-[10px] text-slate-500 block uppercase">所持スター</span>
                       <span className={`text-sm font-black font-mono ${hasEnoughStars ? 'text-green-400' : 'text-red-400'}`}>★{stars}</span>
                     </div>
                   </div>
 
                   {!hasEnoughStars && (
-                    <p className="text-red-400 text-[10px] mb-3 leading-none">★が足りないため購入できません</p>
+                    <p className="text-red-400 text-[11px] mb-3 leading-none">★が足りないため購入できません</p>
                   )}
 
                   <div className="flex flex-col gap-2">
@@ -1163,8 +1194,8 @@ const App = () => {
                 <div className="w-24 h-24 bg-yellow-400/20 rounded-full flex items-center justify-center mb-6 border border-yellow-400/30 shadow-[0_0_50px_rgba(250,204,21,0.3)]">
                   <span className="material-icons-round text-6xl text-yellow-400 drop-shadow-glow animate-pulse-slow">emoji_events</span>
                 </div>
-                <h1 className="text-5xl text-yellow-400 font-black tracking-widest font-display italic drop-shadow-glow text-center">GAME CLEARED!</h1>
-                <p className="text-slate-500 text-[10px] font-black tracking-[0.3em] uppercase mt-2">Cycle 25 Complete</p>
+                <h1 className="text-5xl text-yellow-400 font-black tracking-widest font-display italic drop-shadow-glow text-center">ゲームクリア！</h1>
+                <p className="text-slate-500 text-[11px] font-black tracking-[0.3em] uppercase mt-2">全25サイクル達成</p>
                 <div className="h-1 w-32 bg-gradient-to-r from-transparent via-yellow-400 to-transparent mt-4 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.5)]"></div>
               </div>
 
@@ -1174,24 +1205,24 @@ const App = () => {
                   <span className="material-icons-round text-6xl rotate-12">trending_up</span>
                 </div>
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-slate-400 text-xs font-black tracking-wider uppercase">End Game Result</span>
-                  <span className="bg-yellow-400/10 text-yellow-400 text-[8px] font-black px-2 py-0.5 rounded-full border border-yellow-400/20">UNBELIEVABLE</span>
+                  <span className="text-slate-400 text-xs font-black tracking-wider uppercase">最終結果</span>
+                  <span className="bg-yellow-400/10 text-yellow-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-yellow-400/20">お見事！</span>
                 </div>
                 <div className="flex flex-col gap-4">
                   <div className="flex items-end justify-between border-b border-white/5 pb-4">
-                    <span className="text-slate-500 text-xs font-bold">Total Combo Score</span>
+                    <span className="text-slate-500 text-xs font-bold">最終サイクルのコンボ</span>
                     <span className="text-3xl text-white font-black font-mono tracking-tighter drop-shadow-sm">{formatJapaneseNumber(cycleTotalCombo)}</span>
                   </div>
                   <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                    <span className="text-slate-500 text-xs font-bold">Total Run Combo</span>
+                    <span className="text-slate-500 text-xs font-bold">累計コンボ</span>
                     <span className="text-sm text-slate-300 font-mono font-bold">{formatJapaneseNumber(currentRunTotalCombo)}</span>
                   </div>
                   <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                    <span className="text-slate-500 text-xs font-bold">Cycles Cleared</span>
+                    <span className="text-slate-500 text-xs font-bold">クリアしたサイクル</span>
                     <span className="text-sm text-slate-300 font-mono font-bold">{(currentRunStats?.currentClears || 0) + 1} / 25</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500 text-xs font-bold">Stars Spent</span>
+                    <span className="text-slate-500 text-xs font-bold">使ったスター</span>
                     <span className="text-sm text-slate-300 font-mono font-bold">{currentRunStats?.currentStarsSpent || 0} ★</span>
                   </div>
                 </div>
@@ -1200,7 +1231,7 @@ const App = () => {
               {/* Token Summary Header */}
               <div className="w-full max-w-sm flex items-center gap-3 mb-6 shrink-0 opacity-80">
                 <span className="material-icons-round text-primary text-xl">workspace_premium</span>
-                <h3 className="text-xs font-black text-slate-300 tracking-widest uppercase">Victory Artifacts</h3>
+                <h3 className="text-xs font-black text-slate-300 tracking-widest uppercase">最終トークン</h3>
                 <div className="flex-1 h-[1px] bg-gradient-to-r from-white/20 to-transparent"></div>
               </div>
 
@@ -1223,13 +1254,13 @@ const App = () => {
                           <span className="text-xs font-black text-amber-400">Lv.{lv}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <div className="flex text-gold text-[10px]">
+                          <div className="flex text-gold text-[11px]">
                             {Array.from({ length: t.rarity || 1 }).map((_, i) => (
                               <span key={i} className="material-icons-round drop-shadow-glow">star</span>
                             ))}
                           </div>
-                          <span className={`text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-tighter ${isSkill ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
-                            {isSkill ? 'Skill' : 'Passive'}
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-tighter ${isSkill ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                            {isSkill ? 'スキル' : 'パッシブ'}
                           </span>
                         </div>
                       </div>
@@ -1263,7 +1294,7 @@ const App = () => {
                   className="bg-white/5 hover:bg-white/10 text-slate-300 py-4 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 border border-white/5"
                 >
                   <span className="material-icons-round">home</span>
-                  <span>Title Menu</span>
+                  <span>タイトルへ</span>
                 </button>
               </div>
             </div>
@@ -1292,7 +1323,7 @@ const App = () => {
                           disabled={isMaxLevel}
                           className={`py-3 rounded-xl font-bold active:scale-95 shadow-lg transition-opacity ${isMaxLevel ? 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-50' : 'bg-primary text-white shadow-primary/25'}`}
                         >
-                          {isMaxLevel ? `最大Lv到達済み` : `強化 (Lv UP)`}
+                          {isMaxLevel ? `最大Lv到達済み` : `強化（レベルアップ）`}
                         </button>
                       );
                     })()}
@@ -1318,10 +1349,10 @@ const App = () => {
                 nothing: { label: '何も起きない', icon: 'remove_circle_outline', color: 'text-slate-300' },
                 half: { label: 'スター半減', icon: 'trending_down', color: 'text-red-400' },
                 triple: { label: 'スター×3', icon: 'auto_awesome', color: 'text-amber-300' },
-                levelup: { label: 'Lv UP', icon: 'upgrade', color: 'text-emerald-300' },
+                levelup: { label: 'レベルアップ', icon: 'upgrade', color: 'text-emerald-300' },
                 tenth: { label: 'スター1/10', icon: 'heart_broken', color: 'text-red-500' },
                 quintuple: { label: 'スター×5', icon: 'auto_awesome', color: 'text-amber-200' },
-                levelup2: { label: 'Lv UP×2', icon: 'upgrade', color: 'text-emerald-300' },
+                levelup2: { label: 'レベルアップ×2', icon: 'upgrade', color: 'text-emerald-300' },
                 quarter: { label: 'スター1/4', icon: 'trending_down', color: 'text-red-400' },
                 twentieth: { label: 'スター1/20', icon: 'heart_broken', color: 'text-red-500' },
               };
@@ -1362,7 +1393,7 @@ const App = () => {
                             {isOpen ? (
                               <>
                                 <span className={`material-icons-round text-3xl ${info.color}`}>{info.icon}</span>
-                                <span className={`text-[10px] font-bold mt-1 ${info.color}`}>{info.label}</span>
+                                <span className={`text-[11px] font-bold mt-1 ${info.color}`}>{info.label}</span>
                               </>
                             ) : (
                               <span className="material-icons-round text-4xl text-amber-200">inventory_2</span>
@@ -1451,16 +1482,16 @@ const App = () => {
                       </div>
                       <div className="flex-1">
                         <h3 className="text-lg font-bold font-display text-white italic leading-tight">{t.name}</h3>
-                        <div className="flex text-gold text-[10px] mt-0.5">
+                        <div className="flex text-gold text-[11px] mt-0.5">
                           {Array.from({ length: t.rarity || 1 }).map((_, i) => (
                             <span key={i} className="material-icons-round drop-shadow-md">star</span>
                           ))}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isSkill ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isSkill ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
                             {isSkill ? 'スキル' : 'パッシブ'}
                           </span>
-                          <span className="text-[10px] font-bold text-amber-400">Lv.{lv}</span>
+                          <span className="text-[11px] font-bold text-amber-400">Lv.{lv}</span>
                         </div>
                         {/* 属性丸は削除 */}
                       </div>
@@ -1478,7 +1509,7 @@ const App = () => {
                           return (
                             <div className="mt-3 pt-3 border-t border-white/10 flex flex-col gap-1.5">
                               {dynamicInfos.map((info, idx) => (
-                                <div key={`dyn-${idx}`} className="flex justify-between items-center text-[10px]">
+                                <div key={`dyn-${idx}`} className="flex justify-between items-center text-[11px]">
                                   <span className={`px-2 py-0.5 rounded-sm font-bold tracking-wider ${info.type === 'buff' ? 'bg-amber-500/20 text-amber-300' : 'bg-indigo-500/20 text-indigo-300'}`}>
                                     {info.label}
                                   </span>
@@ -1497,10 +1528,10 @@ const App = () => {
                       {t.curseSeal > 0 && (
                         <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2">
                           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30">
-                            <span className="material-icons-round text-[10px] text-red-400">history_edu</span>
-                            <span className="text-[10px] font-bold text-red-300">呪印</span>
+                            <span className="material-icons-round text-[11px] text-red-400">history_edu</span>
+                            <span className="text-[11px] font-bold text-red-300">呪印</span>
                           </div>
-                          <span className="text-[10px] text-slate-300">効果が{t.curseSeal}回発動する（売却できない）</span>
+                          <span className="text-[11px] text-slate-300">効果が{t.curseSeal}回発動する（売却できない）</span>
                         </div>
                       )}
 
@@ -1513,8 +1544,8 @@ const App = () => {
                             <div className="mt-3 pt-3 border-t border-white/10">
                               <div className="flex items-center gap-2 mb-1.5 overflow-hidden">
                                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30">
-                                  <span className="material-icons-round text-[10px] text-indigo-400">content_copy</span>
-                                  <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-tight">コピー中</span>
+                                  <span className="material-icons-round text-[11px] text-indigo-400">content_copy</span>
+                                  <span className="text-[11px] font-bold text-indigo-300 uppercase tracking-tight">コピー中</span>
                                 </div>
                                 <div className="h-[1px] flex-1 bg-gradient-to-r from-indigo-500/30 to-transparent" />
                               </div>
@@ -1527,9 +1558,9 @@ const App = () => {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center justify-between">
                                     <p className="text-xs font-bold text-white truncate">{target.name}</p>
-                                    <span className="text-[9px] font-bold text-amber-400 ml-2 whitespace-nowrap">Lv.{target.level || 1}</span>
+                                    <span className="text-[10px] font-bold text-amber-400 ml-2 whitespace-nowrap">Lv.{target.level || 1}</span>
                                   </div>
-                                  <p className="text-[10px] text-slate-400 truncate opacity-80">{getTokenDescription(target, target.level || 1, currentRunStats, tokens, activeBuffs)}</p>
+                                  <p className="text-[11px] text-slate-400 truncate opacity-80">{getTokenDescription(target, target.level || 1, currentRunStats, tokens, activeBuffs)}</p>
                                   {/* 動的情報の表示 (コピー対象) */}
                                   {(() => {
                                     const dynamicInfos = getTokenDynamicInfo(target, target.level || 1, currentRunStats, tokens, activeBuffs, { stars });
@@ -1537,7 +1568,7 @@ const App = () => {
                                       return (
                                         <div className="mt-1.5 pt-1.5 border-t border-white/5 flex flex-col gap-1">
                                           {dynamicInfos.map((info, idx) => (
-                                            <div key={`copy-dyn-${idx}`} className="flex justify-between items-center text-[9px]">
+                                            <div key={`copy-dyn-${idx}`} className="flex justify-between items-center text-[10px]">
                                               <span className={`px-1.5 py-0.5 rounded-sm font-bold ${info.type === 'buff' ? 'bg-amber-500/10 text-amber-400/80' : 'bg-indigo-500/10 text-indigo-300/80'}`}>
                                                 {info.label}
                                               </span>
@@ -1560,7 +1591,7 @@ const App = () => {
                             <div className="mt-3 pt-3 border-t border-white/10">
                               <div className="flex items-center gap-2 text-amber-500/60 bg-amber-500/5 p-2 rounded-lg border border-amber-500/10">
                                 <span className="material-icons-round text-sm">warning</span>
-                                <p className="text-[10px] font-medium leading-tight">左隣にトークンがありません。<br />右側に配置することで効果をコピーします。</p>
+                                <p className="text-[11px] font-medium leading-tight">左隣にトークンがありません。<br />右側に配置することで効果をコピーします。</p>
                               </div>
                             </div>
                           );
@@ -1572,7 +1603,7 @@ const App = () => {
                     {isSkill && (
                       <div className="bg-slate-900/60 rounded-xl p-3 mb-3 border border-white/5">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] text-slate-500 font-bold uppercase">チャージ</span>
+                          <span className="text-[11px] text-slate-500 font-bold uppercase">チャージ</span>
                           <span className={`text-xs font-bold ${isReady ? 'text-green-400' : 'text-orange-400'}`}>{charge} / {cost}</span>
                         </div>
                         <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
@@ -1595,7 +1626,7 @@ const App = () => {
                             <div className="flex items-center gap-1.5 mb-1">
                               <span className={`material-icons-round text-sm ${encIsDisabled ? 'text-slate-400' : 'text-amber-400'}`}>auto_fix_high</span>
                               <span className={`text-xs font-bold ${encIsDisabled ? 'text-slate-400' : 'text-amber-400'}`}>{enc.name}</span>
-                              {encIsDisabled && <span className="ml-auto text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded-sm">無効</span>}
+                              {encIsDisabled && <span className="ml-auto text-[11px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded-sm">無効</span>}
                             </div>
                             <p className={`text-[11px] leading-relaxed ${encIsDisabled ? 'text-slate-500' : 'text-amber-200/70'}`}>{getEnchantDescription(enc.id)}</p>
                           </div>
@@ -1617,9 +1648,26 @@ const App = () => {
                       return (
                         <div className="bg-slate-900/60 rounded-xl p-3 mb-3 border border-white/5">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">並び替え</span>
-                            <span className="text-[10px] text-slate-600">現在: <span className="text-slate-300 font-bold">{currentPos}</span> / {total} 番目</span>
+                            <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">並び替え</span>
+                            <span className="text-[11px] text-slate-600">現在: <span className="text-slate-300 font-bold">{currentPos}</span> / {total} 番目</span>
                           </div>
+                          <div className="flex gap-2 mb-2">
+                            <button
+                              onClick={() => moveToken(t, currentPos - 1)}
+                              disabled={currentPos <= 1}
+                              className="flex-1 py-2 rounded-lg bg-slate-700 text-white text-sm font-bold active:scale-95 disabled:opacity-30 flex items-center justify-center gap-1"
+                            >
+                              <span className="material-icons-round text-base">chevron_left</span>前へ
+                            </button>
+                            <button
+                              onClick={() => moveToken(t, currentPos + 1)}
+                              disabled={currentPos >= total}
+                              className="flex-1 py-2 rounded-lg bg-slate-700 text-white text-sm font-bold active:scale-95 disabled:opacity-30 flex items-center justify-center gap-1"
+                            >
+                              後ろへ<span className="material-icons-round text-base">chevron_right</span>
+                            </button>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mb-2">欄のトークンを長押しして、そのままドラッグでも並び替えできます</p>
                           <div className="flex gap-2">
                             <input
                               type="number"
@@ -1673,11 +1721,11 @@ const App = () => {
                               <div className="flex flex-col gap-0.5">
                                 <div className="flex items-center gap-1.5 text-red-400">
                                   <span className="material-icons-round text-sm">lock</span>
-                                  <span className="text-[10px] font-bold uppercase tracking-wider">呪い解除条件</span>
+                                  <span className="text-[11px] font-bold uppercase tracking-wider">呪い解除条件</span>
                                 </div>
                                 <p className="text-[11px] text-red-200/80 font-bold ml-5">{t.conditionDesc}</p>
                               </div>
-                              <span className="text-[10px] font-mono text-slate-400 self-start mt-0.5">{Math.floor(prog.current)} / {prog.target}</span>
+                              <span className="text-[11px] font-mono text-slate-400 self-start mt-0.5">{Math.floor(prog.current)} / {prog.target}</span>
                             </div>
                             <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5">
                               <div
@@ -1685,7 +1733,7 @@ const App = () => {
                                 style={{ width: `${prog.percent}%` }}
                               />
                             </div>
-                            <p className="text-[10px] text-slate-500 italic text-center">条件達成で浄化され、星3の力に変わる...</p>
+                            <p className="text-[11px] text-slate-500 italic text-center">条件達成で浄化され、星3の力に変わる...</p>
                             {/* 装飾 */}
                             <div className="absolute top-0 right-0 w-12 h-12 bg-red-500/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-lg" />
                           </div>
@@ -1750,7 +1798,7 @@ const App = () => {
                     よろしいですか？
                   </p>
                   <div className="bg-slate-950/50 rounded-xl p-2.5 mb-4 border border-white/5">
-                    <span className="text-[9px] text-slate-500 block uppercase">獲得スター</span>
+                    <span className="text-[10px] text-slate-500 block uppercase">獲得スター</span>
                     <span className="text-sm font-black text-amber-400 font-mono">+{price} ★</span>
                   </div>
                   <div className="flex flex-col gap-2">
@@ -1803,7 +1851,7 @@ const App = () => {
                       <div className="flex-1">
                         <h3 className={`text-lg font-bold font-display italic leading-tight ${encIsDisabled ? 'text-slate-300' : 'text-amber-400'}`}>{enc.name}</h3>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${encIsDisabled ? 'bg-slate-700 text-slate-400' : 'bg-amber-500/20 text-amber-500'}`}>
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${encIsDisabled ? 'bg-slate-700 text-slate-400' : 'bg-amber-500/20 text-amber-500'}`}>
                             {encIsDisabled ? '無効' : '有効'}
                           </span>
                         </div>

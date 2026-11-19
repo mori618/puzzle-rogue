@@ -201,12 +201,12 @@ export const DemonGame = ({ state, onResolve }) => {
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-slate-900/60 rounded-xl p-2 text-center border border-white/5">
           <div className="text-4xl">{last ? DEMON_MOVE_INFO[last.player].icon : '🧑'}</div>
-          <div className="text-[10px] text-slate-400 mb-1">あなた</div>
+          <div className="text-[11px] text-slate-400 mb-1">あなた</div>
           <ChargeBar value={pc} color="bg-amber-300" />
         </div>
         <div className="bg-slate-900/60 rounded-xl p-2 text-center border border-red-500/20">
           <div className="text-4xl">{last ? DEMON_MOVE_INFO[last.demon].icon : '😈'}</div>
-          <div className="text-[10px] text-slate-400 mb-1">デーモン</div>
+          <div className="text-[11px] text-slate-400 mb-1">デーモン</div>
           <ChargeBar value={dc} color="bg-red-500" />
         </div>
       </div>
@@ -230,12 +230,12 @@ export const DemonGame = ({ state, onResolve }) => {
               className="bg-slate-700 hover:bg-slate-600 border border-white/10 rounded-xl py-3 flex flex-col items-center active:scale-95 disabled:opacity-40"
             >
               <span className="text-2xl">{DEMON_MOVE_INFO[m].icon}</span>
-              <span className="text-[10px] text-slate-200 font-bold mt-1">{DEMON_MOVE_INFO[m].label}</span>
+              <span className="text-[11px] text-slate-200 font-bold mt-1">{DEMON_MOVE_INFO[m].label}</span>
             </button>
           ))}
         </div>
       )}
-      {!result && <div className="text-[10px] text-slate-500 text-center">ラウンド {round + 1} / {DEMON_MAX_ROUNDS}</div>}
+      {!result && <div className="text-[11px] text-slate-500 text-center">ラウンド {round + 1} / {DEMON_MAX_ROUNDS}</div>}
     </div>
   );
 };
@@ -426,14 +426,14 @@ export const DoubleDiceGame = ({ state, onResolve }) => {
           ゾロ目！ボーナス発動！
         </p>
       )}
-      <div className="grid grid-cols-3 gap-1 text-[10px]">
+      <div className="grid grid-cols-3 gap-1 text-[11px]">
         {[1, 2, 3, 4, 5, 6].map(n => (
           <div key={n} className="rounded px-1 py-1 text-center border border-white/5 bg-slate-900/50 text-slate-400">
             {n}: {DICE_FACES[n].label}
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-slate-500 text-center -mt-2">ゾロ目でボーナス。1・2のゾロ目は効果が反転して良い効果に！</p>
+      <p className="text-[11px] text-slate-500 text-center -mt-2">ゾロ目でボーナス。1・2のゾロ目は効果が反転して良い効果に！</p>
       {confirmed ? (
         <ResultBox title={`${a} と ${b}！`} note={(state.bonus?.rewardBoost || 1) > 1 ? '賽振り：良い効果アップ！' : undefined} rewards={rewardsFor(a, b)} />
       ) : !bothDone ? (
@@ -646,7 +646,7 @@ export const RunningGame = ({ state, onResolve }) => {
           <div className="text-xs text-slate-400">距離</div>
           <div className="text-3xl font-black text-amber-300" data-testid="running-distance">{meters}m</div>
         </div>
-        <div className="text-[10px] text-slate-400 text-right leading-relaxed">
+        <div className="text-[11px] text-slate-400 text-right leading-relaxed">
           {RUN_FAIL_METERS}m未満は代償<br />400m 倍率×2／600m 倍率×3／1000m 完走
         </div>
       </div>

@@ -43,9 +43,9 @@ const EffectRow = ({ slotLabel, title, emptyText, onClick }) => (
   >
     <div className="flex-1 min-w-0">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-bold text-slate-400 tracking-widest">{slotLabel}</span>
+        <span className="text-[11px] font-bold text-slate-400 tracking-widest">{slotLabel}</span>
         {title?.category && (
-          <span className="text-[9px] text-indigo-300 bg-indigo-500/10 border border-indigo-400/20 px-1.5 py-0.5 rounded-full">
+          <span className="text-[10px] text-indigo-300 bg-indigo-500/10 border border-indigo-400/20 px-1.5 py-0.5 rounded-full">
             {title.category}
           </span>
         )}
@@ -81,7 +81,7 @@ const TitleInfoPanel = ({ equippedTitle, onClose, onChangeTitle }) => {
         aria-label="装備中の二つ名"
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold tracking-widest">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-bold tracking-widest">
             <span className="material-icons-round text-amber-400 text-base">military_tech</span>
             EQUIPPED TITLE / 装備中の二つ名
           </div>
