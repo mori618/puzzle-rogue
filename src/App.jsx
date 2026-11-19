@@ -168,7 +168,15 @@ const App = () => {
   // トークン欄の長押しドラッグ並び替え
   const reorderMaxSlots = INITIAL_TOKEN_SLOTS + (tokenSlotExpansionCount || 0);
   const tokenReorder = useTokenReorder({
-    moveToken,
+    // 空きスロットに落とした場合は末尾扱いにし、位置が変わらないときは何もしない
+    moveToken: (tok, pos) => {
+      const isSkill = tok.type === 'skill';
+      const same = tokens.filter(t => t && (isSkill ? t.type === 'skill' : t.type !== 'skill'));
+      const curPos = same.findIndex(t => t.instanceId === tok.instanceId) + 1;
+      const clamped = Math.max(1, Math.min(pos, same.length));
+      if (curPos === clamped) return;
+      moveToken(tok, clamped);
+    },
     pages: {
       passive: { count: Math.ceil(Math.max(reorderMaxSlots, tokens.filter(t => t && t.type !== 'skill').length) / 5), set: setPassiveTokenPage },
       active: { count: Math.ceil(Math.max(reorderMaxSlots, tokens.filter(t => t && t.type === 'skill').length) / 5), set: setActiveTokenPage },
@@ -1315,7 +1323,7 @@ const App = () => {
                           disabled={isMaxLevel}
                           className={`py-3 rounded-xl font-bold active:scale-95 shadow-lg transition-opacity ${isMaxLevel ? 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-50' : 'bg-primary text-white shadow-primary/25'}`}
                         >
-                          {isMaxLevel ? `最大Lv到達済み` : `強化 (Lv UP)`}
+                          {isMaxLevel ? `最大Lv到達済み` : `強化（レベルアップ）`}
                         </button>
                       );
                     })()}
@@ -1344,7 +1352,7 @@ const App = () => {
                 levelup: { label: 'レベルアップ', icon: 'upgrade', color: 'text-emerald-300' },
                 tenth: { label: 'スター1/10', icon: 'heart_broken', color: 'text-red-500' },
                 quintuple: { label: 'スター×5', icon: 'auto_awesome', color: 'text-amber-200' },
-                levelup2: { label: 'Lv UP×2', icon: 'upgrade', color: 'text-emerald-300' },
+                levelup2: { label: 'レベルアップ×2', icon: 'upgrade', color: 'text-emerald-300' },
                 quarter: { label: 'スター1/4', icon: 'trending_down', color: 'text-red-400' },
                 twentieth: { label: 'スター1/20', icon: 'heart_broken', color: 'text-red-500' },
               };
