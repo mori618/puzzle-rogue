@@ -76,6 +76,7 @@ export const TOKEN_LAYERS = {
   "giant": ["mult"],
   "enhance_amp": ["add"],
   "bonus_skyfall": ["add"],
+  "rainbow_bridge": ["add"],
   "move_drop_boost": ["add"],
   "legend_acrobat": ["mult"],
   "legend_sky_god": ["mult"],

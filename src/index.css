@@ -819,6 +819,13 @@ body {
 }
 
 /* --- Rainbow Drop Styles (フラットスタイル) --- */
+.orb-shape-rainbow {
+  border-radius: 50%;
+}
+.orb.orb-shape-rainbow .orb-inner {
+  border-radius: 50%;
+}
+
 .orb-inner.orb-rainbow {
   background: conic-gradient(
     #ef4444 0deg 60deg,
@@ -872,19 +879,20 @@ body {
   animation: rainbow-hit 0.3s ease-out;
 }
 
+/* 位置は transform(translate3d) で持っているので、拡大は独立した scale プロパティで行う */
 @keyframes rainbow-hit {
   0% {
-    transform: scale(1);
+    scale: 1;
     filter: brightness(1) drop-shadow(0 0 0px white);
   }
 
   50% {
-    transform: scale(1.2);
+    scale: 1.2;
     filter: brightness(2) drop-shadow(0 0 15px white);
   }
 
   100% {
-    transform: scale(1);
+    scale: 1;
     filter: brightness(1) drop-shadow(0 0 0px white);
   }
 }

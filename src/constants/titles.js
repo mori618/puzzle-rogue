@@ -51,7 +51,7 @@
  *   解放条件は無く、「合計○種解放」の条件（titles_unlocked）の数にも含めない。
  *
  * ■ disabled: true
- *   今のゲームでは使えない機能（エンチャント・虹ドロップなど）に依存する二つ名。
+ *   今のゲームでは使えない機能（エンチャントなど）に依存する二つ名。
  *   定義は残すが、解放・装備・図鑑表示の対象から外す（titleManager.isTitleDisabled）。
  *
  * ■ 追加の二つ名（titlesExtra.js）
@@ -296,8 +296,6 @@ export const PREFIX_TITLES = [
   },
   {
     id: 'A33', name: '虹彩の', category: '特殊ドロップ',
-    // 虹ドロップを出すトークンがすべてコメントアウトされていて解放できないため、虹ドロップを戻すまで出さない
-    disabled: true,
     desc: 'その手番に消した虹ドロップ1個につきコンボ +3（最大+15）',
     conditionType: 'rainbow_erased', targetValue: 20,
     conditionDesc: '虹ドロップを累計20個消去',
