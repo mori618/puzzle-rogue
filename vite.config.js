@@ -44,7 +44,7 @@ export default defineConfig({
       injectRegister: false, // 登録は src/utils/swUpdate.js で行う
       manifest: false, // public/manifest.webmanifest を使う
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,txt}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,webmanifest,txt}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         clientsClaim: true, // 初回インストール直後からフォント等をキャッシュできるようにする

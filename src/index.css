@@ -2656,62 +2656,52 @@ button:disabled {
   padding-top: 8px;
 }
 
-/* ロゴ上に浮かぶドロップ */
-.title-orbs {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 10px;
-  height: 56px;
-  margin-bottom: 14px;
+/* タイトル背景画像（public/title/title-bg.webp）。上部のドロップを見せるため上寄せで敷き詰める */
+.title-bg-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: #161022;
+  /* 横長画面：高さに合わせて中央に置き、左右は ::after で背景色になじませる */
+  background-size: auto 100%;
+  background-position: center top;
+  background-repeat: no-repeat;
 }
-.title-orb {
-  width: 34px;
-  height: 34px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
-  animation: title-orb-float 3.2s ease-in-out infinite;
-  animation-delay: calc(var(--i) * -0.45s);
+/* 縦長画面（スマホ）：画面いっぱいに敷き詰める */
+@media (max-aspect-ratio: 2/3) {
+  .title-bg-art { background-size: cover; }
 }
-.title-orb .material-icons-round { font-size: 18px; }
-.title-orb:nth-child(1), .title-orb:nth-child(6) { margin-bottom: 0; }
-.title-orb:nth-child(2), .title-orb:nth-child(5) { margin-bottom: 10px; }
-.title-orb:nth-child(3), .title-orb:nth-child(4) { margin-bottom: 18px; }
-
-@keyframes title-orb-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-.title-logo {
-  font-family: var(--font-game-header), sans-serif;
-  font-size: clamp(40px, 13vw, 56px);
-  line-height: 1;
-  letter-spacing: 0.08em;
-  background: linear-gradient(180deg, #fde68a 0%, #fbbf24 45%, #d97706 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 4px 0 rgba(120, 53, 15, 0.55)) drop-shadow(0 0 24px rgba(251, 191, 36, 0.35));
-}
-.title-logo-sub {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.45em;
-  color: #a5b4fc;
-  padding-left: 0.45em;
-}
-.title-logo-sub::before,
-.title-logo-sub::after {
+/* 横長画面では画像の左右が途切れるので、端を背景色になじませる */
+.title-bg-art::after {
   content: "";
-  width: 28px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(165, 180, 252, 0.7));
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, #161022 calc(50% - 33.3vh), transparent calc(50% - 26vh), transparent calc(50% + 26vh), #161022 calc(50% + 33.3vh)),
+    linear-gradient(180deg, transparent 55%, rgba(22, 16, 34, 0.6) 100%);
 }
-.title-logo-sub::after { transform: scaleX(-1); }
+@media (max-aspect-ratio: 2/3) {
+  .title-bg-art::after {
+    background: linear-gradient(180deg, transparent 55%, rgba(22, 16, 34, 0.6) 100%);
+  }
+}
+
+/* タイトルロゴ画像（public/title/title-logo.webp） */
+.title-logo-img-wrap {
+  margin: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.title-logo-img {
+  display: block;
+  width: min(100%, 360px);
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
+}
 
 /* 装備中の二つ名 */
 .title-badge {
