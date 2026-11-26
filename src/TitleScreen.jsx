@@ -29,15 +29,9 @@ const DevUpdateInfo = () => {
     );
 };
 
-// ロゴの上に並べるドロップ（ゲーム内と同じ形・色・アイコン）
-const HERO_ORBS = [
-    { type: 'fire', icon: 'whatshot' },
-    { type: 'water', icon: 'water_drop' },
-    { type: 'wood', icon: 'air' },
-    { type: 'light', icon: 'bolt' },
-    { type: 'dark', icon: 'nightlight_round' },
-    { type: 'heart', icon: 'favorite' },
-];
+// タイトル画像（public/title/ に配置。base: './' なので BASE_URL 起点で参照する）
+const TITLE_BG_SRC = `${import.meta.env.BASE_URL}title/title-bg.webp`;
+const TITLE_LOGO_SRC = `${import.meta.env.BASE_URL}title/title-logo.webp`;
 
 /** モード・コレクションのカード型ボタン */
 const CardButton = ({ icon, label, desc, tone, onClick }) => (
@@ -97,11 +91,12 @@ const TitleScreen = ({
 
     return (
         <div className="w-full h-[100dvh] bg-background-dark flex flex-col items-center justify-between relative overflow-hidden font-game-cyber px-4 py-[calc(10px+env(safe-area-inset-top,0px))] pb-[calc(10px+env(safe-area-inset-bottom,0px))]">
-            {/* Cyber Grid Background */}
-            <div className="cyber-grid-bg"></div>
-
-            {/* 背景の光 */}
-            <div className="screen-shell-glow z-0" aria-hidden="true" />
+            {/* タイトル背景画像 */}
+            <div
+                className="title-bg-art"
+                style={{ backgroundImage: `url(${TITLE_BG_SRC})` }}
+                aria-hidden="true"
+            />
 
             {/* 二つ名図鑑モーダル */}
             {showTitleEncyclopedia && (
@@ -155,17 +150,16 @@ const TitleScreen = ({
                     <div className="my-auto w-full flex flex-col gap-5 py-2">
                         {/* ロゴ */}
                         <div className="title-hero">
-                            <div className="title-orbs" aria-hidden="true">
-                                {HERO_ORBS.map((o, i) => (
-                                    <div key={o.type} className={`title-orb orb-shape-${o.type}`} style={{ '--i': i }}>
-                                        <div className={`orb-inner orb-${o.type}`}>
-                                            <span className="material-icons-round">{o.icon}</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <h1 className="title-logo">PUZZLE</h1>
-                            <p className="title-logo-sub">ROGUE-LIKE</p>
+                            <h1 className="title-logo-img-wrap">
+                                <img
+                                    src={TITLE_LOGO_SRC}
+                                    alt="Puzzlogue"
+                                    className="title-logo-img"
+                                    width="960"
+                                    height="194"
+                                    draggable="false"
+                                />
+                            </h1>
 
                             {/* 装備中二つ名バッジ */}
                             <button
