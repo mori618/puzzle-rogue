@@ -32,7 +32,7 @@ export const TOKEN_TAGS = {
   fun: { label: "遊び" },                  // ミニゲーム・ギャンブル・クセの強いルール変更
   board: { label: "盤面操作" },            // 変換・生成・整列など盤面を直接いじる
   skyfall: { label: "落下" },              // 落ちてくるドロップ・落ちコンに関わる
-  special_drop: { label: "特殊ドロップ" }, // ボム・リピート・スター・プラス・ムーブ
+  special_drop: { label: "特殊ドロップ" }, // ボム・リピート・スター・プラス・ムーブ・虹
   shape: { label: "消し方" },              // 十字・L字・正方形・横1列・4個消し など
   economy: { label: "スター・ショップ" },  // スター（通貨）・ショップ・売却
   time: { label: "操作時間" },             // 操作時間を伸ばす・変える
@@ -103,6 +103,8 @@ const EFFECT_TAGS = {
   spawn_repeat: ["special_drop"], convert_repeat: ["special_drop"],
   move_drop: ["special_drop", "combo_add"],
   move_drop_add: ["special_drop"],
+  spawn_rainbow: ["special_drop", "spawn"], rainbow_master: ["special_drop", "spawn"],
+  rainbow_chance: ["special_drop", "skyfall", "probability"], rainbow_combo_bonus: ["special_drop", "combo_add"],
   // エネルギー
   charge_boost: ["energy"], auto_charge: ["energy"], zero_combo_charge: ["energy"],
   active_duration_boost: ["energy"], heart_to_energy: ["energy"],

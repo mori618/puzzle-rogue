@@ -4,6 +4,10 @@ import { formatJapaneseNumber } from '../utils/numberUtils.js';
 
 // 1ターンの消去回数（リピートの再消去を含む）がこれを超えたら、自動で早送りにする
 const AUTO_FAST_FORWARD_CLEARS = 20;
+// 虹ドロップの初期カウント（このカウントの回数だけマッチに使える）
+const RAINBOW_DEFAULT_COUNT = 3;
+// 消去時に付く形状別アニメーションのクラス（生き残る虹ドロップからは外す）
+const MATCH_ANIM_CLASSES = ["orb-matching", "orb-matching-len4", "orb-matching-row", "orb-matching-cross", "orb-matching-l-shape", "orb-matching-square", "orb-matching-len5", "orb-matching-column"];
 import soundManager from '../utils/SoundManager';
 import { SE_IDS } from '../constants/sounds';
 
@@ -183,6 +187,7 @@ class PuzzleEngine {
 
   applyFingerTransform(orb) {
     if (!orb || !this.fingerTransformConfig) return;
+    if (orb.isRainbow) return; // 虹ドロップは色を変えない（カウントが消えてしまうため）
     const { color, limit } = this.fingerTransformConfig;
 
     if (this.fingerTransformHistory.includes(orb)) return;
@@ -487,28 +492,31 @@ class PuzzleEngine {
     }
 
     // 虹ドロップかどうか（スキル等で確定生成する場合はtypeが'rainbow'で来るか、isNewのパッシブ判定）
+    // 虹ドロップの type は "rainbow"（どの色でもない）。色の判定は findCombos で isRainbow を見てワイルド扱いする
     let isRainbow = false;
-    let rainbowCount = 3;
-    if (savedData && savedData.isRainbow) {
-      isRainbow = true;
-      rainbowCount = savedData.rainbowCount || 3;
-      type = "heart"; // 内部的なフォールバック（表示用）
-      inner.className = `orb-inner orb-rainbow shadow-lg`;
-    } else if (type === "rainbow") {
-      isRainbow = true;
-      type = "heart"; // 内部的なフォールバック（表示用）
-      inner.className = `orb-inner orb-rainbow shadow-lg`;
-    } else if (isNew && this.rainbowRates && Array.isArray(this.rainbowRates) && this.rainbowRates.length > 0) {
-      for (const rate of this.rainbowRates) {
-        if (Math.random() < rate.value) {
-          isRainbow = true;
-          inner.className = `orb-inner orb-rainbow shadow-lg`;
-          if (this.onPassiveTrigger && rate.tokenId) {
-            this.onPassiveTrigger(rate.tokenId);
+    let rainbowCount = RAINBOW_DEFAULT_COUNT;
+    if (!isMoveDrop) {
+      if (savedData && savedData.isRainbow) {
+        isRainbow = true;
+        rainbowCount = savedData.rainbowCount > 0 ? savedData.rainbowCount : RAINBOW_DEFAULT_COUNT;
+      } else if (type === "rainbow") {
+        isRainbow = true;
+      } else if (isNew && !savedData && Array.isArray(this.rainbowRates) && this.rainbowRates.length > 0) {
+        for (const rate of this.rainbowRates) {
+          if (Math.random() < (rate.value || 0)) {
+            isRainbow = true;
+            if (this.onPassiveTrigger && rate.tokenId) {
+              this.onPassiveTrigger(rate.tokenId);
+            }
+            break;
           }
-          break;
         }
       }
+    }
+    if (isRainbow) {
+      type = "rainbow";
+      el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-rainbow`;
+      inner.className = `orb-inner orb-rainbow shadow-lg`;
     }
 
     const iconSpan = document.createElement("span");
@@ -532,7 +540,9 @@ class PuzzleEngine {
 
     // ボムかどうか
     let isBomb = false;
-    if (savedData && savedData.isBomb) {
+    if (isRainbow) {
+      // 虹ドロップはボムにならない
+    } else if (savedData && savedData.isBomb) {
       isBomb = true;
     } else if (isNew && this.bombRates && this.bombRates.colors && this.bombRates.colors[type]) {
       const rates = this.bombRates.colors[type];
@@ -547,7 +557,9 @@ class PuzzleEngine {
 
     // リピートドロップかどうか
     let isRepeat = false;
-    if (savedData && savedData.isRepeat) {
+    if (isRainbow) {
+      // 虹ドロップはリピートにならない
+    } else if (savedData && savedData.isRepeat) {
       isRepeat = true;
     } else if (isNew && this.repeatRates && this.repeatRates.colors && this.repeatRates.colors[type]) {
       const rates = this.repeatRates.colors[type];
@@ -562,12 +574,14 @@ class PuzzleEngine {
 
     // スタードロップかどうか（スキル等で確定生成する場合はtypeが'star'で来るか、isNewのパッシブ判定）
     let isStar = false;
-    if (savedData && savedData.isStar) {
+    if (savedData && savedData.isStar && !isRainbow) {
       isStar = true;
     } else if (type === "star") {
       isStar = true;
       const aTypes = this.getAvailableTypes(true);
       type = aTypes[Math.floor(Math.random() * aTypes.length)]; // ランダムな色にする
+    } else if (isRainbow) {
+      // 虹ドロップはボム・リピート・スターを兼ねない
     } else if (isNew && !savedData && this.meteorShowerPendingStars > 0) {
       isStar = true;
       this.meteorShowerPendingStars--;
@@ -583,7 +597,7 @@ class PuzzleEngine {
     }
 
     // --- New: Starfall (星呼びの刻印) ---
-    if (!isStar && isNew && !savedData && this.starfallChance && Math.random() < this.starfallChance) {
+    if (!isStar && !isRainbow && isNew && !savedData && this.starfallChance && Math.random() < this.starfallChance) {
       isStar = true;
     }
 
@@ -595,7 +609,7 @@ class PuzzleEngine {
     el.style.top = `${baseTop}px`;
     el.style.left = `${baseLeft}px`;
 
-    const isEnhanced = savedData ? !!savedData.isEnhanced : false;
+    const isEnhanced = savedData && !isRainbow ? !!savedData.isEnhanced : false;
     const orb = { type, el, r, c, isSkyfall: isNew, baseTop, baseLeft, isEnhanced, isBomb, isRepeat, isStar, isRainbow, rainbowCount, isMoveDrop, moveTokenId, moveCount, moveSteps, moveRequired };
 
     if (isBomb) {
@@ -1288,7 +1302,7 @@ class PuzzleEngine {
     if (this._isDestroyed) return;
     this.state.forEach((row) => {
       row.forEach((orb) => {
-        if (orb && !orb.isMoveDrop) {
+        if (orb && !orb.isMoveDrop && !orb.isRainbow) {
           orb.type = targetColor;
           orb.isEnhanced = true;
           // DOM要素のクラスと見た目の更新
@@ -1436,7 +1450,7 @@ class PuzzleEngine {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
-        if (orb) {
+        if (orb && !orb.isRainbow && !orb.isMoveDrop) {
           orb.isStar = true;
           orb.isEnhanced = true;
           if (orb.el) {
@@ -1452,7 +1466,7 @@ class PuzzleEngine {
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];
-        if (orb) {
+        if (orb && !orb.isRainbow && !orb.isMoveDrop) {
           orb.isEnhanced = true;
           if (orb.el) {
             this.addPlusMark(orb.el);
@@ -2094,14 +2108,13 @@ class PuzzleEngine {
 
         // Calculate count decrement rules.
         // We do this per group. So one group = one "hit".
+        // 1グループ＝虹ドロップ1回分の使用。虹だけのグループは全カウントを使い切って消える
         if (hasRainbow) {
-          if (!this.noSpecialEffects) {
-            group.filter(o => o.isRainbow).forEach(o => {
-              // Mark for decrement
-              o._pendingRainbowHits = (o._pendingRainbowHits || 0) + 1;
-              rainbowOrbsToUpdate.add(o);
-            });
-          }
+          group.filter(o => o.isRainbow).forEach(o => {
+            const hits = group.isPureRainbow ? Math.max(1, o.rainbowCount || 0) : 1;
+            o._pendingRainbowHits = (o._pendingRainbowHits || 0) + hits;
+            rainbowOrbsToUpdate.add(o);
+          });
         }
 
         // グループ内のリピートドロップ数をカウント
@@ -2382,7 +2395,8 @@ class PuzzleEngine {
             // Survive: update UI
             const countText = ro.el.querySelector('.rainbow-count-text');
             if (countText) countText.innerText = ro.rainbowCount;
-            ro.el.classList.remove("orb-matching"); // Undo the matching animation state visually so it can be matched again
+            // 形状別の消滅アニメーション（forwards で消えたまま残る）を外して、盤面に見える状態へ戻す
+            ro.el.classList.remove(...MATCH_ANIM_CLASSES);
 
             // Add a hit animation (pulse) instead of deletion
             ro.el.classList.add("rainbow-hit-pulse");
@@ -2549,6 +2563,13 @@ class PuzzleEngine {
       visitedPerColor[t] = Array.from({ length: this.rows }, () => Array(this.cols).fill(false));
     });
 
+    // 虹ドロップはワイルド（全色の代わり）。試練中（特殊ドロップ停止）はどの色とも揃わない
+    const isWild = (o) => !!(o && o.isRainbow && !this.noSpecialEffects);
+    const fits = (o, color) => !!o && (isWild(o) || (!o.isRainbow && o.type === color));
+    const pureRainbowGroups = [];
+    // 虹ドロップだけのグループは1回だけ数える（消せる色のうち最初の色で判定する）
+    const pureRainbowColor = basicTypes.find(t => !(this.noEraseColors && this.noEraseColors.includes(t)));
+
     for (const color of basicTypes) {
       if (this.noEraseColors && this.noEraseColors.includes(color)) continue;
       const matched = Array.from({ length: this.rows }, () => Array(this.cols).fill(false));
@@ -2557,13 +2578,12 @@ class PuzzleEngine {
       for (let r = 0; r < this.rows; r++) {
         for (let c = 0; c <= this.cols - this.minMatchLength; c++) {
           const orb = this.state[r][c];
-          if (!orb) continue;
-          if (orb.type !== color && !orb.isRainbow) continue;
+          if (!fits(orb, color)) continue;
 
           let isMatch = true;
           for (let k = 1; k < this.minMatchLength; k++) {
             const nextOrb = this.state[r][c + k];
-            if (!nextOrb || (nextOrb.type !== color && !nextOrb.isRainbow)) {
+            if (!fits(nextOrb, color)) {
               isMatch = false;
               break;
             }
@@ -2571,7 +2591,7 @@ class PuzzleEngine {
           if (isMatch) {
             for (let k = 0; k < this.minMatchLength; k++) matched[r][c + k] = true;
             let k = c + this.minMatchLength;
-            while (k < this.cols && this.state[r][k] && (this.state[r][k].type === color || this.state[r][k].isRainbow)) {
+            while (k < this.cols && fits(this.state[r][k], color)) {
               matched[r][k++] = true;
             }
           }
@@ -2582,13 +2602,12 @@ class PuzzleEngine {
       for (let c = 0; c < this.cols; c++) {
         for (let r = 0; r <= this.rows - this.minMatchLength; r++) {
           const orb = this.state[r][c];
-          if (!orb) continue;
-          if (orb.type !== color && !orb.isRainbow) continue;
+          if (!fits(orb, color)) continue;
 
           let isMatch = true;
           for (let k = 1; k < this.minMatchLength; k++) {
             const nextOrb = this.state[r + k][c];
-            if (!nextOrb || (nextOrb.type !== color && !nextOrb.isRainbow)) {
+            if (!fits(nextOrb, color)) {
               isMatch = false;
               break;
             }
@@ -2596,7 +2615,7 @@ class PuzzleEngine {
           if (isMatch) {
             for (let k = 0; k < this.minMatchLength; k++) matched[r + k][c] = true;
             let k = r + this.minMatchLength;
-            while (k < this.rows && this.state[k][c] && (this.state[k][c].type === color || this.state[k][c].isRainbow)) {
+            while (k < this.rows && fits(this.state[k][c], color)) {
               matched[k++][c] = true;
             }
           }
@@ -2624,7 +2643,7 @@ class PuzzleEngine {
               ].forEach(([dr, dc]) => {
                 const nr = curr.r + dr, nc = curr.c + dc;
                 if (nr >= 0 && nr < this.rows && nc >= 0 && nc < this.cols) {
-                  if (matched[nr][nc] && !visited[nr][nc] && (this.state[nr][nc].type === color || this.state[nr][nc].isRainbow)) {
+                  if (matched[nr][nc] && !visited[nr][nc] && fits(this.state[nr][nc], color)) {
                     visited[nr][nc] = true;
                     q.push({ r: nr, c: nc });
                   }
@@ -2638,15 +2657,24 @@ class PuzzleEngine {
               // Assign a virtual groupType so we know which color combo this was
               group.groupType = color;
               allGroups.push(group);
-            } else if (color === "heart") {
-              // Pure rainbow group, counts as heart combo for processing to not give 6x combos for free
-              group.groupType = "heart";
-              allGroups.push(group);
+            } else if (color === pureRainbowColor) {
+              // 虹ドロップだけのグループ（6色ぶん重複して数えないよう1回だけ）
+              group.groupType = color;
+              group.isPureRainbow = true;
+              pureRainbowGroups.push(group);
             }
           }
         }
       }
     }
+
+    // 虹ドロップだけのグループは、どれかの虹がすでに色つきのグループで使われていれば数えない
+    // （同じ虹の並びが「色のコンボ」と「虹だけのコンボ」で二重に数えられるのを防ぐ）
+    const usedInColorGroups = new Set();
+    allGroups.forEach(g => g.forEach(o => usedInColorGroups.add(o)));
+    pureRainbowGroups.forEach(g => {
+      if (!g.some(o => usedInColorGroups.has(o))) allGroups.push(g);
+    });
 
     let filteredGroups = allGroups;
     if (this.fourMatchRestriction) {
@@ -2741,6 +2769,10 @@ class PuzzleEngine {
     const targets = candidates.slice(0, count);
     targets.forEach(({ r, c }) => {
       const orb = this.state[r][c];
+      if (type === "rainbow") {
+        this._turnIntoRainbow(orb, RAINBOW_DEFAULT_COUNT);
+        return;
+      }
       orb.type = type;
       // Update DOM directly for performance and visual effect
       if (orb.el) {
@@ -2750,23 +2782,11 @@ class PuzzleEngine {
           inner.className = `orb-inner orb-${type} shadow-lg`;
           // Preserve marking if present (e.g. enhanced)
           const star = inner.querySelector('.enhanced-mark');
-          // For rainbow drops, we need to create/preserve the count instead of an icon
           inner.innerHTML = '';
-          if (type === "rainbow") {
-            inner.className = `orb-inner orb-rainbow shadow-lg`;
-            orb.isRainbow = true;
-            orb.rainbowCount = 5; // By default rainbow_master sets count to 5
-            const countSpan = document.createElement("span");
-            countSpan.className = "rainbow-count-text text-white font-bold text-xl select-none";
-            countSpan.innerText = orb.rainbowCount;
-            inner.appendChild(countSpan);
-          } else {
-            orb.isRainbow = false; // in case it was a rainbow, reset it
-            const iconSpan = document.createElement("span");
-            iconSpan.className = "material-icons-round text-white text-3xl select-none";
-            iconSpan.innerText = this.icons[type];
-            inner.appendChild(iconSpan);
-          }
+          const iconSpan = document.createElement("span");
+          iconSpan.className = "material-icons-round text-white text-3xl select-none";
+          iconSpan.innerText = this.icons[type];
+          inner.appendChild(iconSpan);
           if (star) inner.appendChild(star);
         }
       }
@@ -2799,12 +2819,10 @@ class PuzzleEngine {
     let idx = 0;
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
-        const type = deck[idx++] || "heart"; // Fallback to heart if deck empty (shouldn't happen)
         const orb = this.state[r][c];
-        if (orb && orb.isRainbow) {
-          idx++;
-          continue;
-        }
+        // 虹ドロップ・ムーブドロップはそのまま残す（デッキの札は消費しない）
+        if (!orb || orb.isRainbow || orb.isMoveDrop) continue;
+        const type = deck[idx++] || "heart"; // Fallback to heart if deck empty (shouldn't happen)
         orb.type = type;
         orb.isBomb = false;
 
@@ -3104,8 +3122,35 @@ class PuzzleEngine {
     });
   }
 
+  /** ドロップを虹ドロップに変える（ボム・リピート・スター・プラスは外す） */
+  _turnIntoRainbow(orb, count = RAINBOW_DEFAULT_COUNT) {
+    if (!orb || orb.isMoveDrop) return;
+    orb.isRainbow = true;
+    orb.rainbowCount = count;
+    orb.type = "rainbow";
+    orb.isBomb = false;
+    orb.isRepeat = false;
+    orb.isStar = false;
+    orb.isEnhanced = false;
+    if (!orb.el) return;
+    orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-rainbow`;
+    orb.el.querySelectorAll('.bomb-mark, .repeat-mark, .star-mark, .enhanced-mark').forEach(m => m.remove());
+    const inner = orb.el.querySelector('.orb-inner');
+    if (inner) {
+      inner.className = `orb-inner orb-rainbow shadow-lg`;
+      inner.innerHTML = '';
+      const countSpan = document.createElement("span");
+      countSpan.className = "rainbow-count-text text-white font-bold text-xl select-none";
+      countSpan.innerText = orb.rainbowCount;
+      inner.appendChild(countSpan);
+    }
+  }
+
   spawnRainbowRandom(count) {
-    if (this.processing) return;
+    if (this.processing) {
+      this._pendingBoardOps.push(() => this.spawnRainbowRandom(count));
+      return;
+    }
     const candidates = [];
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
@@ -3121,31 +3166,14 @@ class PuzzleEngine {
       [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
     }
 
-    const targets = candidates.slice(0, count);
-    targets.forEach((orb) => {
-      orb.isRainbow = true;
-      orb.rainbowCount = 3; // Basic gen sets it to 3
-      orb.type = "heart"; // internal fallback type for rainbow rendering
-
-      if (orb.el) {
-        orb.el.className = `orb absolute flex items-center justify-center orb-shadow orb-shape-heart`;
-        const inner = orb.el.querySelector('.orb-inner');
-        if (inner) {
-          inner.className = `orb-inner orb-rainbow shadow-lg`;
-          const star = inner.querySelector('.enhanced-mark');
-          inner.innerHTML = '';
-          const countSpan = document.createElement("span");
-          countSpan.className = "rainbow-count-text text-white font-bold text-xl select-none";
-          countSpan.innerText = orb.rainbowCount;
-          inner.appendChild(countSpan);
-          if (star) inner.appendChild(star);
-        }
-      }
-    });
+    candidates.slice(0, count).forEach((orb) => this._turnIntoRainbow(orb, RAINBOW_DEFAULT_COUNT));
   }
 
   setAllRainbowCounts(count) {
-    if (this.processing) return;
+    if (this.processing) {
+      this._pendingBoardOps.push(() => this.setAllRainbowCounts(count));
+      return;
+    }
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const orb = this.state[r][c];

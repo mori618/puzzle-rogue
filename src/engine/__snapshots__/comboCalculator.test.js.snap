@@ -3943,6 +3943,21 @@ exports[`calcTurnResult > 全トークン単体のスナップショット 1`] =
     "shapes": 12,
     "spread": 7,
   },
+  "gen_rainbow_rand@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rainbow_rand@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "gen_rainbow_rand@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
   "gen_rand_dark@Lv1": {
     "monoFire": 6,
     "shapes": 12,
@@ -5877,6 +5892,51 @@ exports[`calcTurnResult > 全トークン単体のスナップショット 1`] =
     "monoFire": 24,
     "shapes": 30,
     "spread": 28,
+  },
+  "rainbow_bridge@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rainbow_bridge@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rainbow_bridge@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rainbow_chance@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rainbow_chance@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rainbow_chance@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rainbow_masterx@Lv1": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rainbow_masterx@Lv2": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
+  },
+  "rainbow_masterx@Lv3": {
+    "monoFire": 6,
+    "shapes": 12,
+    "spread": 7,
   },
   "random_add@Lv1": {
     "monoFire": 6,

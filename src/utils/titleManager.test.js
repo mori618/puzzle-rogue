@@ -488,27 +488,27 @@ describe('二つ名の整理（グループ7）', () => {
     expect(getTitleNewTokenLevel()).toBe(2);
   });
 
-  it('エンチャント・虹ドロップを使う二つ名（A33・A45）は無効', () => {
-    ['A33', 'A45'].forEach(id => expect(isTitleDisabled(id), id).toBe(true));
-    ['A01', 'B01', 'E01', 'E27'].forEach(id => expect(isTitleDisabled(id), id).toBe(false));
+  it('エンチャントを使う二つ名（A45）は無効、虹ドロップを使う A33 は虹ドロップ復活で有効', () => {
+    ['A45'].forEach(id => expect(isTitleDisabled(id), id).toBe(true));
+    ['A01', 'B01', 'E01', 'E27', 'A33'].forEach(id => expect(isTitleDisabled(id), id).toBe(false));
     // 図鑑・装備画面の一覧に出ない
-    expect(VISIBLE_PREFIX_TITLES.map(t => t.id)).not.toContain('A33');
+    expect(VISIBLE_PREFIX_TITLES.map(t => t.id)).toContain('A33');
     expect(VISIBLE_PREFIX_TITLES.map(t => t.id)).not.toContain('A45');
-    expect(VISIBLE_PREFIX_TITLES).toHaveLength(PREFIX_TITLES.length - 2);
+    expect(VISIBLE_PREFIX_TITLES).toHaveLength(PREFIX_TITLES.length - 1);
     expect(VISIBLE_SUFFIX_TITLES).toHaveLength(SUFFIX_TITLES.length);
     expect(VISIBLE_EVOLVED_TITLES).toHaveLength(EVOLVED_TITLES.length);
     // エンチャントを条件・効果に使う二つ名は、すべて無効になっている
     [...PREFIX_TITLES, ...SUFFIX_TITLES, ...EVOLVED_TITLES].forEach(t => {
       const usesEnchant = t.conditionType === 'enchant_max' || (t.effects || []).some(e => e.per === 'enchant');
-      const usesRainbow = t.conditionType === 'rainbow_erased' || (t.effects || []).some(e => e.per === 'rainbow_erased');
-      if (usesEnchant || usesRainbow) expect(isTitleDisabled(t), t.id).toBe(true);
+      if (usesEnchant) expect(isTitleDisabled(t), t.id).toBe(true);
     });
   });
 
   it('無効な二つ名は条件を満たしても解放されない', () => {
     const unlocked = recordTitleProgress({ max: { enchant_max: 99, rainbow_erased: 99 } });
     expect(unlocked.map(t => t.id)).not.toContain('A45');
-    expect(unlocked.map(t => t.id)).not.toContain('A33');
+    // 虹ドロップは復活したので A33 は解放される
+    expect(unlocked.map(t => t.id)).toContain('A33');
     expect(loadTitleState().unlockedTitles.prefixes).not.toContain('A45');
   });
 
